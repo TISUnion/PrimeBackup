@@ -1,0 +1,16 @@
+# IDE
+.idea/
+.vscode/
+
+# python
+__pycache__
+*.pyc
+/venv/
+
+# MCDR
+*.mcdr
+
+# runtime & temp files
+/*.py
+*.db
+/run

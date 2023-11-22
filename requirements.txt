@@ -1,0 +1,12 @@
+# core
+mcdreforged>=2.11
+xxhash
+SQLAlchemy
+
+# compress
+python-snappy
+pyzstd
+lz4
+
+# api
+fastapi

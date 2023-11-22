@@ -1,0 +1,22 @@
+{
+    "id": "xbackup",
+    "version": "0.1.0",
+    "name": "X Backup",
+    "description": {
+        "en_us": "The backup plugin that you need",
+        "zh_cn": "多槽位备份/回档插件"
+    },
+    "author": [
+        "Fallen_Breath"
+    ],
+    "link": "https://github.com/TISUnion/xbackup",
+    "dependencies": {
+        "mcdreforged": ">=2.11"
+    },
+    "entrypoint": "xbackup.mcdr.entrypoint",
+    "archive_name": "xbackup-v{version}",
+    "resources": [
+        "lang",
+        "LICENSE"
+    ]
+}

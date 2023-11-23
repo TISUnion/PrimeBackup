@@ -4,6 +4,8 @@ from mcdreforged.api.all import *
 
 from xbackup.config.config import Config, set_config_instance
 from xbackup.dal import DAO
+
+from xbackup.db_access import DbAccess
 from xbackup.mcdr.manager import Manager
 
 
@@ -43,7 +45,7 @@ def on_load(server: PluginServerInterface, old):
 	# TODO: respect config.enabled
 
 	manager = Manager(server)
-	DAO.get().set_db(config.storage_path / 'xbackup.db')
+	DbAccess.init()
 	register_command(server)
 
 

@@ -1,19 +1,22 @@
 import os
+import stat
 from pathlib import Path
-from typing import List, NamedTuple
+from typing import List
 
 from mcdreforged.api.all import CommandSource
 
-from xbackup import schema, utils
+from xbackup import schema, utils, logger
+from xbackup.compressors import Compressor
 from xbackup.config.config import Config
-from xbackup.dao import DAO
+from xbackup.db_access import DbAccess, DbSession
 from xbackup.task.task import Task
 
 
 class BackUpTask(Task):
-	def __init__(self, source: CommandSource, comment: str):
-		super().__init__(source)
+	def __init__(self, comment: str):
+		super().__init__()
 		self.comment = comment
+		self.__blobs_rollbackers: List[callable] = []
 
 	def scan_files(self) -> List[Path]:
 		config = Config.get()
@@ -22,7 +25,7 @@ class BackUpTask(Task):
 		for target in config.backup.targets:
 			target_path = config.source_path / target
 			if not target_path.exists():
-				self.logger.info('skipping not-exist backup target {!r}'.format(target_path))
+				self.logger.info('skipping not-exist backup target {}'.format(target_path))
 				continue
 
 			if target_path.is_dir():
@@ -34,38 +37,66 @@ class BackUpTask(Task):
 
 		return [p for p in collected if not config.backup.is_file_ignore(p)]
 
-	def get_or_create_blob(self, path: Path, stat: os.stat_result) -> schema.Blob:
+	def __get_or_create_blob(self, session: DbSession, path: Path, st: os.stat_result) -> schema.Blob:
 		# TODO: optimize read time
 		# small files (<1M): all in memory, read once
 		# files with unique size: read once, compress+hash to temp file, then move
 		# file with duplicated size: read twice (slow)  <-------- current default
 		h = utils.calc_file_hash(path)
-		existing = DAO.get_blob(h)
+		existing = session.get_blob(h)
 		if existing is not None:
-			# TODO: should we need hash check here?
 			return existing
 
+		def rollback():
+			try:
+				if blob_path.is_file():
+					os.remove(blob_path)
+			except OSError as e:
+				self.logger.error('(rollback) remove blob file {!r} failed: {}'.format(blob_path, e))
 
-	def create_file(self, backup: schema.Backup, path: Path) -> schema.File:
+		blob_path = utils.get_blob_path(h)
+		self.__blobs_rollbackers.append(rollback)
+
+		if st.st_size < Config.get().backup.compress_threshold:
+			method = 'plain'
+		else:
+			method = Config.get().backup.compress_method
+		compressor = Compressor.create(method)
+		compressor.compress(path, blob_path)
+
+		return session.create_blob(hash=h, compress=method, size=st.st_size, ref_cnt=1)
+
+	def __create_file(self, session: DbSession, backup: schema.Backup, path: Path) -> schema.File:
 		related_path = path.relative_to(Config.get().source_path)
-		stat = path.stat()
+		st = path.stat()
 
-		blob = self.get_or_create_blob(path, stat)
+		if stat.S_ISDIR(st.st_mode):
+			file_hash = None
+		else:
+			blob = self.__get_or_create_blob(session, path, st)
+			file_hash = blob.hash
 
 		return schema.File(
-			hash=blob.hash,
 			backup_id=backup.id,
+			path=related_path.as_posix(),
+			file_hash=file_hash,
 
-			path=str(related_path),
-			mode=stat.st_mode,
-			uid=stat.st_uid,
-			gid=stat.st_gid,
-			mtime_ns=stat.st_mtime_ns,
-			ctime_ns=stat.st_ctime_ns,
+			mode=st.st_mode,
+			uid=st.st_uid,
+			gid=st.st_gid,
+			mtime_ns=st.st_mtime_ns,
+			ctime_ns=st.st_ctime_ns,
 		)
 
 	def run(self):
-		backup = DAO.create_backup(self.comment)
-		for p in self.scan_files():
-			file = self.create_file(backup, p)
-
+		self.__blobs_rollbackers.clear()
+		try:
+			with DbAccess.open_session() as session:
+				backup = session.create_backup(self.comment)
+				for p in self.scan_files():
+					self.__create_file(session, backup, p)
+				self.logger.info('create done')
+		except Exception as e:
+			for rollback_func in self.__blobs_rollbackers:
+				rollback_func()
+			raise e

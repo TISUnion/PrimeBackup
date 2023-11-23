@@ -1,15 +1,11 @@
 import abc
 
-from mcdreforged.api.all import CommandSource, PluginServerInterface
-
-
-psi = PluginServerInterface.psi()
+from xbackup import logger
 
 
 class Task(abc.ABC):
-	def __init__(self, source: CommandSource):
-		self.source = source
-		self.logger = psi.logger
+	def __init__(self):
+		self.logger = logger.get()
 
 	def run(self):
 		raise NotImplementedError()

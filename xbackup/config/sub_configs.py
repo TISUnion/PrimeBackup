@@ -52,6 +52,11 @@ class BackupConfig(Serializable):
 	compress_threshold: int = 256
 	backup_on_overwrite: bool = True
 
+	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
+		if attr_name == 'compress_method':
+			if attr_value not in CompressMethod:
+				raise ValueError('bad compress method {!r}'.format(attr_value))
+
 	def is_file_ignore(self, full_path: Path) -> bool:
 		# TODO
 		return False

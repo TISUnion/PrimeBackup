@@ -1,3 +1,3 @@
 import uuid
 
-instance_id = uuid.uuid4().hex[:4]
+INSTANCE_ID = uuid.uuid4().hex[:4]

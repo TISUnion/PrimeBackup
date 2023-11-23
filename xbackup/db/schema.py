@@ -1,8 +1,7 @@
-import datetime
 from typing import Optional, List, get_type_hints
 
-from sqlalchemy import String, BIGINT, Integer, Date, ForeignKey
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, MappedColumn
+from sqlalchemy import String, BIGINT, Integer, ForeignKey, BigInteger
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -17,8 +16,8 @@ class Base(DeclarativeBase):
 		return '{}({})'.format(cls.__name__, ', '.join([f'{k}={v!r}' for k, v in values.items()]))
 
 
-class Meta(Base):
-	__tablename__ = 'meta'
+class DbVersion(Base):
+	__tablename__ = 'db_version'
 
 	version: Mapped[int] = mapped_column(primary_key=True)
 
@@ -28,7 +27,7 @@ class Blob(Base):
 
 	hash: Mapped[str] = mapped_column(String(130), primary_key=True)
 	compress: Mapped[str] = mapped_column(String)
-	size: Mapped[int] = mapped_column(BIGINT)
+	size: Mapped[int] = mapped_column(BIGINT, index=True)
 
 	__fields_end__: bool
 
@@ -51,7 +50,7 @@ class File(Base):
 
 	__fields_end__: bool
 
-	blob: Mapped[List['Blob']] = relationship(back_populates='files')
+	blob: Mapped['Blob'] = relationship(back_populates='files')
 	backup: Mapped[List['Backup']] = relationship(back_populates='files')
 
 
@@ -59,7 +58,8 @@ class Backup(Base):
 	__tablename__ = 'backup'
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-	date: Mapped[datetime.datetime] = mapped_column(Date)
+	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in millisecond
+	author: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)
 
 	__fields_end__: bool

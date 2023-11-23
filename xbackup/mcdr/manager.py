@@ -1,5 +1,4 @@
 import queue
-import queue
 import threading
 from typing import Optional
 
@@ -14,7 +13,7 @@ class Manager:
 	def __init__(self, server: PluginServerInterface):
 		self.server = server
 		self.logger = server.logger
-		self.thread = threading.Thread(target=self.__task_loop, name='XBackupMain@{}'.format(constants.instance_id))
+		self.thread = threading.Thread(target=self.__task_loop, name='XBackupMain@{}'.format(constants.INSTANCE_ID))
 		self.task_queue: queue.Queue[Optional[Task]] = queue.Queue(maxsize=1)
 
 	def shutdown(self):

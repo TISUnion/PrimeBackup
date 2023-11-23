@@ -1,3 +1,4 @@
+import datetime
 from pathlib import Path
 
 import xxhash
@@ -23,3 +24,10 @@ def get_blob_path(h: str) -> Path:
 	if not blob_dir.is_dir():
 		blob_dir.mkdir(parents=True, exist_ok=True)
 	return blob_dir / h
+
+
+def timestamp_to_local_date(timestamp_ms: int) -> str:
+	timestamp_seconds = timestamp_ms / 1000.0
+	dt = datetime.datetime.fromtimestamp(timestamp_seconds)
+	local_tz = datetime.datetime.now().astimezone().tzinfo
+	return str(dt.astimezone(local_tz))

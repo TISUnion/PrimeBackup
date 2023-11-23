@@ -1,14 +1,14 @@
 import abc
+import contextlib
 import enum
 import gzip
 import io
 import lzma
 import shutil
-from typing import BinaryIO, Union
+from typing import BinaryIO, Union, ContextManager, Any
 
 import lz4.frame
 import pyzstd
-import snappy
 import xxhash
 from typing_extensions import final
 
@@ -51,13 +51,13 @@ class HashingReader(io.BytesIO):
 
 class Compressor(abc.ABC):
 	@classmethod
-	def create(cls, method: Union[str, 'CompressMethod']):
+	def create(cls, method: Union[str, 'CompressMethod']) -> 'Compressor':
 		if not isinstance(method, CompressMethod):
-			if method in CompressMethod:
-				method = CompressMethod[method].value
+			if method in CompressMethod.__members__:
+				method = CompressMethod[method]
 			else:
 				raise ValueError(f'Unknown compression method: {method}')
-		return method()
+		return method.value()
 
 	@classmethod
 	def name(cls) -> str:
@@ -75,6 +75,20 @@ class Compressor(abc.ABC):
 		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
 			self._copy_decompressed(f_in, f_out)
 
+	@contextlib.contextmanager
+	def open_decompressed(self, source_path: PathLike) -> ContextManager[BinaryIO]:
+		with open(source_path, 'rb') as f:
+			with self.decompress_stream(f) as f_decompressed:
+				yield f_decompressed
+
+	@contextlib.contextmanager
+	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
+		raise NotImplementedError()
+
+	@contextlib.contextmanager
+	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
+		raise NotImplementedError()
+
 	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
 		raise NotImplementedError()
 
@@ -89,51 +103,51 @@ class PlainCompressor(Compressor):
 	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
 		shutil.copyfileobj(f_in, f_out)
 
+	@contextlib.contextmanager
+	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
+		yield f_out
 
-class GzipCompressor(Compressor):
+	@contextlib.contextmanager
+	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
+		yield f_in
+
+
+class _GzipLikeCompressorBase(Compressor):
+	_lib: Any
+
 	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		with gzip.open(f_out, 'wb') as gz_out:
-			shutil.copyfileobj(f_in, gz_out)
+		with self._lib.open(f_out, 'wb') as compressed_out:
+			shutil.copyfileobj(f_in, compressed_out)
 
 	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		with gzip.open(f_in, 'rb') as gz_in:
-			shutil.copyfileobj(gz_in, f_out)
+		with self.decompress_stream(f_in) as compressed_in:
+			shutil.copyfileobj(compressed_in, f_out)
+
+	@contextlib.contextmanager
+	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
+		with self._lib.open(f_out, 'wb') as compressed_out:
+			yield compressed_out
+
+	@contextlib.contextmanager
+	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
+		with self._lib.open(f_in, 'rb') as compressed_in:
+			yield compressed_in
 
 
-class LzmaCompressor(Compressor):
-	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		with lzma.open(f_out, 'wb') as lzma_out:
-			shutil.copyfileobj(f_in, lzma_out)
-
-	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		with lzma.open(f_in, 'rb') as lzma_in:
-			shutil.copyfileobj(lzma_in, f_out)
+class GzipCompressor(_GzipLikeCompressorBase):
+	_lib = gzip
 
 
-class ZstdCompressor(Compressor):
-	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		pyzstd.compress_stream(f_in, f_out)
-
-	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		pyzstd.decompress_stream(f_in, f_out)
+class LzmaCompressor(_GzipLikeCompressorBase):
+	_lib = lzma
 
 
-class SnappyCompressor(Compressor):
-	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		snappy.stream_compress(f_in, f_out)
-
-	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		snappy.stream_decompress(f_in, f_out)
+class ZstdCompressor(_GzipLikeCompressorBase):
+	_lib = pyzstd
 
 
-class Lz4Compressor(Compressor):
-	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		with lz4.frame.open(f_out, 'wb') as lz4_out:
-			shutil.copyfileobj(f_in, lz4_out)
-
-	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		with lz4.frame.open(f_in, 'rb') as lz4_in:
-			shutil.copyfileobj(lz4_in, f_out)
+class Lz4Compressor(_GzipLikeCompressorBase):
+	_lib = lz4.frame
 
 
 class CompressMethod(enum.Enum):
@@ -141,5 +155,4 @@ class CompressMethod(enum.Enum):
 	gzip = GzipCompressor
 	lzma = LzmaCompressor
 	zstd = ZstdCompressor
-	snappy = SnappyCompressor
 	lz4 = Lz4Compressor

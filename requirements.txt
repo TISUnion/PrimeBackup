@@ -4,7 +4,6 @@ xxhash
 SQLAlchemy
 
 # compress
-python-snappy
 pyzstd
 lz4
 

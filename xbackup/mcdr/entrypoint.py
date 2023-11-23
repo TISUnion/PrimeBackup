@@ -1,13 +1,8 @@
-import re
-
 from mcdreforged.api.all import *
 
 from xbackup.config.config import Config, set_config_instance
-from xbackup.dal import DAO
-
-from xbackup.db_access import DbAccess
+from xbackup.db.access import DbAccess
 from xbackup.mcdr.manager import Manager
-
 
 config: Config
 manager: Manager

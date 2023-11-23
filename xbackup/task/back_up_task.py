@@ -1,22 +1,24 @@
 import os
 import stat
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
-from mcdreforged.api.all import CommandSource
-
-from xbackup import schema, utils, logger
-from xbackup.compressors import Compressor
+from xbackup import utils
+from xbackup.compressors import Compressor, CompressMethod
 from xbackup.config.config import Config
-from xbackup.db_access import DbAccess, DbSession
+from xbackup.db import schema
+from xbackup.db.access import DbAccess
+from xbackup.db.session import DbSession
 from xbackup.task.task import Task
 
 
 class BackUpTask(Task):
-	def __init__(self, comment: str):
+	def __init__(self, author: str, comment: str):
 		super().__init__()
+		self.author = author
 		self.comment = comment
 		self.__blobs_rollbackers: List[callable] = []
+		self.backup_id: Optional[int] = None
 
 	def scan_files(self) -> List[Path]:
 		config = Config.get()
@@ -58,13 +60,13 @@ class BackUpTask(Task):
 		self.__blobs_rollbackers.append(rollback)
 
 		if st.st_size < Config.get().backup.compress_threshold:
-			method = 'plain'
+			method = CompressMethod.plain
 		else:
 			method = Config.get().backup.compress_method
 		compressor = Compressor.create(method)
 		compressor.compress(path, blob_path)
 
-		return session.create_blob(hash=h, compress=method, size=st.st_size, ref_cnt=1)
+		return session.create_blob(hash=h, compress=method.name, size=st.st_size)
 
 	def __create_file(self, session: DbSession, backup: schema.Backup, path: Path) -> schema.File:
 		related_path = path.relative_to(Config.get().source_path)
@@ -76,7 +78,7 @@ class BackUpTask(Task):
 			blob = self.__get_or_create_blob(session, path, st)
 			file_hash = blob.hash
 
-		return schema.File(
+		return session.create_file(
 			backup_id=backup.id,
 			path=related_path.as_posix(),
 			file_hash=file_hash,
@@ -92,11 +94,13 @@ class BackUpTask(Task):
 		self.__blobs_rollbackers.clear()
 		try:
 			with DbAccess.open_session() as session:
-				backup = session.create_backup(self.comment)
+				backup = session.create_backup(author=self.author, comment=self.comment)
 				for p in self.scan_files():
 					self.__create_file(session, backup, p)
-				self.logger.info('create done')
+				self.logger.info('create backup done, backup id {}'.format(backup.id))
+				self.backup_id = backup.id
 		except Exception as e:
+			self.logger.info('error occurs, applying rollback')
 			for rollback_func in self.__blobs_rollbackers:
 				rollback_func()
 			raise e

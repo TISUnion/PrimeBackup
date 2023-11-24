@@ -4,7 +4,8 @@ from xbackup import logger
 from xbackup.db import db_logger
 from xbackup.db.access import DbAccess
 from xbackup.task.back_up_task import BackUpTask
-from xbackup.task.export_backup_task import ExportBackupTask, ExportFormat
+from xbackup.task.delete_backup_task import DeleteBackupTask
+from xbackup.task.export_backup_task import TarFormat, ExportBackupTasks
 
 
 def main():
@@ -13,8 +14,12 @@ def main():
 
 	bkt = BackUpTask('Steve', 'test')
 	bkt.run()
-	ExportBackupTask(bkt.backup_id, Path('export.tar.gz'), ExportFormat.tar_gz).run()
-	ExportBackupTask(bkt.backup_id, Path('export'), ExportFormat.direct).run()
+	ExportBackupTasks.create_to_tar(bkt.backup_id, Path('export.tar.gz'), TarFormat.gzip).run()
+	ExportBackupTasks.create_to_tar(bkt.backup_id, Path('export.tar'), TarFormat.plain).run()
+	ExportBackupTasks.create_to_dir(bkt.backup_id, Path('export')).run()
+	ExportBackupTasks.create_to_zip(bkt.backup_id, Path('export.zip')).run()
+
+	DeleteBackupTask(bkt.backup_id).run()
 
 
 if __name__ == '__main__':

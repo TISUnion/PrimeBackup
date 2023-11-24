@@ -1,30 +1,32 @@
-import abc
 import contextlib
 import enum
 import gzip
 import io
 import lzma
 import shutil
-from typing import BinaryIO, Union, ContextManager, Any
+from abc import abstractmethod, ABC
+from typing import BinaryIO, Union, ContextManager, Any, NamedTuple
 
 import lz4.frame
 import pyzstd
 import xxhash
-from typing_extensions import final
 
 from xbackup.types import PathLike
 
 
 # noinspection PyAbstractClass
-class HashingReader(io.BytesIO):
-	def __init__(self, file_obj):
+class ByPassReader(io.BytesIO):
+	def __init__(self, file_obj, do_hash: bool):
 		super().__init__()
 		self.file_obj: io.BytesIO = file_obj
-		self.hasher = xxhash.xxh128()
+		self.hasher = xxhash.xxh128() if do_hash else None
+		self.read_len = 0
 
 	def read(self, *args, **kwargs):
 		data = self.file_obj.read(*args, **kwargs)
-		self.hasher.update(data)
+		self.read_len += len(data)
+		if self.hasher is not None:
+			self.hasher.update(data)
 		return data
 
 	def readall(self):
@@ -33,23 +35,32 @@ class HashingReader(io.BytesIO):
 	def readinto(self, b: Union[bytearray, memoryview]):
 		n = self.file_obj.readinto(b)
 		if n:
-			self.hasher.update(b[:n])
+			self.read_len += n
+			if self.hasher is not None:
+				self.hasher.update(b[:n])
 		return n
 
+	def get_read_len(self) -> int:
+		return self.read_len
+
 	def get_hash(self) -> str:
-		return self.hasher.hexdigest()
+		return self.hasher.hexdigest() if self.hasher is not None else ''
 
 	def __getattribute__(self, item: str):
 		if item in (
 				'read', 'readall', 'readinto',
-				'get_hash', 'file_obj', 'hasher',
+				'get_hash', 'get_read_len', 'file_obj', 'hasher', 'read_len',
 		):
 			return object.__getattribute__(self, item)
 		else:
 			return self.file_obj.__getattribute__(item)
 
 
-class Compressor(abc.ABC):
+class Compressor(ABC):
+	class CopyCompressResult(NamedTuple):
+		size: int
+		hash: str
+
 	@classmethod
 	def create(cls, method: Union[str, 'CompressMethod']) -> 'Compressor':
 		if not isinstance(method, CompressMethod):
@@ -63,17 +74,21 @@ class Compressor(abc.ABC):
 	def name(cls) -> str:
 		return CompressMethod(cls).name
 
-	@final
-	def compress(self, source_path: PathLike, dest_path: PathLike):
+	def copy_compressed(self, source_path: PathLike, dest_path: PathLike, *, calc_hash: bool = False) -> CopyCompressResult:
 		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
-			reader = HashingReader(f_in)
+			reader = ByPassReader(f_in, calc_hash)
 			self._copy_compressed(reader, f_out)
-			return reader.get_hash()
+			return self.CopyCompressResult(reader.get_read_len(), reader.get_hash())
 
-	@final
-	def decompress(self, source_path: PathLike, dest_path: PathLike):
+	def copy_decompressed(self, source_path: PathLike, dest_path: PathLike):
 		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
 			self._copy_decompressed(f_in, f_out)
+
+	@contextlib.contextmanager
+	def open_compressed(self, target_path: PathLike) -> ContextManager[BinaryIO]:
+		with open(target_path, 'wb') as f:
+			with self.compress_stream(f) as f_compressed:
+				yield f_compressed
 
 	@contextlib.contextmanager
 	def open_decompressed(self, source_path: PathLike) -> ContextManager[BinaryIO]:
@@ -81,19 +96,21 @@ class Compressor(abc.ABC):
 			with self.decompress_stream(f) as f_decompressed:
 				yield f_decompressed
 
-	@contextlib.contextmanager
+	@abstractmethod
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
-		raise NotImplementedError()
+		...
 
-	@contextlib.contextmanager
+	@abstractmethod
 	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
-		raise NotImplementedError()
+		...
 
+	@abstractmethod
 	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		raise NotImplementedError()
+		...
 
+	@abstractmethod
 	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		raise NotImplementedError()
+		...
 
 
 class PlainCompressor(Compressor):

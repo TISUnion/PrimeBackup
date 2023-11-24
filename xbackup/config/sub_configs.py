@@ -49,7 +49,7 @@ class BackupConfig(Serializable):
 		'session.lock',
 	]
 	compress_method: CompressMethod = CompressMethod.zstd
-	compress_threshold: int = 256
+	compress_threshold: int = 128
 	backup_on_overwrite: bool = True
 
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):

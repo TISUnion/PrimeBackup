@@ -31,37 +31,38 @@ class Blob(Base):
 
 	__fields_end__: bool
 
-	files: Mapped[List['File']] = relationship(back_populates='blob')
+	files: Mapped[List['File']] = relationship(back_populates='blob', viewonly=True)
 
 
 class File(Base):
 	__tablename__ = 'file'
 
-	backup_id: Mapped[str] = mapped_column(ForeignKey("backup.id"), primary_key=True)
+	backup_id: Mapped[str] = mapped_column(ForeignKey('backup.id'), primary_key=True)
 	path: Mapped[str] = mapped_column(String, primary_key=True)
 
-	file_hash: Mapped[Optional[str]] = mapped_column(ForeignKey("blob.hash"))
+	file_hash: Mapped[Optional[str]] = mapped_column(ForeignKey('blob.hash'))
 	mode: Mapped[int] = mapped_column(Integer)
 
 	uid: Mapped[Optional[int]] = mapped_column(Integer)
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
-	mtime_ns: Mapped[Optional[int]] = mapped_column(BIGINT)
 	ctime_ns: Mapped[Optional[int]] = mapped_column(BIGINT)
+	mtime_ns: Mapped[Optional[int]] = mapped_column(BIGINT)
+	atime_ns: Mapped[Optional[int]] = mapped_column(BIGINT)
 
 	__fields_end__: bool
 
-	blob: Mapped['Blob'] = relationship(back_populates='files')
-	backup: Mapped[List['Backup']] = relationship(back_populates='files')
+	blob: Mapped[Optional['Blob']] = relationship(back_populates='files', viewonly=True)
+	backup: Mapped[List['Backup']] = relationship(back_populates='files', viewonly=True)
 
 
 class Backup(Base):
 	__tablename__ = 'backup'
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in millisecond
+	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in nanosecond
 	author: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)
 
 	__fields_end__: bool
 
-	files: Mapped[List['File']] = relationship(back_populates='backup')
+	files: Mapped[List['File']] = relationship(back_populates='backup', viewonly=True)

@@ -5,7 +5,7 @@ from typing import Optional
 from mcdreforged.api.all import CommandSource, PluginServerInterface
 
 from xbackup import constants
-from xbackup.task.back_up_task import BackUpTask
+from xbackup.task.create_backup_task import CreateBackupTask
 from xbackup.task.task import Task
 
 
@@ -32,7 +32,7 @@ class Manager:
 
 	def create_backup(self, source: CommandSource, comment: str):
 		# TODO: spam proof
-		self.task_queue.put(BackUpTask(source, comment))
+		self.task_queue.put(CreateBackupTask(source, comment))
 
 	def on_world_saved(self):
 		pass

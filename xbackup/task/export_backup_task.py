@@ -91,7 +91,7 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 			file_path = self.output_path / file.path
 
 			if stat.S_ISREG(file.mode):
-				self.logger.info('write file {}'.format(file.path))
+				self.logger.debug('write file {}'.format(file.path))
 				file_path.parent.mkdir(parents=True, exist_ok=True)
 				blob: schema.Blob = file.blob
 				blob_path = utils.get_blob_path(blob.hash)
@@ -102,7 +102,7 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 
 			elif stat.S_ISDIR(file.mode):
 				file_path.mkdir(parents=True, exist_ok=True)
-				self.logger.info('write dir {}'.format(file.path))
+				self.logger.debug('write dir {}'.format(file.path))
 			else:
 				# TODO: support other file types
 				raise NotImplementedError('not supported yet')
@@ -154,7 +154,7 @@ class ExportBackupToTarTask(ExportBackupTask):
 					info.mtime = int(file.mtime_ns / 1e9)
 
 				if stat.S_ISREG(file.mode):
-					self.logger.info('add file {} to tarfile'.format(file.path))
+					self.logger.debug('add file {} to tarfile'.format(file.path))
 					info.type = tarfile.REGTYPE
 					blob: schema.Blob = file.blob
 					if blob is None:
@@ -165,7 +165,7 @@ class ExportBackupToTarTask(ExportBackupTask):
 					with Compressor.create(blob.compress).open_decompressed(blob_path) as stream:
 						tar.addfile(tarinfo=info, fileobj=stream)
 				elif stat.S_ISDIR(file.mode):
-					self.logger.info('add dir {} to tarfile'.format(file.path))
+					self.logger.debug('add dir {} to tarfile'.format(file.path))
 					info.type = tarfile.DIRTYPE
 					tar.addfile(tarinfo=info)
 				else:
@@ -203,7 +203,7 @@ class ExportBackupToZipTask(ExportBackupTask):
 				info.compress_type = zipf.compression
 
 				if stat.S_ISREG(file.mode):
-					self.logger.info('add file {} to zipfile'.format(file.path))
+					self.logger.debug('add file {} to zipfile'.format(file.path))
 					blob: schema.Blob = file.blob
 					if blob is None:
 						raise DbStateError('blob not found for file {}'.format(file))
@@ -214,7 +214,7 @@ class ExportBackupToZipTask(ExportBackupTask):
 						with zipf.open(info, 'w') as zip_item:
 							shutil.copyfileobj(stream, zip_item)
 				elif stat.S_ISDIR(file.mode):
-					self.logger.info('add dir {} to zipfile'.format(file.path))
+					self.logger.debug('add dir {} to zipfile'.format(file.path))
 					info.external_attr |= 0x10
 					zipf.writestr(info, b'')
 				else:

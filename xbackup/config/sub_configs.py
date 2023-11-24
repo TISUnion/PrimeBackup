@@ -48,7 +48,7 @@ class BackupConfig(Serializable):
 	ignores: List[str] = [
 		'session.lock',
 	]
-	compress_method: CompressMethod = CompressMethod.zstd
+	compress_method: CompressMethod = CompressMethod.plain
 	compress_threshold: int = 128
 	backup_on_overwrite: bool = True
 

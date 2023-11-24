@@ -65,6 +65,7 @@ class DeleteBackupTask(Task):
 		self.trash_bin: Optional[BlobTrashBin] = None
 
 	def run(self):
+		self.logger.info('Deleting backup {}'.format(self.backup_id))
 		self.trash_bin = BlobTrashBin(Config.get().storage_path / 'temp' / 'trash_bin_{}'.format(threading.current_thread().ident))
 		try:
 			with DbAccess.open_session() as session:
@@ -72,15 +73,13 @@ class DeleteBackupTask(Task):
 				if backup is None:
 					raise KeyError('backup with id {} not found'.format(self.backup_id))
 				self.__delete_backup(session, backup)
-				session.session.flush()
-				session.delete_backup(backup)
 		except Exception:
-			self.logger.error('delete backup failed, restoring blobs')
+			self.logger.error('Delete backup failed, restoring blobs')
 			self.trash_bin.restore_all()
 			raise
 		else:
 			summary = self.trash_bin.make_summary()
-			self.logger.info('delete backup done, erasing blobs (count {}, size {} / {})'.format(summary.count, summary.actual_size_sum, summary.raw_size_sum))
+			self.logger.info('Delete backup done, erasing blobs (count {}, size {} / {})'.format(summary.count, summary.actual_size_sum, summary.raw_size_sum))
 			self.trash_bin.erase_all()
 		finally:
 			self.trash_bin.delete_trash_bin()
@@ -92,3 +91,4 @@ class DeleteBackupTask(Task):
 			if blob is not None and len(blob.files) == 0:
 				self.trash_bin.add(blob)
 				session.delete_blob(blob)
+		session.delete_backup(backup)

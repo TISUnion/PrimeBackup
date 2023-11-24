@@ -25,7 +25,7 @@ class DbVersion(Base):
 class Blob(Base):
 	__tablename__ = 'blob'
 
-	hash: Mapped[str] = mapped_column(String(130), primary_key=True)
+	hash: Mapped[str] = mapped_column(String, primary_key=True, index=True)
 	compress: Mapped[str] = mapped_column(String)
 	size: Mapped[int] = mapped_column(BIGINT, index=True)
 
@@ -37,10 +37,10 @@ class Blob(Base):
 class File(Base):
 	__tablename__ = 'file'
 
-	backup_id: Mapped[str] = mapped_column(ForeignKey('backup.id'), primary_key=True)
+	backup_id: Mapped[str] = mapped_column(ForeignKey('backup.id'), primary_key=True, index=True)
 	path: Mapped[str] = mapped_column(String, primary_key=True)
 
-	file_hash: Mapped[Optional[str]] = mapped_column(ForeignKey('blob.hash'))
+	file_hash: Mapped[Optional[str]] = mapped_column(ForeignKey('blob.hash'), index=True)
 	mode: Mapped[int] = mapped_column(Integer)
 
 	uid: Mapped[Optional[int]] = mapped_column(Integer)

@@ -3,11 +3,23 @@ from pathlib import Path
 from typing import Union, Callable
 
 import xxhash
+from typing_extensions import Protocol
+
+
+class _Hasher(Protocol):
+	def update(self, b: bytes): ...
+
+	def hexdigest(self) -> str: ...
+
+
+def create_hasher() -> _Hasher:
+	return xxhash.xxh128()
+	# return hashlib.sha256()
 
 
 def calc_file_hash(path: Path, *, buf_size: int = 64 * 1024) -> str:
 	with open(path, 'rb') as f:
-		hasher = xxhash.xxh128()
+		hasher = create_hasher()
 		while True:
 			chunk = f.read(buf_size)
 			if not chunk:
@@ -17,7 +29,7 @@ def calc_file_hash(path: Path, *, buf_size: int = 64 * 1024) -> str:
 
 
 def calc_bytes_hash(buf: bytes) -> str:
-	hasher = xxhash.xxh128()
+	hasher = create_hasher()
 	hasher.update(buf)
 	return hasher.hexdigest()
 

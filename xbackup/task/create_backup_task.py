@@ -38,7 +38,7 @@ _BLOB_FILE_CHANGED_RETRY_COUNT = 3
 _READ_ALL_SIZE_THRESHOLD = 256 * 1024  # 256KiB
 
 
-class BackUpTask(Task):
+class CreateBackupTask(Task):
 	def __init__(self, author: str, comment: str):
 		super().__init__()
 		self.author = author
@@ -89,8 +89,6 @@ class BackUpTask(Task):
 			else:
 				policy = _BlobCreatePolicy.default
 				blob_hash = utils.calc_file_hash(path)
-
-			self.logger.info('blob create policy for {}: {}'.format(path, policy))
 
 			if blob_hash is not None:
 				existing = session.get_blob(blob_hash)
@@ -178,12 +176,13 @@ class BackUpTask(Task):
 		try:
 			with DbAccess.open_session() as session:
 				backup = session.create_backup(author=self.author, comment=self.comment)
+				self.logger.info('Creating backup {}'.format(backup))
 				for p in self.scan_files():
 					self.__create_file(session, backup, p)
-				self.logger.info('create backup done, backup id {}'.format(backup.id))
+				self.logger.info('Create backup done, backup id {}'.format(backup.id))
 				self.backup_id = backup.id
 		except Exception as e:
-			self.logger.info('error occurs, applying rollback')
+			self.logger.info('Error occurs, applying rollback')
 			for rollback_func in self.__blobs_rollbackers:
 				rollback_func()
 			raise e

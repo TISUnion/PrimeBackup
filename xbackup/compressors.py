@@ -9,8 +9,8 @@ from typing import BinaryIO, Union, ContextManager, Any, NamedTuple
 
 import lz4.frame
 import pyzstd
-import xxhash
 
+from xbackup import utils
 from xbackup.types import PathLike
 
 
@@ -19,7 +19,7 @@ class ByPassReader(io.BytesIO):
 	def __init__(self, file_obj, do_hash: bool):
 		super().__init__()
 		self.file_obj: io.BytesIO = file_obj
-		self.hasher = xxhash.xxh128() if do_hash else None
+		self.hasher = utils.create_hasher() if do_hash else None
 		self.read_len = 0
 
 	def read(self, *args, **kwargs):

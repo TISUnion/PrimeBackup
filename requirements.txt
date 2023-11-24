@@ -2,10 +2,8 @@
 mcdreforged>=2.11
 xxhash
 SQLAlchemy
+blake3
 
 # compress
 pyzstd
 lz4
-
-# api
-fastapi

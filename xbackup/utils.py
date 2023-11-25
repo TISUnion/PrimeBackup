@@ -1,20 +1,14 @@
 import datetime
+import shutil
 from pathlib import Path
 from typing import Union, Callable
 
-import xxhash
-from typing_extensions import Protocol
+from xbackup.config.config import Config
+from xbackup.config.types import Hasher
 
 
-class _Hasher(Protocol):
-	def update(self, b: bytes): ...
-
-	def hexdigest(self) -> str: ...
-
-
-def create_hasher() -> _Hasher:
-	return xxhash.xxh128()
-	# return hashlib.sha256()
+def create_hasher() -> 'Hasher':
+	return Config.get().backup.hash_method.value.create_hasher()
 
 
 def calc_file_hash(path: Path, *, buf_size: int = 64 * 1024) -> str:
@@ -57,3 +51,7 @@ def assert_true(expr: bool, msg: Union[str, Callable[[], str]]):
 		if callable(msg):
 			msg = msg()
 		raise AssertionError(msg)
+
+
+def copy_file_fast(src_path: Path, dst_path: Path):
+	shutil.copyfile(src_path, dst_path, follow_symlinks=False)

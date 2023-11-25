@@ -11,6 +11,9 @@ class DbSession:
 		self.session = session
 		self.logger = db_logger.get_logger()
 
+	def expunge(self, obj: schema.Base):
+		self.session.expunge(obj)
+
 	def create_blob(self, **kwargs) -> schema.Blob:
 		blob = schema.Blob(**kwargs)
 		self.session.add(blob)

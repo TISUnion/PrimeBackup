@@ -36,6 +36,7 @@ class _BlobCreatePolicy(enum.Enum):
 
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
 _READ_ALL_SIZE_THRESHOLD = 256 * 1024  # 256KiB
+_HASH_ONCE_SIZE_THRESHOLD = 100 * 1024 * 1024  # 100MiB
 
 
 class CreateBackupTask(Task):
@@ -44,14 +45,20 @@ class CreateBackupTask(Task):
 		self.author = author
 		self.comment = comment
 		self.__blobs_rollbackers: List[callable] = []
-		self.backup_id: Optional[int] = None
+		self.__backup_id: Optional[int] = None
+		self.config = Config.get()
+
+	@property
+	def backup_id(self) -> int:
+		if self.__backup_id is None:
+			raise ValueError('backup is not created yet')
+		return self.__backup_id
 
 	def scan_files(self) -> List[Path]:
-		config = Config.get()
 		collected = []
 
-		for target in config.backup.targets:
-			target_path = config.source_path / target
+		for target in self.config.backup.targets:
+			target_path = self.config.source_path / target
 			if not target_path.exists():
 				self.logger.info('skipping not-exist backup target {}'.format(target_path))
 				continue
@@ -63,12 +70,12 @@ class CreateBackupTask(Task):
 			else:
 				collected.append(target_path)
 
-		return [p for p in collected if not config.backup.is_file_ignore(p)]
+		return [p for p in collected if not self.config.backup.is_file_ignore(p)]
 
 	def __remove_file(self, file_to_remove: Path):
 		try:
 			if file_to_remove.is_file():
-				os.remove(file_to_remove)
+				file_to_remove.unlink(missing_ok=True)
 		except OSError as e:
 			self.logger.error('(rollback) remove file {!r} failed: {}'.format(file_to_remove, e))
 
@@ -83,7 +90,7 @@ class CreateBackupTask(Task):
 					self.logger.warning('File size mismatch, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					raise _BlobFileChanged()
 				blob_hash = utils.calc_bytes_hash(blob_content)
-			elif not session.has_blob_with_size(st.st_size):
+			elif st.st_size > _HASH_ONCE_SIZE_THRESHOLD and not session.has_blob_with_size(st.st_size):
 				policy = _BlobCreatePolicy.hash_once
 				blob_hash = None
 			else:
@@ -101,9 +108,12 @@ class CreateBackupTask(Task):
 				method = Config.get().backup.compress_method
 			compressor = Compressor.create(method)
 
-			def check_size(new_size: int):
+			def check_changes(new_size: int, new_hash: Optional[str] = None):
 				if new_size != st.st_size:
 					self.logger.warning('File size mismatch, previous: {}, current: {}'.format(st.st_size, new_size))
+					raise _BlobFileChanged()
+				if blob_hash is not None and new_hash is not None and new_hash != blob_hash:
+					self.logger.warning('File size mismatch, previous: {}, current: {}'.format(blob_hash, new_hash))
 					raise _BlobFileChanged()
 
 			if policy == _BlobCreatePolicy.hash_once:
@@ -115,7 +125,7 @@ class CreateBackupTask(Task):
 					exit_stack.callback(functools.partial(self.__remove_file, temp_file_path))
 
 					cp_size, blob_hash = compressor.copy_compressed(path, temp_file_path, calc_hash=True)
-					check_size(new_size=cp_size)
+					check_changes(cp_size, None)
 
 					blob_path = utils.get_blob_path(blob_hash)
 					self.__blobs_rollbackers.append(functools.partial(self.__remove_file, blob_path))
@@ -133,7 +143,8 @@ class CreateBackupTask(Task):
 						f.write(blob_content)
 				else:
 					utils.assert_true(policy == _BlobCreatePolicy.default, 'bad policy')
-					check_size(compressor.copy_compressed(path, blob_path, calc_hash=False).size)
+					cr = compressor.copy_compressed(path, blob_path, calc_hash=True)
+					check_changes(cr.size, cr.hash)
 
 			utils.assert_true(blob_hash is not None, 'blob_hash is None')
 			return session.create_blob(hash=blob_hash, compress=method.name, size=st.st_size)
@@ -152,16 +163,20 @@ class CreateBackupTask(Task):
 		related_path = path.relative_to(Config.get().source_path)
 		st = path.stat()
 
+		blob, content = None, None
 		if stat.S_ISDIR(st.st_mode):
-			file_hash = None
-		else:
+			pass
+		elif stat.S_ISREG(st.st_mode):
 			blob, st = self.__get_or_create_blob(session, path, st)
-			file_hash = blob.hash
+		elif stat.S_ISLNK(st.st_mode):
+			content = str(path.readlink().as_posix()).encode('utf8')
+		else:
+			raise NotImplementedError('unsupported yet')
 
-		return session.create_file(
+		kwargs = dict(
 			backup_id=backup.id,
-			path=related_path.as_posix(),
-			file_hash=file_hash,
+			path=str(related_path.as_posix()),
+			content=content,
 
 			mode=st.st_mode,
 			uid=st.st_uid,
@@ -170,19 +185,31 @@ class CreateBackupTask(Task):
 			mtime_ns=st.st_mtime_ns,
 			atime_ns=st.st_atime_ns,
 		)
+		if blob is not None:
+			kwargs |= dict(
+				blob_hash=blob.hash,
+				blob_compress=blob.compress,
+				blob_size=blob.size,
+			)
+		return session.create_file(**kwargs)
 
 	def run(self):
 		self.__blobs_rollbackers.clear()
 		try:
 			with DbAccess.open_session() as session:
-				backup = session.create_backup(author=self.author, comment=self.comment)
+				backup = session.create_backup(
+					author=self.author,
+					comment=self.comment,
+					targets=[str(Path(t).as_posix()) for t in self.config.backup.targets],
+				)
 				self.logger.info('Creating backup {}'.format(backup))
 				for p in self.scan_files():
 					self.__create_file(session, backup, p)
 				self.logger.info('Create backup done, backup id {}'.format(backup.id))
-				self.backup_id = backup.id
+				self.__backup_id = backup.id
 		except Exception as e:
 			self.logger.info('Error occurs, applying rollback')
+			self.__backup_id = None
 			for rollback_func in self.__blobs_rollbackers:
 				rollback_func()
 			raise e

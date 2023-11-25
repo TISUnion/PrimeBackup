@@ -1,6 +1,6 @@
 from typing import Optional, List, get_type_hints
 
-from sqlalchemy import String, BIGINT, Integer, ForeignKey, BigInteger
+from sqlalchemy import String, BIGINT, Integer, ForeignKey, BigInteger, JSON, LargeBinary
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -16,18 +16,20 @@ class Base(DeclarativeBase):
 		return '{}({})'.format(cls.__name__, ', '.join([f'{k}={v!r}' for k, v in values.items()]))
 
 
-class DbVersion(Base):
-	__tablename__ = 'db_version'
+class DbMeta(Base):
+	__tablename__ = 'db_meta'
 
-	version: Mapped[int] = mapped_column(primary_key=True)
+	magic: Mapped[int] = mapped_column(Integer, primary_key=True)
+	version: Mapped[int] = mapped_column(Integer)
+	hash_method: Mapped[str] = mapped_column(String)
 
 
 class Blob(Base):
 	__tablename__ = 'blob'
 
-	hash: Mapped[str] = mapped_column(String, primary_key=True, index=True)
+	hash: Mapped[str] = mapped_column(String, primary_key=True)
 	compress: Mapped[str] = mapped_column(String)
-	size: Mapped[int] = mapped_column(BIGINT, index=True)
+	size: Mapped[int] = mapped_column(BigInteger, index=True)
 
 	__fields_end__: bool
 
@@ -40,8 +42,13 @@ class File(Base):
 	backup_id: Mapped[str] = mapped_column(ForeignKey('backup.id'), primary_key=True, index=True)
 	path: Mapped[str] = mapped_column(String, primary_key=True)
 
-	file_hash: Mapped[Optional[str]] = mapped_column(ForeignKey('blob.hash'), index=True)
 	mode: Mapped[int] = mapped_column(Integer)
+	content: Mapped[Optional[bytes]] = mapped_column(LargeBinary)
+
+	# store all Blob files inside the File, speed up blob attribute accessing
+	blob_hash: Mapped[Optional[str]] = mapped_column(ForeignKey('blob.hash'), index=True)
+	blob_compress: Mapped[Optional[str]] = mapped_column(String)
+	blob_size: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 	uid: Mapped[Optional[int]] = mapped_column(Integer)
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
@@ -62,6 +69,7 @@ class Backup(Base):
 	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in nanosecond
 	author: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)
+	targets = mapped_column(JSON)  # List[str]
 
 	__fields_end__: bool
 

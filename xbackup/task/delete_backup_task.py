@@ -45,7 +45,7 @@ class BlobTrashBin:
 
 	def erase_all(self):
 		for trash in self.trashes:
-			os.remove(trash.trash_path)
+			trash.trash_path.unlink()
 		self.trashes.clear()
 
 	def restore_all(self):

@@ -6,7 +6,7 @@ from typing import Dict, List, Any
 from mcdreforged.api.utils import Serializable
 
 from xbackup.compressors import CompressMethod
-from xbackup.config.types import Duration, Quantity
+from xbackup.config.types import Duration, Quantity, HashMethod
 
 
 class CommandConfig(Serializable):
@@ -48,7 +48,8 @@ class BackupConfig(Serializable):
 	ignores: List[str] = [
 		'session.lock',
 	]
-	compress_method: CompressMethod = CompressMethod.plain
+	hash_method: HashMethod = HashMethod.xxh128
+	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 128
 	backup_on_overwrite: bool = True
 

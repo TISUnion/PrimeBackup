@@ -16,6 +16,7 @@ from xbackup import utils
 from xbackup.compressors import Compressor, CompressMethod
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
+from xbackup.db.session import DbSession
 from xbackup.task.task import Task
 
 
@@ -25,6 +26,7 @@ class DbStateError(Exception):
 
 class _ExportFormatItem(NamedTuple):
 	extension: str
+	tar_mode: str
 	compress_method: CompressMethod
 
 	def make_name(self, base_file_name: str) -> str:
@@ -32,8 +34,10 @@ class _ExportFormatItem(NamedTuple):
 
 
 class TarFormat(enum.Enum):
-	plain = _ExportFormatItem('.tar', CompressMethod.plain)
-	gzip = _ExportFormatItem('.tar.gz', CompressMethod.gzip)
+	plain = _ExportFormatItem('.tar', 'w', CompressMethod.plain)
+	gzip = _ExportFormatItem('.tar.gz', 'w:gz', CompressMethod.plain)
+	lzma = _ExportFormatItem('.tar.xz', 'w:xz', CompressMethod.plain)
+	zstd = _ExportFormatItem('.tar.zst', 'w', CompressMethod.zstd)
 
 
 class ExportBackupTasks:
@@ -62,12 +66,12 @@ class ExportBackupTask(Task, ABC):
 			if backup is None:
 				raise KeyError('backup with id {} not found'.format(self.backup_id))
 
-			self._export_backup(backup)
+			self._export_backup(session, backup)
 
 		self.logger.info('exporting done')
 
 	@abstractmethod
-	def _export_backup(self, backup: schema.Backup):
+	def _export_backup(self, session: DbSession, backup: schema.Backup):
 		...
 
 	@classmethod
@@ -77,14 +81,23 @@ class ExportBackupTask(Task, ABC):
 			'author': backup.author,
 			'comment': backup.comment,
 			'date': utils.timestamp_to_local_date(backup.timestamp),
+			'targets': backup.targets,
 		}
 		return json.dumps(meta, indent=2, ensure_ascii=False).encode('utf8')
 
 
 class ExportBackupToDirectoryTask(ExportBackupTask):
-	def _export_backup(self, backup: schema.Backup):
+	def _export_backup(self, session, backup: schema.Backup):
 		self.logger.info('exporting backup {} to directory {}'.format(backup, self.output_path))
 		self.output_path.mkdir(parents=True, exist_ok=True)
+
+		# clean up existing
+		for target in backup.targets:
+			target_path = self.output_path / target
+			if target_path.is_dir():
+				shutil.rmtree(target_path)
+			else:
+				target_path.unlink()
 
 		file: schema.File
 		for file in backup.files:
@@ -93,16 +106,23 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 			if stat.S_ISREG(file.mode):
 				self.logger.debug('write file {}'.format(file.path))
 				file_path.parent.mkdir(parents=True, exist_ok=True)
-				blob: schema.Blob = file.blob
-				blob_path = utils.get_blob_path(blob.hash)
-
-				with Compressor.create(blob.compress).open_decompressed(blob_path) as f_in:
-					with open(file_path, 'wb') as f_out:
-						shutil.copyfileobj(f_in, f_out)
+				blob_path = utils.get_blob_path(file.blob_hash)
+				compressor = Compressor.create(file.blob_compress)
+				if compressor.get_method() == CompressMethod.plain:
+					utils.copy_file_fast(blob_path, file_path)
+				else:
+					with compressor.open_decompressed(blob_path) as f_in:
+						with open(file_path, 'wb') as f_out:
+							shutil.copyfileobj(f_in, f_out)
 
 			elif stat.S_ISDIR(file.mode):
 				file_path.mkdir(parents=True, exist_ok=True)
 				self.logger.debug('write dir {}'.format(file.path))
+
+			elif stat.S_ISLNK(file.mode):
+				link_target = file.content.decode('utf8')
+				os.symlink(link_target, file_path)
+				self.logger.debug('write symbolic link {} -> {}'.format(file_path, link_target))
 			else:
 				# TODO: support other file types
 				raise NotImplementedError('not supported yet')
@@ -117,6 +137,8 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 				except PermissionError:
 					pass
 
+			session.expunge(file)
+
 
 class ExportBackupToTarTask(ExportBackupTask):
 	def __init__(self, backup_id: int, output_path: Path, tar_format: TarFormat):
@@ -128,10 +150,10 @@ class ExportBackupToTarTask(ExportBackupTask):
 		with open(self.output_path, 'wb') as f:
 			compressor = Compressor.create(self.tar_format.value.compress_method)
 			with compressor.compress_stream(f) as f_compressed:
-				with tarfile.open(fileobj=f_compressed, mode='w') as tar:
+				with tarfile.open(fileobj=f_compressed, mode=self.tar_format.value.tar_mode) as tar:
 					yield tar
 
-	def _export_backup(self, backup: schema.Backup):
+	def _export_backup(self, session, backup: schema.Backup):
 		if not self.output_path.name.endswith(self.tar_format.value.extension):
 			raise ValueError('bad output file extension for file name {!r}, should be {!r} for tar format {}'.format(
 				self.output_path.name, self.tar_format.value.extension, self.tar_format.name,
@@ -142,6 +164,7 @@ class ExportBackupToTarTask(ExportBackupTask):
 
 		with self.__open_tar() as tar:
 			file: schema.File
+
 			for file in backup.files:
 				info = tarfile.TarInfo(name=file.path)
 				info.mode = file.mode
@@ -156,21 +179,25 @@ class ExportBackupToTarTask(ExportBackupTask):
 				if stat.S_ISREG(file.mode):
 					self.logger.debug('add file {} to tarfile'.format(file.path))
 					info.type = tarfile.REGTYPE
-					blob: schema.Blob = file.blob
-					if blob is None:
-						raise DbStateError('blob not found for file {}'.format(file))
-					info.size = blob.size
-					blob_path = utils.get_blob_path(blob.hash)
+					info.size = file.blob_size
+					blob_path = utils.get_blob_path(file.blob_hash)
 
-					with Compressor.create(blob.compress).open_decompressed(blob_path) as stream:
+					with Compressor.create(file.blob_compress).open_decompressed(blob_path) as stream:
 						tar.addfile(tarinfo=info, fileobj=stream)
 				elif stat.S_ISDIR(file.mode):
 					self.logger.debug('add dir {} to tarfile'.format(file.path))
 					info.type = tarfile.DIRTYPE
 					tar.addfile(tarinfo=info)
+				elif stat.S_ISLNK(file.mode):
+					self.logger.debug('add symlink {} to tarfile'.format(file.path))
+					link_target = file.content.decode('utf8')
+					info.type = tarfile.SYMTYPE
+					info.linkname = link_target
+					tar.addfile(tarinfo=info)
 				else:
-					# TODO: support other file types
 					raise NotImplementedError('not supported yet')
+
+				session.expunge(file)
 
 			meta_buf = self._create_meta_buf(backup)
 			info = tarfile.TarInfo(name='.xbackup_meta.json')
@@ -180,7 +207,7 @@ class ExportBackupToTarTask(ExportBackupTask):
 
 
 class ExportBackupToZipTask(ExportBackupTask):
-	def _export_backup(self, backup: schema.Backup):
+	def _export_backup(self, session, backup: schema.Backup):
 		self.logger.info('exporting backup {} to zipfile {}'.format(backup, self.output_path))
 		self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -204,19 +231,24 @@ class ExportBackupToZipTask(ExportBackupTask):
 
 				if stat.S_ISREG(file.mode):
 					self.logger.debug('add file {} to zipfile'.format(file.path))
-					blob: schema.Blob = file.blob
-					if blob is None:
-						raise DbStateError('blob not found for file {}'.format(file))
-					info.file_size = blob.size
-					blob_path = utils.get_blob_path(blob.hash)
+					info.file_size = file.blob_size
+					blob_path = utils.get_blob_path(file.blob_hash)
 
-					with Compressor.create(blob.compress).open_decompressed(blob_path) as stream:
+					with Compressor.create(file.blob_compress).open_decompressed(blob_path) as stream:
 						with zipf.open(info, 'w') as zip_item:
 							shutil.copyfileobj(stream, zip_item)
+
 				elif stat.S_ISDIR(file.mode):
 					self.logger.debug('add dir {} to zipfile'.format(file.path))
 					info.external_attr |= 0x10
 					zipf.writestr(info, b'')
+				elif stat.S_ISLNK(file.mode):
+					self.logger.debug('add symlink {} to zipfile'.format(file.path))
+					info.external_attr |= 0xA1ED0000
+					with zipf.open(info, 'w') as zip_item:
+						zip_item.write(file.content)
 				else:
 					# TODO: support other file types
 					raise NotImplementedError('not supported yet')
+
+				session.expunge(file)

@@ -5,12 +5,12 @@ import io
 import lzma
 import shutil
 from abc import abstractmethod, ABC
-from typing import BinaryIO, Union, ContextManager, Any, NamedTuple
+from typing import BinaryIO, Union, ContextManager, NamedTuple
 
 import lz4.frame
-import pyzstd
+import zstandard
+from typing_extensions import Protocol
 
-from xbackup import utils
 from xbackup.types import PathLike
 
 
@@ -19,6 +19,7 @@ class ByPassReader(io.BytesIO):
 	def __init__(self, file_obj, do_hash: bool):
 		super().__init__()
 		self.file_obj: io.BytesIO = file_obj
+		from xbackup import utils
 		self.hasher = utils.create_hasher() if do_hash else None
 		self.read_len = 0
 
@@ -71,8 +72,12 @@ class Compressor(ABC):
 		return method.value()
 
 	@classmethod
-	def name(cls) -> str:
-		return CompressMethod(cls).name
+	def get_method(cls) -> 'CompressMethod':
+		return CompressMethod(cls)
+
+	@classmethod
+	def get_name(cls) -> str:
+		return cls.get_method().name
 
 	def copy_compressed(self, source_path: PathLike, dest_path: PathLike, *, calc_hash: bool = False) -> CopyCompressResult:
 		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
@@ -129,11 +134,16 @@ class PlainCompressor(Compressor):
 		yield f_in
 
 
+class _GzipLikeLibrary(Protocol):
+	def open(self, file_obj: BinaryIO, mode: str) -> BinaryIO:
+		...
+
+
 class _GzipLikeCompressorBase(Compressor):
-	_lib: Any
+	_lib: _GzipLikeLibrary
 
 	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		with self._lib.open(f_out, 'wb') as compressed_out:
+		with self.compress_stream(f_out) as compressed_out:
 			shutil.copyfileobj(f_in, compressed_out)
 
 	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
@@ -160,7 +170,7 @@ class LzmaCompressor(_GzipLikeCompressorBase):
 
 
 class ZstdCompressor(_GzipLikeCompressorBase):
-	_lib = pyzstd
+	_lib = zstandard
 
 
 class Lz4Compressor(_GzipLikeCompressorBase):

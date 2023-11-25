@@ -131,7 +131,12 @@ class CreateBackupTask(Task):
 			else:
 				compress_method = Config.get().backup.compress_method
 
-			can_fast_copy = compress_method == CompressMethod.plain and self.__blob_store_in_fast_copy_fs and st.st_dev == self.__blob_store_st.st_dev
+			can_fast_copy = (
+					file_utils.HAS_COPY_FILE_RANGE and
+					self.__blob_store_in_fast_copy_fs and
+					compress_method == CompressMethod.plain and
+					st.st_dev == self.__blob_store_st.st_dev
+			)
 			read_all_size_threshold = 4 * 1024 if can_fast_copy else 64 * 1024
 
 			blob_content: Optional[bytes] = None
@@ -143,7 +148,7 @@ class CreateBackupTask(Task):
 					self.logger.warning('File size mismatch, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					raise _BlobFileChanged()
 				blob_hash = hash_utils.calc_bytes_hash(blob_content)
-			elif can_fast_copy or (st.st_size > _HASH_ONCE_SIZE_THRESHOLD and not session.has_blob_with_size(st.st_size)):
+			elif not can_fast_copy and st.st_size > _HASH_ONCE_SIZE_THRESHOLD and not session.has_blob_with_size(st.st_size):
 				policy = _BlobCreatePolicy.hash_once
 				blob_hash = None
 			else:
@@ -177,16 +182,7 @@ class CreateBackupTask(Task):
 				with contextlib.ExitStack() as exit_stack:
 					exit_stack.callback(functools.partial(self.__remove_file, temp_file_path))
 
-					if can_fast_copy and compress_method == CompressMethod.plain:
-						file_utils.copy_file_fast(src_path, temp_file_path)
-						cp_size, blob_hash = hash_utils.calc_file_size_and_hash(temp_file_path)
-
-						existing = session.get_blob(blob_hash)
-						if existing is not None:
-							return existing
-					else:
-						cp_size, blob_hash = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True)
-
+					cp_size, blob_hash = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True)
 					check_changes(cp_size, None)
 
 					blob_path = bp_rba(blob_hash)

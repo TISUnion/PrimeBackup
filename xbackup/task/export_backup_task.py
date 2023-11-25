@@ -12,12 +12,12 @@ from io import BytesIO
 from pathlib import Path
 from typing import ContextManager, NamedTuple
 
-from xbackup import utils
 from xbackup.compressors import Compressor, CompressMethod
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.task.task import Task
+from xbackup.utils import file_utils, conversion_utils, blob_utils
 
 
 class DbStateError(Exception):
@@ -80,7 +80,7 @@ class ExportBackupTask(Task, ABC):
 			'_version': 1,
 			'author': backup.author,
 			'comment': backup.comment,
-			'date': utils.timestamp_to_local_date(backup.timestamp),
+			'date': conversion_utils.timestamp_to_local_date(backup.timestamp),
 			'targets': backup.targets,
 		}
 		return json.dumps(meta, indent=2, ensure_ascii=False).encode('utf8')
@@ -106,10 +106,10 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 			if stat.S_ISREG(file.mode):
 				self.logger.debug('write file {}'.format(file.path))
 				file_path.parent.mkdir(parents=True, exist_ok=True)
-				blob_path = utils.get_blob_path(file.blob_hash)
+				blob_path = blob_utils.get_blob_path(file.blob_hash)
 				compressor = Compressor.create(file.blob_compress)
 				if compressor.get_method() == CompressMethod.plain:
-					utils.copy_file_fast(blob_path, file_path)
+					file_utils.copy_file_fast(blob_path, file_path)
 				else:
 					with compressor.open_decompressed(blob_path) as f_in:
 						with open(file_path, 'wb') as f_out:
@@ -180,7 +180,7 @@ class ExportBackupToTarTask(ExportBackupTask):
 					self.logger.debug('add file {} to tarfile'.format(file.path))
 					info.type = tarfile.REGTYPE
 					info.size = file.blob_size
-					blob_path = utils.get_blob_path(file.blob_hash)
+					blob_path = blob_utils.get_blob_path(file.blob_hash)
 
 					with Compressor.create(file.blob_compress).open_decompressed(blob_path) as stream:
 						tar.addfile(tarinfo=info, fileobj=stream)
@@ -232,7 +232,7 @@ class ExportBackupToZipTask(ExportBackupTask):
 				if stat.S_ISREG(file.mode):
 					self.logger.debug('add file {} to zipfile'.format(file.path))
 					info.file_size = file.blob_size
-					blob_path = utils.get_blob_path(file.blob_hash)
+					blob_path = blob_utils.get_blob_path(file.blob_hash)
 
 					with Compressor.create(file.blob_compress).open_decompressed(blob_path) as stream:
 						with zipf.open(info, 'w') as zip_item:
@@ -248,7 +248,6 @@ class ExportBackupToZipTask(ExportBackupTask):
 					with zipf.open(info, 'w') as zip_item:
 						zip_item.write(file.content)
 				else:
-					# TODO: support other file types
 					raise NotImplementedError('not supported yet')
 
 				session.expunge(file)

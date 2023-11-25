@@ -2,19 +2,18 @@ import contextlib
 import enum
 import functools
 import os
-import shutil
 import stat
 import threading
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from xbackup import utils
 from xbackup.compressors import Compressor, CompressMethod
 from xbackup.config.config import Config
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.task.task import Task
+from xbackup.utils import hash_utils, misc_utils, blob_utils
 
 
 class VolatileBlobFile(Exception):
@@ -89,13 +88,13 @@ class CreateBackupTask(Task):
 				if len(blob_content) != st.st_size:
 					self.logger.warning('File size mismatch, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					raise _BlobFileChanged()
-				blob_hash = utils.calc_bytes_hash(blob_content)
+				blob_hash = hash_utils.calc_bytes_hash(blob_content)
 			elif st.st_size > _HASH_ONCE_SIZE_THRESHOLD and not session.has_blob_with_size(st.st_size):
 				policy = _BlobCreatePolicy.hash_once
 				blob_hash = None
 			else:
 				policy = _BlobCreatePolicy.default
-				blob_hash = utils.calc_file_hash(path)
+				blob_hash = hash_utils.calc_file_hash(path)
 
 			if blob_hash is not None:
 				existing = session.get_blob(blob_hash)
@@ -110,10 +109,10 @@ class CreateBackupTask(Task):
 
 			def check_changes(new_size: int, new_hash: Optional[str] = None):
 				if new_size != st.st_size:
-					self.logger.warning('File size mismatch, previous: {}, current: {}'.format(st.st_size, new_size))
+					self.logger.warning('Blob size mismatch, previous: {}, current: {}'.format(st.st_size, new_size))
 					raise _BlobFileChanged()
 				if blob_hash is not None and new_hash is not None and new_hash != blob_hash:
-					self.logger.warning('File size mismatch, previous: {}, current: {}'.format(blob_hash, new_hash))
+					self.logger.warning('Blob hash mismatch, previous: {}, current: {}'.format(blob_hash, new_hash))
 					raise _BlobFileChanged()
 
 			if policy == _BlobCreatePolicy.hash_once:
@@ -127,33 +126,33 @@ class CreateBackupTask(Task):
 					cp_size, blob_hash = compressor.copy_compressed(path, temp_file_path, calc_hash=True)
 					check_changes(cp_size, None)
 
-					blob_path = utils.get_blob_path(blob_hash)
+					blob_path = blob_utils.get_blob_path(blob_hash)
 					self.__blobs_rollbackers.append(functools.partial(self.__remove_file, blob_path))
 
-					shutil.move(temp_file_path, blob_path)
+					os.rename(temp_file_path, blob_path)
 			else:  # hash already calculated
-				utils.assert_true(blob_hash is not None, 'blob_hash is None')
-				blob_path = utils.get_blob_path(blob_hash)
+				misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
+				blob_path = blob_utils.get_blob_path(blob_hash)
 				self.__blobs_rollbackers.append(functools.partial(self.__remove_file, blob_path))
 
 				if policy == _BlobCreatePolicy.read_all:
 					# the file content is already in memory, no need to read
-					utils.assert_true(blob_content is not None, 'blob_content is None')
+					misc_utils.assert_true(blob_content is not None, 'blob_content is None')
 					with compressor.open_compressed(blob_path) as f:
 						f.write(blob_content)
 				else:
-					utils.assert_true(policy == _BlobCreatePolicy.default, 'bad policy')
+					misc_utils.assert_true(policy == _BlobCreatePolicy.default, 'bad policy')
 					cr = compressor.copy_compressed(path, blob_path, calc_hash=True)
 					check_changes(cr.size, cr.hash)
 
-			utils.assert_true(blob_hash is not None, 'blob_hash is None')
+			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
 			return session.create_blob(hash=blob_hash, compress=method.name, size=st.st_size)
 
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
 			try:
 				return attempt_once(), st
 			except _BlobFileChanged:
-				self.logger.warning('Blob file {} stat changes, retry. Attempt {} / {}'.format(path, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
+				self.logger.warning('Blob {} stat has changed, retrying (attempt {} / {})'.format(path, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
 				st = path.stat()
 
 		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(path))
@@ -203,8 +202,11 @@ class CreateBackupTask(Task):
 					targets=[str(Path(t).as_posix()) for t in self.config.backup.targets],
 				)
 				self.logger.info('Creating backup {}'.format(backup))
+
+				blob_utils.prepare_blob_directories()
 				for p in self.scan_files():
 					self.__create_file(session, backup, p)
+
 				self.logger.info('Create backup done, backup id {}'.format(backup.id))
 				self.__backup_id = backup.id
 		except Exception as e:

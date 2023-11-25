@@ -19,8 +19,8 @@ class ByPassReader(io.BytesIO):
 	def __init__(self, file_obj, do_hash: bool):
 		super().__init__()
 		self.file_obj: io.BytesIO = file_obj
-		from xbackup import utils
-		self.hasher = utils.create_hasher() if do_hash else None
+		from xbackup.utils import hash_utils
+		self.hasher = hash_utils.create_hasher() if do_hash else None
 		self.read_len = 0
 
 	def read(self, *args, **kwargs):

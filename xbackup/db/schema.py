@@ -1,6 +1,6 @@
 from typing import Optional, List, get_type_hints
 
-from sqlalchemy import String, BIGINT, Integer, ForeignKey, BigInteger, JSON, LargeBinary
+from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -43,18 +43,20 @@ class File(Base):
 	path: Mapped[str] = mapped_column(String, primary_key=True)
 
 	mode: Mapped[int] = mapped_column(Integer)
+
+	# whole file content for special files, e.g. target of symlink
 	content: Mapped[Optional[bytes]] = mapped_column(LargeBinary)
 
-	# store all Blob files inside the File, speed up blob attribute accessing
+	# store all Blob fields here to speed up blob attribute accessing
 	blob_hash: Mapped[Optional[str]] = mapped_column(ForeignKey('blob.hash'), index=True)
 	blob_compress: Mapped[Optional[str]] = mapped_column(String)
 	blob_size: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 	uid: Mapped[Optional[int]] = mapped_column(Integer)
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
-	ctime_ns: Mapped[Optional[int]] = mapped_column(BIGINT)
-	mtime_ns: Mapped[Optional[int]] = mapped_column(BIGINT)
-	atime_ns: Mapped[Optional[int]] = mapped_column(BIGINT)
+	ctime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
+	mtime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
+	atime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 	__fields_end__: bool
 
@@ -65,7 +67,7 @@ class File(Base):
 class Backup(Base):
 	__tablename__ = 'backup'
 
-	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
 	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in nanosecond
 	author: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)

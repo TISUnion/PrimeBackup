@@ -1,5 +1,4 @@
 import time
-import tracemalloc
 from pathlib import Path
 
 from xbackup import logger
@@ -11,22 +10,21 @@ from xbackup.task.export_backup_task import ExportBackupTasks, TarFormat
 
 # @memory_profiler.profile
 def main():
-	tracemalloc.start()
-
 	DbAccess.init()
 	# db_logger.get_logger().addHandler(logger.get().handlers[0])
 
 	logger.get().info('start')
 
 	t = time.time()
-	bkt = CreateBackupTask('Steve', 'test')
+	bkt = CreateBackupTask('Steve', '测试彩色测试')
 	bkt.run()
 
 	print('cost', round(time.time() - t, 2), 's')
-	t = time.time()
-	if bkt.backup_id == 1:
-		bkt = CreateBackupTask('Steve', 'test2')
-		bkt.run()
+
+	# t = time.time()
+	# if bkt.backup_id == 1:
+	# 	bkt = CreateBackupTask('Steve', 'test2')
+	# 	bkt.run()
 
 	print('cost', round(time.time() - t, 2), 's')
 	t = time.time()

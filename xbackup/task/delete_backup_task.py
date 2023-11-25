@@ -1,94 +1,100 @@
 import os
-import shutil
-import threading
 from pathlib import Path
 from typing import Optional, NamedTuple, List
 
-from xbackup import utils
-from xbackup.config.config import Config
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.task.task import Task
+from xbackup.utils import collection_utils, blob_utils
 
 
 class BlobTrashBin:
 	class Trash(NamedTuple):
 		hash: str
 		raw_size: int
-		trash_path: Path
-		origin_path: Path
+		blob_path: Path
 
 	class Summary(NamedTuple):
 		count: int
 		raw_size_sum: int
 		actual_size_sum: int
 
-	def __init__(self, bin_path: Path):
-		self.bin_path = bin_path
+	def __init__(self):
 		self.trashes: List[BlobTrashBin.Trash] = []
 
 	def add(self, blob: schema.Blob):
-		blob_path = utils.get_blob_path(blob.hash)
-		trash_path = self.bin_path / blob.hash
-		trash_path.parent.mkdir(parents=True, exist_ok=True)
-
-		shutil.move(blob_path, trash_path)
-		self.trashes.append(self.Trash(blob.hash, blob.size, trash_path=trash_path, origin_path=blob_path))
+		blob_path = blob_utils.get_blob_path(blob.hash)
+		self.trashes.append(self.Trash(blob.hash, blob.size, blob_path))
 
 	def make_summary(self) -> Summary:
 		raw_size_sum, actual_size_sum = 0, 0
 		for trash in self.trashes:
 			raw_size_sum += trash.raw_size
-			actual_size_sum += os.stat(trash.trash_path).st_size
+			actual_size_sum += os.stat(trash.blob_path).st_size
 		return self.Summary(len(self.trashes), raw_size_sum, actual_size_sum)
 
 	def erase_all(self):
 		for trash in self.trashes:
-			trash.trash_path.unlink()
-		self.trashes.clear()
+			trash.blob_path.unlink()
 
-	def restore_all(self):
-		for trash in self.trashes:
-			shutil.move(trash.trash_path, trash.origin_path)
-		self.trashes.clear()
 
-	def delete_trash_bin(self):
-		if self.bin_path.is_dir():
-			shutil.rmtree(self.bin_path)
+class DeleteOrphanBlobsTask(Task):
+	def __init__(self, blob_hash_to_check: Optional[List[str]]):
+		super().__init__()
+		self.blob_hash_to_check = blob_hash_to_check
+		if self.blob_hash_to_check is not None:
+			self.blob_hash_to_check = collection_utils.deduplicated_list(self.blob_hash_to_check)
+
+	def run(self):
+		trash_bin = BlobTrashBin()
+
+		self.logger.info('Delete blobs start')
+		with DbAccess.open_session() as session:
+			if self.blob_hash_to_check is None:
+				hashes = session.get_all_blob_hashes()
+			else:
+				hashes = self.blob_hash_to_check
+
+			self.logger.info('blob hash collected, cnt %s', len(hashes))
+			orphan_blob_hashes = session.filtered_orphan_blob_hashes(hashes)
+			self.logger.info('orphan hash collected, cnt %s', len(hashes))
+			t = session.get_blobs(orphan_blob_hashes)
+			self.logger.info('orphan blob collected, cnt %s', len(t))
+
+			for blob in t.values():
+				trash_bin.add(blob)
+			self.logger.info('orphan blob added to trashbin, cnt %s', len(t))
+			session.delete_blobs(list(t.keys()))
+			self.logger.info('orphan blob deleted, cnt %s', len(t))
+
+		self.logger.info('session ends')
+		summary = trash_bin.make_summary()
+		self.logger.info('trashbin erasing')
+		trash_bin.erase_all()
+		self.logger.info('Delete blobs done, erasing blobs (count {}, size {} / {})'.format(summary.count, summary.actual_size_sum, summary.raw_size_sum))
 
 
 class DeleteBackupTask(Task):
 	def __init__(self, backup_id: int):
 		super().__init__()
 		self.backup_id = backup_id
-		self.trash_bin: Optional[BlobTrashBin] = None
+		self.orphan_blob_cleaner: Optional[DeleteOrphanBlobsTask] = None
 
 	def run(self):
 		self.logger.info('Deleting backup {}'.format(self.backup_id))
-		self.trash_bin = BlobTrashBin(Config.get().storage_path / 'temp' / 'trash_bin_{}'.format(threading.current_thread().ident))
-		try:
-			with DbAccess.open_session() as session:
-				backup = session.get_backup(self.backup_id)
-				if backup is None:
-					raise KeyError('backup with id {} not found'.format(self.backup_id))
-				self.__delete_backup(session, backup)
-		except Exception:
-			self.logger.error('Delete backup failed, restoring blobs')
-			self.trash_bin.restore_all()
-			raise
-		else:
-			summary = self.trash_bin.make_summary()
-			self.logger.info('Delete backup done, erasing blobs (count {}, size {} / {})'.format(summary.count, summary.actual_size_sum, summary.raw_size_sum))
-			self.trash_bin.erase_all()
-		finally:
-			self.trash_bin.delete_trash_bin()
+		with DbAccess.open_session() as session:
+			backup = session.get_backup(self.backup_id)
+			if backup is None:
+				raise KeyError('backup with id {} not found'.format(self.backup_id))
+			self.__delete_backup(session, backup)
+		self.orphan_blob_cleaner.run()
 
 	def __delete_backup(self, session: DbSession, backup: schema.Backup):
+		hashes = []
 		for file in backup.files:
-			blob: Optional[schema.Blob] = file.blob
+			if file.blob_hash is not None:
+				hashes.append(file.blob_hash)
 			session.delete_file(file)
-			if blob is not None and len(blob.files) == 0:
-				self.trash_bin.add(blob)
-				session.delete_blob(blob)
 		session.delete_backup(backup)
+		self.orphan_blob_cleaner = DeleteOrphanBlobsTask(hashes)

@@ -1,4 +1,5 @@
 import contextlib
+import sys
 from typing import Optional, ContextManager
 
 from sqlalchemy import create_engine, Engine, text
@@ -40,6 +41,8 @@ class DbAccess:
 					db_logger.get_logger().info(line)
 					return int(line.split('=', 1)[1])
 			else:
+				print('max var num not found', file=sys.stderr)
+				return 999
 				raise KeyError('not found')
 
 	@classmethod

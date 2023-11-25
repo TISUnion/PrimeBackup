@@ -15,9 +15,14 @@ class Config(Serializable):
 	retention: RetentionConfig = RetentionConfig.get_default()
 
 	@classmethod
+	@functools.lru_cache
+	def __get_default(cls) -> 'Config':
+		return Config.get_default()
+
+	@classmethod
 	def get(cls) -> 'Config':
 		if _config is None:
-			return Config.get_default()
+			return cls.__get_default()
 		return _config
 
 	@functools.cached_property

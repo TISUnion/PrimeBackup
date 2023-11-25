@@ -1,11 +1,9 @@
-import contextlib
-import enum
+import asyncio
 import functools
 import os
 import stat
-import threading
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Callable, Any, Dict
 
 from xbackup.compressors import Compressor, CompressMethod
 from xbackup.config.config import Config
@@ -13,7 +11,7 @@ from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.task.task import Task
-from xbackup.utils import hash_utils, misc_utils, blob_utils
+from xbackup.utils import hash_utils, misc_utils, blob_utils, file_utils
 
 
 class VolatileBlobFile(Exception):
@@ -24,28 +22,47 @@ class _BlobFileChanged(Exception):
 	pass
 
 
-class _BlobCreatePolicy(enum.Enum):
-	"""
-	the policy of how to create a blob from a given file path
-	"""
-	read_all = enum.auto()  # for small files: read all in memory, calc hash. read once
-	hash_once = enum.auto()  # files with unique size: compress+hash to temp file, then move. read once
-	default = enum.auto()  # file with duplicated size: read twice (slower)
-
-
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
 _READ_ALL_SIZE_THRESHOLD = 256 * 1024  # 256KiB
 _HASH_ONCE_SIZE_THRESHOLD = 100 * 1024 * 1024  # 100MiB
 
 
+class BatchBlobFetcher:
+	Callback = Callable[[Optional[schema.Blob]], Any]
+
+	def __init__(self, session: DbSession, batch_size: int = 50):
+		self.session = session
+		self.batch_size = batch_size
+		self.tasks: Dict[str, asyncio.Future[schema.Blob]] = {}
+
+	def get_by_hash(self, h: str) -> asyncio.Future[schema.Blob]:
+		f = asyncio.Future()
+		self.tasks[h] = f
+		if len(self.tasks) >= self.batch_size:
+			self.__batch_run()
+		return f
+
+	def flush(self):
+		if len(self.tasks) > 0:
+			self.__batch_run()
+
+	def __batch_run(self):
+		blobs = self.session.get_blobs(list(self.tasks.keys()))
+		for h, f in self.tasks.items():
+			f.set_result(blobs.get(h))
+		self.tasks.clear()
+
+
 class CreateBackupTask(Task):
 	def __init__(self, author: str, comment: str):
 		super().__init__()
+		self.config = Config.get()
 		self.author = author
 		self.comment = comment
 		self.__blobs_rollbackers: List[callable] = []
 		self.__backup_id: Optional[int] = None
-		self.config = Config.get()
+
+		self.__batch_blob_fetcher: Optional[BatchBlobFetcher] = None
 
 	@property
 	def backup_id(self) -> int:
@@ -82,24 +99,18 @@ class CreateBackupTask(Task):
 		def attempt_once() -> schema.Blob:
 			blob_content: Optional[bytes] = None
 			if st.st_size < _READ_ALL_SIZE_THRESHOLD:
-				policy = _BlobCreatePolicy.read_all
 				with open(path, 'rb') as f:
 					blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
 				if len(blob_content) != st.st_size:
 					self.logger.warning('File size mismatch, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					raise _BlobFileChanged()
 				blob_hash = hash_utils.calc_bytes_hash(blob_content)
-			elif st.st_size > _HASH_ONCE_SIZE_THRESHOLD and not session.has_blob_with_size(st.st_size):
-				policy = _BlobCreatePolicy.hash_once
-				blob_hash = None
 			else:
-				policy = _BlobCreatePolicy.default
 				blob_hash = hash_utils.calc_file_hash(path)
 
-			if blob_hash is not None:
-				existing = session.get_blob(blob_hash)
-				if existing is not None:
-					return existing
+			existing = session.get_blob(blob_hash)
+			if existing is not None:
+				return existing
 
 			if st.st_size < Config.get().backup.compress_threshold:
 				method = CompressMethod.plain
@@ -107,7 +118,7 @@ class CreateBackupTask(Task):
 				method = Config.get().backup.compress_method
 			compressor = Compressor.create(method)
 
-			def check_changes(new_size: int, new_hash: Optional[str] = None):
+			def check_changes(new_size: int, new_hash: Optional[str]):
 				if new_size != st.st_size:
 					self.logger.warning('Blob size mismatch, previous: {}, current: {}'.format(st.st_size, new_size))
 					raise _BlobFileChanged()
@@ -115,33 +126,17 @@ class CreateBackupTask(Task):
 					self.logger.warning('Blob hash mismatch, previous: {}, current: {}'.format(blob_hash, new_hash))
 					raise _BlobFileChanged()
 
-			if policy == _BlobCreatePolicy.hash_once:
-				# read once, compress+hash to temp file, then move
-				temp_file_path = Config.get().storage_path / 'temp' / '{}.tmp'.format(threading.current_thread().ident or 'backup')
-				temp_file_path.parent.mkdir(parents=True, exist_ok=True)
+			blob_path = blob_utils.get_blob_path(blob_hash)
+			self.__blobs_rollbackers.append(functools.partial(self.__remove_file, blob_path))
 
-				with contextlib.ExitStack() as exit_stack:
-					exit_stack.callback(functools.partial(self.__remove_file, temp_file_path))
-
-					cp_size, blob_hash = compressor.copy_compressed(path, temp_file_path, calc_hash=True)
-					check_changes(cp_size, None)
-
-					blob_path = blob_utils.get_blob_path(blob_hash)
-					self.__blobs_rollbackers.append(functools.partial(self.__remove_file, blob_path))
-
-					os.rename(temp_file_path, blob_path)
-			else:  # hash already calculated
-				misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
-				blob_path = blob_utils.get_blob_path(blob_hash)
-				self.__blobs_rollbackers.append(functools.partial(self.__remove_file, blob_path))
-
-				if policy == _BlobCreatePolicy.read_all:
-					# the file content is already in memory, no need to read
-					misc_utils.assert_true(blob_content is not None, 'blob_content is None')
-					with compressor.open_compressed(blob_path) as f:
-						f.write(blob_content)
+			if blob_content is not None:
+				with compressor.open_compressed(blob_path) as f:
+					f.write(blob_content)
+			else:
+				if compressor.get_method() == CompressMethod.plain:
+					file_utils.copy_file_fast(path, blob_path)
+					# check_changes(blob_path.stat().st_size, None)  # TODO: check hash again?
 				else:
-					misc_utils.assert_true(policy == _BlobCreatePolicy.default, 'bad policy')
 					cr = compressor.copy_compressed(path, blob_path, calc_hash=True)
 					check_changes(cr.size, cr.hash)
 
@@ -167,6 +162,7 @@ class CreateBackupTask(Task):
 			pass
 		elif stat.S_ISREG(st.st_mode):
 			blob, st = self.__get_or_create_blob(session, path, st)
+			# notes: st.st_size might be incorrect, use blob.size instead
 		elif stat.S_ISLNK(st.st_mode):
 			content = str(path.readlink().as_posix()).encode('utf8')
 		else:
@@ -196,6 +192,8 @@ class CreateBackupTask(Task):
 		self.__blobs_rollbackers.clear()
 		try:
 			with DbAccess.open_session() as session:
+				self.__batch_blob_fetcher = BatchBlobFetcher(session)
+
 				backup = session.create_backup(
 					author=self.author,
 					comment=self.comment,
@@ -206,6 +204,7 @@ class CreateBackupTask(Task):
 				blob_utils.prepare_blob_directories()
 				for p in self.scan_files():
 					self.__create_file(session, backup, p)
+				self.__batch_blob_fetcher.flush()
 
 				self.logger.info('Create backup done, backup id {}'.format(backup.id))
 				self.__backup_id = backup.id

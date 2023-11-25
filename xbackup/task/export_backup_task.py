@@ -97,7 +97,7 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 			if target_path.is_dir():
 				shutil.rmtree(target_path)
 			else:
-				target_path.unlink()
+				target_path.unlink(missing_ok=True)
 
 		file: schema.File
 		for file in backup.files:
@@ -136,8 +136,6 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 					os.chown(file_path, file.uid, file.gid)
 				except PermissionError:
 					pass
-
-			session.expunge(file)
 
 
 class ExportBackupToTarTask(ExportBackupTask):
@@ -197,8 +195,6 @@ class ExportBackupToTarTask(ExportBackupTask):
 				else:
 					raise NotImplementedError('not supported yet')
 
-				session.expunge(file)
-
 			meta_buf = self._create_meta_buf(backup)
 			info = tarfile.TarInfo(name='.xbackup_meta.json')
 			info.mtime = int(time.time())
@@ -249,5 +245,3 @@ class ExportBackupToZipTask(ExportBackupTask):
 						zip_item.write(file.content)
 				else:
 					raise NotImplementedError('not supported yet')
-
-				session.expunge(file)

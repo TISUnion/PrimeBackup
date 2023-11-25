@@ -49,7 +49,7 @@ class BackupConfig(Serializable):
 		'session.lock',
 	]
 	hash_method: HashMethod = HashMethod.xxh128
-	compress_method: CompressMethod = CompressMethod.zstd
+	compress_method: CompressMethod = CompressMethod.plain
 	compress_threshold: int = 128
 	backup_on_overwrite: bool = True
 

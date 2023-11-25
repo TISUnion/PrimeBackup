@@ -1,22 +1,25 @@
 from pathlib import Path
+from typing import Tuple
 
 from xbackup.config.config import Config
 from xbackup.config.types import Hasher
+from xbackup.utils.bypass_reader import ByPassReader
 
 
 def create_hasher() -> 'Hasher':
 	return Config.get().backup.hash_method.value.create_hasher()
 
 
-def calc_file_hash(path: Path, *, buf_size: int = 64 * 1024) -> str:
+def calc_file_size_and_hash(path: Path, *, buf_size: int = 64 * 1024) -> Tuple[int, str]:
 	with open(path, 'rb') as f:
-		hasher = create_hasher()
-		while True:
-			chunk = f.read(buf_size)
-			if not chunk:
-				break
-			hasher.update(chunk)
-		return hasher.hexdigest()
+		reader = ByPassReader(f, True)
+		while reader.read(buf_size):
+			pass
+		return reader.get_read_len(), reader.get_hash()
+
+
+def calc_file_hash(path: Path, *, buf_size: int = 64 * 1024) -> str:
+	return calc_file_size_and_hash(path, buf_size=buf_size)[1]
 
 
 def calc_bytes_hash(buf: bytes) -> str:

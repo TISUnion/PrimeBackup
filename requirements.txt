@@ -1,8 +1,8 @@
 # core
 mcdreforged>=2.11
+psutil
 xxhash
 SQLAlchemy
-blake3
 
 # compress
 zstandard

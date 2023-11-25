@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import os
+import shutil
 import stat
 from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict
@@ -95,28 +96,32 @@ class CreateBackupTask(Task):
 		except OSError as e:
 			self.logger.error('(rollback) remove file {!r} failed: {}'.format(file_to_remove, e))
 
-	def __get_or_create_blob(self, session: DbSession, path: Path, st: os.stat_result) -> Tuple[schema.Blob, os.stat_result]:
+	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Tuple[schema.Blob, os.stat_result]:
 		def attempt_once() -> schema.Blob:
+			compress_method: CompressMethod
+			if st.st_size < Config.get().backup.compress_threshold:
+				compress_method = CompressMethod.plain
+			else:
+				compress_method = Config.get().backup.compress_method
+
+			# no compress, use file copy
+			use_fast_copy = compress_method == CompressMethod.plain and (shutil._USE_CP_SENDFILE or shutil._HAS_FCOPYFILE)
+			use_fast_copy = True
+
 			blob_content: Optional[bytes] = None
-			if st.st_size < _READ_ALL_SIZE_THRESHOLD:
-				with open(path, 'rb') as f:
+			if not use_fast_copy and st.st_size < _READ_ALL_SIZE_THRESHOLD:
+				with open(src_path, 'rb') as f:
 					blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
 				if len(blob_content) != st.st_size:
 					self.logger.warning('File size mismatch, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					raise _BlobFileChanged()
 				blob_hash = hash_utils.calc_bytes_hash(blob_content)
 			else:
-				blob_hash = hash_utils.calc_file_hash(path)
+				blob_hash = hash_utils.calc_file_hash(src_path)
 
 			existing = session.get_blob(blob_hash)
 			if existing is not None:
 				return existing
-
-			if st.st_size < Config.get().backup.compress_threshold:
-				method = CompressMethod.plain
-			else:
-				method = Config.get().backup.compress_method
-			compressor = Compressor.create(method)
 
 			def check_changes(new_size: int, new_hash: Optional[str]):
 				if new_size != st.st_size:
@@ -129,29 +134,30 @@ class CreateBackupTask(Task):
 			blob_path = blob_utils.get_blob_path(blob_hash)
 			self.__blobs_rollbackers.append(functools.partial(self.__remove_file, blob_path))
 
+			compressor = Compressor.create(compress_method)
 			if blob_content is not None:
 				with compressor.open_compressed(blob_path) as f:
 					f.write(blob_content)
 			else:
-				if compressor.get_method() == CompressMethod.plain:
-					file_utils.copy_file_fast(path, blob_path)
+				if compress_method == CompressMethod.plain:
+					file_utils.copy_file_fast(src_path, blob_path)
 					# check_changes(blob_path.stat().st_size, None)  # TODO: check hash again?
 				else:
-					cr = compressor.copy_compressed(path, blob_path, calc_hash=True)
+					cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True)
 					check_changes(cr.size, cr.hash)
 
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
-			return session.create_blob(hash=blob_hash, compress=method.name, size=st.st_size)
+			return session.create_blob(hash=blob_hash, compress=compress_method.name, size=st.st_size)
 
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
 			try:
 				return attempt_once(), st
 			except _BlobFileChanged:
-				self.logger.warning('Blob {} stat has changed, retrying (attempt {} / {})'.format(path, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
-				st = path.stat()
+				self.logger.warning('Blob {} stat has changed, retrying (attempt {} / {})'.format(src_path, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
+				st = src_path.stat()
 
-		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(path))
-		raise VolatileBlobFile('blob file {} keeps changing'.format(path))
+		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(src_path))
+		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path))
 
 	def __create_file(self, session: DbSession, backup: schema.Backup, path: Path) -> schema.File:
 		related_path = path.relative_to(Config.get().source_path)

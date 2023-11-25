@@ -1,17 +1,19 @@
-import asyncio
 import contextlib
 import enum
 import functools
 import os
 import stat
 import threading
+import time
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict
+from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator
 
 import psutil
 
+from xbackup import logger
 from xbackup.compressors import Compressor, CompressMethod
 from xbackup.config.config import Config
+from xbackup.config.sub_configs import BackupJob
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
@@ -40,29 +42,43 @@ _BLOB_FILE_CHANGED_RETRY_COUNT = 3
 _HASH_ONCE_SIZE_THRESHOLD = 100 * 1024 * 1024  # 100MiB
 
 
+class QueryBlobHashReq(NamedTuple):
+	hash: str
+
+
+class QueryBlobHashRsp(NamedTuple):
+	blob: Optional[schema.Blob]
+
+
 class BatchBlobFetcher:
 	Callback = Callable[[Optional[schema.Blob]], Any]
 
-	def __init__(self, session: DbSession, batch_size: int = 50):
+	def __init__(self, session: DbSession, max_batch_size: int = 100):
 		self.session = session
-		self.batch_size = batch_size
-		self.tasks: Dict[str, asyncio.Future[schema.Blob]] = {}
+		self.max_batch_size = max_batch_size
+		self.tasks: Dict[str, BatchBlobFetcher.Callback] = {}
+		self.first_task_scheduled_time = time.time()
 
-	def get_by_hash(self, h: str) -> asyncio.Future[schema.Blob]:
-		f = asyncio.Future()
-		self.tasks[h] = f
-		if len(self.tasks) >= self.batch_size:
+	def get_by_hash(self, h: str, callback: Callback):
+		now = time.time()
+		if len(self.tasks) == 0:
+			self.first_task_scheduled_time = now
+
+		self.tasks[h] = callback
+
+		# too much tasks, or too much time elapsed (0.1s) since the 1st task
+		if len(self.tasks) >= self.max_batch_size or now - self.first_task_scheduled_time >= 0.1:
 			self.__batch_run()
-		return f
 
 	def flush(self):
 		if len(self.tasks) > 0:
 			self.__batch_run()
 
 	def __batch_run(self):
+		# print(time.time() - self.first_task_scheduled_time, len(self.tasks))
 		blobs = self.session.get_blobs(list(self.tasks.keys()))
-		for h, f in self.tasks.items():
-			f.set_result(blobs.get(h))
+		for h, callback in self.tasks.items():
+			callback(blobs.get(h))
 		self.tasks.clear()
 
 
@@ -71,23 +87,25 @@ def _calc_if_is_fast_copy_fs(path: Path) -> bool:
 	mount_point: Optional[str] = None
 	fs_type = '?'
 	for p in psutil.disk_partitions():
-		if path.is_relative_to(p.mountpoint):
+		if p.mountpoint and p.fstype and path.is_relative_to(p.mountpoint):
 			if mount_point is None or Path(p.mountpoint).is_relative_to(mount_point):
 				mount_point = p.mountpoint
-				fs_type = p.fstype
-	print(mount_point, fs_type)
-	return fs_type.lower() in ['xfs', 'zfs', 'btrfs', 'apfs', 'refs']
+				fs_type = p.fstype.lower()
+	logger.get().debug(f'fs for {path}: {fs_type} {mount_point}')
+	return fs_type in ['xfs', 'zfs', 'btrfs', 'apfs', 'refs']
 
 
 class CreateBackupTask(Task):
-	def __init__(self, author: str, comment: str):
+	def __init__(self, job: BackupJob, author: str, comment: str):
 		super().__init__()
-		self.config = Config.get()
+		self.job = job
 		self.author = author
 		self.comment = comment
-		self.__blobs_rollbackers: List[callable] = []
-		self.__backup_id: Optional[int] = None
 
+		self.config = Config.get()
+		self.__backup_id: Optional[int] = None
+		self.__blob_cache: Dict[str, schema.Blob] = {}
+		self.__blobs_rollbackers: List[callable] = []
 		self.__blob_store_st: Optional[os.stat_result] = None
 		self.__blob_store_in_fast_copy_fs: Optional[bool] = None
 
@@ -102,8 +120,8 @@ class CreateBackupTask(Task):
 	def scan_files(self) -> List[Path]:
 		collected = []
 
-		for target in self.config.backup.targets:
-			target_path = self.config.source_path / target
+		for target in self.job.targets:
+			target_path = self.job.source_path / target
 			if not target_path.exists():
 				self.logger.info('skipping not-exist backup target {}'.format(target_path))
 				continue
@@ -115,7 +133,7 @@ class CreateBackupTask(Task):
 			else:
 				collected.append(target_path)
 
-		return [p for p in collected if not self.config.backup.is_file_ignore(p)]
+		return [p for p in collected if not self.job.is_file_ignore(p)]
 
 	def __remove_file(self, file_to_remove: Path):
 		try:
@@ -124,12 +142,12 @@ class CreateBackupTask(Task):
 		except OSError as e:
 			self.logger.error('(rollback) remove file {!r} failed: {}'.format(file_to_remove, e))
 
-	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Tuple[schema.Blob, os.stat_result]:
-		def attempt_once() -> schema.Blob:
-			if st.st_size < Config.get().backup.compress_threshold:
+	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Generator[Any, Any, Tuple[schema.Blob, os.stat_result]]:
+		def attempt_once() -> Generator[Any, Any, schema.Blob]:
+			if st.st_size < self.config.backup.compress_threshold:
 				compress_method = CompressMethod.plain
 			else:
-				compress_method = Config.get().backup.compress_method
+				compress_method = self.config.backup.compress_method
 
 			can_fast_copy = (
 					file_utils.HAS_COPY_FILE_RANGE and
@@ -156,9 +174,18 @@ class CreateBackupTask(Task):
 				blob_hash = hash_utils.calc_file_hash(src_path)
 
 			if blob_hash is not None:
-				existing = session.get_blob(blob_hash)
-				if existing is not None:
-					return existing
+				cache = self.__blob_cache.get(blob_hash)
+				if cache is not None:
+					return cache
+
+				existing = yield QueryBlobHashReq(blob_hash)
+				if existing.blob is not None:
+					return existing.blob
+
+				# other generators might just create the blob
+				cache = self.__blob_cache.get(blob_hash)
+				if cache is not None:
+					return cache
 
 			def check_changes(new_size: int, new_hash: Optional[str]):
 				if new_size != st.st_size:
@@ -176,7 +203,7 @@ class CreateBackupTask(Task):
 			compressor = Compressor.create(compress_method)
 			if policy == _BlobCreatePolicy.hash_once:
 				# read once, compress+hash to temp file, then move
-				temp_file_path = Config.get().storage_path / 'temp' / '{}.tmp'.format(threading.current_thread().ident or 'backup')
+				temp_file_path = self.config.storage_path / 'temp' / '{}.tmp'.format(threading.current_thread().ident or 'backup')
 				temp_file_path.parent.mkdir(parents=True, exist_ok=True)
 
 				with contextlib.ExitStack() as exit_stack:
@@ -208,11 +235,20 @@ class CreateBackupTask(Task):
 					raise AssertionError()
 
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
-			return session.create_blob(hash=blob_hash, compress=compress_method.name, size=st.st_size)
+			blob = session.create_blob(hash=blob_hash, compress=compress_method.name, size=st.st_size)
+			# self.logger.info('created %s %s', src_path, blob)
+			self.__blob_cache[blob_hash] = blob
+			return blob
 
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
+			gen = attempt_once()
 			try:
-				return attempt_once(), st
+				query = gen.send(None)
+				while True:
+					result = yield query
+					query = gen.send(result)
+			except StopIteration as e:  # ok
+				return e.value, st
 			except _BlobFileChanged:
 				self.logger.warning('Blob {} stat has changed, retrying (attempt {} / {})'.format(src_path, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
 				st = src_path.stat()
@@ -220,16 +256,23 @@ class CreateBackupTask(Task):
 		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(src_path))
 		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path))
 
-	def __create_file(self, session: DbSession, backup: schema.Backup, path: Path) -> schema.File:
-		related_path = path.relative_to(Config.get().source_path)
+	def __create_file(self, session: DbSession, backup: schema.Backup, path: Path) -> Generator[Any, Any, schema.File]:
+		related_path = path.relative_to(self.job.source_path)
 		st = path.stat()
 
 		blob, content = None, None
 		if stat.S_ISDIR(st.st_mode):
 			pass
 		elif stat.S_ISREG(st.st_mode):
-			blob, st = self.__get_or_create_blob(session, path, st)
-			# notes: st.st_size might be incorrect, use blob.size instead
+			gen = self.__get_or_create_blob(session, path, st)
+			try:
+				query = gen.send(None)
+				while True:
+					result = yield query
+					query = gen.send(result)
+			except StopIteration as e:
+				blob, st = e.value
+				# notes: st.st_size might be incorrect, use blob.size instead
 		elif stat.S_ISLNK(st.st_mode):
 			content = str(path.readlink().as_posix()).encode('utf8')
 		else:
@@ -264,7 +307,7 @@ class CreateBackupTask(Task):
 				backup = session.create_backup(
 					author=self.author,
 					comment=self.comment,
-					targets=[str(Path(t).as_posix()) for t in self.config.backup.targets],
+					targets=[str(Path(t).as_posix()) for t in self.job.targets],
 				)
 				self.logger.info('Creating backup {}'.format(backup))
 
@@ -274,8 +317,18 @@ class CreateBackupTask(Task):
 				self.__blob_store_in_fast_copy_fs = _calc_if_is_fast_copy_fs(bs_path)
 				self.logger.info('fast copy fs: %s', self.__blob_store_in_fast_copy_fs)
 
+				# TODO: multithread support
 				for p in self.scan_files():
-					self.__create_file(session, backup, p)
+					gen = self.__create_file(session, backup, p)
+					with contextlib.suppress(StopIteration):
+						query = gen.send(None)
+
+						if isinstance(query, QueryBlobHashReq):
+							def callback(b: Optional[schema.Blob], g=gen):
+								with contextlib.suppress(StopIteration):
+									g.send(QueryBlobHashRsp(b))
+							self.__batch_blob_fetcher.get_by_hash(query.hash, callback)
+
 				self.__batch_blob_fetcher.flush()
 
 				self.logger.info('Create backup done, backup id {}'.format(backup.id))

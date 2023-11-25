@@ -39,28 +39,47 @@ class ServerConfig(Serializable):
 				raise ValueError(e)
 
 
+class BackupJob(Serializable):
+	source_root: str = './server'
+	targets: List[str] = []
+	ignores: List[str] = []
+	# TODO: timer
+
+	@functools.cached_property
+	def source_path(self) -> Path:
+		return Path(self.source_root)
+
+	def is_file_ignore(self, full_path: Path) -> bool:
+		# TODO
+		return False
+
+
 class BackupConfig(Serializable):
 	storage_root: str = './xbackup_files'
-	source_root: str = './server'
-	targets: List[str] = [
-		'world',
-	]
-	ignores: List[str] = [
-		'session.lock',
-	]
 	hash_method: HashMethod = HashMethod.xxh128
+
+	jobs: Dict[str, BackupJob] = {
+		'default': BackupJob(
+			source_root='./server',
+			targets=['world'],
+			ignores=['session.lock'],
+		),
+	}
 	compress_method: CompressMethod = CompressMethod.plain
 	compress_threshold: int = 128
 	backup_on_overwrite: bool = True
+	concurrency: int = 1
 
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
 		if attr_name == 'compress_method':
 			if attr_value not in CompressMethod:
 				raise ValueError('bad compress method {!r}'.format(attr_value))
 
-	def is_file_ignore(self, full_path: Path) -> bool:
-		# TODO
-		return False
+	def get_default_job(self) -> BackupJob:
+		if len(self.jobs) > 0:
+			return next(iter(self.jobs.values()))
+		else:
+			raise IndexError('no job is defined')
 
 
 class RetentionConfig(Serializable):

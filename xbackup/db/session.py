@@ -1,4 +1,3 @@
-import functools
 import time
 from typing import Optional, Sequence, Dict
 from typing import TypeVar, List
@@ -20,14 +19,12 @@ def _list_it(seq: Sequence[_T]) -> List[_T]:
 
 
 class DbSession:
-	def __init__(self, session: Session, max_variable_number: int = 999):
+	def __init__(self, session: Session):
 		self.session = session
 		self.logger = db_logger.get_logger()
-		self.__max_variable_number = max_variable_number
 
-	@functools.cached_property
-	def __safe_var_limit(self) -> int:
-		return max(10, self.__max_variable_number - 100)
+		# the limit in old sqlite (https://www.sqlite.org/limits.html#max_variable_number)
+		self.__safe_var_limit = 999 - 20
 
 	def flush(self):
 		self.session.flush()

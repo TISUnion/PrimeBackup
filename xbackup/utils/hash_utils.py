@@ -10,7 +10,7 @@ def create_hasher() -> 'Hasher':
 	return Config.get().backup.hash_method.value.create_hasher()
 
 
-_READ_BUF_SIZE = 64 * 1024
+_READ_BUF_SIZE = 128 * 1024
 
 
 def calc_file_size_and_hash(path: Path, *, buf_size: int = _READ_BUF_SIZE) -> Tuple[int, str]:

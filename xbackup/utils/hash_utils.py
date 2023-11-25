@@ -10,7 +10,10 @@ def create_hasher() -> 'Hasher':
 	return Config.get().backup.hash_method.value.create_hasher()
 
 
-def calc_file_size_and_hash(path: Path, *, buf_size: int = 64 * 1024) -> Tuple[int, str]:
+_READ_BUF_SIZE = 64 * 1024
+
+
+def calc_file_size_and_hash(path: Path, *, buf_size: int = _READ_BUF_SIZE) -> Tuple[int, str]:
 	with open(path, 'rb') as f:
 		reader = ByPassReader(f, True)
 		while reader.read(buf_size):
@@ -18,7 +21,7 @@ def calc_file_size_and_hash(path: Path, *, buf_size: int = 64 * 1024) -> Tuple[i
 		return reader.get_read_len(), reader.get_hash()
 
 
-def calc_file_hash(path: Path, *, buf_size: int = 64 * 1024) -> str:
+def calc_file_hash(path: Path, *, buf_size: int = _READ_BUF_SIZE) -> str:
 	return calc_file_size_and_hash(path, buf_size=buf_size)[1]
 
 

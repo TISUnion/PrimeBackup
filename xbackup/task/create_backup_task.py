@@ -1,7 +1,6 @@
 import asyncio
 import functools
 import os
-import shutil
 import stat
 from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict
@@ -24,7 +23,7 @@ class _BlobFileChanged(Exception):
 
 
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
-_READ_ALL_SIZE_THRESHOLD = 256 * 1024  # 256KiB
+_READ_ALL_SIZE_THRESHOLD = 4 * 1024  # 4KiB
 _HASH_ONCE_SIZE_THRESHOLD = 100 * 1024 * 1024  # 100MiB
 
 
@@ -98,18 +97,8 @@ class CreateBackupTask(Task):
 
 	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Tuple[schema.Blob, os.stat_result]:
 		def attempt_once() -> schema.Blob:
-			compress_method: CompressMethod
-			if st.st_size < Config.get().backup.compress_threshold:
-				compress_method = CompressMethod.plain
-			else:
-				compress_method = Config.get().backup.compress_method
-
-			# no compress, use file copy
-			use_fast_copy = compress_method == CompressMethod.plain and (shutil._USE_CP_SENDFILE or shutil._HAS_FCOPYFILE)
-			use_fast_copy = True
-
 			blob_content: Optional[bytes] = None
-			if not use_fast_copy and st.st_size < _READ_ALL_SIZE_THRESHOLD:
+			if st.st_size < _READ_ALL_SIZE_THRESHOLD:
 				with open(src_path, 'rb') as f:
 					blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
 				if len(blob_content) != st.st_size:
@@ -134,6 +123,10 @@ class CreateBackupTask(Task):
 			blob_path = blob_utils.get_blob_path(blob_hash)
 			self.__blobs_rollbackers.append(functools.partial(self.__remove_file, blob_path))
 
+			if st.st_size < Config.get().backup.compress_threshold:
+				compress_method = CompressMethod.plain
+			else:
+				compress_method = Config.get().backup.compress_method
 			compressor = Compressor.create(compress_method)
 			if blob_content is not None:
 				with compressor.open_compressed(blob_path) as f:

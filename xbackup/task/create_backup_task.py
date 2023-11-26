@@ -1,3 +1,4 @@
+import collections
 import contextlib
 import enum
 import functools
@@ -5,8 +6,9 @@ import os
 import stat
 import threading
 import time
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator
+from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union
 
 import psutil
 
@@ -39,47 +41,7 @@ class _BlobCreatePolicy(enum.Enum):
 
 
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
-_HASH_ONCE_SIZE_THRESHOLD = 100 * 1024 * 1024  # 100MiB
-
-
-class QueryBlobHashReq(NamedTuple):
-	hash: str
-
-
-class QueryBlobHashRsp(NamedTuple):
-	blob: Optional[schema.Blob]
-
-
-class BatchBlobFetcher:
-	Callback = Callable[[Optional[schema.Blob]], Any]
-
-	def __init__(self, session: DbSession, max_batch_size: int = 100):
-		self.session = session
-		self.max_batch_size = max_batch_size
-		self.tasks: Dict[str, BatchBlobFetcher.Callback] = {}
-		self.first_task_scheduled_time = time.time()
-
-	def get_by_hash(self, h: str, callback: Callback):
-		now = time.time()
-		if len(self.tasks) == 0:
-			self.first_task_scheduled_time = now
-
-		self.tasks[h] = callback
-
-		# too much tasks, or too much time elapsed (0.1s) since the 1st task
-		if len(self.tasks) >= self.max_batch_size or now - self.first_task_scheduled_time >= 0.1:
-			self.__batch_run()
-
-	def flush(self):
-		if len(self.tasks) > 0:
-			self.__batch_run()
-
-	def __batch_run(self):
-		# print(time.time() - self.first_task_scheduled_time, len(self.tasks))
-		blobs = self.session.get_blobs(list(self.tasks.keys()))
-		for h, callback in self.tasks.items():
-			callback(blobs.get(h))
-		self.tasks.clear()
+_HASH_ONCE_SIZE_THRESHOLD = 10 * 1024 * 1024  # 100MiB
 
 
 def _calc_if_is_fast_copy_fs(path: Path) -> bool:
@@ -95,6 +57,112 @@ def _calc_if_is_fast_copy_fs(path: Path) -> bool:
 	return fs_type in ['xfs', 'zfs', 'btrfs', 'apfs', 'refs']
 
 
+class BatchFetcherBase(ABC):
+	Callback = Callable
+	tasks: dict
+
+	def __init__(self, session: DbSession, max_batch_size: int):
+		self.session = session
+		self.max_batch_size = max_batch_size
+		self.first_task_scheduled_time = time.time()
+
+	def _post_query(self):
+		now = time.time()
+		if len(self.tasks) == 1:
+			self.first_task_scheduled_time = now
+		self.flush_if_needed()
+
+	def flush_if_needed(self):
+		if len(self.tasks) >= self.max_batch_size or time.time() - self.first_task_scheduled_time >= 0.1:
+			self._batch_run()
+
+	def flush(self):
+		if len(self.tasks) > 0:
+			self._batch_run()
+
+	@abstractmethod
+	def _batch_run(self):
+		...
+
+
+class BlobBySizeFetcher(BatchFetcherBase):
+	class Req(NamedTuple):
+		size: int
+
+	class Rsp(NamedTuple):
+		exists: bool
+
+	Callback = Callable[[Rsp], Any]
+	tasks: Dict[int, List[Callback]]
+
+	def __init__(self, session: DbSession, max_batch_size: int = 100):
+		super().__init__(session, max_batch_size)
+		self.tasks = collections.defaultdict(list)
+
+	def query(self, query: Req, callback: Callback):
+		self.tasks[query.size].append(callback)
+		self._post_query()
+
+	def _batch_run(self):
+		# print(time.time() - self.first_task_scheduled_time, len(self.tasks))
+		existence = self.session.has_blob_with_size_batched(list(self.tasks.keys()))
+		for s, callbacks in self.tasks.items():
+			for callback in callbacks:
+				callback(self.Rsp(existence[s]))
+		self.tasks.clear()
+
+
+class BlobByHashFetcher(BatchFetcherBase):
+	class Req(NamedTuple):
+		hash: str
+
+	class Rsp(NamedTuple):
+		blob: Optional[schema.Blob]
+
+	Callback = Callable[[Rsp], Any]
+	tasks: Dict[str, List[Callback]]
+
+	def __init__(self, session: DbSession, max_batch_size: int = 100):
+		super().__init__(session, max_batch_size)
+		self.tasks = collections.defaultdict(list)
+
+	def query(self, query: Req, callback: Callback):
+		self.tasks[query.hash].append(callback)
+		self._post_query()
+
+	def _batch_run(self):
+		# print(time.time() - self.first_task_scheduled_time, len(self.tasks))
+		blobs = self.session.get_blobs(list(self.tasks.keys()))
+		for h, callbacks in self.tasks.items():
+			for callback in callbacks:
+				callback(self.Rsp(blobs[h]))
+		self.tasks.clear()
+
+
+class BatchQueryManager:
+	Reqs = Union[BlobBySizeFetcher.Req, BlobByHashFetcher.Req]
+
+	def __init__(self, session: DbSession, max_batch_size: int = 100):
+		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size)
+		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size)
+
+	def query(self, query: Reqs, callback: callable):
+		if isinstance(query, BlobBySizeFetcher.Req):
+			self.fetcher_size.query(query, callback)
+		elif isinstance(query, BlobByHashFetcher.Req):
+			self.fetcher_hash.query(query, callback)
+		else:
+			raise ValueError('unexpected query: {!r} {!r}'.format(type(query), query))
+
+	def flush_if_needed(self):
+		self.fetcher_size.flush_if_needed()
+		self.fetcher_hash.flush_if_needed()
+
+	def flush(self):
+		self.fetcher_size.flush()
+		self.fetcher_hash.flush()
+
+
 class CreateBackupTask(Task):
 	def __init__(self, job: BackupJob, author: str, comment: str):
 		super().__init__()
@@ -104,12 +172,12 @@ class CreateBackupTask(Task):
 
 		self.config = Config.get()
 		self.__backup_id: Optional[int] = None
-		self.__blob_cache: Dict[str, schema.Blob] = {}
 		self.__blobs_rollbackers: List[callable] = []
 		self.__blob_store_st: Optional[os.stat_result] = None
 		self.__blob_store_in_fast_copy_fs: Optional[bool] = None
 
-		self.__batch_blob_fetcher: Optional[BatchBlobFetcher] = None
+		self.__batch_query_manager: Optional[BatchQueryManager] = None
+		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
 
 	@property
 	def backup_id(self) -> int:
@@ -157,6 +225,7 @@ class CreateBackupTask(Task):
 			)
 			read_all_size_threshold = 4 * 1024 if can_fast_copy else 64 * 1024
 
+			blob_hash: Optional[str] = None
 			blob_content: Optional[bytes] = None
 			if st.st_size < read_all_size_threshold:
 				policy = _BlobCreatePolicy.read_all
@@ -174,16 +243,17 @@ class CreateBackupTask(Task):
 				blob_hash = hash_utils.calc_file_hash(src_path)
 
 			if blob_hash is not None:
-				cache = self.__blob_cache.get(blob_hash)
+				cache = self.__blob_by_hash_cache.get(blob_hash)
 				if cache is not None:
 					return cache
 
-				existing = yield QueryBlobHashReq(blob_hash)
-				if existing.blob is not None:
-					return existing.blob
+				# noinspection PyTypeChecker
+				rsp: BlobByHashFetcher.Rsp = yield BlobByHashFetcher.Req(blob_hash)
+				if rsp.blob is not None:
+					return rsp.blob
 
 				# other generators might just create the blob
-				cache = self.__blob_cache.get(blob_hash)
+				cache = self.__blob_by_hash_cache.get(blob_hash)
 				if cache is not None:
 					return cache
 
@@ -237,7 +307,7 @@ class CreateBackupTask(Task):
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
 			blob = session.create_blob(hash=blob_hash, compress=compress_method.name, size=st.st_size)
 			# self.logger.info('created %s %s', src_path, blob)
-			self.__blob_cache[blob_hash] = blob
+			self.__blob_by_hash_cache[blob_hash] = blob
 			return blob
 
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
@@ -302,7 +372,7 @@ class CreateBackupTask(Task):
 		self.__blobs_rollbackers.clear()
 		try:
 			with DbAccess.open_session() as session:
-				self.__batch_blob_fetcher = BatchBlobFetcher(session)
+				self.__batch_query_manager = BatchQueryManager(session)
 
 				backup = session.create_backup(
 					author=self.author,
@@ -317,19 +387,25 @@ class CreateBackupTask(Task):
 				self.__blob_store_in_fast_copy_fs = _calc_if_is_fast_copy_fs(bs_path)
 				self.logger.info('fast copy fs: %s', self.__blob_store_in_fast_copy_fs)
 
-				# TODO: multithread support
-				for p in self.scan_files():
-					gen = self.__create_file(session, backup, p)
-					with contextlib.suppress(StopIteration):
-						query = gen.send(None)
-
-						if isinstance(query, QueryBlobHashReq):
-							def callback(b: Optional[schema.Blob], g=gen):
-								with contextlib.suppress(StopIteration):
-									g.send(QueryBlobHashRsp(b))
-							self.__batch_blob_fetcher.get_by_hash(query.hash, callback)
-
-				self.__batch_blob_fetcher.flush()
+				def schedule(g: Generator, v):
+					scheduling_stack.append((g, v))
+				idx, files = 0, self.scan_files()
+				scheduling_stack: List[Tuple[Generator, Any]] = []
+				while True:
+					if idx < len(files):
+						schedule(self.__create_file(session, backup, files[idx]), None)
+						idx += 1
+					while len(scheduling_stack) > 0:
+						gen, value = scheduling_stack.pop()
+						with contextlib.suppress(StopIteration):
+							query = gen.send(value)
+							callback = functools.partial(schedule, gen)
+							self.__batch_query_manager.query(query, callback)
+						self.__batch_query_manager.flush_if_needed()
+					if idx == len(files):
+						self.__batch_query_manager.flush()
+						if len(scheduling_stack) == 0:
+							break
 
 				self.logger.info('Create backup done, backup id {}'.format(backup.id))
 				self.__backup_id = backup.id

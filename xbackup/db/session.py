@@ -39,7 +39,7 @@ class DbSession:
 		return self.session.get(schema.Blob, h)
 
 	def get_blobs(self, hashes: List[str]) -> Dict[str, schema.Blob]:
-		result = {}
+		result = {h: None for h in hashes}
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			for blob in self.session.execute(select(schema.Blob).where(schema.Blob.hash.in_(view))).scalars().all():
 				result[blob.hash] = blob
@@ -57,6 +57,13 @@ class DbSession:
 		exists = self.session.query(q).scalar()
 		# self.logger.info('result: %s', exists)
 		return exists
+
+	def has_blob_with_size_batched(self, sizes: List[int]) -> Dict[int, bool]:
+		result = {s: False for s in sizes}
+		for view in collection_utils.slicing_iterate(sizes, self.__safe_var_limit):
+			for size in self.session.execute(select(schema.Blob.size).where(schema.Blob.size.in_(view)).distinct()).scalars().all():
+				result[size] = True
+		return result
 
 	def delete_blobs(self, hashes: List[str]):
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):

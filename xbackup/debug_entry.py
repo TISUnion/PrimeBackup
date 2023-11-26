@@ -19,10 +19,10 @@ def main():
 	bkt = TA()
 	bkt.backup_id = 1
 
-	def create():
+	def create(n: int = 1):
 		nonlocal bkt
 
-		for i in range(1):
+		for i in range(n):
 			t = time.time()
 			bkt = CreateBackupTask(job, 'Steve', '测试彩色测试')
 			bkt.run()
@@ -55,8 +55,8 @@ def main():
 		print('cost', round(time.time() - t, 2), 's')
 		t = time.time()
 
-	create()
-	# delete()
+	create(2)
+	delete()
 
 
 if __name__ == '__main__':

@@ -6,8 +6,6 @@ import shutil
 from abc import abstractmethod, ABC
 from typing import BinaryIO, Union, ContextManager, NamedTuple
 
-import lz4.frame
-import zstandard
 from typing_extensions import Protocol
 
 from xbackup.types import PathLike
@@ -96,8 +94,10 @@ class _GzipLikeLibrary(Protocol):
 		...
 
 
-class _GzipLikeCompressorBase(Compressor):
-	_lib: _GzipLikeLibrary
+class _GzipLikeCompressorBase(Compressor, ABC):
+	@classmethod
+	def _lib(cls) -> _GzipLikeLibrary:
+		...
 
 	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
 		with self.compress_stream(f_out) as compressed_out:
@@ -109,29 +109,39 @@ class _GzipLikeCompressorBase(Compressor):
 
 	@contextlib.contextmanager
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
-		with self._lib.open(f_out, 'wb') as compressed_out:
+		with self._lib().open(f_out, 'wb') as compressed_out:
 			yield compressed_out
 
 	@contextlib.contextmanager
 	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
-		with self._lib.open(f_in, 'rb') as compressed_in:
+		with self._lib().open(f_in, 'rb') as compressed_in:
 			yield compressed_in
 
 
 class GzipCompressor(_GzipLikeCompressorBase):
-	_lib = gzip
+	@classmethod
+	def _lib(cls):
+		return gzip
 
 
 class LzmaCompressor(_GzipLikeCompressorBase):
-	_lib = lzma
+	@classmethod
+	def _lib(cls):
+		return lzma
 
 
 class ZstdCompressor(_GzipLikeCompressorBase):
-	_lib = zstandard
+	@classmethod
+	def _lib(cls):
+		import zstandard
+		return zstandard
 
 
 class Lz4Compressor(_GzipLikeCompressorBase):
-	_lib = lz4.frame
+	@classmethod
+	def _lib(cls):
+		import lz4.frame
+		return lz4.frame
 
 
 class CompressMethod(enum.Enum):

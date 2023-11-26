@@ -60,9 +60,9 @@ def main():
 			print(backup)
 
 	create(1)
-	lst()
-	export()
-	delete()
+	# lst()
+	# export()
+	# delete()
 
 
 if __name__ == '__main__':

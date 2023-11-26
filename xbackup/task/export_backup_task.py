@@ -17,7 +17,7 @@ from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.task.task import Task
-from xbackup.utils import file_utils, conversion_utils, blob_utils
+from xbackup.utils import file_utils, blob_utils
 
 
 class DbStateError(Exception):
@@ -42,15 +42,15 @@ class TarFormat(enum.Enum):
 
 class ExportBackupTasks:
 	@classmethod
-	def create_to_dir(cls, backup_id: int, output_path: Path) -> 'ExportBackupTask':
-		return ExportBackupToDirectoryTask(backup_id, output_path)
+	def to_dir(cls, backup_id: int, output_path: Path, delete_existing: bool) -> 'ExportBackupTask':
+		return ExportBackupToDirectoryTask(backup_id, output_path, delete_existing)
 
 	@classmethod
-	def create_to_tar(cls, backup_id: int, output_path: Path, tar_format: TarFormat) -> 'ExportBackupTask':
+	def to_tar(cls, backup_id: int, output_path: Path, tar_format: TarFormat) -> 'ExportBackupTask':
 		return ExportBackupToTarTask(backup_id, output_path, tar_format)
 
 	@classmethod
-	def create_to_zip(cls, backup_id: int, output_path: Path) -> 'ExportBackupTask':
+	def to_zip(cls, backup_id: int, output_path: Path) -> 'ExportBackupTask':
 		return ExportBackupToZipTask(backup_id, output_path)
 
 
@@ -62,10 +62,7 @@ class ExportBackupTask(Task, ABC):
 
 	def run(self):
 		with DbAccess.open_session() as session:
-			backup = session.get_backup(self.backup_id)
-			if backup is None:
-				raise KeyError('backup with id {} not found'.format(self.backup_id))
-
+			backup = session.get_backup_or_throw(self.backup_id)
 			self._export_backup(session, backup)
 
 		self.logger.info('exporting done')
@@ -80,7 +77,7 @@ class ExportBackupTask(Task, ABC):
 			'_version': 1,
 			'author': backup.author,
 			'comment': backup.comment,
-			'date': conversion_utils.timestamp_to_local_date(backup.timestamp),
+			'timestamp': backup.timestamp,
 			'targets': backup.targets,
 		}
 		return json.dumps(meta, indent=2, ensure_ascii=False).encode('utf8')
@@ -92,6 +89,10 @@ def _i_am_root():
 
 
 class ExportBackupToDirectoryTask(ExportBackupTask):
+	def __init__(self, backup_id: int, output_path: Path, delete_existing: bool):
+		super().__init__(backup_id, output_path)
+		self.delete_existing = delete_existing
+
 	def __set_attrs(self, file: schema.File):
 		file_path = self.output_path / file.path
 
@@ -114,12 +115,13 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 		self.output_path.mkdir(parents=True, exist_ok=True)
 
 		# clean up existing
-		for target in backup.targets:
-			target_path = self.output_path / target
-			if target_path.is_dir():
-				shutil.rmtree(target_path)
-			else:
-				target_path.unlink(missing_ok=True)
+		if self.delete_existing:
+			for target in backup.targets:
+				target_path = self.output_path / target
+				if target_path.is_dir():
+					shutil.rmtree(target_path)
+				else:
+					target_path.unlink(missing_ok=True)
 
 		directories = []
 		file: schema.File

@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from typing import Any
 
 from xbackup import logger
 
@@ -8,5 +9,5 @@ class Task(ABC):
 		self.logger = logger.get()
 
 	@abstractmethod
-	def run(self):
+	def run(self) -> Any:
 		...

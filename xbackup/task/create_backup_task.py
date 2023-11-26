@@ -16,6 +16,7 @@ from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.task.task import Task
+from xbackup.types import Operator
 from xbackup.utils import hash_utils, misc_utils, blob_utils, file_utils
 
 
@@ -148,7 +149,7 @@ class BatchQueryManager:
 
 
 class CreateBackupTask(Task):
-	def __init__(self, author: str, comment: str):
+	def __init__(self, author: Operator, comment: str):
 		super().__init__()
 		self.author = author
 		self.comment = comment
@@ -364,14 +365,14 @@ class CreateBackupTask(Task):
 			)
 		return session.create_file(**kwargs)
 
-	def run(self):
+	def run(self) -> int:
 		self.__blobs_rollbackers.clear()
 		try:
 			with DbAccess.open_session() as session:
 				self.__batch_query_manager = BatchQueryManager(session)
 
 				backup = session.create_backup(
-					author=self.author,
+					author=str(self.author),
 					comment=self.comment,
 					targets=[str(Path(t).as_posix()) for t in self.config.backup.targets],
 				)
@@ -381,7 +382,6 @@ class CreateBackupTask(Task):
 				bs_path = blob_utils.get_blob_store()
 				self.__blob_store_st = bs_path.stat()
 				self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
-				self.logger.info('cow fs: %s', self.__blob_store_in_cow_fs)
 
 				def schedule(g: Generator, v):
 					scheduling_stack.append((g, v))
@@ -403,8 +403,9 @@ class CreateBackupTask(Task):
 						if len(scheduling_stack) == 0:
 							break
 
-				self.logger.info('Create backup done, backup id {}'.format(backup.id))
+				self.logger.info('Create backup done, backup id: {}, author: {!r}, comment: {!r}'.format(backup.id, self.author, self.comment))
 				self.__backup_id = backup.id
+				return self.__backup_id
 		except Exception as e:
 			self.logger.info('Error occurs, applying rollback')
 			self.__backup_id = None

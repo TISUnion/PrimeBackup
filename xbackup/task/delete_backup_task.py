@@ -68,9 +68,7 @@ class DeleteOrphanBlobsTask(Task):
 			session.delete_blobs(list(t.keys()))
 			self.logger.info('orphan blob deleted, cnt %s', len(t))
 
-		self.logger.info('session ends')
 		summary = trash_bin.make_summary()
-		self.logger.info('trashbin erasing')
 		trash_bin.erase_all()
 		self.logger.info('Delete blobs done, erasing blobs (count {}, size {} / {})'.format(summary.count, summary.actual_size_sum, summary.raw_size_sum))
 
@@ -84,9 +82,7 @@ class DeleteBackupTask(Task):
 	def run(self):
 		self.logger.info('Deleting backup {}'.format(self.backup_id))
 		with DbAccess.open_session() as session:
-			backup = session.get_backup(self.backup_id)
-			if backup is None:
-				raise KeyError('backup with id {} not found'.format(self.backup_id))
+			backup = session.get_backup_or_throw(self.backup_id)
 			self.__delete_backup(session, backup)
 		self.orphan_blob_cleaner.run()
 

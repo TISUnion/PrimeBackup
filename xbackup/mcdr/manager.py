@@ -5,7 +5,6 @@ from typing import Optional
 from mcdreforged.api.all import CommandSource, PluginServerInterface
 
 from xbackup import constants
-from xbackup.config.sub_configs import BackupJob
 from xbackup.task.create_backup_task import CreateBackupTask
 from xbackup.task.task import Task
 
@@ -31,7 +30,7 @@ class Manager:
 			except Exception:
 				self.logger.exception('Session {} run error'.format(task))
 
-	def create_backup(self, source: CommandSource, job: BackupJob, comment: str):
+	def create_backup(self, source: CommandSource, comment: str):
 		# TODO: spam proof
 		if source.is_player:
 			author = f'player:{source.player}'
@@ -39,7 +38,7 @@ class Manager:
 			author = f'console'
 		else:
 			author = f'other:{source}'
-		self.task_queue.put(CreateBackupTask(job, author, comment))
+		self.task_queue.put(CreateBackupTask(author, comment))
 
 	def on_world_saved(self):
 		pass

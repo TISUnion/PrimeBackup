@@ -17,11 +17,7 @@ def cmd_list(source: CommandSource, context: CommandContext):
 
 
 def cmd_make(source: CommandSource, context: CommandContext):
-	if '--job' in context:
-		job = config.backup.jobs[context['--job']]
-	else:
-		job = config.backup.get_default_job()
-	manager.create_backup(source, job, context.get('comment', ''))
+	manager.create_backup(source, context.get('comment', ''))
 
 
 def register_command(server: PluginServerInterface):

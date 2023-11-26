@@ -29,6 +29,10 @@ class Config(Serializable):
 	def storage_path(self) -> Path:
 		return Path(self.backup.storage_root)
 
+	@functools.cached_property
+	def source_path(self) -> Path:
+		return Path(self.backup.source_root)
+
 
 _config: Optional[Config] = None
 

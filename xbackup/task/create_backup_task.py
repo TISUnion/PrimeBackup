@@ -15,7 +15,6 @@ import psutil
 from xbackup import logger
 from xbackup.compressors import Compressor, CompressMethod
 from xbackup.config.config import Config
-from xbackup.config.sub_configs import BackupJob
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
@@ -164,9 +163,8 @@ class BatchQueryManager:
 
 
 class CreateBackupTask(Task):
-	def __init__(self, job: BackupJob, author: str, comment: str):
+	def __init__(self, author: str, comment: str):
 		super().__init__()
-		self.job = job
 		self.author = author
 		self.comment = comment
 
@@ -188,8 +186,8 @@ class CreateBackupTask(Task):
 	def scan_files(self) -> List[Path]:
 		collected = []
 
-		for target in self.job.targets:
-			target_path = self.job.source_path / target
+		for target in self.config.backup.targets:
+			target_path = self.config.source_path / target
 			if not target_path.exists():
 				self.logger.info('skipping not-exist backup target {}'.format(target_path))
 				continue
@@ -201,7 +199,7 @@ class CreateBackupTask(Task):
 			else:
 				collected.append(target_path)
 
-		return [p for p in collected if not self.job.is_file_ignore(p)]
+		return [p for p in collected if not self.config.backup.is_file_ignore(p)]
 
 	def __remove_file(self, file_to_remove: Path):
 		try:
@@ -327,7 +325,7 @@ class CreateBackupTask(Task):
 		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path))
 
 	def __create_file(self, session: DbSession, backup: schema.Backup, path: Path) -> Generator[Any, Any, schema.File]:
-		related_path = path.relative_to(self.job.source_path)
+		related_path = path.relative_to(self.config.source_path)
 		st = path.stat()
 
 		blob, content = None, None
@@ -377,7 +375,7 @@ class CreateBackupTask(Task):
 				backup = session.create_backup(
 					author=self.author,
 					comment=self.comment,
-					targets=[str(Path(t).as_posix()) for t in self.job.targets],
+					targets=[str(Path(t).as_posix()) for t in self.config.backup.targets],
 				)
 				self.logger.info('Creating backup {}'.format(backup))
 

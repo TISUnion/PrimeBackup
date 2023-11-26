@@ -129,7 +129,7 @@ class DbSession:
 	def get_backup_or_throw(self, backup_id: int) -> schema.Backup:
 		backup = self.get_backup(backup_id)
 		if backup is None:
-			raise BackupNotFound('backup {} not found'.format(backup_id))
+			raise BackupNotFound(backup_id)
 		return backup
 
 	def delete_backup(self, backup: schema.Backup):

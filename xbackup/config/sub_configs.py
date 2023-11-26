@@ -17,8 +17,15 @@ class CommandConfig(Serializable):
 	}
 
 
+class CustomServerCommands(Serializable):
+	save_all_worlds: str = 'save-all flush'
+	turn_off_auto_save: str = 'save-off'
+	turn_on_auto_save: str = 'save-on'
+
+
 class ServerConfig(Serializable):
-	turn_off_autosave: bool = True
+	turn_off_auto_save: bool = True
+	commands: CustomServerCommands = CustomServerCommands.get_default()
 	saved_world_regex: List[str] = [
 		'^Saved the game$',
 		'^Saved the world$',
@@ -28,6 +35,10 @@ class ServerConfig(Serializable):
 	@functools.cached_property
 	def saved_world_regex_patterns(self) -> List[re.Pattern]:
 		return list(map(re.compile, self.saved_world_regex))
+
+	@functools.cached_property
+	def save_world_max_wait_sec(self) -> float:
+		return Duration(self.save_world_max_wait).duration
 
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
 		if attr_name == 'save_world_max_wait':

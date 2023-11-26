@@ -1,10 +1,12 @@
 import time
+from pathlib import Path
 
 from xbackup import logger
 from xbackup.db.access import DbAccess
-from xbackup.task.create_backup_task import CreateBackupTask
-from xbackup.task.delete_backup_task import DeleteBackupTask
-from xbackup.task.list_backup_task import ListBackupTask
+from xbackup.task.cmd.list_backup_task import ListBackupTask
+from xbackup.task.core.create_backup_task import CreateBackupTask
+from xbackup.task.core.delete_backup_task import DeleteBackupTask
+from xbackup.task.core.export_backup_task import ExportBackupTasks, TarFormat
 from xbackup.types import Operator
 
 
@@ -40,7 +42,7 @@ def main():
 	def export():
 		t = time.time()
 
-		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar'), TarFormat.plain).run()
+		ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar'), TarFormat.plain).run()
 		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar.gz'), TarFormat.gzip).run()
 		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar.zst'), TarFormat.zstd).run()
 		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar.xz'), TarFormat.lzma).run()

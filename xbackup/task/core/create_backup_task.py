@@ -14,16 +14,17 @@ from xbackup.config.config import Config
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
+from xbackup.exceptions import XBackupError
 from xbackup.task.task import Task
 from xbackup.types import Operator
 from xbackup.utils import hash_utils, misc_utils, blob_utils, file_utils
 
 
-class VolatileBlobFile(Exception):
+class VolatileBlobFile(XBackupError):
 	pass
 
 
-class _BlobFileChanged(Exception):
+class _BlobFileChanged(XBackupError):
 	pass
 
 
@@ -421,3 +422,5 @@ class CreateBackupTask(Task):
 		finally:
 			self.__blob_by_size_cache.clear()
 			self.__blob_by_hash_cache.clear()
+
+

@@ -1,0 +1,14 @@
+xbackup:
+  task:
+    create: create backup
+    delete: delete backup
+    export: export backup
+    restore: restore backup
+    list: list backup
+
+  error:
+    backup_not_found: Backup with id {} does not exist
+    generic: Task {} execution error, see console for more error
+
+  pretty_backup:
+    base: '[ID §6{}§r] 日期: {}; 注释: {}'

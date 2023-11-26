@@ -38,7 +38,7 @@ class _BlobCreatePolicy(enum.Enum):
 
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
 _READ_ALL_SIZE_THRESHOLD = 8 * 1024  # 8KiB
-_HASH_ONCE_SIZE_THRESHOLD = 20 * 1024 * 1024  # 20MiB
+_HASH_ONCE_SIZE_THRESHOLD = 10 * 1024 * 1024  # 10MiB
 
 
 class BatchFetcherBase(ABC):
@@ -160,6 +160,7 @@ class CreateBackupTask(Task):
 		self.__blob_store_in_cow_fs: Optional[bool] = None
 
 		self.__batch_query_manager: Optional[BatchQueryManager] = None
+		self.__blob_by_size_cache: Dict[int, bool] = {}
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
 
 	@property
@@ -207,6 +208,7 @@ class CreateBackupTask(Task):
 					st.st_dev == self.__blob_store_st.st_dev
 			)
 
+			policy: Optional[_BlobCreatePolicy] = None
 			blob_hash: Optional[str] = None
 			blob_content: Optional[bytes] = None
 			if st.st_size < _READ_ALL_SIZE_THRESHOLD:
@@ -217,13 +219,25 @@ class CreateBackupTask(Task):
 					self.logger.warning('File size mismatch, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					raise _BlobFileChanged()
 				blob_hash = hash_utils.calc_bytes_hash(blob_content)
-			elif not can_copy_on_write and st.st_size > _HASH_ONCE_SIZE_THRESHOLD and not session.has_blob_with_size(st.st_size):
-				policy = _BlobCreatePolicy.hash_once
-			else:
+			elif not can_copy_on_write and st.st_size > _HASH_ONCE_SIZE_THRESHOLD:
+				can_hash_once = self.__blob_by_size_cache.get(st.st_size, False) is False
+				if can_hash_once:
+					# noinspection PyTypeChecker
+					rsp: BlobBySizeFetcher.Rsp = yield BlobBySizeFetcher.Req(st.st_size)
+					if rsp.exists:
+						self.__blob_by_size_cache[st.st_size] = rsp.exists
+					can_hash_once = not rsp.exists and self.__blob_by_size_cache.get(st.st_size, False) is False
+				if can_hash_once:
+					# it's certain that this blob is unique, but notes: the following code
+					# cannot be interrupted (yield), or other generator could make a same blob
+					policy = _BlobCreatePolicy.hash_once
+			if policy is None:
 				policy = _BlobCreatePolicy.default
 				blob_hash = hash_utils.calc_file_hash(src_path)
 
+			# self.logger.info("%s %s %s", policy.name, compress_method.name, src_path)
 			if blob_hash is not None:
+				misc_utils.assert_true(policy != _BlobCreatePolicy.hash_once, 'unexpected policy')
 				cache = self.__blob_by_hash_cache.get(blob_hash)
 				if cache is not None:
 					return cache
@@ -231,6 +245,7 @@ class CreateBackupTask(Task):
 				# noinspection PyTypeChecker
 				rsp: BlobByHashFetcher.Rsp = yield BlobByHashFetcher.Req(blob_hash)
 				if rsp.blob is not None:
+					self.__blob_by_hash_cache[blob_hash] = rsp.blob
 					return rsp.blob
 
 				# other generators might just create the blob
@@ -286,10 +301,7 @@ class CreateBackupTask(Task):
 					raise AssertionError()
 
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
-			blob = session.create_blob(hash=blob_hash, compress=compress_method.name, size=st.st_size)
-			# self.logger.info('created %s %s', src_path, blob)
-			self.__blob_by_hash_cache[blob_hash] = blob
-			return blob
+			return session.create_blob(hash=blob_hash, compress=compress_method.name, size=st.st_size)
 
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
 			gen = attempt_once()
@@ -299,7 +311,10 @@ class CreateBackupTask(Task):
 					result = yield query
 					query = gen.send(result)
 			except StopIteration as e:  # ok
-				return e.value, st
+				blob: schema.Blob = e.value
+				self.__blob_by_size_cache[blob.size] = True
+				self.__blob_by_hash_cache[blob.hash] = blob
+				return blob, st
 			except _BlobFileChanged:
 				self.logger.warning('Blob {} stat has changed, retrying (attempt {} / {})'.format(src_path, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
 				st = src_path.stat()
@@ -396,3 +411,6 @@ class CreateBackupTask(Task):
 			for rollback_func in self.__blobs_rollbackers:
 				rollback_func()
 			raise e
+		finally:
+			self.__blob_by_size_cache.clear()
+			self.__blob_by_hash_cache.clear()

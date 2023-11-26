@@ -53,7 +53,7 @@ def main():
 		print('cost', round(time.time() - t, 2), 's')
 		t = time.time()
 
-	create(2)
+	create(1)
 	delete()
 
 

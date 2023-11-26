@@ -10,9 +10,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union
 
-import psutil
-
-from xbackup import logger
 from xbackup.compressors import Compressor, CompressMethod
 from xbackup.config.config import Config
 from xbackup.db import schema
@@ -40,20 +37,8 @@ class _BlobCreatePolicy(enum.Enum):
 
 
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
-_HASH_ONCE_SIZE_THRESHOLD = 10 * 1024 * 1024  # 100MiB
-
-
-def _calc_if_is_fast_copy_fs(path: Path) -> bool:
-	path = path.absolute()
-	mount_point: Optional[str] = None
-	fs_type = '?'
-	for p in psutil.disk_partitions():
-		if p.mountpoint and p.fstype and path.is_relative_to(p.mountpoint):
-			if mount_point is None or Path(p.mountpoint).is_relative_to(mount_point):
-				mount_point = p.mountpoint
-				fs_type = p.fstype.lower()
-	logger.get().debug(f'fs for {path}: {fs_type} {mount_point}')
-	return fs_type in ['xfs', 'zfs', 'btrfs', 'apfs', 'refs']
+_READ_ALL_SIZE_THRESHOLD = 8 * 1024  # 8KiB
+_HASH_ONCE_SIZE_THRESHOLD = 20 * 1024 * 1024  # 20MiB
 
 
 class BatchFetcherBase(ABC):
@@ -172,7 +157,7 @@ class CreateBackupTask(Task):
 		self.__backup_id: Optional[int] = None
 		self.__blobs_rollbackers: List[callable] = []
 		self.__blob_store_st: Optional[os.stat_result] = None
-		self.__blob_store_in_fast_copy_fs: Optional[bool] = None
+		self.__blob_store_in_cow_fs: Optional[bool] = None
 
 		self.__batch_query_manager: Optional[BatchQueryManager] = None
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
@@ -215,27 +200,25 @@ class CreateBackupTask(Task):
 			else:
 				compress_method = self.config.backup.compress_method
 
-			can_fast_copy = (
+			can_copy_on_write = (
 					file_utils.HAS_COPY_FILE_RANGE and
-					self.__blob_store_in_fast_copy_fs and
+					self.__blob_store_in_cow_fs and
 					compress_method == CompressMethod.plain and
 					st.st_dev == self.__blob_store_st.st_dev
 			)
-			read_all_size_threshold = 4 * 1024 if can_fast_copy else 64 * 1024
 
 			blob_hash: Optional[str] = None
 			blob_content: Optional[bytes] = None
-			if st.st_size < read_all_size_threshold:
+			if st.st_size < _READ_ALL_SIZE_THRESHOLD:
 				policy = _BlobCreatePolicy.read_all
 				with open(src_path, 'rb') as f:
-					blob_content = f.read(read_all_size_threshold + 1)
+					blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
 				if len(blob_content) != st.st_size:
 					self.logger.warning('File size mismatch, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					raise _BlobFileChanged()
 				blob_hash = hash_utils.calc_bytes_hash(blob_content)
-			elif not can_fast_copy and st.st_size > _HASH_ONCE_SIZE_THRESHOLD and not session.has_blob_with_size(st.st_size):
+			elif not can_copy_on_write and st.st_size > _HASH_ONCE_SIZE_THRESHOLD and not session.has_blob_with_size(st.st_size):
 				policy = _BlobCreatePolicy.hash_once
-				blob_hash = None
 			else:
 				policy = _BlobCreatePolicy.default
 				blob_hash = hash_utils.calc_file_hash(src_path)
@@ -292,7 +275,7 @@ class CreateBackupTask(Task):
 					with compressor.open_compressed(blob_path) as f:
 						f.write(blob_content)
 				elif policy == _BlobCreatePolicy.default:
-					if can_fast_copy and compress_method == CompressMethod.plain:
+					if can_copy_on_write and compress_method == CompressMethod.plain:
 						# fast copy + hash again might be faster than simple copy+hash
 						file_utils.copy_file_fast(src_path, blob_path)
 						check_changes(*hash_utils.calc_file_size_and_hash(blob_path))
@@ -382,8 +365,8 @@ class CreateBackupTask(Task):
 				blob_utils.prepare_blob_directories()
 				bs_path = blob_utils.get_blob_store()
 				self.__blob_store_st = bs_path.stat()
-				self.__blob_store_in_fast_copy_fs = _calc_if_is_fast_copy_fs(bs_path)
-				self.logger.info('fast copy fs: %s', self.__blob_store_in_fast_copy_fs)
+				self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
+				self.logger.info('cow fs: %s', self.__blob_store_in_cow_fs)
 
 				def schedule(g: Generator, v):
 					scheduling_stack.append((g, v))

@@ -1,9 +1,11 @@
 import time
+from pathlib import Path
 
 from xbackup import logger
 from xbackup.db.access import DbAccess
 from xbackup.task.create_backup_task import CreateBackupTask
 from xbackup.task.delete_backup_task import DeleteBackupTask
+from xbackup.task.export_backup_task import ExportBackupTasks
 
 
 # @memory_profiler.profile
@@ -43,7 +45,7 @@ def main():
 		# ExportBackupTasks.create_to_tar(bkt.backup_id, Path('export.tar.zst'), TarFormat.zstd).run()
 		# ExportBackupTasks.create_to_tar(bkt.backup_id, Path('export.tar.xz'), TarFormat.lzma).run()
 		# ExportBackupTasks.create_to_zip(bkt.backup_id, Path('export.zip')).run()
-		# ExportBackupTasks.create_to_dir(bkt.backup_id, Path('export')).run()
+		ExportBackupTasks.create_to_dir(bkt.backup_id, Path('export')).run()
 
 		print('cost', round(time.time() - t, 2), 's')
 
@@ -54,6 +56,7 @@ def main():
 		t = time.time()
 
 	create(1)
+	export()
 	delete()
 
 

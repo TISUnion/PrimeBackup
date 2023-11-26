@@ -86,7 +86,29 @@ class ExportBackupTask(Task, ABC):
 		return json.dumps(meta, indent=2, ensure_ascii=False).encode('utf8')
 
 
+def _i_am_root():
+	# reference: tarfile.TarFile.chown
+	return hasattr(os, 'geteuid') and os.geteuid() == 0
+
+
 class ExportBackupToDirectoryTask(ExportBackupTask):
+	def __set_attrs(self, file: schema.File):
+		file_path = self.output_path / file.path
+
+		# reference: tarfile.TarFile.extractall, tarfile.TarFile._extract_member
+
+		if _i_am_root() and file.uid is not None and file.gid is not None:
+			u, g = int(file.uid), int(file.gid)
+			if stat.S_ISLNK(file.mode) and hasattr(os, 'lchown'):
+				os.lchown(file_path, u, g)
+			else:
+				os.chown(file_path, u, g)
+
+		if not stat.S_ISLNK(file.mode):
+			os.chmod(file_path, file.mode)
+			if file.atime_ns is not None and file.mtime_ns is not None:
+				os.utime(file_path, (file.atime_ns / 1e9, file.mtime_ns / 1e9))
+
 	def _export_backup(self, session, backup: schema.Backup):
 		self.logger.info('exporting backup {} to directory {}'.format(backup, self.output_path))
 		self.output_path.mkdir(parents=True, exist_ok=True)
@@ -99,6 +121,7 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 			else:
 				target_path.unlink(missing_ok=True)
 
+		directories = []
 		file: schema.File
 		for file in backup.files:
 			file_path = self.output_path / file.path
@@ -118,6 +141,7 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 			elif stat.S_ISDIR(file.mode):
 				file_path.mkdir(parents=True, exist_ok=True)
 				self.logger.debug('write dir {}'.format(file.path))
+				directories.append(file)
 
 			elif stat.S_ISLNK(file.mode):
 				link_target = file.content.decode('utf8')
@@ -127,15 +151,13 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 				# TODO: support other file types
 				raise NotImplementedError('not supported yet')
 
-			os.chmod(file_path, file.mode)
-			if file.atime_ns is not None and file.mtime_ns is not None:
-				os.utime(file_path, (file.atime_ns / 1e9, file.mtime_ns / 1e9))
+			if not stat.S_ISDIR(file.mode):
+				self.__set_attrs(file)
 
-			if callable(getattr(os, 'chown', None)) and file.uid is not None and file.gid is not None:
-				try:
-					os.chown(file_path, file.uid, file.gid)
-				except PermissionError:
-					pass
+		# child dir first
+		# reference: tarfile.TarFile.extractall
+		for dir_file in sorted(directories, key=lambda d: d.path, reverse=True):
+			self.__set_attrs(dir_file)
 
 
 class ExportBackupToTarTask(ExportBackupTask):

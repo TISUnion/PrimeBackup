@@ -8,7 +8,7 @@ from typing import BinaryIO, Union, ContextManager, NamedTuple
 
 from typing_extensions import Protocol
 
-from xbackup.types import PathLike
+from xbackup.types.common import PathLike
 from xbackup.utils.bypass_reader import ByPassReader
 
 

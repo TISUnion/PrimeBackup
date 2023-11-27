@@ -2,9 +2,9 @@ import threading
 
 from mcdreforged.command.command_source import CommandSource
 
-from xbackup.task.action.create_backup_action import CreateBackupAction
-from xbackup.task.task import Task, TaskEvent
-from xbackup.task.types.operator import Operator
+from xbackup.action.create_backup_action import CreateBackupAction
+from xbackup.mcdr.task import TaskEvent, Task
+from xbackup.types.operator import Operator
 
 
 class CreateBackupTask(Task):

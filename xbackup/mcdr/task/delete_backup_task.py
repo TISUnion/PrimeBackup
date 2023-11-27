@@ -1,4 +1,4 @@
-from xbackup.task.task import Task
+from xbackup.mcdr.task import Task
 
 
 class DeleteBackupTask(Task):

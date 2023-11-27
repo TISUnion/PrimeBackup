@@ -1,7 +1,7 @@
 from mcdreforged.command.command_source import CommandSource
 
-from xbackup.db.access import DbAccess
-from xbackup.task.task import Task
+from xbackup.action.get_backup_action import GetBackupAction
+from xbackup.mcdr.task import Task
 
 
 class InspectBackupTask(Task):
@@ -11,6 +11,5 @@ class InspectBackupTask(Task):
 		self.backup_id = backup_id
 
 	def run(self):
-		# ensure backup exists first
-		with DbAccess.open_session() as session:
-			backup = session.get_backup_or_throw(self.backup_id)
+		# TODO
+		backup = GetBackupAction(self.backup_id).run()

@@ -1,9 +1,9 @@
 from typing import Optional, List
 
+from xbackup.action import Action
 from xbackup.db.access import DbAccess
-from xbackup.task.action import Action
-from xbackup.task.types.backup_filter import BackupFilter
-from xbackup.task.types.backup_info import BackupInfo
+from xbackup.types.backup_filter import BackupFilter
+from xbackup.types.backup_info import BackupInfo
 
 
 class ListBackupAction(Action):

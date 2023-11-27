@@ -5,7 +5,7 @@ from typing import Optional, NamedTuple, Callable, Generic, TypeVar
 from mcdreforged.api.all import *
 
 from xbackup.exceptions import XBackupError
-from xbackup.task.task import Task
+from xbackup.mcdr.task import Task
 
 
 class TaskHolder(NamedTuple):

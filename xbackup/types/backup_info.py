@@ -3,7 +3,7 @@ from typing import NamedTuple
 from mcdreforged.minecraft.rtext.text import RTextBase
 
 from xbackup.db import schema
-from xbackup.task.types.operator import Operator
+from xbackup.types.operator import Operator
 from xbackup.utils import conversion_utils
 
 

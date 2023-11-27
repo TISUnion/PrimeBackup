@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 from typing import Optional, NamedTuple, List
 
+from xbackup.action import Action
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
-from xbackup.task.action import Action
-from xbackup.task.types.backup_info import BackupInfo
+from xbackup.types.backup_info import BackupInfo
 from xbackup.utils import collection_utils, blob_utils
 
 

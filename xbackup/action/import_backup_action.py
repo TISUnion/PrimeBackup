@@ -3,11 +3,11 @@ import tarfile
 from pathlib import Path
 from typing import Any, ContextManager
 
+from xbackup.action import Action
 from xbackup.compressors import Compressor
 from xbackup.db.access import DbAccess
 from xbackup.exceptions import XBackupError
-from xbackup.task.action import Action
-from xbackup.task.types.tar_format import TarFormat
+from xbackup.types.tar_format import TarFormat
 
 
 class UnsupportedFormat(XBackupError):

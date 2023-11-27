@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from xbackup.task.types.operator import Operator
+from xbackup.types.operator import Operator
 
 
 @dataclass

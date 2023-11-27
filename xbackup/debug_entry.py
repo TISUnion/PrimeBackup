@@ -2,13 +2,13 @@ import time
 from pathlib import Path
 
 from xbackup import logger
+from xbackup.action.create_backup_action import CreateBackupAction
+from xbackup.action.delete_backup_action import DeleteBackupAction
+from xbackup.action.export_backup_action import ExportBackupActions
+from xbackup.action.list_backup_action import ListBackupAction
 from xbackup.db.access import DbAccess
-from xbackup.task.action.create_backup_action import CreateBackupAction
-from xbackup.task.action.delete_backup_action import DeleteBackupAction
-from xbackup.task.action.export_backup_action import ExportBackupActions
-from xbackup.task.action.list_backup_action import ListBackupAction
-from xbackup.task.types.operator import Operator
-from xbackup.task.types.tar_format import TarFormat
+from xbackup.types.operator import Operator
+from xbackup.types.tar_format import TarFormat
 
 
 # @memory_profiler.profile

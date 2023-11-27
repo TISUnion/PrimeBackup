@@ -1,8 +1,5 @@
 import enum
-from abc import abstractmethod, ABC
-
-from xbackup import logger
-from xbackup.config.config import Config
+from abc import ABC, abstractmethod
 
 
 class TaskEvent(enum.Enum):
@@ -15,6 +12,8 @@ class TaskEvent(enum.Enum):
 
 class Task(ABC):
 	def __init__(self):
+		from xbackup import logger
+		from xbackup.config.config import Config
 		self.logger = logger.get()
 		self.config = Config.get()
 

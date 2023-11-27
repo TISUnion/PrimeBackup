@@ -9,13 +9,13 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set
 
+from xbackup.action import Action
 from xbackup.compressors import Compressor, CompressMethod
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.exceptions import XBackupError
-from xbackup.task.action import Action
-from xbackup.task.types.operator import Operator
+from xbackup.types.operator import Operator
 from xbackup.utils import hash_utils, misc_utils, blob_utils, file_utils
 
 

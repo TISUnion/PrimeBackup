@@ -3,14 +3,14 @@ import threading
 
 from mcdreforged.command.command_source import CommandSource
 
+from xbackup.action.create_backup_action import CreateBackupAction
+from xbackup.action.export_backup_action import ExportBackupActions
+from xbackup.action.get_backup_action import GetBackupAction
 from xbackup.config.config import Config
 from xbackup.config.types import Duration
-from xbackup.db.access import DbAccess
-from xbackup.task.action.create_backup_action import CreateBackupAction
-from xbackup.task.action.export_backup_action import ExportBackupActions
-from xbackup.task.task import Task, TaskEvent
-from xbackup.task.types.backup_info import BackupInfo
-from xbackup.task.types.operator import Operator
+from xbackup.mcdr.task import TaskEvent, Task
+from xbackup.types.backup_info import BackupInfo
+from xbackup.types.operator import Operator
 from xbackup.utils.mcdr_utils import print_message, command_run, tr
 from xbackup.utils.waitable_value import WaitableValue
 
@@ -46,10 +46,7 @@ class RestoreBackupTask(Task):
 		return True
 
 	def run(self):
-		# ensure backup exists first
-		with DbAccess.open_session() as session:
-			backup = session.get_backup_or_throw(self.backup_id)
-			backup = BackupInfo.of(backup)
+		backup = GetBackupAction(self.backup_id).run()
 
 		confirm_time_wait = Duration('60s')  # TODO: make it configurable?
 		self.confirm_result.wait(confirm_time_wait.duration)

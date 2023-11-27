@@ -6,13 +6,13 @@ from mcdreforged.api.all import *
 
 from xbackup import constants
 from xbackup.exceptions import BackupNotFound
+from xbackup.mcdr.task import TaskEvent, Task
+from xbackup.mcdr.task.create_backup_task import CreateBackupTask
+from xbackup.mcdr.task.delete_backup_task import DeleteBackupTask
+from xbackup.mcdr.task.list_backup_task import ListBackupTask
+from xbackup.mcdr.task.restore_backup_task import RestoreBackupTask
 from xbackup.mcdr.task_queue import TaskQueue, TaskHolder, TooManyOngoingTask
-from xbackup.task.cmd.create_backup_task import CreateBackupTask
-from xbackup.task.cmd.delete_backup_task import DeleteBackupTask
-from xbackup.task.cmd.list_backup_task import ListBackupTask
-from xbackup.task.cmd.restore_backup_task import RestoreBackupTask
-from xbackup.task.task import Task, TaskEvent
-from xbackup.task.types.backup_filter import BackupFilter
+from xbackup.types.backup_filter import BackupFilter
 from xbackup.utils.mcdr_utils import tr
 
 

@@ -1,8 +1,8 @@
 from typing import Optional
 
-from xbackup.task.action.list_backup_action import ListBackupAction
-from xbackup.task.task import Task
-from xbackup.task.types.backup_filter import BackupFilter
+from xbackup.action.list_backup_action import ListBackupAction
+from xbackup.mcdr.task import Task
+from xbackup.types.backup_filter import BackupFilter
 
 
 class ListBackupTask(Task):

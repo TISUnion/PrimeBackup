@@ -4,8 +4,7 @@ from mcdreforged.api.all import *
 
 from xbackup.config.config import Config
 from xbackup.mcdr.task_manager import TaskManager
-from xbackup.task.types.backup_filter import BackupFilter
-from xbackup.task.types.backup_info import BackupInfo
+from xbackup.types.backup_filter import BackupFilter
 from xbackup.utils.mcdr_utils import tr
 
 
@@ -27,9 +26,6 @@ class CommandManager:
 		self.task_manager.create_backup(source, context.get('comment', ''))
 
 	def cmd_delete(self, source: CommandSource, context: CommandContext):
-		def callback(backup: BackupInfo):
-			pass
-
 		self.task_manager.delete_backup(source, context['backup_id'])
 
 	def cmd_back(self, source: CommandSource, context: CommandContext):

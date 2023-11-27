@@ -152,10 +152,11 @@ class BatchQueryManager:
 
 
 class CreateBackupAction(Action):
-	def __init__(self, author: Operator, comment: str):
+	def __init__(self, author: Operator, comment: str, *, hidden: bool = False):
 		super().__init__()
 		self.author = author
 		self.comment = comment
+		self.hidden = hidden
 
 		self.__backup_id: Optional[int] = None
 		self.__blobs_rollbackers: List[callable] = []
@@ -380,6 +381,7 @@ class CreateBackupAction(Action):
 					author=str(self.author),
 					comment=self.comment,
 					targets=[str(Path(t).as_posix()) for t in self.config.backup.targets],
+					hidden=self.hidden,
 				)
 				self.logger.info('Creating backup {}'.format(backup))
 

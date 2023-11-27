@@ -121,6 +121,8 @@ class DbSession:
 				s.where(schema.Backup.timestamp >= backup_filter.timestamp_lower)
 			if backup_filter.timestamp_upper is not None:
 				s.where(schema.Backup.timestamp >= backup_filter.timestamp_upper)
+			if backup_filter.hidden is not None:
+				s.filter_by(hidden=backup_filter.hidden)
 		s.order_by(desc(schema.Backup.timestamp))
 		if limit is not None:
 			s.limit(limit)

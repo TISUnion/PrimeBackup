@@ -2,6 +2,7 @@ import enum
 import threading
 
 from mcdreforged.command.command_source import CommandSource
+from xbackup.types.backup_tag import BackupTags
 
 from xbackup.action.create_backup_action import CreateBackupAction
 from xbackup.action.export_backup_action import ExportBackupActions
@@ -64,7 +65,11 @@ class RestoreBackupTask(Task):
 
 		if Config.get().backup.backup_on_overwrite:
 			self.logger.info('Creating backup of existing files to avoid idiot')
-			act = CreateBackupAction(Operator.xbackup('pre_restore'), 'Automatic backup before restoring to backup {}, executed by {}'.format(self.backup_id, self.source))
+			act = CreateBackupAction(
+				Operator.xbackup('pre_restore'),
+				'Automatic backup before restoring',
+				BackupTags().with_hidden(True),
+			)
 			act.run()
 
 		self.logger.info('Restoring backup')

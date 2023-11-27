@@ -112,8 +112,8 @@ class TaskManager:
 	def restore_backup(self, source: CommandSource, backup_id: int):
 		self.__add_operate_task(source, 'task.restore', RestoreBackupTask(source, backup_id))
 
-	def list_backup(self, source: CommandSource, limit: int, backup_filter: BackupFilter):
-		self.__add_read_task(source, 'task.list', ListBackupTask(limit=limit, backup_filter=backup_filter))
+	def list_backup(self, source: CommandSource, limit: int, backup_filter: BackupFilter, show_hidden: bool):
+		self.__add_read_task(source, 'task.list', ListBackupTask(limit=limit, backup_filter=backup_filter, show_hidden=show_hidden))
 
 	def do_confirm(self) -> bool:
 		return self.worker_operator.send_event_to_current_task(TaskEvent.operation_confirmed)

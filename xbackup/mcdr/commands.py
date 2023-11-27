@@ -17,10 +17,16 @@ class CommandManager:
 	def cmd_help(self, source: CommandSource):
 		pass
 
-	def cmd_list(self, source: CommandSource, context: CommandContext):
+	def __cmd_list(self, source: CommandSource, context: CommandContext, show_hidden: bool):
 		limit = context.get('limit', 10)
 		backup_filter = BackupFilter()
-		self.task_manager.list_backup(source, limit, backup_filter)
+		self.task_manager.list_backup(source, limit, backup_filter, show_hidden)
+
+	def cmd_list(self, source: CommandSource, context: CommandContext):
+		return self.__cmd_list(source, context, False)
+
+	def cmd_list_all(self, source: CommandSource, context: CommandContext):
+		return self.__cmd_list(source, context, True)
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
 		self.task_manager.create_backup(source, context.get('comment', ''))
@@ -51,6 +57,8 @@ class CommandManager:
 
 		builder.command('list', self.cmd_list)
 		builder.command('list <limit>', self.cmd_list)
+		builder.command('list_all', self.cmd_list_all)
+		builder.command('list_all <limit>', self.cmd_list_all)
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
 		builder.command('del <backup_id>', self.cmd_delete)

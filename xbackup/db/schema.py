@@ -1,6 +1,6 @@
 from typing import Optional, List, get_type_hints
 
-from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary
+from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -72,6 +72,8 @@ class Backup(Base):
 	author: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)
 	targets = mapped_column(JSON)  # List[str]
+
+	hidden: Mapped[bool] = mapped_column(Boolean)
 
 	__fields_end__: bool
 

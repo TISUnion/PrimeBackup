@@ -1,4 +1,4 @@
-# xbackup
+# Prime Backup
 
 The fast and smart backup plugin for MCDR
 

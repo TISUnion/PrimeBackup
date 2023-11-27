@@ -1,20 +1,20 @@
 {
-    "id": "xbackup",
+    "id": "prime_backup",
     "version": "0.1.0",
-    "name": "X Backup",
+    "name": "Prime Backup",
     "description": {
         "en_us": "The backup plugin that you need",
-        "zh_cn": "多槽位备份/回档插件"
+        "zh_cn": "PrimeBackup"
     },
     "author": [
         "Fallen_Breath"
     ],
-    "link": "https://github.com/TISUnion/xbackup",
+    "link": "https://github.com/TISUnion/PrimeBackup",
     "dependencies": {
         "mcdreforged": ">=2.11"
     },
-    "entrypoint": "xbackup.mcdr.entrypoint",
-    "archive_name": "xbackup-v{version}",
+    "entrypoint": "prime_backup.mcdr.entrypoint",
+    "archive_name": "PrimeBackup-v{version}",
     "resources": [
         "lang",
         "LICENSE"

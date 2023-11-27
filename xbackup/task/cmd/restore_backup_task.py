@@ -6,10 +6,9 @@ from mcdreforged.command.command_source import CommandSource
 from xbackup.config.config import Config
 from xbackup.config.types import Duration
 from xbackup.db.access import DbAccess
-from xbackup.task.core.create_backup_task import CreateBackupTask
-from xbackup.task.core.export_backup_task import ExportBackupTasks
-from xbackup.task.event import TaskEvent
-from xbackup.task.task import Task
+from xbackup.task.action.create_backup_action import CreateBackupAction
+from xbackup.task.action.export_backup_action import ExportBackupActions
+from xbackup.task.task import Task, TaskEvent
 from xbackup.task.types.backup_info import BackupInfo
 from xbackup.task.types.operator import Operator
 from xbackup.utils.mcdr_utils import print_message, command_run, tr
@@ -21,7 +20,7 @@ class _ConfirmResult(enum.Enum):
 	cancelled = enum.auto()
 
 
-class RestoreBackupCommandTask(Task):
+class RestoreBackupTask(Task):
 	def __init__(self, source: CommandSource, backup_id: int):
 		super().__init__()
 		self.source = source
@@ -68,11 +67,11 @@ class RestoreBackupCommandTask(Task):
 
 		if Config.get().backup.backup_on_overwrite:
 			self.logger.info('Creating backup of existing files to avoid idiot')
-			cbt = CreateBackupTask(Operator.xbackup('pre_restore'), 'Automatic backup before restoring to backup {}, executed by {}'.format(self.backup_id, self.source))
-			cbt.run()
+			act = CreateBackupAction(Operator.xbackup('pre_restore'), 'Automatic backup before restoring to backup {}, executed by {}'.format(self.backup_id, self.source))
+			act.run()
 
 		self.logger.info('Restoring backup')
-		ExportBackupTasks.to_dir(self.backup_id, Config.get().source_path, delete_existing=True).run()
+		ExportBackupActions.to_dir(self.backup_id, Config.get().source_path, delete_existing=True).run()
 
 		self.logger.info('Restore done, starting the server')
 		self.source.get_server().start()

@@ -15,26 +15,26 @@ from xbackup.compressors import Compressor, CompressMethod
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
-from xbackup.task.task import Task
+from xbackup.task.action import Action
 from xbackup.task.types.tar_format import TarFormat
 from xbackup.utils import file_utils, blob_utils
 
 
-class ExportBackupTasks:
+class ExportBackupActions:
 	@classmethod
-	def to_dir(cls, backup_id: int, output_path: Path, delete_existing: bool) -> 'ExportBackupTask':
-		return ExportBackupToDirectoryTask(backup_id, output_path, delete_existing)
-
-	@classmethod
-	def to_tar(cls, backup_id: int, output_path: Path, tar_format: TarFormat) -> 'ExportBackupTask':
-		return ExportBackupToTarTask(backup_id, output_path, tar_format)
+	def to_dir(cls, backup_id: int, output_path: Path, delete_existing: bool) -> 'ExportBackupActionBase':
+		return ExportBackupToDirectoryAction(backup_id, output_path, delete_existing)
 
 	@classmethod
-	def to_zip(cls, backup_id: int, output_path: Path) -> 'ExportBackupTask':
-		return ExportBackupToZipTask(backup_id, output_path)
+	def to_tar(cls, backup_id: int, output_path: Path, tar_format: TarFormat) -> 'ExportBackupActionBase':
+		return ExportBackupToTarAction(backup_id, output_path, tar_format)
+
+	@classmethod
+	def to_zip(cls, backup_id: int, output_path: Path) -> 'ExportBackupActionBase':
+		return ExportBackupToZipAction(backup_id, output_path)
 
 
-class ExportBackupTask(Task, ABC):
+class ExportBackupActionBase(Action, ABC):
 	def __init__(self, backup_id: int, output_path: Path):
 		super().__init__()
 		self.backup_id = backup_id
@@ -68,7 +68,7 @@ def _i_am_root():
 	return hasattr(os, 'geteuid') and os.geteuid() == 0
 
 
-class ExportBackupToDirectoryTask(ExportBackupTask):
+class ExportBackupToDirectoryAction(ExportBackupActionBase):
 	def __init__(self, backup_id: int, output_path: Path, delete_existing: bool):
 		super().__init__(backup_id, output_path)
 		self.delete_existing = delete_existing
@@ -142,7 +142,7 @@ class ExportBackupToDirectoryTask(ExportBackupTask):
 			self.__set_attrs(dir_file)
 
 
-class ExportBackupToTarTask(ExportBackupTask):
+class ExportBackupToTarAction(ExportBackupActionBase):
 	def __init__(self, backup_id: int, output_path: Path, tar_format: TarFormat):
 		super().__init__(backup_id, output_path)
 		self.tar_format = tar_format
@@ -206,7 +206,7 @@ class ExportBackupToTarTask(ExportBackupTask):
 			tar.addfile(tarinfo=info, fileobj=BytesIO(meta_buf))
 
 
-class ExportBackupToZipTask(ExportBackupTask):
+class ExportBackupToZipAction(ExportBackupActionBase):
 	def _export_backup(self, session, backup: schema.Backup):
 		self.logger.info('exporting backup {} to zipfile {}'.format(backup, self.output_path))
 		self.output_path.parent.mkdir(parents=True, exist_ok=True)

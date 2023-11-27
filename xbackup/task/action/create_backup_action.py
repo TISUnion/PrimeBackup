@@ -10,12 +10,11 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set
 
 from xbackup.compressors import Compressor, CompressMethod
-from xbackup.config.config import Config
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.exceptions import XBackupError
-from xbackup.task.task import Task
+from xbackup.task.action import Action
 from xbackup.task.types.operator import Operator
 from xbackup.utils import hash_utils, misc_utils, blob_utils, file_utils
 
@@ -152,13 +151,12 @@ class BatchQueryManager:
 		self.fetcher_hash.flush()
 
 
-class CreateBackupTask(Task):
+class CreateBackupAction(Action):
 	def __init__(self, author: Operator, comment: str):
 		super().__init__()
 		self.author = author
 		self.comment = comment
 
-		self.config = Config.get()
 		self.__backup_id: Optional[int] = None
 		self.__blobs_rollbackers: List[callable] = []
 		self.__blob_store_st: Optional[os.stat_result] = None

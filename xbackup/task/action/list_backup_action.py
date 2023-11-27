@@ -1,13 +1,13 @@
 from typing import Optional, List
 
 from xbackup.db.access import DbAccess
-from xbackup.task.task import Task
+from xbackup.task.action import Action
 from xbackup.task.types.backup_filter import BackupFilter
 from xbackup.task.types.backup_info import BackupInfo
 
 
-class ListBackupTask(Task):
-	def __init__(self, *, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None):
+class ListBackupAction(Action):
+	def __init__(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None):
 		super().__init__()
 		self.backup_filter = backup_filter
 		self.limit = limit

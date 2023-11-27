@@ -1,9 +1,9 @@
 from xbackup.db.access import DbAccess
-from xbackup.task.task import Task
+from xbackup.task.action import Action
 from xbackup.task.types.backup_info import BackupInfo
 
 
-class GetBackupTask(Task):
+class GetBackupAction(Action):
 	def __init__(self, backup_id: int):
 		super().__init__()
 		self.backup_id = backup_id

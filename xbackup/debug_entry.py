@@ -3,10 +3,10 @@ from pathlib import Path
 
 from xbackup import logger
 from xbackup.db.access import DbAccess
-from xbackup.task.cmd.list_backup_task import ListBackupTask
-from xbackup.task.core.create_backup_task import CreateBackupTask
-from xbackup.task.core.delete_backup_task import DeleteBackupTask
-from xbackup.task.core.export_backup_task import ExportBackupTasks
+from xbackup.task.action.create_backup_action import CreateBackupAction
+from xbackup.task.action.delete_backup_action import DeleteBackupAction
+from xbackup.task.action.export_backup_action import ExportBackupActions
+from xbackup.task.action.list_backup_action import ListBackupAction
 from xbackup.task.types.operator import Operator
 from xbackup.task.types.tar_format import TarFormat
 
@@ -28,7 +28,7 @@ def main():
 
 		for i in range(n):
 			t = time.time()
-			bkt = CreateBackupTask(Operator.player('Steve'), '测试彩色测试')
+			bkt = CreateBackupAction(Operator.player('Steve'), '测试彩色测试')
 			bkt.run()
 			print('cost', round(time.time() - t, 2), 's')
 
@@ -36,7 +36,7 @@ def main():
 		nonlocal bkt
 		t = time.time()
 		if bkt.backup_id == 1:
-			bkt = CreateBackupTask(Operator.player('Steve'), 'test2')
+			bkt = CreateBackupAction(Operator.player('Steve'), 'test2')
 			bkt.run()
 
 		print('cost', round(time.time() - t, 2), 's')
@@ -44,7 +44,7 @@ def main():
 	def export():
 		t = time.time()
 
-		ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar'), TarFormat.plain).run()
+		ExportBackupActions.to_tar(bkt.backup_id, Path('export.tar'), TarFormat.plain).run()
 		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar.gz'), TarFormat.gzip).run()
 		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar.zst'), TarFormat.zstd).run()
 		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar.xz'), TarFormat.lzma).run()
@@ -55,12 +55,12 @@ def main():
 
 	def delete():
 		t = time.time()
-		DeleteBackupTask(bkt.backup_id).run()
+		DeleteBackupAction(bkt.backup_id).run()
 		print('cost', round(time.time() - t, 2), 's')
 		t = time.time()
 
 	def lst():
-		for backup in ListBackupTask().run():
+		for backup in ListBackupAction().run():
 			print(backup)
 
 	create(1)

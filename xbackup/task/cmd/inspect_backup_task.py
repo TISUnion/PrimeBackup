@@ -4,7 +4,7 @@ from xbackup.db.access import DbAccess
 from xbackup.task.task import Task
 
 
-class InspectBackupCommandTask(Task):
+class InspectBackupTask(Task):
 	def __init__(self, source: CommandSource, backup_id: int):
 		super().__init__()
 		self.source = source

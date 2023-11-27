@@ -6,7 +6,7 @@ from typing import Any, ContextManager
 from xbackup.compressors import Compressor
 from xbackup.db.access import DbAccess
 from xbackup.exceptions import XBackupError
-from xbackup.task.task import Task
+from xbackup.task.action import Action
 from xbackup.task.types.tar_format import TarFormat
 
 
@@ -14,7 +14,7 @@ class UnsupportedFormat(XBackupError):
 	pass
 
 
-class ImportBackupTask(Task):
+class ImportBackupAction(Action):
 	def __init__(self, file_path: Path):
 		super().__init__()
 		self.file_path = file_path

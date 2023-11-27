@@ -7,11 +7,11 @@ from mcdreforged.api.all import *
 from xbackup import constants
 from xbackup.exceptions import BackupNotFound
 from xbackup.mcdr.task_queue import TaskQueue, TaskHolder, TooManyOngoingTask
-from xbackup.task.cmd.create_backup_cmd_task import CreateBackupCommandTask
-from xbackup.task.cmd.delete_backup_cmd_task import DeleteBackupCommandTask
-from xbackup.task.cmd.restore_backup_cmd_task import RestoreBackupCommandTask
-from xbackup.task.event import TaskEvent
-from xbackup.task.task import Task
+from xbackup.task.cmd.create_backup_task import CreateBackupTask
+from xbackup.task.cmd.delete_backup_task import DeleteBackupTask
+from xbackup.task.cmd.list_backup_task import ListBackupTask
+from xbackup.task.cmd.restore_backup_task import RestoreBackupTask
+from xbackup.task.task import Task, TaskEvent
 from xbackup.task.types.backup_filter import BackupFilter
 from xbackup.utils.mcdr_utils import tr
 
@@ -104,16 +104,16 @@ class TaskManager:
 	# ================================== Interfaces ==================================
 
 	def create_backup(self, source: CommandSource, comment: str):
-		self.__add_operate_task(source, 'task.create', CreateBackupCommandTask(source, comment))
+		self.__add_operate_task(source, 'task.create', CreateBackupTask(source, comment))
 
 	def delete_backup(self, source: CommandSource, backup_id: int):
-		self.__add_operate_task(source, 'task.delete', DeleteBackupCommandTask(backup_id))
+		self.__add_operate_task(source, 'task.delete', DeleteBackupTask(backup_id))
 
 	def restore_backup(self, source: CommandSource, backup_id: int):
-		self.__add_operate_task(source, 'task.restore', RestoreBackupCommandTask(source, backup_id))
+		self.__add_operate_task(source, 'task.restore', RestoreBackupTask(source, backup_id))
 
 	def list_backup(self, source: CommandSource, limit: int, backup_filter: BackupFilter):
-		self.__add_read_task(source, 'task.list', ListBackupCommandTask(limit=limit, backup_filter=backup_filter))
+		self.__add_read_task(source, 'task.list', ListBackupTask(limit=limit, backup_filter=backup_filter))
 
 	def do_confirm(self) -> bool:
 		return self.worker_operator.send_event_to_current_task(TaskEvent.operation_confirmed)

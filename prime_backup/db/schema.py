@@ -66,6 +66,7 @@ class File(Base):
 
 class Backup(Base):
 	__tablename__ = 'backup'
+	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
 	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in nanosecond

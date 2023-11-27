@@ -16,7 +16,7 @@ from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.exceptions import XBackupError
 from xbackup.task.task import Task
-from xbackup.types import Operator
+from xbackup.task.types.operator import Operator
 from xbackup.utils import hash_utils, misc_utils, blob_utils, file_utils
 
 

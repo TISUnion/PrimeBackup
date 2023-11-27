@@ -10,7 +10,8 @@ from xbackup.task.core.create_backup_task import CreateBackupTask
 from xbackup.task.core.export_backup_task import ExportBackupTasks
 from xbackup.task.event import TaskEvent
 from xbackup.task.task import Task
-from xbackup.types import Operator, BackupInfo
+from xbackup.task.types.backup_info import BackupInfo
+from xbackup.task.types.operator import Operator
 from xbackup.utils.mcdr_utils import print_message, command_run, tr
 from xbackup.utils.waitable_value import WaitableValue
 

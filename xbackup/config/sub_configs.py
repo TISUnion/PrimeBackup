@@ -70,8 +70,8 @@ class BackupConfig(Serializable):
 				raise ValueError('bad compress method {!r}'.format(attr_value))
 
 	def is_file_ignore(self, full_path: Path) -> bool:
-		# TODO
-		return False
+		# TODO: proper impl
+		return full_path.name in self.ignores
 
 
 class RetentionConfig(Serializable):

@@ -13,7 +13,7 @@ from xbackup.task.cmd.restore_backup_task import RestoreServerBackupTask
 from xbackup.task.core.delete_backup_task import DeleteBackupTask
 from xbackup.task.event import TaskEvent
 from xbackup.task.task import Task
-from xbackup.types import BackupInfo
+from xbackup.task.types.backup_info import BackupInfo
 from xbackup.utils.mcdr_utils import tr
 
 

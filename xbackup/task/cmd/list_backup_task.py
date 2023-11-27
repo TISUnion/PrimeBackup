@@ -2,7 +2,8 @@ from typing import Optional, List
 
 from xbackup.db.access import DbAccess
 from xbackup.task.task import Task
-from xbackup.types import BackupFilter, BackupInfo
+from xbackup.task.types.backup_filter import BackupFilter
+from xbackup.task.types.backup_info import BackupInfo
 
 
 class ListBackupTask(Task):

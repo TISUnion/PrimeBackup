@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from xbackup.db import schema, db_logger
 from xbackup.exceptions import BackupNotFound
-from xbackup.types import BackupFilter
+from xbackup.task.types.backup_filter import BackupFilter
 from xbackup.utils import collection_utils
 
 _T = TypeVar('_T')

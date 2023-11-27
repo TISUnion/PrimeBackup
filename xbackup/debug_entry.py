@@ -6,8 +6,9 @@ from xbackup.db.access import DbAccess
 from xbackup.task.cmd.list_backup_task import ListBackupTask
 from xbackup.task.core.create_backup_task import CreateBackupTask
 from xbackup.task.core.delete_backup_task import DeleteBackupTask
-from xbackup.task.core.export_backup_task import ExportBackupTasks, TarFormat
-from xbackup.types import Operator
+from xbackup.task.core.export_backup_task import ExportBackupTasks
+from xbackup.task.types.operator import Operator
+from xbackup.task.types.tar_format import TarFormat
 
 
 # @memory_profiler.profile
@@ -17,7 +18,8 @@ def main():
 
 	logger.get().info('start')
 
-	class TA: pass
+	class TA:
+		pass
 	bkt = TA()
 	bkt.backup_id = 1
 

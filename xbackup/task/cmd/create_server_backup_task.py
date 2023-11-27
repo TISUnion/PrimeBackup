@@ -4,7 +4,7 @@ from mcdreforged.command.command_source import CommandSource
 
 from xbackup.task.core.create_backup_task import CreateBackupTask
 from xbackup.task.event import TaskEvent
-from xbackup.types import Operator
+from xbackup.task.types.operator import Operator
 
 
 class CreateServerBackupTask(CreateBackupTask):

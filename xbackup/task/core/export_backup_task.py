@@ -1,5 +1,4 @@
 import contextlib
-import enum
 import json
 import os
 import shutil
@@ -10,34 +9,15 @@ import zipfile
 from abc import abstractmethod, ABC
 from io import BytesIO
 from pathlib import Path
-from typing import ContextManager, NamedTuple
+from typing import ContextManager
 
 from xbackup.compressors import Compressor, CompressMethod
 from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.task.task import Task
+from xbackup.task.types.tar_format import TarFormat
 from xbackup.utils import file_utils, blob_utils
-
-
-class DbStateError(Exception):
-	pass
-
-
-class _ExportFormatItem(NamedTuple):
-	extension: str
-	tar_mode: str
-	compress_method: CompressMethod
-
-	def make_name(self, base_file_name: str) -> str:
-		return base_file_name + self.extension
-
-
-class TarFormat(enum.Enum):
-	plain = _ExportFormatItem('.tar', 'w', CompressMethod.plain)
-	gzip = _ExportFormatItem('.tar.gz', 'w:gz', CompressMethod.plain)
-	lzma = _ExportFormatItem('.tar.xz', 'w:xz', CompressMethod.plain)
-	zstd = _ExportFormatItem('.tar.zst', 'w', CompressMethod.zstd)
 
 
 class ExportBackupTasks:
@@ -172,7 +152,7 @@ class ExportBackupToTarTask(ExportBackupTask):
 		with open(self.output_path, 'wb') as f:
 			compressor = Compressor.create(self.tar_format.value.compress_method)
 			with compressor.compress_stream(f) as f_compressed:
-				with tarfile.open(fileobj=f_compressed, mode=self.tar_format.value.tar_mode) as tar:
+				with tarfile.open(fileobj=f_compressed, mode=self.tar_format.value.mode_w) as tar:
 					yield tar
 
 	def _export_backup(self, session, backup: schema.Backup):

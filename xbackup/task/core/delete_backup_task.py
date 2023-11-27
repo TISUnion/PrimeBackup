@@ -6,6 +6,7 @@ from xbackup.db import schema
 from xbackup.db.access import DbAccess
 from xbackup.db.session import DbSession
 from xbackup.task.task import Task
+from xbackup.task.types.backup_info import BackupInfo
 from xbackup.utils import collection_utils, blob_utils
 
 
@@ -79,12 +80,14 @@ class DeleteBackupTask(Task):
 		self.backup_id = backup_id
 		self.orphan_blob_cleaner: Optional[DeleteOrphanBlobsTask] = None
 
-	def run(self):
+	def run(self) -> BackupInfo:
 		self.logger.info('Deleting backup {}'.format(self.backup_id))
 		with DbAccess.open_session() as session:
 			backup = session.get_backup_or_throw(self.backup_id)
+			info = BackupInfo.of(backup)
 			self.__delete_backup(session, backup)
 		self.orphan_blob_cleaner.run()
+		return info
 
 	def __delete_backup(self, session: DbSession, backup: schema.Backup):
 		hashes = []

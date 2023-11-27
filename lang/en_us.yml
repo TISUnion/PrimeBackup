@@ -1,4 +1,17 @@
 xbackup:
+  command:
+    help:
+    list:
+    make:
+    delete:
+    back:
+    confirm:
+      noop: Nothing to confirm
+    cancel:
+      noop: Nothing to cancel
+    abort:
+      noop: Nothing to abort
+
   task:
     create: create backup
     delete: delete backup
@@ -9,6 +22,9 @@ xbackup:
   error:
     backup_not_found: Backup with id {} does not exist
     generic: Task {} execution error, see console for more error
+    too_much_ongoing_task:
+      exclusive: 'Please wait for the ongoing task {} to finish'
+      generic: 'Too many pending tasks (maximum = {}), please wait for some to finish.'
 
   pretty_backup:
     base: '[ID §6{}§r] 日期: {}; 注释: {}'

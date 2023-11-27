@@ -21,7 +21,7 @@ class _ConfirmResult(enum.Enum):
 	cancelled = enum.auto()
 
 
-class RestoreServerBackupTask(Task):
+class RestoreBackupCommandTask(Task):
 	def __init__(self, source: CommandSource, backup_id: int):
 		super().__init__()
 		self.source = source
@@ -73,6 +73,9 @@ class RestoreServerBackupTask(Task):
 
 		self.logger.info('Restoring backup')
 		ExportBackupTasks.to_dir(self.backup_id, Config.get().source_path, delete_existing=True).run()
+
+		self.logger.info('Restore done, starting the server')
+		self.source.get_server().start()
 
 	def on_event(self, event: TaskEvent):
 		if event == TaskEvent.operation_confirmed:

@@ -7,7 +7,7 @@ from xbackup.task.event import TaskEvent
 from xbackup.task.types.operator import Operator
 
 
-class CreateServerBackupTask(CreateBackupTask):
+class CreateBackupCommandTask(CreateBackupTask):
 	def __init__(self, source: CommandSource, comment: str):
 		super().__init__(Operator.of(source), comment)
 		self.source = source

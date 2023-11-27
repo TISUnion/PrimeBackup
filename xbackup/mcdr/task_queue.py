@@ -40,3 +40,6 @@ class TaskQueue(Generic[_T]):
 	def task_done(self):
 		self.queue.task_done()
 		self.semaphore.release()
+
+	def qsize(self) -> int:
+		return self.queue.qsize()

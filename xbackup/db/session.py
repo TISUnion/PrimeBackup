@@ -28,12 +28,12 @@ class DbSession:
 		# the limit in old sqlite (https://www.sqlite.org/limits.html#max_variable_number)
 		self.__safe_var_limit = 999 - 20
 
-	# ============================ General Database Operations ============================
+	# ========================= General Database Operations =========================
 
 	def flush(self):
 		self.session.flush()
 
-	# ============================ Blob ============================
+	# ===================================== Blob =====================================
 
 	def create_blob(self, **kwargs) -> schema.Blob:
 		blob = schema.Blob(**kwargs)
@@ -84,7 +84,7 @@ class DbSession:
 			)
 		return list(filter(lambda h: h not in good_hashes, hashes))
 
-	# ============================ File ============================
+	# ===================================== File =====================================
 
 	def create_file(self, **kwargs) -> schema.File:
 		file = schema.File(**kwargs)
@@ -99,7 +99,7 @@ class DbSession:
 		exists = self.session.query(q).scalar()
 		return exists
 
-	# ============================ Backup ============================
+	# ==================================== Backup ====================================
 
 	def create_backup(self, **kwargs) -> schema.Backup:
 		kwargs['timestamp'] = int(time.time() * 1e9)

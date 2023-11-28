@@ -59,6 +59,7 @@ class ExportBackupActionBase(Action, ABC):
 			'comment': backup.comment,
 			'timestamp': backup.timestamp,
 			'targets': backup.targets,
+			'hidden': backup.hidden,
 		}
 		return json.dumps(meta, indent=2, ensure_ascii=False).encode('utf8')
 

@@ -20,42 +20,42 @@ def main():
 
 	class TA:
 		pass
-	bkt = TA()
-	bkt.backup_id = 1
+	bka = TA()
+	bka.backup_id = 1
 
 	def create(n: int = 1):
-		nonlocal bkt
+		nonlocal bka
 
 		for i in range(n):
 			t = time.time()
-			bkt = CreateBackupAction(Operator.player('Steve'), '测试彩色测试')
-			bkt.run()
+			bka = CreateBackupAction(Operator.player('Steve'), '测试彩色测试')
+			bka.run()
 			print('cost', round(time.time() - t, 2), 's')
 
 	def create_if_1st():
-		nonlocal bkt
+		nonlocal bka
 		t = time.time()
-		if bkt.backup_id == 1:
-			bkt = CreateBackupAction(Operator.player('Steve'), 'test2')
-			bkt.run()
+		if bka.backup_id == 1:
+			bka = CreateBackupAction(Operator.player('Steve'), 'test2')
+			bka.run()
 
 		print('cost', round(time.time() - t, 2), 's')
 
 	def export():
 		t = time.time()
 
-		ExportBackupActions.to_tar(bkt.backup_id, Path('export.tar'), TarFormat.plain).run()
-		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar.gz'), TarFormat.gzip).run()
-		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar.zst'), TarFormat.zstd).run()
-		# ExportBackupTasks.to_tar(bkt.backup_id, Path('export.tar.xz'), TarFormat.lzma).run()
-		# ExportBackupTasks.to_zip(bkt.backup_id, Path('export.zip')).run()
-		# ExportBackupTasks.to_dir(bkt.backup_id, Path('export'), True).run()
+		ExportBackupActions.to_tar(bka.backup_id, Path('export.tar'), TarFormat.plain).run()
+		# ExportBackupTasks.to_tar(bka.backup_id, Path('export.tar.gz'), TarFormat.gzip).run()
+		# ExportBackupTasks.to_tar(bka.backup_id, Path('export.tar.zst'), TarFormat.zstd).run()
+		# ExportBackupTasks.to_tar(bka.backup_id, Path('export.tar.xz'), TarFormat.lzma).run()
+		# ExportBackupTasks.to_zip(bka.backup_id, Path('export.zip')).run()
+		# ExportBackupTasks.to_dir(bka.backup_id, Path('export'), True).run()
 
 		print('cost', round(time.time() - t, 2), 's')
 
 	def delete():
 		t = time.time()
-		DeleteBackupAction(bkt.backup_id).run()
+		DeleteBackupAction(bka.backup_id).run()
 		print('cost', round(time.time() - t, 2), 's')
 		t = time.time()
 

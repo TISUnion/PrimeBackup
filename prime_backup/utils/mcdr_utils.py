@@ -1,4 +1,5 @@
 from abc import ABC
+from pathlib import Path
 from typing import Union, Any
 
 from mcdreforged.api.all import *
@@ -33,7 +34,11 @@ class Texts:
 	def file_size(cls, byte_cnt: int, *, ndigits: int = 2) -> RTextBase:
 		from prime_backup.config.types import ByteCount
 		number, unit = ByteCount(byte_cnt).auto_format()
-		return RText(f'{round(number, ndigits)}{unit}', color=RColor.green)
+		return RText(f'{round(number, ndigits)}{unit}', color=RColor.dark_green)
+
+	@classmethod
+	def file(cls, file_path: Path) -> RTextBase:
+		return RText(file_path.name, RColor.dark_aqua).h(str(file_path.as_posix()))
 
 	@classmethod
 	def backup(cls, backup: BackupInfo, **kwargs) -> RTextBase:

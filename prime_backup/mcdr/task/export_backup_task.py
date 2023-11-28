@@ -61,13 +61,12 @@ class ExportBackupTask(OperationTask):
 		else:
 			raise TypeError(efv)
 
-		t_path = RText(path.name).h(str(path.as_posix()))
 		if path.exists():
-			self.reply(self.tr('already_exists', t_path))
+			self.reply(self.tr('already_exists', Texts.file(path)))
 			return
 
 		self.reply(self.tr('exporting', Texts.backup_id(backup.id)))
 		timer = Timer()
 		action.run()
 		t_cost = RText(f'{round(timer.get_elapsed(), 2)}s', RColor.gold)
-		self.reply(self.tr('exported', Texts.backup_id(backup.id), t_path, t_cost, Texts.file_size(path.stat().st_size)))
+		self.reply(self.tr('exported', Texts.backup_id(backup.id), Texts.file(path), t_cost, Texts.file_size(path.stat().st_size)))

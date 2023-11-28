@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "name": "Prime Backup",
     "description": {
-        "en_us": "The backup plugin that you need",
+        "en_us": "The ultimate backup solution for MCDR",
         "zh_cn": "PrimeBackup"
     },
     "author": [

@@ -1,6 +1,6 @@
 from typing import NamedTuple, Union
 
-from mcdreforged.command.command_source import CommandSource
+from mcdreforged.api.all import CommandSource
 
 from prime_backup import constants
 

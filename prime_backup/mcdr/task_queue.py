@@ -1,6 +1,6 @@
 import queue
 import threading
-from typing import Optional, NamedTuple, Callable, Generic, TypeVar
+from typing import NamedTuple, Generic, TypeVar
 
 from mcdreforged.api.all import *
 
@@ -10,9 +10,11 @@ from prime_backup.mcdr.task import Task
 
 class TaskHolder(NamedTuple):
 	task: Task
-	task_name: 'RTextBase'
 	source: 'CommandSource'
-	callback: Optional[Callable]
+
+	@property
+	def task_name(self) -> RTextBase:
+		return self.task.get_name_text()
 
 
 class TooManyOngoingTask(PrimeBackupError):

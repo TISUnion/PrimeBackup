@@ -1,10 +1,5 @@
 prime_backup:
   command:
-    help:
-    list:
-    make:
-    delete:
-    back:
     confirm:
       noop: Nothing to confirm
     cancel:
@@ -13,16 +8,52 @@ prime_backup:
       noop: Nothing to abort
 
   task:
-    create: create backup
-    delete: delete backup
-    export: export backup
-    inspect: inspect backup
+    help:
+      name: show help
+      help: |-
+        ------  {1} v{2} ------
+        {3}
+        §d[Commands]§r
+        §7{0}§r Display help message
+        §7{0} make §e[<comment>]§r Make a §abackup§r. §e<comment>§r is an optional comment message
+        §7{0} back §6[<backup_id>]§r §cRestore§r the world to the given backup. Default: latest backup
+        §7{0} del §6<backup_id>§r §cDelete§r the given backup
+        §7{0} list [<page>] [<per_page>]§r List backups
+        §7{0} list_all [<page>] [<per_page>]§r Like §7list§r, but list all backups including the hidden ones
+        §7{0} rename §6<backup_id>§r §e<comment>§r §bModify§r the comment of the given backup
+        §7{0} confirm§r Use after execute §7back§r, to confirm the §crestore§r execution
+        §7{0} cabcel§r Use after execute §7back§r, to cancel the §crestore§r execution
+        §7{0} abort§r Abort the current backup §crestoring§r
+
+    create:
+      name: create backup
+      abort.save_wait_time_out: Waiting for the world to save timed out, aborting backup creation
+      abort.unloaded: Plugin unloaded, backup aborted
+      completed: 'Backup completed, id {0}, time elapsed: {1}s, size {2}'
+      failed: 'Backup failed, error: {0}'
+    delete:
+      name: delete backup
+    export:
+      name: export backup
+    inspect:
+      name: inspect backup
     list:
-      .: list backup
+      name: list backup
+      total: Listing {} backups
       date: Date
       comment: Comment
       size: Size
-    restore: restore backup
+      button:
+        inspect: Inspect backup {}
+        restore: Restore to backup {}
+        delete: Delete backup {}
+      next: Next Page
+      prev: Previous Page
+    restore:
+      name: restore backup
+    rename:
+      name: rename backup
+      modified: Modified the comment of backup {} to {}
 
   error:
     backup_not_found: Backup with id {} does not exist
@@ -31,5 +62,6 @@ prime_backup:
       exclusive: 'Please wait for the ongoing task {} to finish'
       generic: 'Too many pending tasks (maximum = {}), please wait for some to finish.'
 
-  pretty_backup:
+  element:
+    backup_id: 'Backup ID: {}'
     base: '[ID §6{}§r] 日期: {}; 注释: {}'

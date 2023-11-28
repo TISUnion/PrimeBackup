@@ -42,7 +42,7 @@ class ExportBackupActionBase(Action, ABC):
 
 	def run(self):
 		with DbAccess.open_session() as session:
-			backup = session.get_backup_or_throw(self.backup_id)
+			backup = session.get_backup(self.backup_id)
 			self._export_backup(session, backup)
 
 		self.logger.info('exporting done')

@@ -16,6 +16,7 @@ from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.exceptions import PrimeBackupError
+from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.operator import Operator
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils
 
@@ -159,7 +160,6 @@ class CreateBackupAction(Action):
 		self.comment = comment
 		self.hidden = hidden
 
-		self.__backup_id: Optional[int] = None
 		self.__blobs_rollbackers: List[callable] = []
 		self.__blob_store_st: Optional[os.stat_result] = None
 		self.__blob_store_in_cow_fs: Optional[bool] = None
@@ -167,12 +167,6 @@ class CreateBackupAction(Action):
 		self.__batch_query_manager: Optional[BatchQueryManager] = None
 		self.__blob_by_size_cache: Dict[int, bool] = {}
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
-
-	@property
-	def backup_id(self) -> int:
-		if self.__backup_id is None:
-			raise ValueError('backup is not created yet')
-		return self.__backup_id
 
 	def scan_files(self) -> List[Path]:
 		collected = []
@@ -374,7 +368,7 @@ class CreateBackupAction(Action):
 			)
 		return session.create_file(**kwargs)
 
-	def run(self) -> int:
+	def run(self) -> BackupInfo:
 		self.__blobs_rollbackers.clear()
 		try:
 			with DbAccess.open_session() as session:
@@ -411,11 +405,9 @@ class CreateBackupAction(Action):
 						self.__batch_query_manager.flush()
 
 				self.logger.info('Create backup done, backup id: {}, author: {!r}, comment: {!r}'.format(backup.id, self.author, self.comment))
-				self.__backup_id = backup.id
-				return self.__backup_id
+				return BackupInfo.of(backup)
 		except Exception as e:
 			self.logger.info('Error occurs, applying rollback')
-			self.__backup_id = None
 			for rollback_func in self.__blobs_rollbackers:
 				rollback_func()
 			raise e

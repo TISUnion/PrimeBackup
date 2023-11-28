@@ -108,8 +108,13 @@ class DbSession:
 		self.session.flush()  # so the backup id populates
 		return backup
 
-	def get_backup(self, backup_id: int) -> Optional[schema.Backup]:
-		backup = self.session.get(schema.Backup, backup_id)
+	def get_backup_opt(self, backup_id: int) -> Optional[schema.Backup]:
+		return self.session.get(schema.Backup, backup_id)
+
+	def get_backup(self, backup_id: int) -> schema.Backup:
+		backup = self.get_backup_opt(backup_id)
+		if backup is None:
+			raise BackupNotFound(backup_id)
 		return backup
 
 	@staticmethod
@@ -140,12 +145,6 @@ class DbSession:
 		if limit is not None:
 			s = s.limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
-
-	def get_backup_or_throw(self, backup_id: int) -> schema.Backup:
-		backup = self.get_backup(backup_id)
-		if backup is None:
-			raise BackupNotFound(backup_id)
-		return backup
 
 	def delete_backup(self, backup: schema.Backup):
 		self.session.delete(backup)

@@ -127,18 +127,22 @@ class Quantity:
 	def value(self) -> Union[int, float]:
 		return self.__value
 
-	def __str__(self) -> str:
-		if self.value < 0:
-			return '-' + str(type(self)(-self.value))
+	def auto_format(self) -> Tuple[float, str]:
 		ret = None
 		for unit, k in self._bsi.items():
 			if self.value >= k:
-				if ret is not None:
-					return ret
-				ret = f'{round(self.value / k, 2)}{unit}'
+				ret = self.value / k, unit
+			else:
+				break
 		if ret is None:
-			raise RuntimeError()
+			raise AssertionError()
 		return ret
+
+	def __str__(self) -> str:
+		if self.value < 0:
+			return '-' + str(type(self)(-self.value))
+		number, unit = self.auto_format()
+		return f'{round(number, 2)}{unit}'
 
 	def __repr__(self) -> str:
 		return misc_utils.represent(self, attrs={'value': self.value})
@@ -149,3 +153,7 @@ class ByteCount(Quantity):
 		if isinstance(s, str) and len(s) > 0 and s[-1].lower() == 'b':
 			s = s[:-1]
 		super().__init__(s)
+
+	def auto_format(self) -> Tuple[float, str]:
+		number, unit = super().auto_format()
+		return number, unit + 'B'

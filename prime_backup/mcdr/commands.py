@@ -6,7 +6,9 @@ from prime_backup.config.config import Config
 from prime_backup.mcdr.task.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.task.delete_backup_task import DeleteBackupTask
 from prime_backup.mcdr.task.list_backup_task import ListBackupTask
+from prime_backup.mcdr.task.rename_backup_task import RenameBackupTask
 from prime_backup.mcdr.task.restore_backup_task import RestoreBackupTask
+from prime_backup.mcdr.task.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils.mcdr_utils import tr
@@ -19,15 +21,15 @@ class CommandManager:
 		self.config = Config.get()
 
 	def cmd_help(self, source: CommandSource):
-		pass
+		self.task_manager.add_task(ShowHelpTask(source))
 
 	def __cmd_list(self, source: CommandSource, context: CommandContext, show_hidden: bool):
-		limit = context.get('limit', 10)
 		page = context.get('page', 1)
+		per_page = context.get('per_page', 10)
 		backup_filter = BackupFilter()
 		if not show_hidden:
 			backup_filter.hidden = False
-		self.task_manager.add_read_task(source, tr('task.list'), ListBackupTask(source, limit, page, backup_filter))
+		self.task_manager.add_task(ListBackupTask(source, per_page, page, backup_filter))
 
 	def cmd_list(self, source: CommandSource, context: CommandContext):
 		return self.__cmd_list(source, context, False)
@@ -37,15 +39,20 @@ class CommandManager:
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
 		comment = context['comment']
-		self.task_manager.add_operate_task(source, tr('task.create'), CreateBackupTask(source, comment))
+		self.task_manager.add_task(CreateBackupTask(source, comment))
+
+	def cmd_rename(self, source: CommandSource, context: CommandContext):
+		backup_id = context['backup_id']
+		comment = context['comment']
+		self.task_manager.add_task(RenameBackupTask(source, backup_id, comment))
 
 	def cmd_delete(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
-		self.task_manager.add_operate_task(source, tr('task.delete'), DeleteBackupTask(source, backup_id))
+		self.task_manager.add_task(DeleteBackupTask(source, backup_id))
 
 	def cmd_back(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
-		self.task_manager.add_operate_task(source, tr('task.restore'), RestoreBackupTask(source, backup_id))
+		self.task_manager.add_task(RestoreBackupTask(source, backup_id))
 
 	def cmd_confirm(self, source: CommandSource, context: CommandContext):
 		if not self.task_manager.do_confirm():
@@ -65,12 +72,16 @@ class CommandManager:
 	def register_commands(self):
 		builder = SimpleCommandBuilder()
 
+		builder.command('help', self.cmd_help)
 		builder.command('list', self.cmd_list)
-		builder.command('list <limit>', self.cmd_list)
+		builder.command('list <page>', self.cmd_list)
+		builder.command('list <page> <per_page>', self.cmd_list)
 		builder.command('list_all', self.cmd_list_all)
 		builder.command('list_all <limit>', self.cmd_list_all)
+		builder.command('list_all <page> <per_page>', self.cmd_list_all)
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
+		builder.command('rename <backup_id> <comment>', self.cmd_rename)
 		builder.command('del <backup_id>', self.cmd_delete)
 		builder.command('delete <backup_id>', self.cmd_delete)
 		builder.command('back', self.cmd_back)
@@ -79,7 +90,8 @@ class CommandManager:
 		builder.command('cancel', self.cmd_cancel)
 		builder.command('abort', self.cmd_abort)
 
-		builder.arg('limit', lambda n: Integer(n).at_min(1))
+		builder.arg('page', lambda n: Integer(n).at_min(1))
+		builder.arg('per_page', lambda n: Integer(n).at_min(1))
 		builder.arg('comment', GreedyText)
 		builder.arg('backup_id', Integer).suggests(self.suggest_backup_id)
 

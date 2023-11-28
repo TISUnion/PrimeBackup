@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-from mcdreforged.minecraft.rtext.text import RTextBase
+from mcdreforged.api.all import RTextBase
 
 from prime_backup.db import schema
 from prime_backup.types.operator import Operator

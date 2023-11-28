@@ -19,8 +19,8 @@ class CommandConfig(Serializable):
 
 class CustomServerCommands(Serializable):
 	save_all_worlds: str = 'save-all flush'
-	turn_off_auto_save: str = 'save-off'
-	turn_on_auto_save: str = 'save-on'
+	auto_save_off: str = 'save-off'
+	auto_save_on: str = 'save-on'
 
 
 class ServerConfig(Serializable):

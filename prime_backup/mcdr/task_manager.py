@@ -1,12 +1,12 @@
 import logging
 import threading
-from typing import Optional, Callable, List
+from typing import Optional, List
 
 from mcdreforged.api.all import *
 
 from prime_backup import constants
 from prime_backup.exceptions import BackupNotFound
-from prime_backup.mcdr.task import TaskEvent, Task
+from prime_backup.mcdr.task import TaskEvent, Task, TaskType
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TooManyOngoingTask
 from prime_backup.utils.mcdr_utils import tr
 
@@ -24,7 +24,7 @@ class ThreadedWorker:
 
 	def shutdown(self):
 		self.stopped = True
-		self.send_event_to_current_task(TaskEvent.shutdown)
+		self.send_event_to_current_task(TaskEvent.plugin_unload)
 		self.task_queue.put(None)
 		self.thread.join()
 
@@ -42,24 +42,20 @@ class ThreadedWorker:
 					self.current_task_holder_pending_events.clear()
 
 				holder.task.run()
-				if holder.callback is not None:
-					holder.callback()
-
-			except BackupNotFound as event:
-				self.logger.warning('backup %s not found', event.backup_id)
-				holder.source.reply(tr('error.backup_not_found', event.backup_id))
+			except BackupNotFound as e:
+				holder.source.reply(tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
 			except Exception:
 				self.logger.exception('Task {} run error'.format(holder.task))
-				holder.source.reply(tr('error.generic', holder.task_name))
+				holder.source.reply(tr('error.generic', holder.task_name).set_color(RColor.red))
 			finally:
 				with self.task_lock:
 					self.task_queue.task_done()
 					self.current_task_holder = None
 
-	def submit(self, source: CommandSource, task_name: RTextBase, task: Task, callback: Optional[Callable] = None):
+	def submit(self, source: CommandSource, task: Task):
 		if self.thread.is_alive():
 			try:
-				self.task_queue.put(TaskHolder(task, task_name, source, callback))
+				self.task_queue.put(TaskHolder(task, source))
 			except TooManyOngoingTask:
 				if self.max_ongoing_task == 1:
 					name = self.current_task_holder.task_name if self.current_task_holder is not None else RText('?')
@@ -95,11 +91,16 @@ class TaskManager:
 
 	# ================================== Interfaces ==================================
 
-	def add_operate_task(self, source: CommandSource, task_name: RTextBase, task: Task, callback: Optional[Callable] = None):
-		self.worker_operator.submit(source, task_name, task, callback)
-
-	def add_read_task(self, source: CommandSource, task_name: RTextBase, task: Task, callback: Optional[Callable] = None):
-		self.worker_reader.submit(source, task_name, task, callback)
+	def add_task(self, task: Task):
+		source = task.source
+		if task.type == TaskType.operate:
+			self.worker_operator.submit(source, task)
+		elif task.type == TaskType.read:
+			self.worker_reader.submit(source, task)
+		elif task.type == TaskType.immediate:
+			task.run()
+		else:
+			raise TypeError(task.type)
 
 	def do_confirm(self) -> bool:
 		return self.worker_operator.send_event_to_current_task(TaskEvent.operation_confirmed)

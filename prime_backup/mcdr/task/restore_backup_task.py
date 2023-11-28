@@ -1,17 +1,17 @@
 import enum
 import threading
 
-from mcdreforged.command.command_source import CommandSource
+from mcdreforged.api.all import CommandSource
 
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.export_backup_action import ExportBackupActions
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.config.config import Config
 from prime_backup.config.types import Duration
-from prime_backup.mcdr.task import TaskEvent, Task
+from prime_backup.mcdr.task import TaskEvent, Task, TaskType
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.operator import Operator
-from prime_backup.utils.mcdr_utils import print_message, command_run, tr, mkcmd
+from prime_backup.utils.mcdr_utils import click_and_run, tr, mkcmd
 from prime_backup.utils.waitable_value import WaitableValue
 
 
@@ -22,27 +22,29 @@ class _ConfirmResult(enum.Enum):
 
 class RestoreBackupTask(Task):
 	def __init__(self, source: CommandSource, backup_id: int):
-		super().__init__()
-		self.source = source
+		super().__init__(source)
 		self.backup_id = backup_id
 		self.confirm_result: WaitableValue[_ConfirmResult] = WaitableValue()
 		self.abort_event = threading.Event()
 
+	@property
+	def name(self) -> str:
+		return 'restore'
+
+	def type(self) -> TaskType:
+		return TaskType.operate
+
 	def __countdown_and_stop_server(self, backup: BackupInfo) -> bool:
 		for countdown in range(1, 10):
-			print_message(self.source, command_run(
-				tr('do_restore.countdown.text', 10 - countdown, backup.pretty_text(False)),
-				tr('do_restore.countdown.hover'),
-				mkcmd('abort'),
-			), tell=False)
+			self.broadcast(click_and_run(tr('do_restore.countdown.text', 10 - countdown, backup.pretty_text(False)), tr('do_restore.countdown.hover'), mkcmd('abort')))
 
 			if self.abort_event.wait(1):
-				print_message(self.source, tr('do_restore.abort'), tell=False)
+				self.broadcast(tr('do_restore.abort'))
 				return False
 
-		self.source.get_server().stop()
+		self.server.stop()
 		self.logger.info('Wait for server to stop')
-		self.source.get_server().wait_until_stop()
+		self.server.wait_until_stop()
 		return True
 
 	def run(self):
@@ -53,7 +55,7 @@ class RestoreBackupTask(Task):
 
 		self.logger.info('confirm result: {}'.format(self.confirm_result))
 		if not self.confirm_result.is_set():
-			self.source.reply('No confirm, restore task cancelled')
+			self.source.reply('Not confirmed, restore task cancelled')
 			return
 		elif self.confirm_result == _ConfirmResult.cancelled:
 			self.source.reply('Aborted')
@@ -75,10 +77,10 @@ class RestoreBackupTask(Task):
 		ExportBackupActions.to_dir(self.backup_id, Config.get().source_path, delete_existing=True).run()
 
 		self.logger.info('Restore done, starting the server')
-		self.source.get_server().start()
+		self.server.start()
 
 	def on_event(self, event: TaskEvent):
-		if event == TaskEvent.shutdown:
+		if event == TaskEvent.plugin_unload:
 			self.confirm_result.set(_ConfirmResult.cancelled)
 			self.abort_event.set()
 		elif event == TaskEvent.operation_confirmed:

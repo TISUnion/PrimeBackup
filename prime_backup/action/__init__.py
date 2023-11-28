@@ -1,3 +1,7 @@
+"""
+Actions for all kinds of DB accesses
+"""
+
 from abc import ABC, abstractmethod
 from typing import Any
 

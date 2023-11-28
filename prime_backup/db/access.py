@@ -25,6 +25,10 @@ class DbAccess:
 		DbMigration(cls.__engine).migrate()
 
 	@classmethod
+	def shutdown(cls):
+		pass  # no op for now
+
+	@classmethod
 	@contextlib.contextmanager
 	def open_session(cls) -> ContextManager['DbSession']:
 		with Session(cls.__engine) as session, session.begin():

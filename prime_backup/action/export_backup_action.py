@@ -250,3 +250,10 @@ class ExportBackupToZipAction(ExportBackupActionBase):
 						zip_item.write(file.content)
 				else:
 					raise NotImplementedError('not supported yet')
+
+			meta_buf = self._create_meta_buf(backup)
+			info = zipfile.ZipInfo('.prime_backup.meta.json', time.localtime()[0:6])
+			info.compress_type = zipf.compression
+			info.file_size = len(meta_buf)
+			with zipf.open(info, 'w') as f:
+				f.write(meta_buf)

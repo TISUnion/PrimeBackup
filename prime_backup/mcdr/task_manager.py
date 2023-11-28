@@ -7,12 +7,7 @@ from mcdreforged.api.all import *
 from prime_backup import constants
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import TaskEvent, Task
-from prime_backup.mcdr.task.create_backup_task import CreateBackupTask
-from prime_backup.mcdr.task.delete_backup_task import DeleteBackupTask
-from prime_backup.mcdr.task.list_backup_task import ListBackupTask
-from prime_backup.mcdr.task.restore_backup_task import RestoreBackupTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TooManyOngoingTask
-from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils.mcdr_utils import tr
 
 
@@ -21,21 +16,24 @@ class ThreadedWorker:
 		self.logger = logger
 		self.max_ongoing_task = max_ongoing_task
 		self.thread = threading.Thread(target=self.__task_loop, name='PB-worker-{}@{}'.format(name, constants.INSTANCE_ID))
+		self.stopped = False
 		self.task_queue: TaskQueue[Optional[TaskHolder]] = TaskQueue(max_ongoing_task)
 		self.task_lock = threading.RLock()
 		self.current_task_holder: Optional[TaskHolder] = None
 		self.current_task_holder_pending_events: List[TaskEvent] = []
 
 	def shutdown(self):
+		self.stopped = True
+		self.send_event_to_current_task(TaskEvent.shutdown)
 		self.task_queue.put(None)
 		self.thread.join()
 
 	def __task_loop(self):
-		while True:
+		while not self.stopped:
 			with self.task_lock:
 				holder = self.task_queue.get()
 			try:
-				if holder is None:
+				if holder is None or self.stopped:
 					break
 				with self.task_lock:
 					self.current_task_holder = holder
@@ -43,9 +41,9 @@ class ThreadedWorker:
 						holder.task.on_event(event)
 					self.current_task_holder_pending_events.clear()
 
-				ret = holder.task.run()
+				holder.task.run()
 				if holder.callback is not None:
-					holder.callback(ret)
+					holder.callback()
 
 			except BackupNotFound as event:
 				self.logger.warning('backup %s not found', event.backup_id)
@@ -58,10 +56,10 @@ class ThreadedWorker:
 					self.task_queue.task_done()
 					self.current_task_holder = None
 
-	def submit(self, source: CommandSource, task_name_key: str, task: Task, callback: Optional[Callable] = None):
+	def submit(self, source: CommandSource, task_name: RTextBase, task: Task, callback: Optional[Callable] = None):
 		if self.thread.is_alive():
 			try:
-				self.task_queue.put(TaskHolder(task, tr(task_name_key), source, callback))
+				self.task_queue.put(TaskHolder(task, task_name, source, callback))
 			except TooManyOngoingTask:
 				if self.max_ongoing_task == 1:
 					name = self.current_task_holder.task_name if self.current_task_holder is not None else RText('?')
@@ -95,25 +93,13 @@ class TaskManager:
 		self.worker_operator.shutdown()
 		self.worker_reader.shutdown()
 
-	def __add_operate_task(self, source: CommandSource, task_name_key: str, task: Task, callback: Optional[Callable] = None):
-		self.worker_operator.submit(source, task_name_key, task, callback)
-
-	def __add_read_task(self, source: CommandSource, task_name_key: str, task: Task, callback: Optional[Callable] = None):
-		self.worker_reader.submit(source, task_name_key, task, callback)
-
 	# ================================== Interfaces ==================================
 
-	def create_backup(self, source: CommandSource, comment: str):
-		self.__add_operate_task(source, 'task.create', CreateBackupTask(source, comment))
+	def add_operate_task(self, source: CommandSource, task_name: RTextBase, task: Task, callback: Optional[Callable] = None):
+		self.worker_operator.submit(source, task_name, task, callback)
 
-	def delete_backup(self, source: CommandSource, backup_id: int):
-		self.__add_operate_task(source, 'task.delete', DeleteBackupTask(backup_id))
-
-	def restore_backup(self, source: CommandSource, backup_id: int):
-		self.__add_operate_task(source, 'task.restore', RestoreBackupTask(source, backup_id))
-
-	def list_backup(self, source: CommandSource, limit: int, backup_filter: BackupFilter, show_hidden: bool):
-		self.__add_read_task(source, 'task.list', ListBackupTask(limit=limit, backup_filter=backup_filter, show_hidden=show_hidden))
+	def add_read_task(self, source: CommandSource, task_name: RTextBase, task: Task, callback: Optional[Callable] = None):
+		self.worker_reader.submit(source, task_name, task, callback)
 
 	def do_confirm(self) -> bool:
 		return self.worker_operator.send_event_to_current_task(TaskEvent.operation_confirmed)

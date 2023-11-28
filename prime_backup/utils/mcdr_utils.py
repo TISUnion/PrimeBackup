@@ -9,6 +9,14 @@ def tr(key: str, *args, **kwargs) -> RTextBase:
 	return ServerInterface.si().rtr(constants.PLUGIN_ID + '.' + key, *args, **kwargs)
 
 
+def mkcmd(s: str) -> str:
+	from prime_backup.config.config import Config
+	cmd = Config.get().command.prefix
+	if len(s) > 0:
+		cmd += ' ' + s
+	return cmd
+
+
 def print_message(source: CommandSource, msg: Union[str, RTextBase], tell: bool = True, prefix: str = '[PB] '):
 	msg = RTextList(prefix, msg)
 	if source.is_player and not tell:

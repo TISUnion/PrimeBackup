@@ -2,7 +2,7 @@ import time
 from typing import Optional, Sequence, Dict
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc
+from sqlalchemy import select, delete, desc, func, Select
 from sqlalchemy.orm import Session
 
 from prime_backup.db import schema, db_logger
@@ -112,20 +112,33 @@ class DbSession:
 		backup = self.session.get(schema.Backup, backup_id)
 		return backup
 
-	def list_backup(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None) -> List[schema.Backup]:
+	@staticmethod
+	def __apply_backup_filter(s: Select[_T], backup_filter: BackupFilter) -> Select[_T]:
+		if backup_filter.author is not None:
+			s = s.filter_by(author=str(backup_filter.author))
+		if backup_filter.timestamp_lower is not None:
+			s = s.where(schema.Backup.timestamp >= backup_filter.timestamp_lower)
+		if backup_filter.timestamp_upper is not None:
+			s = s.where(schema.Backup.timestamp <= backup_filter.timestamp_upper)
+		if backup_filter.hidden is not None:
+			s = s.filter_by(hidden=backup_filter.hidden)
+		return s
+
+	def get_backup_count(self, backup_filter: Optional[BackupFilter] = None) -> int:
+		s = select(func.count()).select_from(schema.Backup)
+		if backup_filter is not None:
+			s = self.__apply_backup_filter(s, backup_filter)
+		return self.session.execute(s).scalar()
+
+	def list_backup(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Backup]:
 		s = select(schema.Backup)
-		if backup_filter:
-			if backup_filter.author is not None:
-				s.filter_by(author=str(backup_filter.author))
-			if backup_filter.timestamp_lower is not None:
-				s.where(schema.Backup.timestamp >= backup_filter.timestamp_lower)
-			if backup_filter.timestamp_upper is not None:
-				s.where(schema.Backup.timestamp >= backup_filter.timestamp_upper)
-			if backup_filter.hidden is not None:
-				s.filter_by(hidden=backup_filter.hidden)
-		s.order_by(desc(schema.Backup.timestamp))
+		if backup_filter is not None:
+			s = self.__apply_backup_filter(s, backup_filter)
+		s = s.order_by(desc(schema.Backup.timestamp))
+		if offset is not None:
+			s = s.offset(offset)
 		if limit is not None:
-			s.limit(limit)
+			s = s.limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def get_backup_or_throw(self, backup_id: int) -> schema.Backup:

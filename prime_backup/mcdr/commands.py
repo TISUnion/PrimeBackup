@@ -3,6 +3,10 @@ from typing import List
 from mcdreforged.api.all import *
 
 from prime_backup.config.config import Config
+from prime_backup.mcdr.task.create_backup_task import CreateBackupTask
+from prime_backup.mcdr.task.delete_backup_task import DeleteBackupTask
+from prime_backup.mcdr.task.list_backup_task import ListBackupTask
+from prime_backup.mcdr.task.restore_backup_task import RestoreBackupTask
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils.mcdr_utils import tr
@@ -19,8 +23,11 @@ class CommandManager:
 
 	def __cmd_list(self, source: CommandSource, context: CommandContext, show_hidden: bool):
 		limit = context.get('limit', 10)
+		page = context.get('page', 1)
 		backup_filter = BackupFilter()
-		self.task_manager.list_backup(source, limit, backup_filter, show_hidden)
+		if not show_hidden:
+			backup_filter.hidden = False
+		self.task_manager.add_read_task(source, tr('task.list'), ListBackupTask(source, limit, page, backup_filter))
 
 	def cmd_list(self, source: CommandSource, context: CommandContext):
 		return self.__cmd_list(source, context, False)
@@ -29,13 +36,16 @@ class CommandManager:
 		return self.__cmd_list(source, context, True)
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
-		self.task_manager.create_backup(source, context.get('comment', ''))
+		comment = context['comment']
+		self.task_manager.add_operate_task(source, tr('task.create'), CreateBackupTask(source, comment))
 
 	def cmd_delete(self, source: CommandSource, context: CommandContext):
-		self.task_manager.delete_backup(source, context['backup_id'])
+		backup_id = context['backup_id']
+		self.task_manager.add_operate_task(source, tr('task.delete'), DeleteBackupTask(source, backup_id))
 
 	def cmd_back(self, source: CommandSource, context: CommandContext):
-		self.task_manager.restore_backup(source, context['backup_id'])
+		backup_id = context['backup_id']
+		self.task_manager.add_operate_task(source, tr('task.restore'), RestoreBackupTask(source, backup_id))
 
 	def cmd_confirm(self, source: CommandSource, context: CommandContext):
 		if not self.task_manager.do_confirm():

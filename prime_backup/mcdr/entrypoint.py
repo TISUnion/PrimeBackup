@@ -24,7 +24,7 @@ def on_load(server: PluginServerInterface, old):
 
 
 def on_unload(server: PluginServerInterface):
-	pass
+	task_manager.shutdown()
 
 
 def on_info(server: PluginServerInterface, info: Info):

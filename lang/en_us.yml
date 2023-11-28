@@ -16,8 +16,13 @@ prime_backup:
     create: create backup
     delete: delete backup
     export: export backup
+    inspect: inspect backup
+    list:
+      .: list backup
+      date: Date
+      comment: Comment
+      size: Size
     restore: restore backup
-    list: list backup
 
   error:
     backup_not_found: Backup with id {} does not exist

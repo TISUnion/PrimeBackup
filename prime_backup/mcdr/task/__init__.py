@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 
 class TaskEvent(enum.Enum):
-	plugin_unload = enum.auto()
+	shutdown = enum.auto()
 	world_save_done = enum.auto()
 	operation_confirmed = enum.auto()
 	operation_cancelled = enum.auto()
@@ -18,7 +18,7 @@ class Task(ABC):
 		self.config = Config.get()
 
 	@abstractmethod
-	def run(self):
+	def run(self) -> None:
 		...
 
 	def on_event(self, event: TaskEvent):

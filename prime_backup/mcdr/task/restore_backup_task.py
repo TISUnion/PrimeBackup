@@ -11,7 +11,7 @@ from prime_backup.config.types import Duration
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.operator import Operator
-from prime_backup.utils.mcdr_utils import print_message, command_run, tr
+from prime_backup.utils.mcdr_utils import print_message, command_run, tr, mkcmd
 from prime_backup.utils.waitable_value import WaitableValue
 
 
@@ -33,7 +33,7 @@ class RestoreBackupTask(Task):
 			print_message(self.source, command_run(
 				tr('do_restore.countdown.text', 10 - countdown, backup.pretty_text(False)),
 				tr('do_restore.countdown.hover'),
-				'{} abort'.format(Config.command.prefix)
+				mkcmd('abort'),
 			), tell=False)
 
 			if self.abort_event.wait(1):
@@ -78,9 +78,12 @@ class RestoreBackupTask(Task):
 		self.source.get_server().start()
 
 	def on_event(self, event: TaskEvent):
-		if event == TaskEvent.operation_confirmed:
-			self.confirm_result.set(_ConfirmResult.confirmed)
-		if event == TaskEvent.operation_cancelled:
+		if event == TaskEvent.shutdown:
 			self.confirm_result.set(_ConfirmResult.cancelled)
-		if event == TaskEvent.operation_aborted:
+			self.abort_event.set()
+		elif event == TaskEvent.operation_confirmed:
+			self.confirm_result.set(_ConfirmResult.confirmed)
+		elif event == TaskEvent.operation_cancelled:
+			self.confirm_result.set(_ConfirmResult.cancelled)
+		elif event == TaskEvent.operation_aborted:
 			self.abort_event.set()

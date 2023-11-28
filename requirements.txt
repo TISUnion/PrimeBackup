@@ -1,0 +1,9 @@
+# core
+mcdreforged>=2.11
+psutil
+xxhash
+SQLAlchemy
+
+# compress
+zstandard
+lz4

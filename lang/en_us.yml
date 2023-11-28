@@ -1,0 +1,100 @@
+prime_backup:
+  command:
+    confirm:
+      noop: Nothing to confirm
+    abort:
+      noop: Nothing to abort
+
+  task:
+    help:
+      name: show help
+      help: |-
+        ------ {1} v{2} ------
+        {3}
+        [Commands]
+        §7{0}§r Display help message
+        §7{0} make §e[<comment>]§r Make a §abackup§r. §e<comment>§r is an optional comment message
+        §7{0} back §6[<backup_id>]§r §cRestore§r the world to the given backup. Default: latest backup
+        §7{0} del §6<backup_id>§r §cDelete§r the given backup
+        §7{0} list [<page>] [<per_page>]§r List backups
+        §7{0} list_all [<page>] [<per_page>]§r Like §7list§r, but list all backups including the hidden ones
+        §7{0} rename §6<backup_id>§r §e<comment>§r §bModify§r the comment of the given backup
+        §7{0} confirm§r Use after execute §7back§r, to confirm the §crestore§r execution
+        §7{0} cancel§r Use after execute §7back§r, to cancel the §crestore§r execution
+        §7{0} abort§r Abort the current backup §crestoring§r
+
+    create:
+      name: create backup
+      start: Creating backup, please wait
+      abort.save_wait_time_out: Waiting for the world to save timed out, aborting backup creation
+      abort.unloaded: Plugin unloaded, backup aborted
+      completed: 'Backup completed, id {0}, cost {1}, size {2}'
+      failed: 'Backup failed, error: {0}'
+    delete:
+      name: delete backup
+      deleting: Deleting backup {}
+      deleted: Deleted {} deleted
+    export:
+      name: export backup
+      already_exists: File {} already exists
+      exporting: Exporting backup {}
+      exported: Exported backup {} to {}, cost {}, size {}
+    show:
+      name: show backup
+      title: 'Backup {}'
+      date: 'Creation date: {}'
+      comment: 'Comment: {}'
+      size: 'Size (raw): {}'
+      author: 'Author: {}'
+      hidden: 'Hidden: {}'
+    list:
+      name: list backup
+      title: Listing {} backups
+      date: Date
+      comment: Comment
+      size: Size
+      hover:
+        id: Click to show details of backup {}
+        author: 'Author: {}'
+        restore: Restore to backup {}
+        delete: Delete backup {}
+        size: Original size
+      next: Next Page
+      prev: Previous Page
+    restore:
+      name: restore backup
+      no_backup: No available backup to restore
+      show_backup: Gonna restore the world to {}
+      confirm_hint:
+        base: 'Please choose within {}: [{}], [{}]'
+        confirm: Confirm restore
+        confirm.hover: Click me or enter command {} to confirm restore
+        abort: Abort restore
+        abort.hover: Click me or enter command {} to abort restore
+      countdown: '{0} second later, the world will be restored to {1}'
+      countdown.hover: Click me to ABORT restore!
+      no_confirm: No choice has been made, restore aborted
+      aborted: Restore aborted
+    rename:
+      name: rename backup
+      modified: Modified the comment of backup {} to {}
+
+  error:
+    backup_not_found: Backup with id {} does not exist
+    generic: Task {} execution error, see console for more error
+    too_much_ongoing_task:
+      exclusive: 'Please wait for the ongoing task "{}" to finish'
+      generic: 'Too many pending tasks (maximum = {}), please wait for some to finish.'
+
+  texts:
+    backup: 'Backup {}: {}'
+    backup_id.hover: 'Backup ID: {}'
+    backup_comment.none: none
+    command:
+      run: 'Click to run {}'
+      suggest: 'Click to complete {}'
+    operator:
+      player: Player {}
+      console: Console
+      command_source: Command source {}
+      other: 'Unknown {}:{}'

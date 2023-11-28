@@ -1,8 +1,9 @@
-from typing import NamedTuple, Union
-
-from mcdreforged.api.all import CommandSource
+from typing import NamedTuple, Union, TYPE_CHECKING
 
 from prime_backup import constants
+
+if TYPE_CHECKING:
+	from mcdreforged.api.all import CommandSource, RTextBase
 
 
 class Operator(NamedTuple):
@@ -22,7 +23,8 @@ class Operator(NamedTuple):
 		return Operator('console', '')
 
 	@classmethod
-	def of(cls, value: Union[str, CommandSource]) -> 'Operator':
+	def of(cls, value: Union[str, 'CommandSource']) -> 'Operator':
+		from mcdreforged.api.all import CommandSource
 		if isinstance(value, CommandSource):
 			if value.is_player:
 				# noinspection PyUnresolvedReferences
@@ -39,6 +41,10 @@ class Operator(NamedTuple):
 				return Operator(type=value, name='')
 		else:
 			raise TypeError(value)
+
+	def to_text(self) -> 'RTextBase':
+		from prime_backup.utils.mcdr_utils import Texts
+		return Texts.operator(self)
 
 	def __str__(self):
 		return f'{self.type}:{self.name}'

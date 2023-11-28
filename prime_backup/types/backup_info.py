@@ -1,7 +1,5 @@
 from typing import NamedTuple
 
-from mcdreforged.api.all import RTextBase
-
 from prime_backup.db import schema
 from prime_backup.types.operator import Operator
 from prime_backup.utils import conversion_utils
@@ -14,6 +12,7 @@ class BackupInfo(NamedTuple):
 	author: Operator
 	comment: str
 	size: int  # actual uncompressed size
+	hidden: bool
 
 	@classmethod
 	def of(cls, backup: schema.Backup) -> 'BackupInfo':
@@ -31,10 +30,5 @@ class BackupInfo(NamedTuple):
 			author=Operator.of(backup.author),
 			comment=backup.comment,
 			size=size_sum,
+			hidden=backup.hidden,
 		)
-
-	def pretty_text(self, with_buttons: bool) -> RTextBase:
-		from prime_backup.utils.mcdr_utils import tr
-		# TODO
-		base_info = tr('pretty_backup.base', self.id, self.date, self.comment)
-		return base_info

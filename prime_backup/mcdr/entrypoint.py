@@ -10,6 +10,7 @@ config: Config
 task_manager: TaskManager
 command_manager: CommandManager
 mcdr_globals.load()
+init_ok = False
 
 
 def on_load(server: PluginServerInterface, old):
@@ -21,10 +22,14 @@ def on_load(server: PluginServerInterface, old):
 
 	DbAccess.init()
 	task_manager = TaskManager(server)
+	task_manager.start()
 	command_manager = CommandManager(server, task_manager)
 	command_manager.register_commands()
 
 	server.register_help_message(config.command.prefix, mcdr_globals.metadata.get_description_rtext())
+
+	global init_ok
+	init_ok = True
 
 
 def on_unload(server: PluginServerInterface):
@@ -33,7 +38,7 @@ def on_unload(server: PluginServerInterface):
 
 
 def on_info(server: PluginServerInterface, info: Info):
-	if not info.is_user:
+	if init_ok and not info.is_user:
 		for pattern in config.server.saved_world_regex_patterns:
 			if pattern.fullmatch(info.content):
 				task_manager.on_world_saved()

@@ -3,13 +3,13 @@ import threading
 from mcdreforged.api.all import *
 
 from prime_backup.action.create_backup_action import CreateBackupAction
-from prime_backup.mcdr.task import TaskEvent, Task, TaskType
+from prime_backup.mcdr.task import TaskEvent, OperationTask
 from prime_backup.types.operator import Operator
-from prime_backup.utils.mcdr_utils import Elements
+from prime_backup.utils.mcdr_utils import Texts
 from prime_backup.utils.timer import Timer
 
 
-class CreateBackupTask(Task):
+class CreateBackupTask(OperationTask):
 	def __init__(self, source: CommandSource, comment: str):
 		super().__init__(source)
 		self.comment = comment
@@ -20,10 +20,9 @@ class CreateBackupTask(Task):
 	def name(self) -> str:
 		return 'create'
 
-	def type(self) -> TaskType:
-		return TaskType.operate
-
 	def run(self):
+		self.broadcast(self.tr('start'))
+
 		cmds = self.config.server.commands
 		if self.config.server.turn_off_auto_save:
 			self.server.execute(cmds.auto_save_off)
@@ -48,9 +47,9 @@ class CreateBackupTask(Task):
 			self.logger.info('Time costs: save wait {}s, create backup {}s'.format(round(cost_save_wait, 2), round(cost_create, 2)))
 			self.broadcast(self.tr(
 				'completed',
-				Elements.backup_id(backup.id),
-				RText(round(cost_total, 1), RColor.gold),
-				Elements.file_size(backup.size),
+				Texts.backup_id(backup.id),
+				RText(f'{round(cost_total, 2)}s', RColor.gold),
+				Texts.file_size(backup.size),
 			))
 		except Exception as e:
 			self.broadcast(self.tr('failed', e))

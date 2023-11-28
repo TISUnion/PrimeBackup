@@ -8,7 +8,8 @@ from prime_backup.config.sub_configs import CommandConfig, ServerConfig, BackupC
 
 
 class Config(Serializable):
-	enabled: bool = False
+	enabled: bool = True
+	debug: bool = False
 	command: CommandConfig = CommandConfig.get_default()
 	server: ServerConfig = ServerConfig.get_default()
 	backup: BackupConfig = BackupConfig.get_default()

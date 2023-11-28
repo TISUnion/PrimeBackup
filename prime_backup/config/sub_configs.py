@@ -15,6 +15,11 @@ class CommandConfig(Serializable):
 		# TODO
 		'make': 1,
 	}
+	confirm_time_wait: str = '60s'
+
+	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
+		if attr_name == 'confirm_time_wait':
+			Duration(attr_value)
 
 
 class CustomServerCommands(Serializable):
@@ -45,7 +50,8 @@ class ServerConfig(Serializable):
 			Duration(attr_value)
 		elif attr_name == 'saved_world_regex':
 			try:
-				re.compile(attr_value)
+				for regex in attr_value:
+					re.compile(regex)
 			except re.error as e:
 				raise ValueError(e)
 

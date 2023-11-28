@@ -6,7 +6,7 @@ from prime_backup.action import Action
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_info import BackupInfo
-from prime_backup.utils import collection_utils, blob_utils
+from prime_backup.utils import collection_utils, blob_utils, misc_utils
 
 
 class BlobTrashBin:
@@ -76,7 +76,7 @@ class DeleteOrphanBlobsAction(Action):
 class DeleteBackupAction(Action):
 	def __init__(self, backup_id: int):
 		super().__init__()
-		self.backup_id = backup_id
+		self.backup_id = misc_utils.ensure_type(backup_id, int)
 
 	def run(self) -> BackupInfo:
 		self.logger.info('Deleting backup {}'.format(self.backup_id))

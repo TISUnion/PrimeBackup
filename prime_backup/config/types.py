@@ -60,7 +60,7 @@ class Duration:
 	def __get_unit_map(cls) -> Dict[str, float]:
 		data = {
 			('ms',): 1e-3,
-			('', 's', 'sec'): 1,
+			('s', 'sec'): 1,
 			('m', 'min'): 60,
 			('h', 'hour'): 60 * 60,
 			('d', 'day'): 60 * 60 * 24,
@@ -94,7 +94,7 @@ class Duration:
 
 
 class Quantity:
-	_bsi = {'': 0, 'Ki': 2 ** 10, 'Mi': 2 ** 20, 'Gi': 2 ** 30, 'Ti': 2 ** 40, 'Pi': 2 ** 50, 'Ei': 2 ** 60}
+	_bsi = {'': 1, 'Ki': 2 ** 10, 'Mi': 2 ** 20, 'Gi': 2 ** 30, 'Ti': 2 ** 40, 'Pi': 2 ** 50, 'Ei': 2 ** 60}
 	_dsi = {'': 1E0, 'k': 1E3, 'M': 1E6, 'G': 1E9, 'T': 1E12, 'P': 1E15, 'E': 1E18}
 
 	@classmethod
@@ -128,10 +128,12 @@ class Quantity:
 		return self.__value
 
 	def auto_format(self) -> Tuple[float, str]:
+		if self.__value == 0:
+			return 0, ''
 		ret = None
 		for unit, k in self._bsi.items():
-			if self.value >= k:
-				ret = self.value / k, unit
+			if self.__value >= k:
+				ret = self.__value / k, unit
 			else:
 				break
 		if ret is None:
@@ -139,8 +141,8 @@ class Quantity:
 		return ret
 
 	def __str__(self) -> str:
-		if self.value < 0:
-			return '-' + str(type(self)(-self.value))
+		if self.__value < 0:
+			return '-' + str(type(self)(-self.__value))
 		number, unit = self.auto_format()
 		return f'{round(number, 2)}{unit}'
 

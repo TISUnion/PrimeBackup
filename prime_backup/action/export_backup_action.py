@@ -17,7 +17,7 @@ from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.types.tar_format import TarFormat
-from prime_backup.utils import file_utils, blob_utils
+from prime_backup.utils import file_utils, blob_utils, misc_utils
 
 
 class ExportBackupActions:
@@ -37,7 +37,7 @@ class ExportBackupActions:
 class ExportBackupActionBase(Action, ABC):
 	def __init__(self, backup_id: int, output_path: Path):
 		super().__init__()
-		self.backup_id = backup_id
+		self.backup_id = misc_utils.ensure_type(backup_id, int)
 		self.output_path = output_path
 
 	def run(self):
@@ -92,7 +92,7 @@ class ExportBackupToDirectoryAction(ExportBackupActionBase):
 				os.utime(file_path, (file.atime_ns / 1e9, file.mtime_ns / 1e9))
 
 	def _export_backup(self, session, backup: schema.Backup):
-		self.logger.info('exporting backup {} to directory {}'.format(backup, self.output_path))
+		self.logger.info('Exporting backup {} to directory {}'.format(backup, self.output_path))
 		self.output_path.mkdir(parents=True, exist_ok=True)
 
 		# clean up existing
@@ -162,7 +162,7 @@ class ExportBackupToTarAction(ExportBackupActionBase):
 				self.output_path.name, self.tar_format.value.extension, self.tar_format.name,
 			))
 
-		self.logger.info('exporting backup {} to tarfile {}'.format(backup, self.output_path))
+		self.logger.info('Exporting backup {} to tarfile {}'.format(backup, self.output_path))
 		self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
 		with self.__open_tar() as tar:
@@ -209,7 +209,7 @@ class ExportBackupToTarAction(ExportBackupActionBase):
 
 class ExportBackupToZipAction(ExportBackupActionBase):
 	def _export_backup(self, session, backup: schema.Backup):
-		self.logger.info('exporting backup {} to zipfile {}'.format(backup, self.output_path))
+		self.logger.info('Exporting backup {} to zipfile {}'.format(backup, self.output_path))
 		self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
 		with zipfile.ZipFile(self.output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:

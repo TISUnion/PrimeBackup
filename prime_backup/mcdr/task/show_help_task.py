@@ -3,17 +3,13 @@ import re
 from mcdreforged.api.all import *
 
 from prime_backup.mcdr import mcdr_globals
-from prime_backup.mcdr.task import Task, TaskType
+from prime_backup.mcdr.task import ImmediateTask
 
 
-class ShowHelpTask(Task):
+class ShowHelpTask(ImmediateTask):
 	@property
 	def name(self) -> str:
 		return 'help'
-
-	@property
-	def type(self) -> TaskType:
-		return TaskType.immediate
 
 	def run(self) -> None:
 		with self.source.preferred_language_context():

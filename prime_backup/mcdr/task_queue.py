@@ -1,6 +1,6 @@
-import queue
+import collections
 import threading
-from typing import NamedTuple, Generic, TypeVar
+from typing import NamedTuple, Generic, TypeVar, Deque, Union
 
 from mcdreforged.api.all import *
 
@@ -12,36 +12,66 @@ class TaskHolder(NamedTuple):
 	task: Task
 	source: 'CommandSource'
 
-	@property
 	def task_name(self) -> RTextBase:
 		return self.task.get_name_text()
 
 
 class TooManyOngoingTask(PrimeBackupError):
-	pass
+	def __init__(self, current_item):
+		self.current_item = current_item
 
 
 _T = TypeVar('_T')
 
 
 class TaskQueue(Generic[_T]):
+	class _NoneItem:
+		pass
+
+	NONE = _NoneItem()
+
 	def __init__(self, max_ongoing_task: int):
-		self.max_ongoing_task = max_ongoing_task
-		self.queue = queue.Queue()
-		self.semaphore = threading.Semaphore(max_ongoing_task)
+		self.__queue: Deque[_T] = collections.deque()
+		self.__unfinished_size = 0
+		self.__lock = threading.Lock()
+		self.__not_empty = threading.Condition(self.__lock)
+		self.__semaphore = threading.Semaphore(max_ongoing_task)
+		self.__current_item = self.NONE
 
 	def put(self, task: _T):
-		if self.semaphore.acquire(blocking=False):
-			self.queue.put(task)
+		if self.__semaphore.acquire(blocking=False):
+			self.put_direct(task)
 		else:
-			raise TooManyOngoingTask()
+			raise TooManyOngoingTask(self.__current_item)
+
+	def put_direct(self, task: _T):
+		with self.__lock:
+			self.__queue.append(task)
+			self.__unfinished_size += 1
+			self.__not_empty.notify()
 
 	def get(self) -> _T:
-		return self.queue.get()
+		with self.__not_empty:
+			while len(self.__queue) == 0:
+				self.__not_empty.wait()
+			self.__current_item = item = self.__queue.popleft()
+			return item
 
 	def task_done(self):
-		self.queue.task_done()
-		self.semaphore.release()
+		with self.__lock:
+			self.__semaphore.release()
+			self.__unfinished_size -= 1
+			self.__current_item = self.NONE
 
 	def qsize(self) -> int:
-		return self.queue.qsize()
+		with self.__lock:
+			return len(self.__queue)
+
+	def unfinished_size(self) -> int:
+		with self.__lock:
+			return self.__unfinished_size
+
+	@property
+	def current_item(self) -> Union[_T, _NoneItem]:
+		with self.__lock:
+			return self.__current_item

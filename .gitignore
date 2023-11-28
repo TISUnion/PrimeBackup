@@ -11,6 +11,6 @@ __pycache__
 *.mcdr
 
 # runtime & temp files
-/*.py
+/test.py
 *.db
 /run

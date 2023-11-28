@@ -1,3 +1,4 @@
+import collections
 import contextlib
 import enum
 import functools
@@ -7,7 +8,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set
+from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set, Deque
 
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor, CompressMethod
@@ -57,7 +58,7 @@ class BatchFetcherBase(ABC):
 		self.flush_if_needed()
 
 	def flush_if_needed(self):
-		if len(self.tasks) >= self.max_batch_size or time.time() - self.first_task_scheduled_time >= 0.1:
+		if len(self.tasks) > 0 and (len(self.tasks) >= self.max_batch_size or time.time() - self.first_task_scheduled_time >= 0.1):
 			self._batch_run()
 
 	def flush(self):
@@ -79,7 +80,7 @@ class BlobBySizeFetcher(BatchFetcherBase):
 	Callback = Callable[[Rsp], Any]
 	tasks: Dict[int, List[Callback]]
 
-	def __init__(self, session: DbSession, max_batch_size: int = 100):
+	def __init__(self, session: DbSession, max_batch_size: int):
 		super().__init__(session, max_batch_size)
 		self.tasks: List[Tuple[int, BlobBySizeFetcher.Callback]] = []
 		self.sizes: Set[int] = set()
@@ -91,7 +92,7 @@ class BlobBySizeFetcher(BatchFetcherBase):
 
 	def _batch_run(self):
 		existence = self.session.has_blob_with_size_batched(list(self.sizes))
-		# reverse since we want to keep the file order and stack is used to store the generators
+		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for sz, callback in reversed(self.tasks):
 			callback(self.Rsp(existence[sz]))
 		self.tasks.clear()
@@ -108,7 +109,7 @@ class BlobByHashFetcher(BatchFetcherBase):
 	Callback = Callable[[Rsp], Any]
 	tasks: Dict[str, List[Callback]]
 
-	def __init__(self, session: DbSession, max_batch_size: int = 100):
+	def __init__(self, session: DbSession, max_batch_size: int):
 		super().__init__(session, max_batch_size)
 		self.tasks: List[Tuple[str, BlobByHashFetcher.Callback]] = []
 		self.hashes: Set[str] = set()
@@ -120,7 +121,7 @@ class BlobByHashFetcher(BatchFetcherBase):
 
 	def _batch_run(self):
 		blobs = self.session.get_blobs(list(self.hashes))
-		# reverse since we want to keep the file order and stack is used to store the generators
+		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for h, callback in reversed(self.tasks):
 			callback(self.Rsp(blobs[h]))
 		self.tasks.clear()
@@ -246,8 +247,10 @@ class CreateBackupAction(Action):
 				if cache is not None:
 					return cache
 
+				# self.logger.info('query %s %s', blob_hash, src_path)
 				# noinspection PyTypeChecker
 				rsp: BlobByHashFetcher.Rsp = yield BlobByHashFetcher.Req(blob_hash)
+				# self.logger.info('get   %s %s %s', blob_hash, src_path, rsp)
 				if rsp.blob is not None:
 					self.__blob_by_hash_cache[blob_hash] = rsp.blob
 					return rsp.blob
@@ -390,25 +393,22 @@ class CreateBackupAction(Action):
 				self.__blob_store_st = bs_path.stat()
 				self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
 
-				def schedule(g: Generator, v):
-					scheduling_stack.append((g, v))
-				idx, files = 0, self.scan_files()
-				scheduling_stack: List[Tuple[Generator, Any]] = []
-				while True:
-					if idx < len(files):
-						schedule(self.__create_file(session, backup, files[idx]), None)
-						idx += 1
-					while len(scheduling_stack) > 0:
-						gen, value = scheduling_stack.pop()
-						with contextlib.suppress(StopIteration):
-							query = gen.send(value)
-							callback = functools.partial(schedule, gen)
-							self.__batch_query_manager.query(query, callback)
-						self.__batch_query_manager.flush_if_needed()
-					if idx == len(files):
+				schedule_queue: Deque[Tuple[Generator, Any]] = collections.deque()
+				for f in self.scan_files():
+					schedule_queue.append((self.__create_file(session, backup, f), None))
+				while len(schedule_queue) > 0:
+					gen, value = schedule_queue.popleft()
+
+					with contextlib.suppress(StopIteration):
+						def callback(v, g=gen):
+							schedule_queue.appendleft((g, v))
+
+						query = gen.send(value)
+						self.__batch_query_manager.query(query, callback)
+
+					self.__batch_query_manager.flush_if_needed()
+					if len(schedule_queue) == 0:
 						self.__batch_query_manager.flush()
-						if len(scheduling_stack) == 0:
-							break
 
 				self.logger.info('Create backup done, backup id: {}, author: {!r}, comment: {!r}'.format(backup.id, self.author, self.comment))
 				self.__backup_id = backup.id

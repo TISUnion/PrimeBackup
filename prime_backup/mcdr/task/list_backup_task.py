@@ -1,4 +1,6 @@
 import copy
+import json
+import time
 
 from mcdreforged.api.all import *
 
@@ -6,6 +8,7 @@ from prime_backup.action.count_backup_action import CountBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.mcdr.task import ReaderTask
 from prime_backup.types.backup_filter import BackupFilter
+from prime_backup.utils import conversion_utils
 from prime_backup.utils.mcdr_utils import Texts, mkcmd
 
 
@@ -21,31 +24,48 @@ class ListBackupTask(ReaderTask):
 	def name(self) -> str:
 		return 'list'
 
+	def __make_command(self, page: int) -> str:
+		def date_str(ts_ns: int) -> str:
+			return json.dumps(conversion_utils.timestamp_to_local_date(ts_ns, decimal=ts_ns % 1000 != 0), ensure_ascii=False)
+
+		cmd = mkcmd(f'list {page} --per-page {self.per_page}')
+		if self.backup_filter.author is not None:
+			cmd += f' --author {self.backup_filter.author}'
+		if self.backup_filter.timestamp_start is not None:
+			cmd += f' --start {date_str(self.backup_filter.timestamp_start)}'
+		if self.backup_filter.timestamp_end is not None:
+			cmd += f' --end {date_str(self.backup_filter.timestamp_end)}'
+		if self.backup_filter.hidden is True:
+			cmd += f' --show-hidden'
+
+		return cmd
+
 	def run(self):
 		total_count = CountBackupAction(self.backup_filter).run()
 		backups = ListBackupAction(self.backup_filter, self.per_page, (self.page - 1) * self.per_page).run()
 
 		self.reply(RTextList(RText('======== ', RColor.gray), self.tr('title', total_count), RText(' ========', RColor.gray)))
 		for backup in backups:
-			bid = Texts.backup_id(backup.id, hover=False).h(self.tr('hover.id', backup.id))
+			t_bid = Texts.backup_id(backup.id, hover=False).h(self.tr('hover.id', backup.id))
+			time_since_now_sec = time.time() - backup.timestamp_ns / 1e9
 			self.reply(RTextList(
-				'[', bid, '] ',
-				RText('[>]', color=RColor.green).h(self.tr('hover.restore', bid)).c(RAction.suggest_command, mkcmd(f'back {backup.id}')), ' ',
-				RText('[x]', color=RColor.red).h(self.tr('hover.delete', bid)).c(RAction.suggest_command, mkcmd(f'delete {backup.id}')), ' ',
+				RText('[', RColor.gray), t_bid, RText('] ', RColor.gray),
+				RText('[>]', color=RColor.green).h(self.tr('hover.restore', t_bid)).c(RAction.suggest_command, mkcmd(f'back {backup.id}')), ' ',
+				RText('[x]', color=RColor.red).h(self.tr('hover.delete', t_bid)).c(RAction.suggest_command, mkcmd(f'delete {backup.id}')), ' ',
 				Texts.file_size(backup.size).h(self.tr('hover.size')), ' ',
-				self.tr('date'), ': ', backup.date, '; ',
-				self.tr('comment'), ': ', Texts.backup_comment(backup.comment).h(self.tr('hover.author', Texts.operator(backup.author))),
+				RText(backup.date, RColor.aqua).h(self.tr('hover.time_since_now', Texts.duration(time_since_now_sec))), RText(': ', RColor.gray),
+				Texts.backup_comment(backup.comment).h(self.tr('hover.author', Texts.operator(backup.author))),
 			))
 
 		max_page = max(0, (total_count - 1) // self.per_page + 1)
 		t_prev = RText('<-')
 		if 1 <= self.page - 1 <= max_page:  # has prev
-			t_prev.h(self.tr('prev')).c(RAction.run_command, mkcmd(f'list {self.page - 1} {self.per_page}'))
+			t_prev.h(self.tr('prev')).c(RAction.run_command, self.__make_command(self.page - 1))
 		else:
 			t_prev.set_color(RColor.dark_gray)
 		t_next = RText('->')
 		if 1 <= self.page + 1 <= max_page:  # has next
-			t_next.h(self.tr('next')).c(RAction.run_command, mkcmd(f'list {self.page + 1} {self.per_page}'))
+			t_next.h(self.tr('next')).c(RAction.run_command, self.__make_command(self.page + 1))
 		else:
 			t_next.set_color(RColor.dark_gray)
 		self.reply(RTextList(t_prev, ' ', RText(self.page, RColor.yellow), '/', RText(max_page, RColor.yellow), ' ', t_next))

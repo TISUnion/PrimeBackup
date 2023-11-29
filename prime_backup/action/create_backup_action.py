@@ -404,7 +404,7 @@ class CreateBackupAction(Action):
 					if len(schedule_queue) == 0:
 						self.__batch_query_manager.flush()
 
-				self.logger.info('Create backup done, backup id: {}, author: {!r}, comment: {!r}'.format(backup.id, self.author, self.comment))
+				self.logger.info('Create backup done {}'.format(backup))
 				return BackupInfo.of(backup)
 		except Exception as e:
 			self.logger.info('Error occurs, applying rollback')

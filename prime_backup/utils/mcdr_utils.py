@@ -6,6 +6,7 @@ from mcdreforged.api.all import *
 
 from prime_backup import constants
 from prime_backup.config.config import Config
+from prime_backup.config.types import Duration
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.operator import Operator
 
@@ -59,7 +60,7 @@ class Texts:
 
 	@classmethod
 	def backup_comment(cls, comment: str) -> RTextBase:
-		return RText(comment) if len(comment) > 0 else tr('texts.backup_comment.none').set_color(RColor.gray)
+		return RText(comment) if len(comment) > 0 else tr('texts.backup_comment.none').set_color(RColor.gray).set_styles(RStyle.italic)
 
 	@classmethod
 	def command(cls, s: str, *, color: RColor = RColor.gray, suggest: bool = False, run: bool = False, raw: bool = False) -> RTextBase:
@@ -81,6 +82,11 @@ class Texts:
 		else:
 			return RText(f'{op.type}:{op.name}')
 
+	@classmethod
+	def duration(cls, seconds: float, *, ndigits: int = 2) -> RTextBase:
+		value, unit = Duration(seconds).auto_format()
+		return tr('texts.duration.text', round(value, ndigits), tr('texts.duration.' + unit))
+
 
 def mkcmd(s: str) -> str:
 	cmd = Config.get().command.prefix
@@ -90,7 +96,7 @@ def mkcmd(s: str) -> str:
 
 
 def __make_message_prefix() -> RTextBase:
-	return RTextList(RText('[PB]', RColor.aqua).h('Prime Backup'), ' ')
+	return RTextList(RText('[PB]', RColor.dark_aqua).h('Prime Backup'), ' ')
 
 
 def reply_message(source: CommandSource, msg: Union[str, RTextBase], *, with_prefix: bool = True):

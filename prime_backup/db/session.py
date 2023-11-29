@@ -121,10 +121,10 @@ class DbSession:
 	def __apply_backup_filter(s: Select[_T], backup_filter: BackupFilter) -> Select[_T]:
 		if backup_filter.author is not None:
 			s = s.filter_by(author=str(backup_filter.author))
-		if backup_filter.timestamp_lower is not None:
-			s = s.where(schema.Backup.timestamp >= backup_filter.timestamp_lower)
-		if backup_filter.timestamp_upper is not None:
-			s = s.where(schema.Backup.timestamp <= backup_filter.timestamp_upper)
+		if backup_filter.timestamp_start is not None:
+			s = s.where(schema.Backup.timestamp >= backup_filter.timestamp_start)
+		if backup_filter.timestamp_end is not None:
+			s = s.where(schema.Backup.timestamp <= backup_filter.timestamp_end)
 		if backup_filter.hidden is not None:
 			s = s.filter_by(hidden=backup_filter.hidden)
 		return s

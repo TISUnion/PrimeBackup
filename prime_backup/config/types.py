@@ -55,6 +55,9 @@ def _split_unit(s: str) -> Tuple[float, str]:
 class Duration:
 	__unit_map_cache = {}
 
+	__duration: float
+	"""duration in seconds"""
+
 	@classmethod
 	@functools.lru_cache
 	def __get_unit_map(cls) -> Dict[str, float]:
@@ -64,6 +67,8 @@ class Duration:
 			('m', 'min'): 60,
 			('h', 'hour'): 60 * 60,
 			('d', 'day'): 60 * 60 * 24,
+			('month',): 60 * 60 * 24 * 30,
+			('y', 'year'): 60 * 60 * 24 * 365,
 		}
 		ret = {}
 		for units, v in data.items():
@@ -78,9 +83,14 @@ class Duration:
 			raise ValueError('unknown unit {!r}'.format(unit))
 		return ret
 
-	def __init__(self, s: str):
-		value, unit = _split_unit(s)
-		self.__duration: float = value * self.parse_unit(unit)
+	def __init__(self, s: Union[int, float, str]):
+		if isinstance(s, str):
+			value, unit = _split_unit(s)
+			self.__duration = value * self.parse_unit(unit)
+		elif isinstance(s, (float, int)):
+			self.__duration = float(s)
+		else:
+			raise TypeError(type(s))
 
 	@property
 	def duration(self) -> float:
@@ -88,6 +98,21 @@ class Duration:
 		Duration in second
 		"""
 		return self.__duration
+
+	def auto_format(self) -> Tuple[float, str]:
+		ret = None
+		for unit, k in self.__get_unit_map().items():
+			if self.__duration >= k or ret is None:
+				ret = self.__duration / k, unit
+			else:
+				break
+		if ret is None:
+			raise AssertionError()
+		return ret
+
+	def __str__(self) -> str:
+		value, unit = self.auto_format()
+		return f'{round(value, 2)}{unit}'
 
 	def __repr__(self) -> str:
 		return misc_utils.represent(self, attrs={'duration': self.__duration})
@@ -121,7 +146,7 @@ class Quantity:
 		elif isinstance(s, float):
 			self.__value = s
 		else:
-			raise TypeError()
+			raise TypeError(type(s))
 
 	@property
 	def value(self) -> Union[int, float]:

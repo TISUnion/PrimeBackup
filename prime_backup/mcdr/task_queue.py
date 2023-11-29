@@ -16,15 +16,14 @@ class TaskHolder(NamedTuple):
 		return self.task.get_name_text()
 
 
-class TooManyOngoingTask(PrimeBackupError):
-	def __init__(self, current_item):
-		self.current_item = current_item
-
-
 _T = TypeVar('_T')
 
 
 class TaskQueue(Generic[_T]):
+	class TooManyOngoingTask(PrimeBackupError):
+		def __init__(self, current_item: _T):
+			self.current_item: _T = current_item
+
 	class _NoneItem:
 		pass
 
@@ -42,7 +41,7 @@ class TaskQueue(Generic[_T]):
 		if self.__semaphore.acquire(blocking=False):
 			self.put_direct(task)
 		else:
-			raise TooManyOngoingTask(self.__current_item)
+			raise self.TooManyOngoingTask(self.__current_item)
 
 	def put_direct(self, task: _T):
 		with self.__lock:

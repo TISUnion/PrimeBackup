@@ -28,6 +28,9 @@ class Task(mcdr_utils.TranslationContext, ABC):
 	def get_name_text(self) -> RTextBase:
 		return self.tr('name')
 
+	def is_abort_able(self) -> bool:
+		return False
+
 	@property
 	@abstractmethod
 	def name(self) -> str:

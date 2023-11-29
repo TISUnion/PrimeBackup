@@ -16,7 +16,7 @@ from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.operator import Operator
 from prime_backup.utils import conversion_utils
-from prime_backup.utils.mcdr_utils import tr
+from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
 class DateNode(ArgumentNode):
@@ -30,13 +30,20 @@ class DateNode(ArgumentNode):
 
 
 class CommandManager:
+	COMMANDS_WITH_DETAILED_HELP = ['list']
+
 	def __init__(self, server: PluginServerInterface, task_manager: TaskManager):
 		self.server = server
 		self.task_manager = task_manager
 		self.config = Config.get()
 
-	def cmd_help(self, source: CommandSource):
-		self.task_manager.add_task(ShowHelpTask(source))
+	def cmd_help(self, source: CommandSource, context: CommandContext, *, full: bool = False):
+		what = context.get('what')
+		if what is not None and what not in self.COMMANDS_WITH_DETAILED_HELP:
+			reply_message(source, tr('command.help.no_help', RText(mkcmd(what), RColor.gray)))
+			return
+
+		self.task_manager.add_task(ShowHelpTask(source, full, what))
 
 	def cmd_list(self, source: CommandSource, context: CommandContext):
 		page = context.get('page', 1)
@@ -44,9 +51,9 @@ class CommandManager:
 
 		backup_filter = BackupFilter()
 		if (start_date := context.get('start_date')) is not None:
-			backup_filter.timestamp_lower = int(start_date)
+			backup_filter.timestamp_start = int(start_date)
 		if (end_date := context.get('end_date')) is not None:
-			backup_filter.timestamp_upper = int(end_date)
+			backup_filter.timestamp_end = int(end_date)
 		if (author_str := context.get('author')) is not None:
 			if ':' in author_str:
 				author = Operator.of(author_str)
@@ -86,11 +93,11 @@ class CommandManager:
 
 	def cmd_confirm(self, source: CommandSource, context: CommandContext):
 		if not self.task_manager.do_confirm():
-			source.reply(tr('command.confirm.noop'))
+			reply_message(source, tr('command.confirm.noop'))
 
 	def cmd_abort(self, source: CommandSource, context: CommandContext):
 		if not self.task_manager.do_abort():
-			source.reply(tr('command.abort.noop'))
+			reply_message(source, tr('command.abort.noop'))
 
 	def suggest_backup_id(self) -> List[str]:
 		return []  # TODO
@@ -106,6 +113,7 @@ class CommandManager:
 		# simple commands
 
 		builder.command('help', self.cmd_help)
+		builder.command('help <what>', self.cmd_help)
 		builder.command('list', self.cmd_list)
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
@@ -120,6 +128,7 @@ class CommandManager:
 		builder.command('confirm', self.cmd_confirm)
 		builder.command('abort', self.cmd_abort)
 
+		builder.arg('what', Text).suggests(lambda: self.COMMANDS_WITH_DETAILED_HELP)
 		builder.arg('page', lambda n: Integer(n).at_min(1))
 		builder.arg('per_page', lambda n: Integer(n).at_min(1))
 		builder.arg('comment', GreedyText)
@@ -129,7 +138,7 @@ class CommandManager:
 		for name, level in permissions.items():
 			builder.literal(name).requires(get_permission_checker(name))
 
-		root = Literal(self.config.command.prefix).runs(self.cmd_help)
+		root = Literal(self.config.command.prefix).runs(functools.partial(self.cmd_help, full=True))
 		builder.add_children_for(root)
 
 		# complex commands

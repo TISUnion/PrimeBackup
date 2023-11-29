@@ -8,8 +8,8 @@ from prime_backup import constants
 from prime_backup.config.types import Duration
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import TaskEvent, Task, OperationTask, ReaderTask, ImmediateTask
-from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TooManyOngoingTask
-from prime_backup.utils.mcdr_utils import tr, reply_message
+from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder
+from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
 class ThreadedWorker:
@@ -61,10 +61,14 @@ class ThreadedWorker:
 		if self.thread.is_alive():
 			try:
 				self.task_queue.put(TaskHolder(task, source))
-			except TooManyOngoingTask as e:
-				if self.max_ongoing_task == 1 and e.current_item is not TaskQueue.NONE:
-					name = e.current_item.task_name().set_color(RColor.aqua) if e.current_item is not None else RText('?')
+			except TaskQueue.TooManyOngoingTask as e:
+				holder: TaskHolder
+				if self.max_ongoing_task == 1 and (holder := e.current_item) is not TaskQueue.NONE:
+					name = holder.task_name().set_color(RColor.aqua) if holder is not None else RText('?')
 					reply_message(source, tr('error.too_much_ongoing_task.exclusive', name))
+					if holder.task.is_abort_able():
+						cmd = mkcmd('abort')
+						reply_message(source, tr('error.too_much_ongoing_task.try_abort').h(cmd).c(RAction.suggest_command, cmd))
 				else:
 					reply_message(source, tr('error.too_much_ongoing_task.generic', self.max_ongoing_task))
 		else:
@@ -90,7 +94,7 @@ class TaskManager:
 		self.server = server
 		self.logger = server.logger
 		self.worker_operator = ThreadedWorker('operator', self.logger, 1)
-		self.worker_reader = ThreadedWorker('reader', self.logger, 10)
+		self.worker_reader = ThreadedWorker('reader', self.logger, 3)
 
 	def start(self):
 		self.worker_operator.start()

@@ -1,5 +1,7 @@
 prime_backup:
   command:
+    help:
+      no_help: No detailed help message for command {}
     confirm:
       noop: Nothing to confirm
     abort:
@@ -8,20 +10,33 @@ prime_backup:
   task:
     help:
       name: show help
-      help: |-
-        ------ {1} v{2} ------
-        {3}
-        [Commands]
-        §7{0}§r Display help message
-        §7{0} make §e[<comment>]§r Make a §abackup§r. §e<comment>§r is an optional comment message
-        §7{0} back §6[<backup_id>]§r §cRestore§r the world to the given backup. Default: latest backup
-        §7{0} del §6<backup_id>§r §cDelete§r the given backup
-        §7{0} list [<page>] [<per_page>]§r List backups
-        §7{0} list_all [<page>] [<per_page>]§r Like §7list§r, but list all backups including the hidden ones
-        §7{0} rename §6<backup_id>§r §e<comment>§r §bModify§r the comment of the given backup
-        §7{0} confirm§r Use after execute §7back§r, to confirm the §crestore§r execution
-        §7{0} cancel§r Use after execute §7back§r, to cancel the §crestore§r execution
-        §7{0} abort§r Abort the current backup §crestoring§r
+      help:
+        _header: |-
+          ------ {name} v{version} ------
+          {description}
+          [Commands]
+        .: |-
+          §7{prefix}§r: Display help message
+          §7{prefix} help §5[<what>]§r: Display help message of the given command, if there is
+          §7{prefix} make §5[<comment>]§r: Make a backup. §5<comment>§r is an optional comment message
+          §7{prefix} back §6[<backup_id>]§r: Restore the world to the given backup. Default: latest backup
+          §7{prefix} del §6<backup_id>§r: Delete the given backup
+          §7{prefix} list [<page>] [...]§r: List backups with given filters
+          §7{prefix} rename §6<backup_id>§r §5<comment>§r: Modify the comment of the given backup
+          §7{prefix} confirm§r: Confirm the current §crestore§r execution
+          §7{prefix} abort§r: Abort the current §crestore§r execution
+        list: |-
+          §7{prefix} list [<page>] [--arg-key <arg-value>] §r
+          Optional arguments:
+          §7--per-page §e<per_page>§r: Set number of backup displayed per page
+          §7--author §5<author>§r: Show backup created by the given author only
+          §7--start §b<start_date>§r: Show backup after the given date only
+          §7--end §b<end_date>§r: Show backup before the given date only
+          §7--show-hidden§r: Show hidden backups
+          Examples:
+          §7{prefix} list --show-hidden§r
+          §7{prefix} list --start 20231130§r
+          §7{prefix} list 3 --per-page 20§r
 
     create:
       name: create backup
@@ -50,8 +65,6 @@ prime_backup:
     list:
       name: list backup
       title: Listing {} backups
-      date: Date
-      comment: Comment
       size: Size
       hover:
         id: Click to show details of backup {}
@@ -59,6 +72,7 @@ prime_backup:
         restore: Restore to backup {}
         delete: Delete backup {}
         size: Original size
+        time_since_now: '{} ago'
       next: Next Page
       prev: Previous Page
     restore:
@@ -71,8 +85,8 @@ prime_backup:
         confirm.hover: Click me or enter command {} to confirm restore
         abort: Abort restore
         abort.hover: Click me or enter command {} to abort restore
-      countdown: '{0} second later, the world will be restored to {1}'
-      countdown.hover: Click me to ABORT restore!
+      countdown: '§c!!!§r {0} second later, the world will §cbe restored§r to {1}'
+      countdown.hover: Click me or enter command {} to abort restore
       no_confirm: No choice has been made, restore aborted
       aborted: Restore aborted
     rename:
@@ -84,12 +98,13 @@ prime_backup:
     generic: Task {} execution error, see console for more error
     too_much_ongoing_task:
       exclusive: 'Please wait for the ongoing task "{}" to finish'
+      try_abort: You can also abort the ongoing task
       generic: 'Too many pending tasks (maximum = {}), please wait for some to finish.'
 
   texts:
     backup: 'Backup {}: {}'
     backup_id.hover: 'Backup ID: {}'
-    backup_comment.none: none
+    backup_comment.none: no comment
     command:
       run: 'Click to run {}'
       suggest: 'Click to complete {}'
@@ -98,3 +113,12 @@ prime_backup:
       console: Console
       command_source: Command source {}
       prime_backup: Prime Backup
+    duration:
+      text: '{} {}'
+      ms: ms
+      sec: sec
+      min: min
+      hour: hours
+      day: days
+      month: months
+      year: years

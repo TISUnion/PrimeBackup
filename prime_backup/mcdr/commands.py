@@ -1,4 +1,5 @@
-from typing import List
+import functools
+from typing import List, Callable
 
 from mcdreforged.api.all import *
 
@@ -13,7 +14,19 @@ from prime_backup.mcdr.task.show_backup_task import ShowBackupTask
 from prime_backup.mcdr.task.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
+from prime_backup.types.operator import Operator
+from prime_backup.utils import conversion_utils
 from prime_backup.utils.mcdr_utils import tr
+
+
+class DateNode(ArgumentNode):
+	def parse(self, text: str) -> ParseResult:
+		result = QuotableText('temp').parse(text)
+		try:
+			ts = conversion_utils.date_to_timestamp_ns(result.value.strip())
+			return ParseResult(ts, result.char_read)
+		except ValueError:
+			raise IllegalArgument('bad date string', result.char_read)
 
 
 class CommandManager:
@@ -25,19 +38,25 @@ class CommandManager:
 	def cmd_help(self, source: CommandSource):
 		self.task_manager.add_task(ShowHelpTask(source))
 
-	def __cmd_list(self, source: CommandSource, context: CommandContext, show_hidden: bool):
+	def cmd_list(self, source: CommandSource, context: CommandContext):
 		page = context.get('page', 1)
 		per_page = context.get('per_page', 10)
+
 		backup_filter = BackupFilter()
-		if not show_hidden:
+		if (start_date := context.get('start_date')) is not None:
+			backup_filter.timestamp_lower = int(start_date)
+		if (end_date := context.get('end_date')) is not None:
+			backup_filter.timestamp_upper = int(end_date)
+		if (author_str := context.get('author')) is not None:
+			if ':' in author_str:
+				author = Operator.of(author_str)
+			else:
+				author = Operator.player(author_str)
+			backup_filter.author = author
+		if context.get('hidden', 0) == 0:
 			backup_filter.hidden = False
+
 		self.task_manager.add_task(ListBackupTask(source, per_page, page, backup_filter))
-
-	def cmd_list(self, source: CommandSource, context: CommandContext):
-		return self.__cmd_list(source, context, False)
-
-	def cmd_list_all(self, source: CommandSource, context: CommandContext):
-		return self.__cmd_list(source, context, True)
 
 	def cmd_show(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
@@ -77,25 +96,27 @@ class CommandManager:
 		return []  # TODO
 
 	def register_commands(self):
+		permissions = self.config.command.permission
+
+		def get_permission_checker(literal: str) -> Callable[[CommandSource], bool]:
+			return functools.partial(CommandSource.has_permission, level=permissions.get(literal, 1))
+
 		builder = SimpleCommandBuilder()
+
+		# simple commands
 
 		builder.command('help', self.cmd_help)
 		builder.command('list', self.cmd_list)
-		builder.command('list <page>', self.cmd_list)
-		builder.command('list <page> <per_page>', self.cmd_list)
-		builder.command('list_all', self.cmd_list_all)
-		builder.command('list_all <page>', self.cmd_list_all)
-		builder.command('list_all <page> <per_page>', self.cmd_list_all)
-		builder.command('show <backup_id>', self.cmd_show)
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
+		builder.command('back', self.cmd_back)
+		builder.command('back <backup_id>', self.cmd_back)
+		builder.command('show <backup_id>', self.cmd_show)
+		builder.command('del <backup_id>', self.cmd_delete)
+		builder.command('delete <backup_id>', self.cmd_delete)
 		builder.command('export <backup_id>', self.cmd_export)
 		builder.command('export <backup_id> <export_format>', self.cmd_export)
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
-		builder.command('del <backup_id>', self.cmd_delete)
-		builder.command('delete <backup_id>', self.cmd_delete)
-		builder.command('back', self.cmd_back)
-		builder.command('back <backup_id>', self.cmd_back)
 		builder.command('confirm', self.cmd_confirm)
 		builder.command('abort', self.cmd_abort)
 
@@ -105,7 +126,28 @@ class CommandManager:
 		builder.arg('backup_id', Integer).suggests(self.suggest_backup_id)
 		builder.arg('export_format', lambda n: Enumeration(n, ExportBackupFormat))
 
+		for name, level in permissions.items():
+			builder.literal(name).requires(get_permission_checker(name))
+
 		root = Literal(self.config.command.prefix).runs(self.cmd_help)
 		builder.add_children_for(root)
+
+		# complex commands
+
+		def make_list_cmd() -> Literal:
+			node = Literal('list')
+			node.requires(get_permission_checker('list'))
+			node.runs(self.cmd_list)
+			node.then(Integer('page').at_min(1).redirects(node))
+			node.then(Literal('--per-page').then(Integer('per_page').in_range(1, 20).redirects(node)))
+			node.then(Literal('--author').then(QuotableText('author').redirects(node)))
+			node.then(Literal('--start').then(DateNode('start_date').redirects(node)))
+			node.then(Literal('--end').then(DateNode('end_date').redirects(node)))
+			node.then(CountingLiteral('--show-hidden', 'hidden').redirects(node))
+			return node
+
+		root.then(make_list_cmd())
+
+		# register
 
 		self.server.register_command(root)

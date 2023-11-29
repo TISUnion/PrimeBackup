@@ -11,7 +11,7 @@
     ],
     "link": "https://github.com/TISUnion/PrimeBackup",
     "dependencies": {
-        "mcdreforged": ">=2.11"
+        "mcdreforged": ">=2.12"
     },
     "entrypoint": "prime_backup.mcdr.entrypoint",
     "archive_name": "PrimeBackup-v{version}",

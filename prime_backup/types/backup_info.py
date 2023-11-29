@@ -26,7 +26,7 @@ class BackupInfo(NamedTuple):
 		return BackupInfo(
 			id=backup.id,
 			timestamp_ns=backup.timestamp,
-			date=conversion_utils.timestamp_to_local_date(backup.timestamp, decimal=False),
+			date=conversion_utils.timestamp_to_local_date(backup.timestamp),
 			author=Operator.of(backup.author),
 			comment=backup.comment,
 			size=size_sum,

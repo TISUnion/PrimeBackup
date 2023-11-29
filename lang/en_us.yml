@@ -97,4 +97,4 @@ prime_backup:
       player: Player {}
       console: Console
       command_source: Command source {}
-      other: 'Unknown {}:{}'
+      prime_backup: Prime Backup

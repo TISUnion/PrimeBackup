@@ -73,14 +73,13 @@ class Texts:
 
 	@classmethod
 	def operator(cls, op: Operator) -> RTextBase:
-		if op.type == 'player':
-			return tr('texts.operator.player', op.name)
-		elif op.type == 'console':
-			return tr('texts.operator.console')
-		elif op.type == 'command_source':
-			return tr('texts.operator.command_source', op.name)
+		tr_key = f'texts.operator.{op.type}'
+		if op.type in ['player', 'command_source']:
+			return tr(tr_key, op.name)
+		elif op.type in ['console', constants.PLUGIN_ID]:
+			return tr(tr_key)
 		else:
-			return tr('texts.operator.other', op.name, op.type)
+			return RText(f'{op.type}:{op.name}')
 
 
 def mkcmd(s: str) -> str:

@@ -3,7 +3,7 @@ from mcdreforged.api.all import *
 from prime_backup.config.config import Config, set_config_instance
 from prime_backup.db.access import DbAccess
 from prime_backup.mcdr import mcdr_globals
-from prime_backup.mcdr.commands import CommandManager
+from prime_backup.mcdr.command.commands import CommandManager
 from prime_backup.mcdr.task_manager import TaskManager
 
 config: Config

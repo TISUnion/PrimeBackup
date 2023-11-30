@@ -2,7 +2,7 @@ from mcdreforged.api.all import CommandSource
 
 from prime_backup.action.rename_backup_action import RenameBackupAction
 from prime_backup.mcdr.task import OperationTask
-from prime_backup.utils.mcdr_utils import Texts
+from prime_backup.mcdr.text_components import TextComponents
 
 
 class RenameBackupTask(OperationTask):
@@ -17,4 +17,4 @@ class RenameBackupTask(OperationTask):
 
 	def run(self) -> None:
 		RenameBackupAction(self.backup_id, self.comment).run()
-		self.reply(self.tr('modified', Texts.backup_id(self.backup_id), repr(self.comment)))
+		self.reply(self.tr('modified', TextComponents.backup_id(self.backup_id), repr(self.comment)))

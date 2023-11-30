@@ -2,7 +2,6 @@ import io
 from typing import Union
 
 
-# noinspection PyAbstractClass
 class ByPassReader(io.BytesIO):
 	def __init__(self, file_obj, do_hash: bool):
 		super().__init__()
@@ -40,6 +39,27 @@ class ByPassReader(io.BytesIO):
 				'read', 'readall', 'readinto',
 				'get_hash', 'get_read_len', 'file_obj', 'hasher', 'read_len',
 		):
+			return object.__getattribute__(self, item)
+		else:
+			return self.file_obj.__getattribute__(item)
+
+
+class ByPassWriter(io.BytesIO):
+	def __init__(self, file_obj):
+		super().__init__()
+		self.file_obj: io.BytesIO = file_obj
+		self.write_len = 0
+
+	def write(self, __buffer):
+		n = self.file_obj.write(__buffer)
+		self.write_len += n
+		return n
+
+	def get_write_len(self) -> int:
+		return self.write_len
+
+	def __getattribute__(self, item: str):
+		if item in ('write', 'get_write_len', 'file_obj', 'write_len'):
 			return object.__getattribute__(self, item)
 		else:
 			return self.file_obj.__getattribute__(item)

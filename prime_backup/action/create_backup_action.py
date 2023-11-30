@@ -18,6 +18,7 @@ from prime_backup.db.session import DbSession
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.operator import Operator
+from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils
 
 
@@ -160,6 +161,7 @@ class CreateBackupAction(Action):
 		self.comment = comment
 		self.hidden = hidden
 
+		self.__new_blobs: List[schema.Blob] = []
 		self.__blobs_rollbackers: List[callable] = []
 		self.__blob_store_st: Optional[os.stat_result] = None
 		self.__blob_store_in_cow_fs: Optional[bool] = None
@@ -270,6 +272,7 @@ class CreateBackupAction(Action):
 				self.__blobs_rollbackers.append(functools.partial(self.__remove_file, bp))
 				return bp
 
+			stored_size = None
 			compressor = Compressor.create(compress_method)
 			if policy == _BlobCreatePolicy.hash_once:
 				# read once, compress+hash to temp file, then move
@@ -279,9 +282,10 @@ class CreateBackupAction(Action):
 				with contextlib.ExitStack() as exit_stack:
 					exit_stack.callback(functools.partial(self.__remove_file, temp_file_path))
 
-					cp_size, blob_hash = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True)
-					check_changes(cp_size, None)
+					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True)
+					check_changes(cr.read_size, None)
 
+					blob_hash, stored_size = cr.read_hash, cr.write_size
 					blob_path = bp_rba(blob_hash)
 					os.rename(temp_file_path, blob_path)
 			else:  # hash already calculated
@@ -293,19 +297,30 @@ class CreateBackupAction(Action):
 					misc_utils.assert_true(blob_content is not None, 'blob_content is None')
 					with compressor.open_compressed(blob_path) as f:
 						f.write(blob_content)
+						stored_size = len(blob_content)
 				elif policy == _BlobCreatePolicy.default:
 					if can_copy_on_write and compress_method == CompressMethod.plain:
 						# fast copy + hash again might be faster than simple copy+hash
 						file_utils.copy_file_fast(src_path, blob_path)
-						check_changes(*hash_utils.calc_file_size_and_hash(blob_path))
+						stored_size, new_hash = hash_utils.calc_file_size_and_hash(blob_path)
+						check_changes(stored_size, new_hash)
 					else:
 						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True)
-						check_changes(cr.size, cr.hash)
+						stored_size = cr.write_size
+						check_changes(cr.read_size, cr.read_hash)
 				else:
 					raise AssertionError()
 
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
-			return session.create_blob(hash=blob_hash, compress=compress_method.name, size=st.st_size)
+			misc_utils.assert_true(stored_size is not None, 'stored_size is None')
+			b = session.create_blob(
+				hash=blob_hash,
+				compress=compress_method.name,
+				raw_size=st.st_size,
+				stored_size=stored_size,
+			)
+			self.__new_blobs.append(b)
+			return b
 
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
 			gen = attempt_once()
@@ -316,7 +331,7 @@ class CreateBackupAction(Action):
 					query = gen.send(result)
 			except StopIteration as e:  # ok
 				blob: schema.Blob = e.value
-				self.__blob_by_size_cache[blob.size] = True
+				self.__blob_by_size_cache[blob.raw_size] = True
 				self.__blob_by_hash_cache[blob.hash] = blob
 				return blob, st
 			except _BlobFileChanged:
@@ -330,7 +345,8 @@ class CreateBackupAction(Action):
 		related_path = path.relative_to(self.config.source_path)
 		st = path.stat()
 
-		blob, content = None, None
+		blob: Optional[schema.Blob] = None
+		content: Optional[bytes] = None
 		if stat.S_ISDIR(st.st_mode):
 			pass
 		elif stat.S_ISREG(st.st_mode):
@@ -364,7 +380,8 @@ class CreateBackupAction(Action):
 			kwargs |= dict(
 				blob_hash=blob.hash,
 				blob_compress=blob.compress,
-				blob_size=blob.size,
+				blob_raw_size=blob.raw_size,
+				blob_stored_size=blob.stored_size,
 			)
 		return session.create_file(**kwargs)
 
@@ -404,7 +421,12 @@ class CreateBackupAction(Action):
 					if len(schedule_queue) == 0:
 						self.__batch_query_manager.flush()
 
-				self.logger.info('Create backup done {}'.format(backup))
+				self.logger.info('Create backup done {}, +{} blobs (size {} / {})'.format(
+					backup,
+					len(self.__new_blobs),
+					ByteCount(sum([b.stored_size for b in self.__new_blobs])),
+					ByteCount(sum([b.raw_size for b in self.__new_blobs])),
+				))
 				return BackupInfo.of(backup)
 		except Exception as e:
 			self.logger.info('Error occurs, applying rollback')

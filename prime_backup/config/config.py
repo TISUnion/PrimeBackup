@@ -2,9 +2,9 @@ import functools
 from pathlib import Path
 from typing import Optional
 
-from mcdreforged.api.utils import Serializable
+from mcdreforged.api.all import Serializable
 
-from prime_backup.config.sub_configs import CommandConfig, ServerConfig, BackupConfig, RetentionConfig
+from prime_backup.config.sub_configs import CommandConfig, ServerConfig, BackupConfig
 
 
 class Config(Serializable):
@@ -13,7 +13,7 @@ class Config(Serializable):
 	command: CommandConfig = CommandConfig.get_default()
 	server: ServerConfig = ServerConfig.get_default()
 	backup: BackupConfig = BackupConfig.get_default()
-	retention: RetentionConfig = RetentionConfig.get_default()
+	# retention: RetentionConfig = RetentionConfig.get_default()
 
 	@classmethod
 	@functools.lru_cache

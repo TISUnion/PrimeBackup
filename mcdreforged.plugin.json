@@ -3,15 +3,15 @@
     "version": "0.1.0",
     "name": "Prime Backup",
     "description": {
-        "en_us": "A powerful backup plugin for MCDR",
-        "zh_cn": "一个强大的MCDR备份插件"
+        "en_us": "A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world",
+        "zh_cn": "一个强大的MCDR备份插件，一套先进的Minecraft存档备份解决方案"
     },
     "author": [
         "Fallen_Breath"
     ],
     "link": "https://github.com/TISUnion/PrimeBackup",
     "dependencies": {
-        "mcdreforged": ">=2.12"
+        "mcdreforged": ">=2.12.0-alpha.0"
     },
     "entrypoint": "prime_backup.mcdr.entrypoint",
     "archive_name": "PrimeBackup-v{version}",

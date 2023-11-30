@@ -4,8 +4,8 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.mcdr.task import TaskEvent, OperationTask
+from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.operator import Operator
-from prime_backup.utils.mcdr_utils import Texts
 from prime_backup.utils.timer import Timer
 
 
@@ -24,11 +24,12 @@ class CreateBackupTask(OperationTask):
 		self.broadcast(self.tr('start'))
 
 		cmds = self.config.server.commands
-		if self.config.server.turn_off_auto_save:
+		if self.config.server.turn_off_auto_save and len(cmds.auto_save_off) > 0:
 			self.server.execute(cmds.auto_save_off)
 		try:
 			timer = Timer()
-			self.server.execute(cmds.save_all_worlds)
+			if len(cmds.save_all_worlds) > 0:
+				self.server.execute(cmds.save_all_worlds)
 			if len(self.config.server.saved_world_regex) > 0:
 				ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait.value)
 				if not ok:
@@ -47,15 +48,15 @@ class CreateBackupTask(OperationTask):
 			self.logger.info('Time costs: save wait {}s, create backup {}s'.format(round(cost_save_wait, 2), round(cost_create, 2)))
 			self.broadcast(self.tr(
 				'completed',
-				Texts.backup_id(backup.id),
-				RText(f'{round(cost_total, 2)}s', RColor.gold),
-				Texts.file_size(backup.size),
+				TextComponents.backup_id(backup.id),
+				TextComponents.number(f'{round(cost_total, 2)}s'),
+				TextComponents.file_size(backup.raw_size),
 			))
 		except Exception as e:
 			self.broadcast(self.tr('failed', e))
 			raise
 		finally:
-			if self.config.server.turn_off_auto_save:
+			if self.config.server.turn_off_auto_save and len(cmds.auto_save_on) > 0:
 				self.server.execute(cmds.auto_save_on)
 
 	def on_event(self, event: TaskEvent):

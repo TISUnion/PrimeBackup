@@ -56,14 +56,14 @@ class DbSession:
 	def get_all_blob_hashes(self) -> List[str]:
 		return _list_it(self.session.execute(select(schema.Blob.hash)).scalars().all())
 
-	def has_blob_with_size(self, size: int) -> bool:
-		q = self.session.query(schema.Blob).filter_by(size=size).exists()
+	def has_blob_with_size(self, raw_size: int) -> bool:
+		q = self.session.query(schema.Blob).filter_by(raw_size=raw_size).exists()
 		return self.session.query(q).scalar()
 
 	def has_blob_with_size_batched(self, sizes: List[int]) -> Dict[int, bool]:
 		result = {s: False for s in sizes}
 		for view in collection_utils.slicing_iterate(sizes, self.__safe_var_limit):
-			for size in self.session.execute(select(schema.Blob.size).where(schema.Blob.size.in_(view)).distinct()).scalars().all():
+			for size in self.session.execute(select(schema.Blob.raw_size).where(schema.Blob.raw_size.in_(view)).distinct()).scalars().all():
 				result[size] = True
 		return result
 
@@ -119,6 +119,10 @@ class DbSession:
 
 	@staticmethod
 	def __apply_backup_filter(s: Select[_T], backup_filter: BackupFilter) -> Select[_T]:
+		if backup_filter.id_start is not None:
+			s = s.where(schema.Backup.id >= backup_filter.id_start)
+		if backup_filter.id_end is not None:
+			s = s.where(schema.Backup.id <= backup_filter.id_end)
 		if backup_filter.author is not None:
 			s = s.filter_by(author=str(backup_filter.author))
 		if backup_filter.timestamp_start is not None:
@@ -139,7 +143,7 @@ class DbSession:
 		s = select(schema.Backup)
 		if backup_filter is not None:
 			s = self.__apply_backup_filter(s, backup_filter)
-		s = s.order_by(desc(schema.Backup.timestamp))
+		s = s.order_by(desc(schema.Backup.id))
 		if offset is not None:
 			s = s.offset(offset)
 		if limit is not None:

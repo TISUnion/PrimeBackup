@@ -13,8 +13,17 @@ from prime_backup.types.units import Duration, ByteCount
 class CommandConfig(Serializable):
 	prefix: str = '!!pb'
 	permission: Dict[str, int] = {
-		# TODO
+		'list': 1,
 		'make': 1,
+		'back': 2,
+		'show': 1,
+		'del': 2,
+		'delete': 2,
+		'delete_range': 3,
+		'export': 3,
+		'rename': 2,
+		'confirm': 1,
+		'abort': 1,
 	}
 	confirm_time_wait: Duration = Duration('60s')
 
@@ -53,11 +62,11 @@ class BackupConfig(Serializable):
 	targets: List[str] = [
 		'world',
 	]
-	ignores: List[str] = [
+	ignored_files: List[str] = [
 		'session.lock',
 	]
 	hash_method: HashMethod = HashMethod.xxh128
-	compress_method: CompressMethod = CompressMethod.plain
+	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 128
 	backup_on_overwrite: bool = True
 
@@ -67,10 +76,24 @@ class BackupConfig(Serializable):
 				raise ValueError('bad compress method {!r}'.format(attr_value))
 
 	def is_file_ignore(self, full_path: Path) -> bool:
-		# TODO: proper impl
-		return full_path.name in self.ignores
+		"""
+		Apply to not only files
+		"""
+		name = full_path.name
+		for item in self.ignored_files:
+			if len(item) > 0:
+				if item[0] == '*' and name.endswith(item[1:]):
+					return True
+				if item[-1] == '*' and name.startswith(item[:-1]):
+					return True
+				if name == item:
+					return True
+		return False
 
 
 class RetentionConfig(Serializable):
+	"""
+	Not used for now
+	"""
 	size_limit: ByteCount = ByteCount('0B')
-	amount_limit: int = 100
+	amount_limit: int = 0

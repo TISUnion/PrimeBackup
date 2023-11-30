@@ -182,7 +182,7 @@ class ExportBackupToTarAction(ExportBackupActionBase):
 				if stat.S_ISREG(file.mode):
 					self.logger.debug('add file {} to tarfile'.format(file.path))
 					info.type = tarfile.REGTYPE
-					info.size = file.blob_size
+					info.size = file.blob_raw_size
 					blob_path = blob_utils.get_blob_path(file.blob_hash)
 
 					with Compressor.create(file.blob_compress).open_decompressed(blob_path) as stream:
@@ -232,7 +232,7 @@ class ExportBackupToZipAction(ExportBackupActionBase):
 
 				if stat.S_ISREG(file.mode):
 					self.logger.debug('add file {} to zipfile'.format(file.path))
-					info.file_size = file.blob_size
+					info.file_size = file.blob_raw_size
 					blob_path = blob_utils.get_blob_path(file.blob_hash)
 
 					with Compressor.create(file.blob_compress).open_decompressed(blob_path) as stream:

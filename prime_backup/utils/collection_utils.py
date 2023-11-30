@@ -5,6 +5,9 @@ GSlice = Generator[_T, None, None]
 
 
 def slice_view(lst: List[_T], start: int, end: int) -> GSlice:
+	"""
+	equals to `lst[start:end]`, range: [start, end)
+	"""
 	for i in range(start, end):
 		yield lst[i]
 

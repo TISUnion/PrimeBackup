@@ -43,8 +43,8 @@ class Operator(NamedTuple):
 			raise TypeError(value)
 
 	def to_text(self) -> 'RTextBase':
-		from prime_backup.utils.mcdr_utils import Texts
-		return Texts.operator(self)
+		from prime_backup.mcdr.text_components import TextComponents
+		return TextComponents.operator(self)
 
 	def __str__(self):
 		return f'{self.type}:{self.name}'

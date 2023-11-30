@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 from mcdreforged.api.all import RTextBase, CommandSource
+from typing_extensions import final
 
 from prime_backup.utils import mcdr_utils
 
@@ -61,5 +62,7 @@ class ReaderTask(Task, ABC):
 
 
 class ImmediateTask(Task, ABC):
-	pass
+	@final
+	def is_abort_able(self) -> bool:
+		return super().is_abort_able()
 

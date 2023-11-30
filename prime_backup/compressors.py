@@ -9,13 +9,14 @@ from typing import BinaryIO, Union, ContextManager, NamedTuple
 from typing_extensions import Protocol
 
 from prime_backup.types.common import PathLike
-from prime_backup.utils.bypass_reader import ByPassReader
+from prime_backup.utils.bypass_reader import ByPassReader, ByPassWriter
 
 
 class Compressor(ABC):
 	class CopyCompressResult(NamedTuple):
-		size: int
-		hash: str
+		read_size: int
+		read_hash: str
+		write_size: int
 
 	@classmethod
 	def create(cls, method: Union[str, 'CompressMethod']) -> 'Compressor':
@@ -37,8 +38,9 @@ class Compressor(ABC):
 	def copy_compressed(self, source_path: PathLike, dest_path: PathLike, *, calc_hash: bool = False) -> CopyCompressResult:
 		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
 			reader = ByPassReader(f_in, calc_hash)
-			self._copy_compressed(reader, f_out)
-			return self.CopyCompressResult(reader.get_read_len(), reader.get_hash())
+			writer = ByPassWriter(f_out)
+			self._copy_compressed(reader, writer)
+			return self.CopyCompressResult(reader.get_read_len(), reader.get_hash(), writer.get_write_len())
 
 	def copy_decompressed(self, source_path: PathLike, dest_path: PathLike):
 		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:

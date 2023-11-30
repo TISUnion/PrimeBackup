@@ -11,24 +11,29 @@ class BackupInfo(NamedTuple):
 	date: str
 	author: Operator
 	comment: str
-	size: int  # actual uncompressed size
 	hidden: bool
+	raw_size: int  # uncompressed size
+	stored_size: int  # actual size
 
 	@classmethod
 	def of(cls, backup: schema.Backup) -> 'BackupInfo':
 		"""
 		Notes: should be inside a session
 		"""
-		size_sum = 0
+		raw_size_sum, stored_size_sum = 0, 0
 		for file in backup.files:
-			if file.blob_size is not None:
-				size_sum += file.blob_size
+			file: schema.File
+			if file.blob_raw_size is not None:
+				raw_size_sum += file.blob_raw_size
+			if file.blob_stored_size is not None:
+				stored_size_sum += file.blob_stored_size
 		return BackupInfo(
 			id=backup.id,
 			timestamp_ns=backup.timestamp,
 			date=conversion_utils.timestamp_to_local_date(backup.timestamp),
 			author=Operator.of(backup.author),
 			comment=backup.comment,
-			size=size_sum,
+			raw_size=raw_size_sum,
+			stored_size=stored_size_sum,
 			hidden=backup.hidden,
 		)

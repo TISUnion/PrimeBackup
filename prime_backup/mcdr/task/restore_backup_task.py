@@ -10,10 +10,11 @@ from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.config.config import Config
 from prime_backup.mcdr.task import TaskEvent, OperationTask
+from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.operator import Operator
-from prime_backup.utils.mcdr_utils import click_and_run, mkcmd, Texts
+from prime_backup.utils.mcdr_utils import click_and_run, mkcmd
 from prime_backup.utils.timer import Timer
 from prime_backup.utils.waitable_value import WaitableValue
 
@@ -41,8 +42,8 @@ class RestoreBackupTask(OperationTask):
 	def __countdown_and_stop_server(self, backup: BackupInfo) -> bool:
 		for countdown in range(10, 0, -1):
 			self.broadcast(click_and_run(
-				self.tr('countdown', countdown, Texts.backup(backup)),
-				self.tr('countdown.hover', Texts.command('abort')),
+				self.tr('countdown', countdown, TextComponents.backup_brief(backup)),
+				self.tr('countdown.hover', TextComponents.command('abort')),
 				mkcmd('abort'),
 			))
 
@@ -67,21 +68,8 @@ class RestoreBackupTask(OperationTask):
 			backup = GetBackupAction(self.backup_id).run()
 
 		confirm_time_wait = self.config.command.confirm_time_wait
-		self.broadcast(self.tr('show_backup', Texts.backup(backup)))
-		self.broadcast(self.tr(
-			'confirm_hint.base',
-			confirm_time_wait,
-			click_and_run(
-				self.tr('confirm_hint.confirm', Texts.command('confirm')).set_color(RColor.red),
-				self.tr('confirm_hint.confirm.hover', Texts.command('confirm')),
-				mkcmd('confirm'),
-			),
-			click_and_run(
-				self.tr('confirm_hint.abort', Texts.command('abort')).set_color(RColor.yellow),
-				self.tr('confirm_hint.abort.hover', Texts.command('abort')),
-				mkcmd('abort'),
-			),
-		))
+		self.broadcast(self.tr('show_backup', TextComponents.backup_brief(backup)))
+		self.broadcast(TextComponents.confirm_hint(self.tr('confirm_target'), confirm_time_wait))
 		self.can_abort = True
 		self.confirm_result.wait(confirm_time_wait.value)
 

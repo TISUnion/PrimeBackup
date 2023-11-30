@@ -29,7 +29,8 @@ class Blob(Base):
 
 	hash: Mapped[str] = mapped_column(String, primary_key=True)
 	compress: Mapped[str] = mapped_column(String)
-	size: Mapped[int] = mapped_column(BigInteger, index=True)
+	raw_size: Mapped[int] = mapped_column(BigInteger, index=True)
+	stored_size: Mapped[int] = mapped_column(BigInteger)
 
 	__fields_end__: bool
 
@@ -50,7 +51,8 @@ class File(Base):
 	# store all Blob fields here to speed up blob attribute accessing
 	blob_hash: Mapped[Optional[str]] = mapped_column(ForeignKey('blob.hash'), index=True)
 	blob_compress: Mapped[Optional[str]] = mapped_column(String)
-	blob_size: Mapped[Optional[int]] = mapped_column(BigInteger)
+	blob_raw_size: Mapped[Optional[int]] = mapped_column(BigInteger)
+	blob_stored_size: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 	uid: Mapped[Optional[int]] = mapped_column(Integer)
 	gid: Mapped[Optional[int]] = mapped_column(Integer)

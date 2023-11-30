@@ -1,38 +1,31 @@
-import os
-from pathlib import Path
 from typing import Optional, NamedTuple, List
 
 from prime_backup.action import Action
-from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_info import BackupInfo
-from prime_backup.utils import collection_utils, blob_utils, misc_utils
+from prime_backup.types.blob_info import BlobInfo
+from prime_backup.types.units import ByteCount
+from prime_backup.utils import collection_utils, misc_utils
 
 
 class BlobTrashBin:
-	class Trash(NamedTuple):
-		hash: str
-		raw_size: int
-		blob_path: Path
-
 	class Summary(NamedTuple):
 		count: int
 		raw_size_sum: int
-		actual_size_sum: int
+		stored_size_sum: int
 
 	def __init__(self):
-		self.trashes: List[BlobTrashBin.Trash] = []
+		self.trashes: List[BlobInfo] = []
 
-	def add(self, blob: schema.Blob):
-		blob_path = blob_utils.get_blob_path(blob.hash)
-		self.trashes.append(self.Trash(blob.hash, blob.size, blob_path))
+	def add(self, blob: BlobInfo):
+		self.trashes.append(blob)
 
 	def make_summary(self) -> Summary:
-		raw_size_sum, actual_size_sum = 0, 0
+		raw_size_sum, stored_size_sum = 0, 0
 		for trash in self.trashes:
 			raw_size_sum += trash.raw_size
-			actual_size_sum += os.stat(trash.blob_path).st_size
-		return self.Summary(len(self.trashes), raw_size_sum, actual_size_sum)
+			stored_size_sum += trash.stored_size
+		return self.Summary(len(self.trashes), raw_size_sum, stored_size_sum)
 
 	def erase_all(self):
 		for trash in self.trashes:
@@ -63,14 +56,16 @@ class DeleteOrphanBlobsAction(Action):
 			self.logger.info('orphan blob collected, cnt %s', len(t))
 
 			for blob in t.values():
-				trash_bin.add(blob)
+				trash_bin.add(BlobInfo.of(blob))
 			self.logger.info('orphan blob added to trashbin, cnt %s', len(t))
 			session.delete_blobs(list(t.keys()))
 			self.logger.info('orphan blob deleted, cnt %s', len(t))
 
 		summary = trash_bin.make_summary()
 		trash_bin.erase_all()
-		self.logger.info('Delete blobs done, erasing blobs (count {}, size {} / {})'.format(summary.count, summary.actual_size_sum, summary.raw_size_sum))
+		self.logger.info('Delete blobs done, erasing blobs (count {}, size {} / {})'.format(
+			summary.count, ByteCount(summary.stored_size_sum), ByteCount(summary.raw_size_sum),
+		))
 
 
 class DeleteBackupAction(Action):

@@ -1,15 +1,19 @@
+import contextlib
 import copy
 import json
-import time
+import threading
 
 from mcdreforged.api.all import *
 
 from prime_backup.action.count_backup_action import CountBackupAction
-from prime_backup.action.list_backup_action import ListBackupAction
-from prime_backup.mcdr.task import ReaderTask
+from prime_backup.action.get_backup_action import GetBackupAction
+from prime_backup.action.list_backup_action import ListBackupIdAction
+from prime_backup.exceptions import BackupNotFound
+from prime_backup.mcdr.task import ReaderTask, TaskEvent
+from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils import conversion_utils
-from prime_backup.utils.mcdr_utils import Texts, mkcmd
+from prime_backup.utils.mcdr_utils import mkcmd
 
 
 class ListBackupTask(ReaderTask):
@@ -19,10 +23,14 @@ class ListBackupTask(ReaderTask):
 		self.backup_filter = copy.copy(backup_filter)
 		self.per_page = per_page
 		self.page = page
+		self.is_aborted = threading.Event()
 
 	@property
 	def name(self) -> str:
 		return 'list'
+
+	def is_abort_able(self) -> bool:
+		return True
 
 	def __make_command(self, page: int) -> str:
 		def date_str(ts_ns: int) -> str:
@@ -42,20 +50,20 @@ class ListBackupTask(ReaderTask):
 
 	def run(self):
 		total_count = CountBackupAction(self.backup_filter).run()
-		backups = ListBackupAction(self.backup_filter, self.per_page, (self.page - 1) * self.per_page).run()
+		backup_ids = ListBackupIdAction(self.backup_filter, self.per_page, (self.page - 1) * self.per_page).run()
 
-		self.reply(RTextList(RText('======== ', RColor.gray), self.tr('title', total_count), RText(' ========', RColor.gray)))
-		for backup in backups:
-			t_bid = Texts.backup_id(backup.id, hover=False).h(self.tr('hover.id', backup.id))
-			time_since_now_sec = time.time() - backup.timestamp_ns / 1e9
-			self.reply(RTextList(
-				RText('[', RColor.gray), t_bid, RText('] ', RColor.gray),
-				RText('[>]', color=RColor.green).h(self.tr('hover.restore', t_bid)).c(RAction.suggest_command, mkcmd(f'back {backup.id}')), ' ',
-				RText('[x]', color=RColor.red).h(self.tr('hover.delete', t_bid)).c(RAction.suggest_command, mkcmd(f'delete {backup.id}')), ' ',
-				Texts.file_size(backup.size).h(self.tr('hover.size')), ' ',
-				RText(backup.date, RColor.aqua).h(self.tr('hover.time_since_now', Texts.duration(time_since_now_sec))), RText(': ', RColor.gray),
-				Texts.backup_comment(backup.comment).h(self.tr('hover.author', Texts.operator(backup.author))),
-			))
+		self.reply(RTextList(
+			RText('======== ', RColor.gray),
+			self.tr('title', TextComponents.number(total_count)),
+			RText(' ========', RColor.gray),
+		))
+		for backup_id in backup_ids:
+			if self.is_aborted.is_set():
+				self.reply(self.tr('aborted'))
+				return
+			with contextlib.suppress(BackupNotFound):
+				backup = GetBackupAction(backup_id).run()
+				self.reply(TextComponents.backup_full(backup, True))
 
 		max_page = max(0, (total_count - 1) // self.per_page + 1)
 		t_prev = RText('<-')
@@ -68,5 +76,8 @@ class ListBackupTask(ReaderTask):
 			t_next.h(self.tr('next')).c(RAction.run_command, self.__make_command(self.page + 1))
 		else:
 			t_next.set_color(RColor.dark_gray)
-		self.reply(RTextList(t_prev, ' ', RText(self.page, RColor.yellow), '/', RText(max_page, RColor.yellow), ' ', t_next))
+		self.reply(RTextList(t_prev, ' ', TextComponents.number(self.page), '/', TextComponents.number(max_page), ' ', t_next))
 
+	def on_event(self, event: TaskEvent):
+		if event in [TaskEvent.plugin_unload, TaskEvent.operation_aborted]:
+			self.is_aborted.set()

@@ -30,7 +30,7 @@ class CreateBackupTask(OperationTask):
 			timer = Timer()
 			self.server.execute(cmds.save_all_worlds)
 			if len(self.config.server.saved_world_regex) > 0:
-				ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait_sec)
+				ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait.value)
 				if not ok:
 					self.broadcast(self.tr('abort.save_wait_time_out').set_color(RColor.red))
 					return

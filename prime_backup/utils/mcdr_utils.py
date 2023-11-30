@@ -6,9 +6,9 @@ from mcdreforged.api.all import *
 
 from prime_backup import constants
 from prime_backup.config.config import Config
-from prime_backup.config.types import Duration
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.operator import Operator
+from prime_backup.types.units import Duration, ByteCount
 
 
 def tr(key: str, *args, **kwargs) -> RTextBase:
@@ -33,7 +33,6 @@ class Texts:
 
 	@classmethod
 	def file_size(cls, byte_cnt: int, *, ndigits: int = 2) -> RTextBase:
-		from prime_backup.config.types import ByteCount
 		number, unit = ByteCount(byte_cnt).auto_format()
 		return RText(f'{round(number, ndigits)}{unit}', color=RColor.dark_green)
 

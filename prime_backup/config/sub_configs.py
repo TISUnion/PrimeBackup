@@ -6,7 +6,8 @@ from typing import Dict, List, Any
 from mcdreforged.api.utils import Serializable
 
 from prime_backup.compressors import CompressMethod
-from prime_backup.config.types import Duration, Quantity, HashMethod
+from prime_backup.types.hash_method import HashMethod
+from prime_backup.types.units import Duration, ByteCount
 
 
 class CommandConfig(Serializable):
@@ -15,11 +16,7 @@ class CommandConfig(Serializable):
 		# TODO
 		'make': 1,
 	}
-	confirm_time_wait: str = '60s'
-
-	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
-		if attr_name == 'confirm_time_wait':
-			Duration(attr_value)
+	confirm_time_wait: Duration = Duration('60s')
 
 
 class CustomServerCommands(Serializable):
@@ -35,20 +32,14 @@ class ServerConfig(Serializable):
 		'^Saved the game$',
 		'^Saved the world$',
 	]
-	save_world_max_wait: str = '10min'
+	save_world_max_wait: Duration = Duration('10min')
 
 	@functools.cached_property
 	def saved_world_regex_patterns(self) -> List[re.Pattern]:
 		return list(map(re.compile, self.saved_world_regex))
 
-	@functools.cached_property
-	def save_world_max_wait_sec(self) -> float:
-		return Duration(self.save_world_max_wait).duration
-
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
-		if attr_name == 'save_world_max_wait':
-			Duration(attr_value)
-		elif attr_name == 'saved_world_regex':
+		if attr_name == 'saved_world_regex':
 			try:
 				for regex in attr_value:
 					re.compile(regex)
@@ -81,9 +72,5 @@ class BackupConfig(Serializable):
 
 
 class RetentionConfig(Serializable):
-	size_limit: str = '0'
+	size_limit: ByteCount = ByteCount('0B')
 	amount_limit: int = 100
-
-	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
-		if attr_name == 'size_limit':
-			Quantity(attr_value)

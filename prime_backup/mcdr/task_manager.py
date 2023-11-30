@@ -5,10 +5,10 @@ from typing import Optional, List
 from mcdreforged.api.all import *
 
 from prime_backup import constants
-from prime_backup.config.types import Duration
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import TaskEvent, Task, OperationTask, ReaderTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder
+from prime_backup.types.units import Duration
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
@@ -31,7 +31,7 @@ class ThreadedWorker:
 		self.send_event_to_current_task(TaskEvent.plugin_unload)
 		self.task_queue.put_direct(None)
 		if self.thread.is_alive():
-			self.thread.join(Duration('10min').duration)
+			self.thread.join(Duration('10min').value)
 
 	def __task_loop(self):
 		self.logger.info('Worker %s starts', self.name)

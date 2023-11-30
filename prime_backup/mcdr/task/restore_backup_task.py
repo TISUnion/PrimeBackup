@@ -9,7 +9,6 @@ from prime_backup.action.export_backup_action import ExportBackupActions
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.config.config import Config
-from prime_backup.config.types import Duration
 from prime_backup.mcdr.task import TaskEvent, OperationTask
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
@@ -71,7 +70,7 @@ class RestoreBackupTask(OperationTask):
 		self.broadcast(self.tr('show_backup', Texts.backup(backup)))
 		self.broadcast(self.tr(
 			'confirm_hint.base',
-			confirm_time_wait.lower(),
+			confirm_time_wait,
 			click_and_run(
 				self.tr('confirm_hint.confirm', Texts.command('confirm')).set_color(RColor.red),
 				self.tr('confirm_hint.confirm.hover', Texts.command('confirm')),
@@ -84,7 +83,7 @@ class RestoreBackupTask(OperationTask):
 			),
 		))
 		self.can_abort = True
-		self.confirm_result.wait(Duration(confirm_time_wait).duration)
+		self.confirm_result.wait(confirm_time_wait.value)
 
 		self.logger.info('confirm result: {}'.format(self.confirm_result))
 		if not self.confirm_result.is_set():

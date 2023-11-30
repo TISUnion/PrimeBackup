@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Tuple
 
 from prime_backup.config.config import Config
-from prime_backup.config.types import Hasher
+from prime_backup.types.hash_method import Hasher
 from prime_backup.utils.bypass_reader import ByPassReader
 
 

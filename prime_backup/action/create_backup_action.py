@@ -177,12 +177,11 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.logger.info('skipping not-exist backup target {}'.format(target_path))
 				continue
 
+			collected.append(target_path)
 			if target_path.is_dir():
 				for dir_path, dir_names, file_names in os.walk(target_path):
 					for name in file_names + dir_names:
 						collected.append(Path(dir_path) / name)
-			else:
-				collected.append(target_path)
 
 		return [p for p in collected if not self.config.backup.is_file_ignore(p)]
 

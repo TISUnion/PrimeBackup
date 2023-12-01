@@ -88,7 +88,7 @@ class TextComponents:
 	@classmethod
 	def operator(cls, op: Operator) -> RTextBase:
 		tr_key = f'operator.{op.type}'
-		if op.type in ['player', 'command_source']:
+		if op.type in ['player', 'command_source', 'unknown']:
 			return cls.tr(tr_key, op.name)
 		elif op.type in ['console', constants.PLUGIN_ID]:
 			return cls.tr(tr_key)

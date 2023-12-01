@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set, Deque
 
-from prime_backup.action import Action
+from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
@@ -154,15 +154,13 @@ class BatchQueryManager:
 		self.fetcher_hash.flush()
 
 
-class CreateBackupAction(Action):
+class CreateBackupAction(CreateBackupActionBase):
 	def __init__(self, author: Operator, comment: str, *, hidden: bool = False):
 		super().__init__()
 		self.author = author
 		self.comment = comment
 		self.hidden = hidden
 
-		self.__new_blobs: List[schema.Blob] = []
-		self.__blobs_rollbackers: List[callable] = []
 		self.__blob_store_st: Optional[os.stat_result] = None
 		self.__blob_store_in_cow_fs: Optional[bool] = None
 
@@ -188,20 +186,9 @@ class CreateBackupAction(Action):
 
 		return [p for p in collected if not self.config.backup.is_file_ignore(p)]
 
-	def __remove_file(self, file_to_remove: Path):
-		try:
-			if file_to_remove.is_file():
-				file_to_remove.unlink(missing_ok=True)
-		except OSError as e:
-			self.logger.error('(rollback) remove file {!r} failed: {}'.format(file_to_remove, e))
-
 	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Generator[Any, Any, Tuple[schema.Blob, os.stat_result]]:
 		def attempt_once() -> Generator[Any, Any, schema.Blob]:
-			if st.st_size < self.config.backup.compress_threshold:
-				compress_method = CompressMethod.plain
-			else:
-				compress_method = self.config.backup.compress_method
-
+			compress_method = self.config.backup.get_compress_method_from_size(st.st_size)
 			can_copy_on_write = (
 					file_utils.HAS_COPY_FILE_RANGE and
 					self.__blob_store_in_cow_fs and
@@ -269,7 +256,7 @@ class CreateBackupAction(Action):
 
 			def bp_rba(h: str) -> Path:
 				bp = blob_utils.get_blob_path(h)
-				self.__blobs_rollbackers.append(functools.partial(self.__remove_file, bp))
+				self._add_remove_file_rollbacker(bp)
 				return bp
 
 			stored_size = None
@@ -280,7 +267,7 @@ class CreateBackupAction(Action):
 				temp_file_path.parent.mkdir(parents=True, exist_ok=True)
 
 				with contextlib.ExitStack() as exit_stack:
-					exit_stack.callback(functools.partial(self.__remove_file, temp_file_path))
+					exit_stack.callback(functools.partial(self._remove_file, temp_file_path))
 
 					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True)
 					check_changes(cr.read_size, None)
@@ -313,14 +300,13 @@ class CreateBackupAction(Action):
 
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
 			misc_utils.assert_true(stored_size is not None, 'stored_size is None')
-			b = session.create_blob(
+			return self._create_blob(
+				session,
 				hash=blob_hash,
 				compress=compress_method.name,
 				raw_size=st.st_size,
 				stored_size=stored_size,
 			)
-			self.__new_blobs.append(b)
-			return b
 
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
 			gen = attempt_once()
@@ -347,9 +333,7 @@ class CreateBackupAction(Action):
 
 		blob: Optional[schema.Blob] = None
 		content: Optional[bytes] = None
-		if stat.S_ISDIR(st.st_mode):
-			pass
-		elif stat.S_ISREG(st.st_mode):
+		if stat.S_ISREG(st.st_mode):
 			gen = self.__get_or_create_blob(session, path, st)
 			try:
 				query = gen.send(None)
@@ -359,12 +343,14 @@ class CreateBackupAction(Action):
 			except StopIteration as e:
 				blob, st = e.value
 				# notes: st.st_size might be incorrect, use blob.size instead
+		elif stat.S_ISDIR(st.st_mode):
+			pass
 		elif stat.S_ISLNK(st.st_mode):
 			content = str(path.readlink().as_posix()).encode('utf8')
 		else:
 			raise NotImplementedError('unsupported yet')
 
-		kwargs = dict(
+		return session.create_file(
 			backup_id=backup.id,
 			path=str(related_path.as_posix()),
 			content=content,
@@ -375,18 +361,12 @@ class CreateBackupAction(Action):
 			ctime_ns=st.st_ctime_ns,
 			mtime_ns=st.st_mtime_ns,
 			atime_ns=st.st_atime_ns,
+
+			blob=blob,
 		)
-		if blob is not None:
-			kwargs |= dict(
-				blob_hash=blob.hash,
-				blob_compress=blob.compress,
-				blob_raw_size=blob.raw_size,
-				blob_stored_size=blob.stored_size,
-			)
-		return session.create_file(**kwargs)
 
 	def run(self) -> BackupInfo:
-		self.__blobs_rollbackers.clear()
+		super().run()
 		try:
 			with DbAccess.open_session() as session:
 				self.__batch_query_manager = BatchQueryManager(session)
@@ -421,17 +401,14 @@ class CreateBackupAction(Action):
 					if len(schedule_queue) == 0:
 						self.__batch_query_manager.flush()
 
-				self.logger.info('Create backup done {}, +{} blobs (size {} / {})'.format(
-					backup,
-					len(self.__new_blobs),
-					ByteCount(sum([b.stored_size for b in self.__new_blobs])),
-					ByteCount(sum([b.raw_size for b in self.__new_blobs])),
-				))
-				return BackupInfo.of(backup)
+				info = BackupInfo.of(backup)
+
+			s = self._summarize_new_blobs()
+			self.logger.info('Create backup {} done, +{} blobs (size {} / {})'.format(info.id, s.count, ByteCount(s.stored_size), ByteCount(s.raw_size)))
+			return info
+
 		except Exception as e:
-			self.logger.info('Error occurs, applying rollback')
-			for rollback_func in self.__blobs_rollbackers:
-				rollback_func()
+			self._apply_blob_rollback()
 			raise e
 		finally:
 			self.__blob_by_size_cache.clear()

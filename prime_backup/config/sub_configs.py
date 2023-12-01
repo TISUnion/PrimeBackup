@@ -75,6 +75,12 @@ class BackupConfig(Serializable):
 			if attr_value not in CompressMethod:
 				raise ValueError('bad compress method {!r}'.format(attr_value))
 
+	def get_compress_method_from_size(self, file_size: int) -> CompressMethod:
+		if file_size < self.compress_threshold:
+			return CompressMethod.plain
+		else:
+			return self.compress_method
+
 	def is_file_ignore(self, full_path: Path) -> bool:
 		"""
 		Apply to not only files

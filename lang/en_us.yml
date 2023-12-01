@@ -128,6 +128,7 @@ prime_backup:
       player: Player {}
       console: Console
       command_source: Command source {}
+      unknown: '(Unknown) {}'
       prime_backup: Prime Backup
     duration:
       text: '{} {}'

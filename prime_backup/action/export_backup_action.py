@@ -16,6 +16,7 @@ from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
+from prime_backup.types.backup_meta import BackupMeta
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils import file_utils, blob_utils, misc_utils
 
@@ -53,15 +54,8 @@ class ExportBackupActionBase(Action, ABC):
 
 	@classmethod
 	def _create_meta_buf(cls, backup: schema.Backup) -> bytes:
-		meta = {
-			'_version': 1,
-			'author': backup.author,
-			'comment': backup.comment,
-			'timestamp': backup.timestamp,
-			'targets': backup.targets,
-			'hidden': backup.hidden,
-		}
-		return json.dumps(meta, indent=2, ensure_ascii=False).encode('utf8')
+		meta = BackupMeta.from_backup(backup)
+		return json.dumps(meta.to_dict(), indent=2, ensure_ascii=False).encode('utf8')
 
 
 def _i_am_root():
@@ -201,7 +195,7 @@ class ExportBackupToTarAction(ExportBackupActionBase):
 					raise NotImplementedError('not supported yet')
 
 			meta_buf = self._create_meta_buf(backup)
-			info = tarfile.TarInfo(name='.prime_backup.meta.json')
+			info = tarfile.TarInfo(name=BackupMeta.get_file_name())
 			info.mtime = int(time.time())
 			info.size = len(meta_buf)
 			tar.addfile(tarinfo=info, fileobj=BytesIO(meta_buf))
@@ -252,7 +246,7 @@ class ExportBackupToZipAction(ExportBackupActionBase):
 					raise NotImplementedError('not supported yet')
 
 			meta_buf = self._create_meta_buf(backup)
-			info = zipfile.ZipInfo('.prime_backup.meta.json', time.localtime()[0:6])
+			info = zipfile.ZipInfo(BackupMeta.get_file_name(), time.localtime()[0:6])
 			info.compress_type = zipf.compression
 			info.file_size = len(meta_buf)
 			with zipf.open(info, 'w') as f:

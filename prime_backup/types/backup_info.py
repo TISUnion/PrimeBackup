@@ -1,3 +1,4 @@
+import functools
 from typing import NamedTuple
 
 from prime_backup.db import schema
@@ -8,12 +9,15 @@ from prime_backup.utils import conversion_utils
 class BackupInfo(NamedTuple):
 	id: int
 	timestamp_ns: int
-	date: str
 	author: Operator
 	comment: str
 	hidden: bool
 	raw_size: int  # uncompressed size
 	stored_size: int  # actual size
+
+	@functools.cached_property
+	def date(self) -> str:
+		return conversion_utils.timestamp_to_local_date(self.timestamp_ns)
 
 	@classmethod
 	def of(cls, backup: schema.Backup) -> 'BackupInfo':
@@ -30,7 +34,6 @@ class BackupInfo(NamedTuple):
 		return BackupInfo(
 			id=backup.id,
 			timestamp_ns=backup.timestamp,
-			date=conversion_utils.timestamp_to_local_date(backup.timestamp),
 			author=Operator.of(backup.author),
 			comment=backup.comment,
 			raw_size=raw_size_sum,

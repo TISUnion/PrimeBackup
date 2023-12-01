@@ -38,7 +38,7 @@ class Operator(NamedTuple):
 				t, n = value.split(':', 1)
 				return Operator(type=t, name=n)
 			else:
-				return Operator(type=value, name='')
+				return Operator(type='unknown', name=value)
 		else:
 			raise TypeError(value)
 

@@ -87,6 +87,13 @@ class DbSession:
 	# ===================================== File =====================================
 
 	def create_file(self, **kwargs) -> schema.File:
+		if (blob := kwargs.pop('blob')) is not None:
+			kwargs |= dict(
+				blob_hash=blob.hash,
+				blob_compress=blob.compress,
+				blob_raw_size=blob.raw_size,
+				blob_stored_size=blob.stored_size,
+			)
 		file = schema.File(**kwargs)
 		self.session.add(file)
 		return file
@@ -102,7 +109,8 @@ class DbSession:
 	# ==================================== Backup ====================================
 
 	def create_backup(self, **kwargs) -> schema.Backup:
-		kwargs['timestamp'] = int(time.time() * 1e9)
+		if 'timestamp' not in kwargs:
+			kwargs['timestamp'] = time.time_ns()
 		backup = schema.Backup(**kwargs)
 		self.session.add(backup)
 		self.session.flush()  # so the backup id populates

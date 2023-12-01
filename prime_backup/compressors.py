@@ -9,7 +9,7 @@ from typing import BinaryIO, Union, ContextManager, NamedTuple
 from typing_extensions import Protocol
 
 from prime_backup.types.common import PathLike
-from prime_backup.utils.bypass_reader import ByPassReader, ByPassWriter
+from prime_backup.utils.bypass_io import ByPassReader, ByPassWriter
 
 
 class Compressor(ABC):

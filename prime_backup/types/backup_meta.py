@@ -4,7 +4,6 @@ from typing import List, TYPE_CHECKING, Type
 from mcdreforged.utils.serializer import Serializable
 from typing_extensions import Self
 
-from prime_backup import constants
 from prime_backup.types.operator import Operator
 
 if TYPE_CHECKING:
@@ -12,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class BackupMeta(Serializable):
-	author: str = Operator.pb('import')
+	author: str = str(Operator.pb('import'))
 	comment: str = ''
 	timestamp_ns: int
 	targets: List[str] = []
@@ -46,6 +45,11 @@ class BackupMeta(Serializable):
 			hidden=backup.hidden,
 		)
 
-	@classmethod
-	def get_file_name(cls) -> str:
-		return constants.BACKUP_META_FILE_NAME
+	def to_backup_kwargs(self) -> dict:
+		return dict(
+			author=self.author,
+			comment=self.comment,
+			timestamp=self.timestamp_ns,
+			targets=self.targets,
+			hidden=self.hidden,
+		)

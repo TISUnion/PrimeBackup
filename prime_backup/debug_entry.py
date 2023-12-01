@@ -54,6 +54,7 @@ def main():
 	def import_():
 		t = time.time()
 		ImportBackupAction(Path('export.tar')).run()
+		# ImportBackupAction(Path('export.zip')).run()
 		print('cost', round(time.time() - t, 2), 's')
 		t = time.time()
 

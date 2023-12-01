@@ -13,6 +13,7 @@ from typing import ContextManager
 
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor, CompressMethod
+from prime_backup.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
@@ -195,7 +196,7 @@ class ExportBackupToTarAction(ExportBackupActionBase):
 					raise NotImplementedError('not supported yet')
 
 			meta_buf = self._create_meta_buf(backup)
-			info = tarfile.TarInfo(name=BackupMeta.get_file_name())
+			info = tarfile.TarInfo(name=BACKUP_META_FILE_NAME)
 			info.mtime = int(time.time())
 			info.size = len(meta_buf)
 			tar.addfile(tarinfo=info, fileobj=BytesIO(meta_buf))
@@ -239,14 +240,13 @@ class ExportBackupToZipAction(ExportBackupActionBase):
 					zipf.writestr(info, b'')
 				elif stat.S_ISLNK(file.mode):
 					self.logger.debug('add symlink {} to zipfile'.format(file.path))
-					info.external_attr |= 0xA1ED0000
 					with zipf.open(info, 'w') as zip_item:
 						zip_item.write(file.content)
 				else:
 					raise NotImplementedError('not supported yet')
 
 			meta_buf = self._create_meta_buf(backup)
-			info = zipfile.ZipInfo(BackupMeta.get_file_name(), time.localtime()[0:6])
+			info = zipfile.ZipInfo(BACKUP_META_FILE_NAME, time.localtime()[0:6])
 			info.compress_type = zipf.compression
 			info.file_size = len(meta_buf)
 			with zipf.open(info, 'w') as f:

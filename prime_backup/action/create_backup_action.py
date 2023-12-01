@@ -366,6 +366,9 @@ class CreateBackupAction(CreateBackupActionBase):
 
 	def run(self) -> BackupInfo:
 		super().run()
+		self.__blob_by_size_cache.clear()
+		self.__blob_by_hash_cache.clear()
+
 		try:
 			with DbAccess.open_session() as session:
 				self.__batch_query_manager = BatchQueryManager(session)
@@ -403,14 +406,9 @@ class CreateBackupAction(CreateBackupActionBase):
 				info = BackupInfo.of(backup)
 
 			s = self._summarize_new_blobs()
-			self.logger.info('Create backup {} done, +{} blobs (size {} / {})'.format(info.id, s.count, ByteCount(s.stored_size), ByteCount(s.raw_size)))
+			self.logger.info('Create backup #{} done, +{} blobs (size {} / {})'.format(info.id, s.count, ByteCount(s.stored_size), ByteCount(s.raw_size)))
 			return info
 
 		except Exception as e:
 			self._apply_blob_rollback()
 			raise e
-		finally:
-			self.__blob_by_size_cache.clear()
-			self.__blob_by_hash_cache.clear()
-
-

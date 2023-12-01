@@ -50,6 +50,6 @@ class BackupMeta(Serializable):
 			author=self.author,
 			comment=self.comment,
 			timestamp=self.timestamp_ns,
-			targets=self.targets,
+			targets=[t.rstrip('/') for t in self.targets],
 			hidden=self.hidden,
 		)

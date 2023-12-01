@@ -58,6 +58,9 @@ class ExportBackupActionBase(Action, ABC):
 		meta = BackupMeta.from_backup(backup)
 		return json.dumps(meta.to_dict(), indent=2, ensure_ascii=False).encode('utf8')
 
+	def _on_unsupported_file_mode(self, file: schema.File):
+		raise NotImplementedError('file at {!r} with mode={} ({} {}) is not supported yet'.format(file.path, file.mode, hex(file.mode), oct(file.mode)))
+
 
 def _i_am_root():
 	# reference: tarfile.TarFile.chown
@@ -126,8 +129,7 @@ class ExportBackupToDirectoryAction(ExportBackupActionBase):
 				os.symlink(link_target, file_path)
 				self.logger.debug('write symbolic link {} -> {}'.format(file_path, link_target))
 			else:
-				# TODO: support other file types
-				raise NotImplementedError('not supported yet')
+				self._on_unsupported_file_mode(file)
 
 			if not stat.S_ISDIR(file.mode):
 				self.__set_attrs(file)
@@ -193,7 +195,7 @@ class ExportBackupToTarAction(ExportBackupActionBase):
 					info.linkname = link_target
 					tar.addfile(tarinfo=info)
 				else:
-					raise NotImplementedError('not supported yet')
+					self._on_unsupported_file_mode(file)
 
 			meta_buf = self._create_meta_buf(backup)
 			info = tarfile.TarInfo(name=BACKUP_META_FILE_NAME)
@@ -243,7 +245,7 @@ class ExportBackupToZipAction(ExportBackupActionBase):
 					with zipf.open(info, 'w') as zip_item:
 						zip_item.write(file.content)
 				else:
-					raise NotImplementedError('not supported yet')
+					self._on_unsupported_file_mode(file)
 
 			meta_buf = self._create_meta_buf(backup)
 			info = zipfile.ZipInfo(BACKUP_META_FILE_NAME, time.localtime()[0:6])

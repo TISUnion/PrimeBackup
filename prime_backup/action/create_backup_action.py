@@ -403,6 +403,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			with DbAccess.open_session() as session:
 				self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache)
 
+				# TODO: generate the backup id as late as possible, since it will flush here, holding the write lock for too long
 				backup = session.create_backup(
 					author=str(self.author),
 					comment=self.comment,

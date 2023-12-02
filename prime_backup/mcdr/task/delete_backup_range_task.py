@@ -65,12 +65,12 @@ class DeleteBackupRangeTask(OperationTask):
 				self.reply(self.tr('aborted'))
 				return
 			try:
-				backup = DeleteBackupAction(backup_id).run()
+				dr = DeleteBackupAction(backup_id).run()
 			except BackupNotFound:
 				pass
 			else:
 				cnt += 1
-				self.reply(self.tr('deleted', TextComponents.backup_brief(backup, backup_id_fancy=False)))
+				self.reply(self.tr('deleted', TextComponents.backup_brief(dr.backup, backup_id_fancy=False)))
 		self.reply(self.tr('done', TextComponents.number(cnt)))
 
 	def on_event(self, event: TaskEvent):

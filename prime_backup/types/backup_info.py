@@ -1,12 +1,14 @@
+import dataclasses
 import functools
-from typing import NamedTuple
 
 from prime_backup.db import schema
 from prime_backup.types.operator import Operator
 from prime_backup.utils import conversion_utils
 
 
-class BackupInfo(NamedTuple):
+# https://stackoverflow.com/questions/76656973/using-a-cached-property-on-a-named-tuple
+@dataclasses.dataclass(frozen=True)
+class BackupInfo:
 	id: int
 	timestamp_ns: int
 	author: Operator

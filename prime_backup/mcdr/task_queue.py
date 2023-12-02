@@ -13,7 +13,7 @@ class TaskHolder(NamedTuple):
 	source: 'CommandSource'
 
 	def task_name(self) -> RTextBase:
-		return self.task.get_name_text()
+		return self.task.create_name_text().set_color(RColor.aqua)
 
 
 _T = TypeVar('_T')

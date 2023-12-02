@@ -1,8 +1,10 @@
 import logging
+import sqlite3
 import threading
 from typing import Optional, List
 
 from mcdreforged.api.all import *
+from sqlalchemy.exc import OperationalError
 
 from prime_backup import constants
 from prime_backup.exceptions import BackupNotFound
@@ -50,9 +52,12 @@ class ThreadedWorker:
 				holder.task.run()
 			except BackupNotFound as e:
 				holder.source.reply(tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
-			except Exception:
+			except Exception as e:
 				self.logger.exception('Task {} run error'.format(holder.task))
-				holder.source.reply(tr('error.generic', holder.task_name()).set_color(RColor.red))
+				if isinstance(e, OperationalError) and isinstance(e.orig, sqlite3.OperationalError) and str(e.orig) == 'database is locked':
+					holder.source.reply(tr('error.db_locked', holder.task_name()).set_color(RColor.red))
+				else:
+					holder.source.reply(tr('error.generic', holder.task_name()).set_color(RColor.red))
 			finally:
 				self.task_queue.task_done()
 		self.logger.info('Worker %s stops', self.name)
@@ -64,7 +69,7 @@ class ThreadedWorker:
 			except TaskQueue.TooManyOngoingTask as e:
 				holder: TaskHolder
 				if self.max_ongoing_task == 1 and (holder := e.current_item) is not TaskQueue.NONE:
-					name = holder.task_name().set_color(RColor.aqua) if holder is not None else RText('?')
+					name = holder.task_name() if holder is not None else RText('?', RColor.gray)
 					reply_message(source, tr('error.too_much_ongoing_task.exclusive', name))
 					if holder.task.is_abort_able():
 						cmd = mkcmd('abort')

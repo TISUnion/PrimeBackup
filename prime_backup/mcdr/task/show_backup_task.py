@@ -17,9 +17,10 @@ class ShowBackupTask(ReaderTask):
 	def run(self):
 		backup = GetBackupAction(self.backup_id).run()
 		self.reply(TextComponents.title(self.tr('title', TextComponents.backup_id(backup.id))))
-		self.reply(self.tr('date', backup.date))
+		self.reply(self.tr('date', TextComponents.backup_date(backup)))
 		self.reply(self.tr('comment', TextComponents.backup_comment(backup.comment)))
-		self.reply(self.tr('size', TextComponents.file_size(backup.raw_size)))
+		self.reply(self.tr('stored_size', TextComponents.file_size(backup.stored_size), TextComponents.percent(backup.stored_size, backup.raw_size)))
+		self.reply(self.tr('raw_size', TextComponents.file_size(backup.raw_size)))
 		self.reply(self.tr('author', TextComponents.operator(backup.author)))
 		if backup.hidden:
 			self.reply(self.tr('hidden', backup.hidden))

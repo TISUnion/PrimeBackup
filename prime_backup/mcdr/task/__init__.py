@@ -26,7 +26,7 @@ class Task(mcdr_utils.TranslationContext, ABC):
 		self.logger = logger.get()
 		self.config = Config.get()
 
-	def get_name_text(self) -> RTextBase:
+	def create_name_text(self) -> RTextBase:
 		return self.tr('name')
 
 	def is_abort_able(self) -> bool:

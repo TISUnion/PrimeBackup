@@ -70,7 +70,8 @@ prime_backup:
       title: 'Backup {}'
       date: 'Creation date: {}'
       comment: 'Comment: {}'
-      size: 'Size (raw): {}'
+      stored_size: 'Size (stored): {} ({})'
+      raw_size: 'Size (raw): {}'
       author: 'Author: {}'
       hidden: 'Hidden: {}'
     rename:
@@ -78,8 +79,8 @@ prime_backup:
       modified: Modified the comment of backup {} to {}
     delete:
       name: delete backup
-      deleting: Deleting backup {}
-      deleted: Deleted {}
+      deleting: Deleting {}
+      deleted: Deleted backup {}, freed {}
     delete_range:
       name: delete backup range
       no_backup: No available backup to restore
@@ -103,6 +104,7 @@ prime_backup:
       bad_id_range: Bad ID Range
     permission_denied: Permission denied
     backup_not_found: Backup with ID {} does not exist
+    db_locked: Task {} execution error cuz the database is locked. Please retry later
     generic: Task {} execution error, see console for more error
     too_much_ongoing_task:
       exclusive: 'Please wait for the ongoing task "{}" to finish'
@@ -110,17 +112,19 @@ prime_backup:
       generic: 'Too many pending tasks (maximum = {}), please wait for some to finish.'
 
   text_components:
+    dual_size_hover: |-
+      Stored size: {} ({})
+      Raw size: {}
     backup_id.hover: |-
       Backup ID: {}
       Click to show details
     backup_comment.none: no comment
+    backup_date: '{} ago'
     backup_brief: 'backup {}: {}'
     backup_full:
       author: 'Author: {}'
       restore: Restore to backup {}
       delete: Delete backup {}
-      size: Original size
-      time_since_now: '{} ago'
     command:
       run: 'Click to run {}'
       suggest: 'Click to complete {}'
@@ -133,12 +137,12 @@ prime_backup:
     duration:
       text: '{} {}'
       ms: ms
-      sec: sec
-      min: min
-      hour: hours
-      day: days
-      month: months
-      year: years
+      s: sec
+      m: min
+      h: hours
+      d: days
+      mon: months
+      y: years
     confirm_hint:
       base: 'Please choose within {}: [{}], [{}]'
       confirm: Confirm {}

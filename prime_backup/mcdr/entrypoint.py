@@ -1,5 +1,6 @@
 from mcdreforged.api.all import *
 
+from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config, set_config_instance
 from prime_backup.db.access import DbAccess
 from prime_backup.mcdr import mcdr_globals
@@ -13,10 +14,16 @@ mcdr_globals.load()
 init_ok = False
 
 
+def check_config(server: PluginServerInterface):
+	if (cm := config.backup.compress_method) == CompressMethod.lzma:
+		server.logger.warning('WARN: Using {} as the compress method might significantly increase the backup time'.format(cm.name))
+
+
 def on_load(server: PluginServerInterface, old):
 	global config, task_manager, command_manager
 	config = server.load_config_simple(target_class=Config)
 	set_config_instance(config)
+	check_config(server)
 
 	# TODO: respect config.enabled
 

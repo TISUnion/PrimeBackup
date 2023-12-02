@@ -36,10 +36,11 @@ prime_backup:
           §7--author §e<author>§r: Show backup created by the given author only
           §7--start §b<start_date>§r: Show backup after the given date only
           §7--end §b<end_date>§r: Show backup before the given date only
-          §7--show-hidden§r: Show hidden backups
+          §7--size§r: Show backup sizes
+          §7--hidden§r: Show hidden backups
           Examples:
           §7{prefix} list --show-hidden§r
-          §7{prefix} list --start 20231130§r
+          §7{prefix} list --start 20231130 --size§r
           §7{prefix} list 3 --per-page 20§r
 
     create:
@@ -47,7 +48,7 @@ prime_backup:
       start: Creating backup, please wait
       abort.save_wait_time_out: Waiting for the world to save timed out, aborting backup task
       abort.unloaded: Plugin unloaded, backup task aborted
-      completed: 'Backup completed, ID {0}, cost {1}, size {2}'
+      completed: 'Backup completed, ID {0}, cost {1}, +{2}, total {3}'
       failed: 'Backup failed, error: {0}'
     restore:
       name: restore backup

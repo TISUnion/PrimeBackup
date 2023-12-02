@@ -40,7 +40,9 @@ class CreateBackupTask(OperationTask):
 				self.broadcast(self.tr('abort.unloaded').set_color(RColor.red))
 				return
 
-			backup = CreateBackupAction(Operator.of(self.source), self.comment).run()
+			action = CreateBackupAction(Operator.of(self.source), self.comment)
+			backup = action.run()
+			bls = action.get_new_blobs_summary()
 			cost_create = timer.get_elapsed()
 			cost_total = cost_save_wait + cost_create
 
@@ -49,6 +51,7 @@ class CreateBackupTask(OperationTask):
 				'completed',
 				TextComponents.backup_id(backup.id),
 				TextComponents.number(f'{round(cost_total, 2)}s'),
+				TextComponents.blob_list_summary_actual_size(bls),
 				TextComponents.backup_size(backup),
 			))
 		except Exception as e:

@@ -17,13 +17,14 @@ from prime_backup.utils.mcdr_utils import mkcmd
 
 
 class ListBackupTask(ReaderTask):
-	def __init__(self, source: CommandSource, per_page: int, page: int, backup_filter: BackupFilter):
+	def __init__(self, source: CommandSource, per_page: int, page: int, backup_filter: BackupFilter, show_size: bool):
 		super().__init__(source)
 		self.source = source
 		self.backup_filter = copy.copy(backup_filter)
 		self.per_page = per_page
 		self.page = page
 		self.is_aborted = threading.Event()
+		self.show_size = show_size
 
 	@property
 	def name(self) -> str:
@@ -62,8 +63,8 @@ class ListBackupTask(ReaderTask):
 				self.reply(self.tr('aborted'))
 				return
 			with contextlib.suppress(BackupNotFound):
-				backup = GetBackupAction(backup_id).run()
-				self.reply(TextComponents.backup_full(backup, True))
+				backup = GetBackupAction(backup_id, calc_size=self.show_size).run()
+				self.reply(TextComponents.backup_full(backup, True, show_size=self.show_size))
 
 		max_page = max(0, (total_count - 1) // self.per_page + 1)
 		t_prev = RText('<-')

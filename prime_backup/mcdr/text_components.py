@@ -35,7 +35,11 @@ class TextComponents:
 
 	@classmethod
 	def file_size(cls, byte_cnt: int, *, ndigits: int = 2) -> RTextBase:
-		return RText(ByteCount(byte_cnt).auto_str(ndigits=ndigits), color=RColor.dark_green)
+		return RText(ByteCount(byte_cnt).auto_str(ndigits=ndigits), color=RColor.light_purple)
+
+	@classmethod
+	def blob_list_summary_actual_size(cls, bls: BlobListSummary) -> RTextBase:
+		return cls.file_size(bls.stored_size).h(cls.dual_size_hover(bls.raw_size, bls.stored_size))
 
 	@classmethod
 	def dual_size_hover(cls, raw_size: int, stored_size: int, *, ndigits: int = 2) -> RTextBase:
@@ -81,7 +85,7 @@ class TextComponents:
 		))
 
 	@classmethod
-	def backup_full(cls, backup: BackupInfo, operation_buttons: bool = False) -> RTextBase:
+	def backup_full(cls, backup: BackupInfo, operation_buttons: bool = False, show_size: bool = False) -> RTextBase:
 		# "[#1] [>] [x] 1.2GiB 2023-11-30 09:30:13: foobar"
 		t_bid = cls.backup_id(backup.id)
 
@@ -91,8 +95,9 @@ class TextComponents:
 				RText('[>]', color=RColor.green).h(cls.tr('backup_full.restore', t_bid)).c(RAction.suggest_command, mkcmd(f'back {backup.id}')), ' ',
 				RText('[x]', color=RColor.red).h(cls.tr('backup_full.delete', t_bid)).c(RAction.suggest_command, mkcmd(f'delete {backup.id}')), ' ',
 			)
+		if show_size:
+			rtl.append(cls.backup_size(backup), ' ')
 		rtl.append(
-			cls.backup_size(backup), ' ',
 			cls.backup_date(backup), RText(': ', RColor.gray),
 			cls.backup_comment(backup.comment).h(cls.tr('backup_full.author', cls.operator(backup.author))),
 		)

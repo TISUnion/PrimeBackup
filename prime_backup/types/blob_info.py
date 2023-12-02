@@ -3,6 +3,7 @@ from typing import NamedTuple, Iterable
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
+from prime_backup.utils import misc_utils
 
 
 class BlobInfo(NamedTuple):
@@ -35,6 +36,10 @@ class BlobListSummary(NamedTuple):
 	stored_size: int
 
 	@classmethod
+	def zero(cls) -> 'BlobListSummary':
+		return BlobListSummary(0, 0, 0)
+
+	@classmethod
 	def of(cls, blobs: Iterable[BlobInfo]) -> 'BlobListSummary':
 		"""
 		Notes: should be inside a session
@@ -48,4 +53,12 @@ class BlobListSummary(NamedTuple):
 			count=cnt,
 			raw_size=raw_size_sum,
 			stored_size=stored_size_sum,
+		)
+
+	def __add__(self, other: 'BlobListSummary') -> 'BlobListSummary':
+		misc_utils.ensure_type(other, type(self))
+		return BlobListSummary(
+			count=self.count + other.count,
+			raw_size=self.raw_size + other.raw_size,
+			stored_size=self.stored_size + other.stored_size,
 		)

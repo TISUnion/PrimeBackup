@@ -54,8 +54,9 @@ class CommandManager:
 			backup_filter.author = author
 		if context.get('hidden', 0) == 0:
 			backup_filter.hidden = False
+		show_size = context.get('size', 0) > 0
 
-		self.task_manager.add_task(ListBackupTask(source, per_page, page, backup_filter))
+		self.task_manager.add_task(ListBackupTask(source, per_page, page, backup_filter, show_size))
 
 	def cmd_show(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
@@ -152,7 +153,8 @@ class CommandManager:
 			node.then(Literal('--author').then(QuotableText('author').redirects(node)))
 			node.then(Literal('--start').then(DateNode('start_date').redirects(node)))
 			node.then(Literal('--end').then(DateNode('end_date').redirects(node)))
-			node.then(CountingLiteral('--show-hidden', 'hidden').redirects(node))
+			node.then(CountingLiteral('--hidden', 'hidden').redirects(node))
+			node.then(CountingLiteral('--size', 'size').redirects(node))
 			return node
 
 		root.then(make_list_cmd())

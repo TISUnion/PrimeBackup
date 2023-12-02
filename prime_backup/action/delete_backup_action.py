@@ -63,7 +63,7 @@ class DeleteBackupAction(Action):
 		self.backup_id = misc_utils.ensure_type(backup_id, int)
 
 	def run(self) -> DeleteResult:
-		self.logger.info('Deleting backup {}'.format(self.backup_id))
+		self.logger.info('Deleting backup #{}'.format(self.backup_id))
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
 			info = BackupInfo.of(backup)
@@ -78,4 +78,7 @@ class DeleteBackupAction(Action):
 			orphan_blob_cleaner = DeleteOrphanBlobsAction(hashes)
 
 		bls = orphan_blob_cleaner.run()
+		self.logger.info('Deleted backup #{} done, -{} blobs (size {} / {})'.format(
+			info.id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
+		))
 		return self.DeleteResult(info, bls)

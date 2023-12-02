@@ -24,5 +24,5 @@ class DeleteBackupTask(OperationTask):
 		self.reply(self.tr(
 			'deleted',
 			TextComponents.backup_id(self.backup_id, hover=False, click=False),
-			TextComponents.file_size(dr.bls.stored_size).h(TextComponents.dual_size_hover(dr.bls.raw_size, dr.bls.stored_size)),
+			TextComponents.blob_list_summary_actual_size(dr.bls),
 		))

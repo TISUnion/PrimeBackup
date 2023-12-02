@@ -22,17 +22,18 @@ class BackupInfo:
 		return conversion_utils.timestamp_to_local_date(self.timestamp_ns)
 
 	@classmethod
-	def of(cls, backup: schema.Backup) -> 'BackupInfo':
+	def of(cls, backup: schema.Backup, calc_size: bool = True) -> 'BackupInfo':
 		"""
 		Notes: should be inside a session
 		"""
 		raw_size_sum, stored_size_sum = 0, 0
-		for file in backup.files:
-			file: schema.File
-			if file.blob_raw_size is not None:
-				raw_size_sum += file.blob_raw_size
-			if file.blob_stored_size is not None:
-				stored_size_sum += file.blob_stored_size
+		if calc_size:
+			for file in backup.files:
+				file: schema.File
+				if file.blob_raw_size is not None:
+					raw_size_sum += file.blob_raw_size
+				if file.blob_stored_size is not None:
+					stored_size_sum += file.blob_stored_size
 		return BackupInfo(
 			id=backup.id,
 			timestamp_ns=backup.timestamp,

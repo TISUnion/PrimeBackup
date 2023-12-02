@@ -10,6 +10,7 @@ from prime_backup.action.list_backup_action import ListBackupIdAction
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import OperationTask, TaskEvent
 from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.utils.waitable_value import WaitableValue
 
 
@@ -31,8 +32,8 @@ class DeleteBackupRangeTask(OperationTask):
 	def __reply_backups(self, backup_ids: Iterable[int]):
 		for backup_id in backup_ids:
 			with contextlib.suppress(BackupNotFound):
-				backup = GetBackupAction(backup_id).run()
-				self.reply(TextComponents.backup_full(backup, False))
+				backup = GetBackupAction(backup_id, calc_size=False).run()
+				self.reply(TextComponents.backup_full(backup, operation_buttons=False, show_size=False))
 
 	def run(self) -> None:
 		backup_ids = ListBackupIdAction(self.id_start, self.id_end).run()
@@ -60,6 +61,7 @@ class DeleteBackupRangeTask(OperationTask):
 			return
 
 		cnt = 0
+		bls = BlobListSummary.zero()
 		for backup_id in backup_ids:
 			if self.is_aborted.is_set():
 				self.reply(self.tr('aborted'))
@@ -70,6 +72,7 @@ class DeleteBackupRangeTask(OperationTask):
 				pass
 			else:
 				cnt += 1
+				bls = bls + dr.bls
 				self.reply(self.tr('deleted', TextComponents.backup_brief(dr.backup, backup_id_fancy=False)))
 		self.reply(self.tr('done', TextComponents.number(cnt)))
 

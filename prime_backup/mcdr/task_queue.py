@@ -1,19 +1,29 @@
 import collections
 import threading
-from typing import NamedTuple, Generic, TypeVar, Deque, Union
+from typing import NamedTuple, Generic, TypeVar, Deque, Union, TYPE_CHECKING, Callable, Optional, Any
 
 from mcdreforged.api.all import *
 
 from prime_backup.exceptions import PrimeBackupError
-from prime_backup.mcdr.task import Task
+
+if TYPE_CHECKING:
+	from prime_backup.mcdr.task import Task
+
+
+TaskCallback = Callable[[Optional[Exception]], Any]
 
 
 class TaskHolder(NamedTuple):
-	task: Task
+	task: 'Task'
 	source: 'CommandSource'
+	callback: Optional[TaskCallback]
 
 	def task_name(self) -> RTextBase:
 		return self.task.create_name_text().set_color(RColor.aqua)
+
+	def run_callback(self, err: Optional[Exception]):
+		if self.callback is not None:
+			self.callback(err)
 
 
 _T = TypeVar('_T')

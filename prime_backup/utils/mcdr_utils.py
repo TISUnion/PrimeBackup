@@ -5,6 +5,7 @@ from mcdreforged.api.all import *
 
 from prime_backup import constants
 from prime_backup.config.config import Config
+from prime_backup.mcdr import mcdr_globals
 
 
 def tr(key: str, *args, **kwargs) -> RTextBase:
@@ -39,10 +40,10 @@ def reply_message(source: CommandSource, msg: Union[str, RTextBase], *, with_pre
 	source.reply(msg)
 
 
-def broadcast_message(source: CommandSource, msg: Union[str, RTextBase], *, with_prefix: bool = True):
+def broadcast_message(msg: Union[str, RTextBase], *, with_prefix: bool = True):
 	if with_prefix:
 		msg = RTextList(__make_message_prefix(), msg)
-	source.get_server().say(msg)
+	mcdr_globals.server.broadcast(msg)
 
 
 def click_and_run(message: Any, text: Any, command: str) -> RTextBase:

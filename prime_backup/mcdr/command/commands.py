@@ -6,6 +6,8 @@ from mcdreforged.api.all import *
 from prime_backup import constants
 from prime_backup.config.config import Config
 from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode
+from prime_backup.mcdr.crontab_job import CrontabJobEvent
+from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.task.delete_backup_range_task import DeleteBackupRangeTask
 from prime_backup.mcdr.task.delete_backup_task import DeleteBackupTask
@@ -24,10 +26,19 @@ from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 class CommandManager:
 	COMMANDS_WITH_DETAILED_HELP = ['list']
 
-	def __init__(self, server: PluginServerInterface, task_manager: TaskManager):
+	def __init__(self, server: PluginServerInterface, task_manager: TaskManager, crontab_manager: CrontabManager):
 		self.server = server
 		self.task_manager = task_manager
+		self.crontab_manager = crontab_manager
 		self.config = Config.get()
+		self.plugin_disabled = False
+
+	def close_the_door(self):
+		self.plugin_disabled = True
+
+	def cmd_welcome(self, source: CommandSource, context: CommandContext):
+		# TODO
+		self.cmd_help(source, context, full=True)
 
 	def cmd_help(self, source: CommandSource, context: CommandContext, *, full: bool = False):
 		what = context.get('what')
@@ -63,8 +74,12 @@ class CommandManager:
 		self.task_manager.add_task(ShowBackupTask(source, backup_id))
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
+		def callback(err):
+			if err is None:
+				self.crontab_manager.send_event(CrontabJobEvent.manual_backup_created)
+
 		comment = context.get('comment', '')
-		self.task_manager.add_task(CreateBackupTask(source, comment))
+		self.task_manager.add_task(CreateBackupTask(source, comment), callback)
 
 	def cmd_export(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
@@ -139,7 +154,11 @@ class CommandManager:
 		for name, level in permissions.items():
 			builder.literal(name).requires(get_permission_checker(name), get_permission_denied_text)
 
-		root = Literal(self.config.command.prefix).runs(functools.partial(self.cmd_help, full=True))
+		root = (
+			Literal(self.config.command.prefix).
+			requires(lambda: not self.plugin_disabled, lambda: tr('error.disabled').set_color(RColor.red)).
+			runs(self.cmd_welcome)
+		)
 		builder.add_children_for(root)
 
 		# complex commands

@@ -1,12 +1,20 @@
 import datetime
 
 
-def timestamp_to_local_date(timestamp_ns: int, *, decimal: bool = False) -> str:
-	local_time = datetime.datetime.fromtimestamp(timestamp_ns / 1e9)
+def datetime_to_str(date: datetime.datetime, *, decimal: bool = False) -> str:
 	fmt = '%Y-%m-%d %H:%M:%S'
 	if decimal:
 		fmt += '.%f'
-	return local_time.strftime(fmt)
+	return date.strftime(fmt)
+
+
+def timestamp_to_local_date(timestamp_ns: int) -> datetime.datetime:
+	return datetime.datetime.fromtimestamp(timestamp_ns / 1e9)
+
+
+def timestamp_to_local_date_str(timestamp_ns: int, *, decimal: bool = False) -> str:
+	date = timestamp_to_local_date(timestamp_ns)
+	return datetime_to_str(date, decimal=decimal)
 
 
 def convert_timestamp_to_ns(timestamp: int) -> int:

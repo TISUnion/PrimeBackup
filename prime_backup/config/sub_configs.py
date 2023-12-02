@@ -7,7 +7,7 @@ from mcdreforged.api.utils import Serializable
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.types.hash_method import HashMethod
-from prime_backup.types.units import Duration, ByteCount
+from prime_backup.types.units import Duration
 
 
 class CommandConfig(Serializable):
@@ -56,6 +56,12 @@ class ServerConfig(Serializable):
 				raise ValueError(e)
 
 
+class ScheduledBackupConfig(Serializable):
+	enabled: bool = False
+	interval: Duration = Duration('12h')
+	reset_timer_on_backup: bool = True
+
+
 class BackupConfig(Serializable):
 	storage_root: str = './pb_files'
 	source_root: str = './server'
@@ -69,6 +75,8 @@ class BackupConfig(Serializable):
 	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 64
 	backup_on_overwrite: bool = True
+
+	scheduled_backup: ScheduledBackupConfig = ScheduledBackupConfig()
 
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
 		if attr_name == 'compress_method':
@@ -97,9 +105,24 @@ class BackupConfig(Serializable):
 		return False
 
 
+class RetentionPolicy(Serializable):
+	enabled: bool = False
+
+	max_amount: int = 0
+	max_lifetime: Duration = Duration('0s')
+
+	# https://pve.proxmox.com/wiki/Backup_and_Restore#vzdump_retention
+	# https://pbs.proxmox.com/docs/prune-simulator/
+	last: int = 0
+	hour: int = 0
+	day: int = 0
+	week: int = 0
+	month: int = 0
+	year: int = 0
+
+
 class RetentionConfig(Serializable):
-	"""
-	Not used for now
-	"""
-	size_limit: ByteCount = ByteCount('0B')
-	amount_limit: int = 0
+	check_interval: Duration = Duration('1h')
+	regular: RetentionPolicy = RetentionPolicy()
+	overwrite: RetentionPolicy = RetentionPolicy(max_amount=10, max_lifetime=Duration('30d'))
+

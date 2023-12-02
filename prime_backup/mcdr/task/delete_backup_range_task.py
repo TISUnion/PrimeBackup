@@ -10,6 +10,7 @@ from prime_backup.action.list_backup_action import ListBackupIdAction
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import OperationTask, TaskEvent
 from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.utils.waitable_value import WaitableValue
 
@@ -36,7 +37,10 @@ class DeleteBackupRangeTask(OperationTask):
 				self.reply(TextComponents.backup_full(backup, operation_buttons=False, show_size=False))
 
 	def run(self) -> None:
-		backup_ids = ListBackupIdAction(self.id_start, self.id_end).run()
+		backup_filter = BackupFilter()
+		backup_filter.id_start = self.id_start
+		backup_filter.id_end = self.id_end
+		backup_ids = ListBackupIdAction(backup_filter=backup_filter).run()
 		if len(backup_ids) == 0:
 			self.reply(self.tr('no_backup'))
 

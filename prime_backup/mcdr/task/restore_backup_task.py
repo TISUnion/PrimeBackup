@@ -1,5 +1,6 @@
 import enum
 import threading
+import time
 from typing import Optional
 
 from mcdreforged.api.all import *
@@ -8,7 +9,6 @@ from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.export_backup_action import ExportBackupActions
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
-from prime_backup.config.config import Config
 from prime_backup.mcdr.task import TaskEvent, OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
@@ -86,17 +86,19 @@ class RestoreBackupTask(OperationTask):
 
 		self.can_abort = False
 		timer = Timer()
-		if Config.get().backup.backup_on_overwrite:
+		if self.config.backup.backup_on_overwrite:
 			self.logger.info('Creating backup of existing files to avoid idiot')
+			expire_timestamp_ns = int(time.time_ns() + self.config.retention.overwrite_backup.value_nano)
 			CreateBackupAction(
 				Operator.pb('pre_restore'),
 				'Automatic backup before restoring to #{}'.format(backup.id),
 				hidden=True,
+				expire_timestamp_ns=expire_timestamp_ns,
 			).run()
 		cost_backup = timer.get_and_restart()
 
 		self.logger.info('Restoring backup')
-		ExportBackupActions.to_dir(backup.id, Config.get().source_path, delete_existing=True).run()
+		ExportBackupActions.to_dir(backup.id, self.config.source_path, delete_existing=True).run()
 		cost_restore = timer.get_and_restart()
 
 		self.logger.info('Restore done, cost {}s (backup {}s, restore {}s), starting the server'.format(

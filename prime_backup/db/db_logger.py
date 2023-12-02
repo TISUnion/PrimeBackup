@@ -20,5 +20,5 @@ def init_logger(db_dir: Path):
 	_logger.addHandler(handler)
 
 
-def get_logger() -> logging.Logger:
+def get() -> logging.Logger:
 	return _logger

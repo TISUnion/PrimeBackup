@@ -162,11 +162,12 @@ class BatchQueryManager:
 
 
 class CreateBackupAction(CreateBackupActionBase):
-	def __init__(self, author: Operator, comment: str, *, hidden: bool = False):
+	def __init__(self, author: Operator, comment: str, *, hidden: bool = False, expire_timestamp_ns: Optional[int] = None):
 		super().__init__()
 		self.author = author
 		self.comment = comment
 		self.hidden = hidden
+		self.expire_timestamp_ns = expire_timestamp_ns
 
 		self.__blob_store_st: Optional[os.stat_result] = None
 		self.__blob_store_in_cow_fs: Optional[bool] = None
@@ -407,7 +408,9 @@ class CreateBackupAction(CreateBackupActionBase):
 					author=str(self.author),
 					comment=self.comment,
 					targets=[str(Path(t).as_posix()) for t in self.config.backup.targets],
+
 					hidden=self.hidden,
+					expire_at=self.expire_timestamp_ns,
 				)
 				self.logger.info('Creating backup {}'.format(backup))
 

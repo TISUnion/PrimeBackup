@@ -23,8 +23,8 @@ class ListBackupTask(ReaderTask):
 		self.backup_filter = copy.copy(backup_filter)
 		self.per_page = per_page
 		self.page = page
-		self.is_aborted = threading.Event()
 		self.show_size = show_size
+		self.is_aborted = threading.Event()
 
 	@property
 	def name(self) -> str:
@@ -35,7 +35,7 @@ class ListBackupTask(ReaderTask):
 
 	def __make_command(self, page: int) -> str:
 		def date_str(ts_ns: int) -> str:
-			return json.dumps(conversion_utils.timestamp_to_local_date(ts_ns, decimal=ts_ns % 1000 != 0), ensure_ascii=False)
+			return json.dumps(conversion_utils.timestamp_to_local_date_str(ts_ns, decimal=ts_ns % 1000 != 0), ensure_ascii=False)
 
 		cmd = mkcmd(f'list {page} --per-page {self.per_page}')
 		if self.backup_filter.author is not None:
@@ -45,13 +45,15 @@ class ListBackupTask(ReaderTask):
 		if self.backup_filter.timestamp_end is not None:
 			cmd += f' --end {date_str(self.backup_filter.timestamp_end)}'
 		if self.backup_filter.hidden is True:
-			cmd += f' --show-hidden'
+			cmd += f' --hidden'
+		if self.show_size:
+			cmd += f' --size'
 
 		return cmd
 
 	def run(self):
 		total_count = CountBackupAction(self.backup_filter).run()
-		backup_ids = ListBackupIdAction(self.backup_filter, self.per_page, (self.page - 1) * self.per_page).run()
+		backup_ids = ListBackupIdAction(backup_filter=self.backup_filter, limit=self.per_page, offset=(self.page - 1) * self.per_page).run()
 
 		self.reply(RTextList(
 			RText('======== ', RColor.gray),

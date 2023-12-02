@@ -50,7 +50,7 @@ class Task(mcdr_utils.TranslationContext, ABC):
 		mcdr_utils.reply_message(self.source, msg, with_prefix=with_prefix)
 
 	def broadcast(self, msg: Union[str, RTextBase], *, with_prefix: bool = True):
-		mcdr_utils.broadcast_message(self.source, msg, with_prefix=with_prefix)
+		mcdr_utils.broadcast_message(msg, with_prefix=with_prefix)
 
 
 class OperationTask(Task, ABC):

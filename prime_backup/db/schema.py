@@ -77,6 +77,7 @@ class Backup(Base):
 	targets = mapped_column(JSON)  # List[str]
 
 	hidden: Mapped[bool] = mapped_column(Boolean)
+	expire_at: Mapped[Optional[int]] = mapped_column(BigInteger)  # timestamp in nanosecond
 
 	__fields_end__: bool
 

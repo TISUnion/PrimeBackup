@@ -4,16 +4,16 @@ from typing import Optional
 
 from mcdreforged.api.all import Serializable
 
-from prime_backup.config.sub_configs import CommandConfig, ServerConfig, BackupConfig
+from prime_backup.config.sub_configs import CommandConfig, ServerConfig, BackupConfig, RetentionConfig
 
 
 class Config(Serializable):
 	enabled: bool = True
 	debug: bool = False
-	command: CommandConfig = CommandConfig.get_default()
-	server: ServerConfig = ServerConfig.get_default()
-	backup: BackupConfig = BackupConfig.get_default()
-	# retention: RetentionConfig = RetentionConfig.get_default()
+	command: CommandConfig = CommandConfig()
+	server: ServerConfig = ServerConfig()
+	backup: BackupConfig = BackupConfig()
+	retention: RetentionConfig = RetentionConfig()
 
 	@classmethod
 	@functools.lru_cache

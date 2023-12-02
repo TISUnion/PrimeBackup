@@ -48,14 +48,17 @@ prime_backup:
       start: Creating backup, please wait
       abort.save_wait_time_out: Waiting for the world to save timed out, aborting backup task
       abort.unloaded: Plugin unloaded, backup task aborted
-      completed: 'Backup completed, ID {0}, cost {1}, +{2}, total {3}'
-      failed: 'Backup failed, error: {0}'
+      completed: 'Backup completed, ID {}, cost {}, total {} (+{})'
+      cost.hover: |-
+        save wait: {}
+        create backup: {}
+      failed: 'Backup failed, error: {}'
     restore:
       name: restore backup
       no_backup: No available backup to restore
       show_backup: Gonna restore the world to {}
       confirm_target: restore
-      countdown: '§c!!!§r {0} second later, the world will §cbe restored§r to {1}'
+      countdown: '§c!!!§r {} second later, the world will §cbe restored§r to {}'
       countdown.hover: Click me or enter command {} to abort restore
       no_confirm: No choice has been made, restore task aborted
       aborted: Restore task aborted
@@ -99,10 +102,23 @@ prime_backup:
       exporting: Exporting backup {}
       exported: Exported backup {} to {}, cost {}, size {}
 
+  job:
+    scheduled_backup:
+      comment: Scheduled Backup
+      triggered: Scheduled backup for every {} triggered
+      found_ongoing:
+        skip: Found ongoing task, wait
+        wait_retry: Found ongoing task, retry in {}s
+      completed: Scheduled backup completed, next backup at {}
+      completed_with_error: Scheduled backup completed with error, next backup at {}
+      reset_on_backup: Detected backup, reset scheduler timer. Next backup at {}
+    prune_backup:
+
   error:
     node:
       bad_date: Bad input date
       bad_id_range: Bad ID Range
+    disabled: Plugin disabled
     permission_denied: Permission denied
     backup_not_found: Backup with ID {} does not exist
     db_locked: Task {} execution error cuz the database is locked. Please retry later
@@ -113,40 +129,42 @@ prime_backup:
       generic: 'Too many pending tasks (maximum = {}), please wait for some to finish.'
 
   text_components:
-    dual_size_hover: |-
-      Stored size: {} ({})
-      Raw size: {}
-    backup_id.hover: |-
-      Backup ID: {}
-      Click to show details
-    backup_comment.none: no comment
-    backup_date: '{} ago'
     backup_brief: 'backup {}: {}'
+    backup_comment.none: no comment
     backup_full:
       author: 'Author: {}'
       restore: Restore to backup {}
       delete: Delete backup {}
+    backup_id.hover: |-
+      Backup ID: {}
+      Click to show details
     command:
       run: 'Click to run {}'
       suggest: 'Click to complete {}'
-    operator:
-      player: Player {}
-      console: Console
-      command_source: Command source {}
-      unknown: '(Unknown) {}'
-      prime_backup: Prime Backup
-    duration:
-      text: '{} {}'
-      ms: ms
-      s: sec
-      m: min
-      h: hours
-      d: days
-      mon: months
-      y: years
     confirm_hint:
       base: 'Please choose within {}: [{}], [{}]'
       confirm: Confirm {}
       confirm.hover: Click me or enter command {} to confirm {}
       abort: Abort {}
       abort.hover: Click me or enter command {} to abort {}
+    date:
+      ago: '{} ago'
+      later: '{} later'
+    dual_size_hover: |-
+      Stored size: {} ({})
+      Raw size: {}
+    duration:
+      text: '{} {}'
+      ms: ms
+      s: seconds
+      m: minutes
+      h: hours
+      d: days
+      mon: months
+      y: years
+    operator:
+      player: Player {}
+      console: Console
+      command_source: Command source {}
+      unknown: '(Unknown) {}'
+      prime_backup: Prime Backup

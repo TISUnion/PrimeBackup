@@ -1,4 +1,5 @@
 import threading
+from typing import Optional
 
 from mcdreforged.api.all import *
 
@@ -10,9 +11,12 @@ from prime_backup.utils.timer import Timer
 
 
 class CreateBackupTask(OperationTask):
-	def __init__(self, source: CommandSource, comment: str):
+	def __init__(self, source: CommandSource, comment: str, operator: Optional[Operator] = None):
 		super().__init__(source)
 		self.comment = comment
+		if operator is None:
+			operator = Operator.of(source)
+		self.operator = operator
 		self.world_saved_done = threading.Event()
 		self.plugin_unload = False
 
@@ -40,7 +44,7 @@ class CreateBackupTask(OperationTask):
 				self.broadcast(self.tr('abort.unloaded').set_color(RColor.red))
 				return
 
-			action = CreateBackupAction(Operator.of(self.source), self.comment)
+			action = CreateBackupAction(self.operator, self.comment)
 			backup = action.run()
 			bls = action.get_new_blobs_summary()
 			cost_create = timer.get_elapsed()
@@ -50,9 +54,14 @@ class CreateBackupTask(OperationTask):
 			self.broadcast(self.tr(
 				'completed',
 				TextComponents.backup_id(backup.id),
-				TextComponents.number(f'{round(cost_total, 2)}s'),
-				TextComponents.blob_list_summary_actual_size(bls),
+				TextComponents.number(f'{round(cost_total, 2)}s').
+				h(self.tr(
+					'cost.hover',
+					TextComponents.number(f'{round(cost_save_wait, 2)}s'),
+					TextComponents.number(f'{round(cost_create, 2)}s')
+				)),
 				TextComponents.backup_size(backup),
+				TextComponents.blob_list_summary_store_size(bls),
 			))
 		except Exception as e:
 			err_str = str(e)

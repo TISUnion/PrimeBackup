@@ -1,4 +1,5 @@
 import dataclasses
+import datetime
 import functools
 
 from prime_backup.db import schema
@@ -14,12 +15,17 @@ class BackupInfo:
 	author: Operator
 	comment: str
 	hidden: bool
+
 	raw_size: int  # uncompressed size
 	stored_size: int  # actual size
 
 	@functools.cached_property
-	def date(self) -> str:
+	def date(self) -> datetime.datetime:
 		return conversion_utils.timestamp_to_local_date(self.timestamp_ns)
+
+	@functools.cached_property
+	def date_str(self) -> str:
+		return conversion_utils.timestamp_to_local_date_str(self.timestamp_ns)
 
 	@classmethod
 	def of(cls, backup: schema.Backup, calc_size: bool = True) -> 'BackupInfo':
@@ -39,7 +45,8 @@ class BackupInfo:
 			timestamp_ns=backup.timestamp,
 			author=Operator.of(backup.author),
 			comment=backup.comment,
+			hidden=backup.hidden,
+
 			raw_size=raw_size_sum,
 			stored_size=stored_size_sum,
-			hidden=backup.hidden,
 		)

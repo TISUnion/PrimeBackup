@@ -6,10 +6,10 @@ from typing import Optional, List
 from mcdreforged.api.all import *
 from sqlalchemy.exc import OperationalError
 
-from prime_backup import constants
+from prime_backup import constants, logger
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import TaskEvent, Task, OperationTask, ReaderTask, ImmediateTask
-from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder
+from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
 from prime_backup.types.units import Duration
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
@@ -50,23 +50,32 @@ class ThreadedWorker:
 					holder.task.on_event(event)
 
 				holder.task.run()
-			except BackupNotFound as e:
-				reply_message(holder.source, tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
 			except Exception as e:
+				holder.run_callback(e)
+
+				if isinstance(e, BackupNotFound):
+					reply_message(holder.source, tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
+					return
+
 				self.logger.exception('Task {} run error'.format(holder.task))
 				if isinstance(e, OperationalError) and isinstance(e.orig, sqlite3.OperationalError) and str(e.orig) == 'database is locked':
 					reply_message(holder.source, tr('error.db_locked', holder.task_name()).set_color(RColor.red))
 				else:
 					reply_message(holder.source, tr('error.generic', holder.task_name()).set_color(RColor.red))
+			else:
+				holder.run_callback(None)
 			finally:
 				self.task_queue.task_done()
 		self.logger.info('Worker %s stops', self.name)
 
-	def submit(self, source: CommandSource, task: Task):
+	def submit(self, source: CommandSource, task: Task, callback: Optional[TaskCallback], *, handle_tmo_err: bool = True):
 		if self.thread.is_alive():
 			try:
-				self.task_queue.put(TaskHolder(task, source))
+				self.task_queue.put(TaskHolder(task, source, callback))
 			except TaskQueue.TooManyOngoingTask as e:
+				if not handle_tmo_err:
+					raise
+
 				holder: TaskHolder
 				if self.max_ongoing_task == 1 and (holder := e.current_item) is not TaskQueue.NONE:
 					name = holder.task_name() if holder is not None else RText('?', RColor.gray)
@@ -78,6 +87,8 @@ class ThreadedWorker:
 					reply_message(source, tr('error.too_much_ongoing_task.generic', self.max_ongoing_task))
 		else:
 			source.reply('worker thread is dead, please check logs to see what had happened')
+			if callback is not None:
+				callback(RuntimeError('worker dead'))
 
 	def send_event_to_current_task(self, event: TaskEvent) -> bool:
 		current_task = self.task_queue.current_item
@@ -95,9 +106,8 @@ class ThreadedWorker:
 
 
 class TaskManager:
-	def __init__(self, server: PluginServerInterface):
-		self.server = server
-		self.logger = server.logger
+	def __init__(self):
+		self.logger = logger.get()
 		self.worker_operator = ThreadedWorker('operator', self.logger, 1)
 		self.worker_reader = ThreadedWorker('reader', self.logger, 3)
 
@@ -111,12 +121,12 @@ class TaskManager:
 
 	# ================================== Interfaces ==================================
 
-	def add_task(self, task: Task):
+	def add_task(self, task: Task, callback: Optional[TaskCallback] = None, *, handle_tmo_err: bool = True):
 		source = task.source
 		if isinstance(task, OperationTask):
-			self.worker_operator.submit(source, task)
+			self.worker_operator.submit(source, task, callback, handle_tmo_err=handle_tmo_err)
 		elif isinstance(task, ReaderTask):
-			self.worker_reader.submit(source, task)
+			self.worker_reader.submit(source, task, callback, handle_tmo_err=handle_tmo_err)
 		elif isinstance(task, ImmediateTask):
 			task.run()
 		else:

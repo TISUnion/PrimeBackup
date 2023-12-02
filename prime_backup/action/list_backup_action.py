@@ -8,7 +8,7 @@ from prime_backup.types.backup_info import BackupInfo
 
 
 class _ListBackupActionBase(Action, ABC):
-	def __init__(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None):
+	def __init__(self, *, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None):
 		super().__init__()
 		self.backup_filter = backup_filter
 		self.limit = limit
@@ -16,8 +16,8 @@ class _ListBackupActionBase(Action, ABC):
 
 
 class ListBackupAction(_ListBackupActionBase):
-	def __init__(self, calc_size: bool = True):
-		super().__init__()
+	def __init__(self, calc_size: bool = True, **kwargs):
+		super().__init__(**kwargs)
 		self.calc_size = calc_size
 
 	def run(self) -> List[BackupInfo]:

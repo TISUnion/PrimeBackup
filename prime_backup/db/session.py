@@ -24,7 +24,7 @@ def _list_it(seq: Sequence[_T]) -> List[_T]:
 class DbSession:
 	def __init__(self, session: Session):
 		self.session = session
-		self.logger = db_logger.get_logger()
+		self.logger = db_logger.get()
 
 		# the limit in old sqlite (https://www.sqlite.org/limits.html#max_variable_number)
 		self.__safe_var_limit = 999 - 20

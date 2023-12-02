@@ -150,8 +150,8 @@ class Duration(_UnitValueBase[float]):
 	@functools.lru_cache
 	def _get_formatting_unit_map(cls) -> Dict[str, float]:
 		ret = {}
-		for units, v in cls.__units.items():
-			ret[units[0]] = v
+		for u in ['s', 'm', 'h', 'd']:
+			ret[u] = cls._get_unit_map()[u]
 		return ret
 
 	def __new__(cls, s: Union[int, float, str]):
@@ -175,6 +175,13 @@ class Duration(_UnitValueBase[float]):
 		Duration in second
 		"""
 		return super().value
+
+	@property
+	def value_nano(self) -> Union[float, int]:
+		"""
+		Duration in nanosecond
+		"""
+		return self.value * 10 ** 9
 
 
 class Quantity(_UnitValueBase[Union[float, int]]):
@@ -252,12 +259,12 @@ class UnitTests(unittest.TestCase):
 		self.assertEqual(12.3, Duration(12.3).value)
 		self.assertEqual(12.3, Duration('12.3s').value)
 		self.assertEqual(UnitValuePair(12.3, 's'), Duration('12.3s').auto_format())
-		self.assertEqual(UnitValuePair(12300, 'ms'), Duration('12.3s').precise_format())
+		self.assertEqual(UnitValuePair(12.3, 's'), Duration('12.3s').precise_format())
 
 		self.assertEqual(1234.5678, Duration(1234.5678).value)
 		self.assertEqual(1234.5678, Duration('1234.5678s').value)
 		self.assertEqual(UnitValuePair(1234.5678 / 60, 'm'), Duration('1234.5678s').auto_format())
-		self.assertEqual(UnitValuePair(1234567.8, 'ms'), Duration('1234.5678s').precise_format())
+		self.assertEqual(UnitValuePair(1234.5678, 's'), Duration('1234.5678s').precise_format())
 
 	def test_2_2_quantity_format(self):
 		self.assertEqual(1234, Quantity(1234).value)
@@ -280,7 +287,7 @@ class UnitTests(unittest.TestCase):
 		for cls in [Duration, Quantity, ByteCount]:
 			vals = [0, 127, 1024, 1440]
 			if cls in [Duration]:
-				vals.extend(['18s', '36m'])
+				vals.extend(['0s', '18s', '36m'])
 			else:
 				vals += ['2Gi', '3M', '4ki']
 			for val in vals:

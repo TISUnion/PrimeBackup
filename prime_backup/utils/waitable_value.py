@@ -9,6 +9,10 @@ class _Empty:
 
 
 class WaitableValue(Generic[_T]):
+	"""
+	A simple version of "Future"
+	"""
+
 	EMPTY = _Empty()
 
 	def __init__(self):
@@ -17,7 +21,7 @@ class WaitableValue(Generic[_T]):
 
 	def get(self) -> _T:
 		if not self.__event.is_set():
-			raise ValueError('value unset')
+			raise ValueError('value is unset')
 		return self.__value
 
 	def set(self, value: _T):

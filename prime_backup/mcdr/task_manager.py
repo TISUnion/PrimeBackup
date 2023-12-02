@@ -36,7 +36,7 @@ class ThreadedWorker:
 			self.thread.join(Duration('10min').value)
 
 	def __task_loop(self):
-		self.logger.info('Worker %s starts', self.name)
+		self.logger.info('Worker %s started', self.name)
 		while not self.stopped:
 			holder = self.task_queue.get()
 			try:
@@ -66,7 +66,7 @@ class ThreadedWorker:
 				holder.run_callback(None)
 			finally:
 				self.task_queue.task_done()
-		self.logger.info('Worker %s stops', self.name)
+		self.logger.info('Worker %s stopped', self.name)
 
 	def submit(self, source: CommandSource, task: Task, callback: Optional[TaskCallback], *, handle_tmo_err: bool = True):
 		if self.thread.is_alive():

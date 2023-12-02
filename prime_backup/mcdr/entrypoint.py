@@ -1,3 +1,5 @@
+import threading
+import time
 from typing import Optional
 
 from mcdreforged.api.all import *
@@ -53,16 +55,33 @@ def on_load(server: PluginServerInterface, old):
 def on_unload(server: PluginServerInterface):
 	server.logger.info('Shutting down everything...')
 
-	global task_manager, crontab_manager
-	if command_manager is not None:
-		command_manager.close_the_door()
-	if task_manager is not None:
-		task_manager.shutdown()
-		task_manager = None
-	if crontab_manager is not None:
-		crontab_manager.shutdown()
-		crontab_manager = None
-	DbAccess.shutdown()
+	def shutdown():
+		try:
+			global task_manager, crontab_manager
+			if command_manager is not None:
+				command_manager.close_the_door()
+			if task_manager is not None:
+				task_manager.shutdown()
+				task_manager = None
+			if crontab_manager is not None:
+				crontab_manager.shutdown()
+				crontab_manager = None
+			DbAccess.shutdown()
+		finally:
+			shutdown_event.set()
+
+	shutdown_event = threading.Event()
+	thread = threading.Thread(target=shutdown, name='', daemon=True)
+	thread.start()
+
+	start_time = time.time()
+	for delay in [0, 10, 60, 600, None]:
+		elapsed = time.time() - start_time
+		if delay > 0:
+			server.logger.info(f'Waiting for manager shutdown ... time elapsed {elapsed:.1f}s')
+		shutdown_event.wait(max(0.0, delay - elapsed))
+		if shutdown_event.is_set():
+			break
 
 
 def on_info(server: PluginServerInterface, info: Info):

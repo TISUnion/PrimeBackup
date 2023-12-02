@@ -37,9 +37,9 @@ prime_backup:
           §7--start §b<start_date>§r: Show backup after the given date only
           §7--end §b<end_date>§r: Show backup before the given date only
           §7--size§r: Show backup sizes
-          §7--hidden§r: Show hidden backups
+          §7--all§r: Show all backups
           Examples:
-          §7{prefix} list --show-hidden§r
+          §7{prefix} list --all§r
           §7{prefix} list --start 20231130 --size§r
           §7{prefix} list 3 --per-page 20§r
 
@@ -77,7 +77,9 @@ prime_backup:
       stored_size: 'Size (stored): {} ({})'
       raw_size: 'Size (raw): {}'
       author: 'Author: {}'
-      hidden: 'Hidden: {}'
+      tag.empty: 'Tags: empty'
+      tag.title: 'Tags (size={}):'
+      tag.pair: '  {}: {}'
     rename:
       name: rename backup
       modified: Modified the comment of backup {} to {}

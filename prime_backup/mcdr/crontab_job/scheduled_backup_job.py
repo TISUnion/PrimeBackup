@@ -6,6 +6,7 @@ from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
+from prime_backup.config.sub_configs import ScheduledBackupConfig
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.task.create_backup_task import CreateBackupTask
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 class ScheduledBackupJob(CrontabJob):
 	def __init__(self, scheduler: BaseScheduler, task_manager: 'TaskManager'):
 		super().__init__(scheduler, task_manager)
-		self.sbc = self.config.backup.scheduled_backup
+		self.config: ScheduledBackupConfig = self.config.scheduled_backup
 		self.is_executing = threading.Event()
 		self.is_aborted = threading.Event()
 
@@ -31,34 +32,35 @@ class ScheduledBackupJob(CrontabJob):
 		return CrontabJobId.scheduled_backup
 
 	def _create_trigger(self) -> BaseTrigger:
-		return IntervalTrigger(seconds=self.sbc.interval.value)
+		return IntervalTrigger(seconds=self.config.interval.value)
 
 	def _run(self):
-		if not self.sbc.enabled:
+		if not self.config.enabled:
 			return
 
 		if not mcdr_globals.server.is_server_running():
 			return
 
-		broadcast_message(self.tr('triggered', TextComponents.duration(self.sbc.interval)))
+		broadcast_message(self.tr('triggered', TextComponents.duration(self.config.interval)))
 		source = mcdr_globals.server.get_plugin_command_source()
 
 		with contextlib.ExitStack() as es:
 			self.is_executing.set()
 			es.callback(lambda: self.is_executing.clear())
 
-			for delay in [10, 60]:
+			for delay in [10, 60, None]:
 				if self.is_aborted.is_set():
 					break
 				try:
 					wv = WaitableValue()
 					self.task_manager.add_task(
 						CreateBackupTask(source, self.tr('comment').to_plain_text(), operator=Operator.pb('scheduled_backup')),
-						lambda e: wv.set(e)
+						wv.set, handle_tmo_err=False,
 					)
 				except TaskQueue.TooManyOngoingTask:
-					if self.sbc.interval.value <= 300:  # <= 5min, no need to retry
+					if delay is None or self.config.interval.value <= 300:  # <= 5min, no need to retry
 						broadcast_message(self.tr('found_ongoing.skip'))
+						break
 					else:
 						broadcast_message(self.tr('found_ongoing.wait_retry', TextComponents.duration(delay)))
 						self.is_aborted.wait(delay)
@@ -71,18 +73,18 @@ class ScheduledBackupJob(CrontabJob):
 					break
 
 	def enable(self, *args, **kwargs):
-		if self.sbc.enabled:
+		if self.config.enabled:
 			super().enable(*args, **kwargs)
 			self.aps_job.modify(max_instances=1)
 
 	def on_event(self, event: CrontabJobEvent):
-		if not self.sbc.enabled:
+		if not self.config.enabled:
 			return
 
 		if event == CrontabJobEvent.plugin_unload:
 			self.is_aborted.set()
 		if event == CrontabJobEvent.manual_backup_created:
-			if not self.is_executing.is_set() and self.sbc.reset_timer_on_backup:
-				broadcast_message(self.tr('reset_on_backup', self.get_next_run_date()))
+			if not self.is_executing.is_set() and self.config.reset_timer_on_backup:
 				self.aps_job.reschedule(self._create_trigger())
+				broadcast_message(self.tr('reset_on_backup', self.get_next_run_date()))
 

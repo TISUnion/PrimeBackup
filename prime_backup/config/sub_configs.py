@@ -26,6 +26,8 @@ class CommandConfig(Serializable):
 		'abort': 1,
 	}
 	confirm_time_wait: Duration = Duration('60s')
+	backup_on_restore: bool = True
+	restore_countdown_sec: int = 10
 
 
 class CustomServerCommands(Serializable):
@@ -74,9 +76,6 @@ class BackupConfig(Serializable):
 	hash_method: HashMethod = HashMethod.xxh128
 	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 64
-	backup_on_overwrite: bool = True
-
-	scheduled_backup: ScheduledBackupConfig = ScheduledBackupConfig()
 
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
 		if attr_name == 'compress_method':
@@ -93,6 +92,7 @@ class BackupConfig(Serializable):
 		"""
 		Apply to not only files
 		"""
+		# TODO: better rule?
 		name = full_path.name
 		for item in self.ignored_files:
 			if len(item) > 0:
@@ -105,7 +105,7 @@ class BackupConfig(Serializable):
 		return False
 
 
-class RetentionPolicy(Serializable):
+class PrunePolicy(Serializable):
 	enabled: bool = False
 
 	max_amount: int = 0
@@ -121,8 +121,8 @@ class RetentionPolicy(Serializable):
 	year: int = 0
 
 
-class RetentionConfig(Serializable):
+class PruneConfig(Serializable):
 	check_interval: Duration = Duration('1h')
-	regular: RetentionPolicy = RetentionPolicy()
-	overwrite: RetentionPolicy = RetentionPolicy(max_amount=10, max_lifetime=Duration('30d'))
+	regular_backup: PrunePolicy = PrunePolicy()
+	pre_restore_backup: PrunePolicy = PrunePolicy(max_amount=10, max_lifetime=Duration('30d'))
 

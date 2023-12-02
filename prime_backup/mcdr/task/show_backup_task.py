@@ -22,5 +22,9 @@ class ShowBackupTask(ReaderTask):
 		self.reply(self.tr('stored_size', TextComponents.file_size(backup.stored_size), TextComponents.percent(backup.stored_size, backup.raw_size)))
 		self.reply(self.tr('raw_size', TextComponents.file_size(backup.raw_size)))
 		self.reply(self.tr('author', TextComponents.operator(backup.author)))
-		if backup.hidden:
-			self.reply(self.tr('hidden', backup.hidden))
+		if len(backup.tags) > 0:
+			self.reply(self.tr('tag.title', len(backup.tags)))
+			for k, v in backup.tags.items():
+				self.reply(self.tr('tag.pair', k, v))
+		else:
+			self.reply(self.tr('tag.empty'))

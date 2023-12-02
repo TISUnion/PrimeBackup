@@ -10,7 +10,7 @@ from prime_backup.db import schema
 
 class DbMigration:
 	DB_MAGIC_INDEX: int = 0
-	DB_VERSION: int = 2
+	DB_VERSION: int = 1
 
 	def __init__(self, engine: Engine):
 		self.config = Config.get()
@@ -34,7 +34,11 @@ class DbMigration:
 				target_version = self.DB_VERSION
 
 				if current_version != target_version:
-					self.logger.info('DB migration starts. current db version: {}, target version: {}'.format(current_version, target_version))
+					if current_version > target_version:
+						self.logger.error('The current DB version {} is larger than expected {}'.format(current_version, target_version))
+						raise ValueError('existing db version {} too large'.format(current_version))
+
+					self.logger.info('DB migration starts. current DB version: {}, target version: {}'.format(current_version, target_version))
 					for i in range(current_version, target_version):
 						self.logger.info('Migrating from v{} to v{}'.format(i, i + 1))
 						self.migrations[i + 1](session)
@@ -63,9 +67,10 @@ class DbMigration:
 			raise ValueError('hash method mismatch, {} is used in this database, but {} is configured to used'.format(dbm.hash_method, self.__configured_hash_method))
 
 	def __migrate_1_2(self, session: Session):
-		table = schema.Backup.__tablename__
-		column = schema.Backup.expire_at
-		name = column.key
-		type_ = column.type.compile(dialect=self.engine.dialect)
-		self.logger.info('Adding column {!r} ({}) to table {!r}'.format(name, type_, table))
-		session.execute(text(f'ALTER TABLE {table} ADD COLUMN {name} {type_}'))
+		if False:
+			table = schema.Backup.__tablename__
+			column = schema.Backup.timestamp
+			name = column.key
+			type_ = column.type.compile(dialect=self.engine.dialect)
+			self.logger.info('Adding column {!r} ({}) to table {!r}'.format(name, type_, table))
+			session.execute(text(f'ALTER TABLE {table} ADD COLUMN {name} {type_}'))

@@ -3,7 +3,6 @@ from typing import Optional
 
 from mcdreforged.api.all import *
 
-from prime_backup import constants
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.task import ImmediateTask
 
@@ -28,7 +27,7 @@ class ShowHelpTask(ImmediateTask):
 				match = re.match(r'(§7){} (\w+)([§ ])'.format(self.__cmd_prefix), line)
 				if match is not None:
 					literal = match.group(2)
-					level = self.config.command.permission.get(literal, constants.DEFAULT_COMMAND_PERMISSION_LEVEL)
+					level = self.config.command.permission.get(literal)
 					if not self.source.has_permission(level):
 						continue
 

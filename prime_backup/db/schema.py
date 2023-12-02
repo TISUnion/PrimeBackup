@@ -1,7 +1,9 @@
-from typing import Optional, List, get_type_hints
+from typing import Optional, List, get_type_hints, Dict, Any
 
-from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary, Boolean
+from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+BackupTagDict = Dict[str, Any]
 
 
 class Base(DeclarativeBase):
@@ -74,10 +76,8 @@ class Backup(Base):
 	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in nanosecond
 	author: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)
-	targets = mapped_column(JSON)  # List[str]
-
-	hidden: Mapped[bool] = mapped_column(Boolean)
-	expire_at: Mapped[Optional[int]] = mapped_column(BigInteger)  # timestamp in nanosecond
+	targets: Mapped[List[str]] = mapped_column(JSON)
+	tags: Mapped[BackupTagDict] = mapped_column(JSON)
 
 	__fields_end__: bool
 

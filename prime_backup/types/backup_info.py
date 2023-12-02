@@ -3,6 +3,7 @@ import datetime
 import functools
 
 from prime_backup.db import schema
+from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
 from prime_backup.utils import conversion_utils
 
@@ -14,7 +15,7 @@ class BackupInfo:
 	timestamp_ns: int
 	author: Operator
 	comment: str
-	hidden: bool
+	tags: BackupTags
 
 	raw_size: int  # uncompressed size
 	stored_size: int  # actual size
@@ -45,7 +46,7 @@ class BackupInfo:
 			timestamp_ns=backup.timestamp,
 			author=Operator.of(backup.author),
 			comment=backup.comment,
-			hidden=backup.hidden,
+			tags=BackupTags(backup.tags),
 
 			raw_size=raw_size_sum,
 			stored_size=stored_size_sum,

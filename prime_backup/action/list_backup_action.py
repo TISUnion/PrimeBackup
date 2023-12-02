@@ -23,7 +23,7 @@ class ListBackupAction(_ListBackupActionBase):
 	def run(self) -> List[BackupInfo]:
 		with DbAccess.open_session() as session:
 			backups = session.list_backup(backup_filter=self.backup_filter, limit=self.limit, offset=self.offset)
-			return [BackupInfo.of(backup.id, calc_size=self.calc_size) for backup in backups]
+			return [BackupInfo.of(backup, calc_size=self.calc_size) for backup in backups]
 
 
 class ListBackupIdAction(_ListBackupActionBase):

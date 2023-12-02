@@ -1,6 +1,5 @@
 import enum
 import threading
-import time
 from typing import Optional
 
 from mcdreforged.api.all import *
@@ -11,8 +10,9 @@ from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.mcdr.task import TaskEvent, OperationTask
 from prime_backup.mcdr.text_components import TextComponents
-from prime_backup.types.backup_filter import BackupFilter
+from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.types.backup_info import BackupInfo
+from prime_backup.types.backup_tags import BackupTags, BackupTagName
 from prime_backup.types.operator import Operator
 from prime_backup.utils.mcdr_utils import click_and_run, mkcmd
 from prime_backup.utils.timer import Timer
@@ -25,9 +25,10 @@ class _ConfirmResult(enum.Enum):
 
 
 class RestoreBackupTask(OperationTask):
-	def __init__(self, source: CommandSource, backup_id: Optional[int] = None):
+	def __init__(self, source: CommandSource, backup_id: Optional[int] = None, skip_confirm: bool = False):
 		super().__init__(source)
 		self.backup_id = backup_id
+		self.skip_confirm = skip_confirm
 		self.confirm_result: WaitableValue[_ConfirmResult] = WaitableValue()
 		self.abort_event = threading.Event()
 		self.can_abort = False
@@ -40,7 +41,7 @@ class RestoreBackupTask(OperationTask):
 		return self.can_abort
 
 	def __countdown_and_stop_server(self, backup: BackupInfo) -> bool:
-		for countdown in range(10, 0, -1):
+		for countdown in range(max(0, self.config.command.restore_countdown_sec), 0, -1):
 			self.broadcast(click_and_run(
 				self.tr('countdown', countdown, TextComponents.backup_brief(backup)),
 				self.tr('countdown.hover', TextComponents.command('abort')),
@@ -59,7 +60,7 @@ class RestoreBackupTask(OperationTask):
 	def run(self):
 		if self.backup_id is None:
 			backup_filter = BackupFilter()
-			backup_filter.hidden = False
+			backup_filter.tag_filters.append(BackupTagFilter(BackupTagName.pre_restore_backup, True, BackupTagFilter.Policy.not_equals))
 			candidates = ListBackupAction(backup_filter=backup_filter, limit=1).run()
 			if len(candidates) == 0:
 				self.reply(self.tr('no_backup'))
@@ -67,33 +68,32 @@ class RestoreBackupTask(OperationTask):
 		else:
 			backup = GetBackupAction(self.backup_id).run()
 
-		confirm_time_wait = self.config.command.confirm_time_wait
-		self.broadcast(self.tr('show_backup', TextComponents.backup_brief(backup)))
-		self.broadcast(TextComponents.confirm_hint(self.tr('confirm_target'), confirm_time_wait))
-		self.can_abort = True
-		self.confirm_result.wait(confirm_time_wait.value)
+		if not self.skip_confirm:
+			confirm_time_wait = self.config.command.confirm_time_wait
+			self.broadcast(self.tr('show_backup', TextComponents.backup_brief(backup)))
+			self.broadcast(TextComponents.confirm_hint(self.tr('confirm_target'), confirm_time_wait))
+			self.can_abort = True
+			self.confirm_result.wait(confirm_time_wait.value)
 
-		self.logger.info('confirm result: {}'.format(self.confirm_result))
-		if not self.confirm_result.is_set():
-			self.broadcast(self.tr('no_confirm'))
-			return
-		elif self.confirm_result.get() == _ConfirmResult.cancelled:
-			self.broadcast(self.tr('aborted'))
-			return
+			self.logger.info('confirm result: {}'.format(self.confirm_result))
+			if not self.confirm_result.is_set():
+				self.broadcast(self.tr('no_confirm'))
+				return
+			elif self.confirm_result.get() == _ConfirmResult.cancelled:
+				self.broadcast(self.tr('aborted'))
+				return
 
 		if not self.__countdown_and_stop_server(backup):
 			return
 
 		self.can_abort = False
 		timer = Timer()
-		if self.config.backup.backup_on_overwrite:
+		if self.config.command.backup_on_restore:
 			self.logger.info('Creating backup of existing files to avoid idiot')
-			expire_timestamp_ns = int(time.time_ns() + self.config.retention.overwrite_backup.value_nano)
 			CreateBackupAction(
 				Operator.pb('pre_restore'),
-				'Automatic backup before restoring to #{}'.format(backup.id),
-				hidden=True,
-				expire_timestamp_ns=expire_timestamp_ns,
+				'Automatic backup before restoring to #{}'.format(backup.id),  # TODO: translate this
+				tags=BackupTags().set(BackupTagName.pre_restore_backup, True),
 			).run()
 		cost_backup = timer.get_and_restart()
 

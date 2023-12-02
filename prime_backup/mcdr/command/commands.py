@@ -63,11 +63,10 @@ class CommandManager:
 			else:
 				author = Operator.player(author_str)
 			backup_filter.author = author
-		if context.get('hidden', 0) == 0:
-			backup_filter.hidden = False
+		show_all = context.get('all', 0) > 0
 		show_size = context.get('size', 0) > 0
 
-		self.task_manager.add_task(ListBackupTask(source, per_page, page, backup_filter, show_size))
+		self.task_manager.add_task(ListBackupTask(source, per_page, page, backup_filter, show_all, show_size))
 
 	def cmd_show(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
@@ -99,9 +98,9 @@ class CommandManager:
 		id_range: IdRangeNode.Range = context['backup_id_range']
 		self.task_manager.add_task(DeleteBackupRangeTask(source, id_range.start, id_range.end))
 
-	def cmd_back(self, source: CommandSource, context: CommandContext):
+	def cmd_back(self, source: CommandSource, context: CommandContext, *, skip_confirm: bool = False):
 		backup_id = context.get('backup_id')
-		self.task_manager.add_task(RestoreBackupTask(source, backup_id))
+		self.task_manager.add_task(RestoreBackupTask(source, backup_id, skip_confirm=skip_confirm))
 
 	def cmd_confirm(self, source: CommandSource, context: CommandContext):
 		if not self.task_manager.do_confirm():
@@ -132,7 +131,9 @@ class CommandManager:
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
 		builder.command('back', self.cmd_back)
+		builder.command('back --confirm', functools.partial(self.cmd_back, skip_confirm=True))
 		builder.command('back <backup_id>', self.cmd_back)
+		builder.command('back <backup_id> --confirm', functools.partial(self.cmd_back, skip_confirm=True))
 		builder.command('show <backup_id>', self.cmd_show)
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
 		builder.command('del <backup_id>', self.cmd_delete)
@@ -172,7 +173,7 @@ class CommandManager:
 			node.then(Literal('--author').then(QuotableText('author').redirects(node)))
 			node.then(Literal('--start').then(DateNode('start_date').redirects(node)))
 			node.then(Literal('--end').then(DateNode('end_date').redirects(node)))
-			node.then(CountingLiteral('--hidden', 'hidden').redirects(node))
+			node.then(CountingLiteral('--all', 'all').redirects(node))
 			node.then(CountingLiteral('--size', 'size').redirects(node))
 			return node
 

@@ -4,7 +4,7 @@ from typing import Optional
 
 from mcdreforged.api.all import Serializable
 
-from prime_backup.config.sub_configs import CommandConfig, ServerConfig, BackupConfig, RetentionConfig
+from prime_backup.config.sub_configs import CommandConfig, ServerConfig, BackupConfig, PruneConfig, ScheduledBackupConfig
 
 
 class Config(Serializable):
@@ -13,7 +13,8 @@ class Config(Serializable):
 	command: CommandConfig = CommandConfig()
 	server: ServerConfig = ServerConfig()
 	backup: BackupConfig = BackupConfig()
-	retention: RetentionConfig = RetentionConfig()
+	scheduled_backup: ScheduledBackupConfig = ScheduledBackupConfig()
+	prune: PruneConfig = PruneConfig()
 
 	@classmethod
 	@functools.lru_cache

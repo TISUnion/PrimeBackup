@@ -19,7 +19,7 @@ class ThreadedWorker:
 		self.name = name
 		self.logger = logger
 		self.max_ongoing_task = max_ongoing_task
-		self.thread = threading.Thread(target=self.__task_loop, name='PB-{}@{}'.format(name, constants.INSTANCE_ID), daemon=True)
+		self.thread = threading.Thread(target=self.__task_loop, name='PB@{}-task-{}'.format(constants.INSTANCE_ID, name), daemon=True)
 		self.stopped = False
 		self.task_queue: TaskQueue[Optional[TaskHolder]] = TaskQueue(max_ongoing_task)
 		self.current_task_holder_pending_events: List[TaskEvent] = []

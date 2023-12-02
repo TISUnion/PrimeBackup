@@ -1,5 +1,5 @@
 import time
-from typing import List, TYPE_CHECKING, Type
+from typing import List, TYPE_CHECKING, Type, Any, Dict
 
 from mcdreforged.utils.serializer import Serializable
 from typing_extensions import Self
@@ -15,7 +15,7 @@ class BackupMeta(Serializable):
 	comment: str = ''
 	timestamp_ns: int
 	targets: List[str] = []
-	hidden: bool = False
+	tags: Dict[str, Any] = {}
 
 	def to_dict(self) -> dict:
 		dt = self.serialize()
@@ -42,7 +42,7 @@ class BackupMeta(Serializable):
 			comment=backup.comment,
 			timestamp_ns=backup.timestamp,
 			targets=list(backup.targets),
-			hidden=backup.hidden,
+			tags=dict(backup.tags),
 		)
 
 	def to_backup_kwargs(self) -> dict:
@@ -51,5 +51,5 @@ class BackupMeta(Serializable):
 			comment=self.comment,
 			timestamp=self.timestamp_ns,
 			targets=[t.rstrip('/') for t in self.targets],
-			hidden=self.hidden,
+			tags=self.tags.copy(),
 		)

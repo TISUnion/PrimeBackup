@@ -17,6 +17,7 @@ from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
+from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils
@@ -162,11 +163,14 @@ class BatchQueryManager:
 
 
 class CreateBackupAction(CreateBackupActionBase):
-	def __init__(self, author: Operator, comment: str, *, hidden: bool = False, expire_timestamp_ns: Optional[int] = None):
+	def __init__(self, author: Operator, comment: str, *, tags: Optional[BackupTags] = None, expire_timestamp_ns: Optional[int] = None):
 		super().__init__()
+		if tags is None:
+			tags = BackupTags()
+
 		self.author = author
 		self.comment = comment
-		self.hidden = hidden
+		self.tags = tags
 		self.expire_timestamp_ns = expire_timestamp_ns
 
 		self.__blob_store_st: Optional[os.stat_result] = None
@@ -408,9 +412,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					author=str(self.author),
 					comment=self.comment,
 					targets=[str(Path(t).as_posix()) for t in self.config.backup.targets],
-
-					hidden=self.hidden,
-					expire_at=self.expire_timestamp_ns,
+					tags=self.tags.to_dict()
 				)
 				self.logger.info('Creating backup {}'.format(backup))
 

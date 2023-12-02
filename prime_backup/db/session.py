@@ -3,12 +3,12 @@ import time
 from typing import Optional, Sequence, Dict, ContextManager
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select
+from sqlalchemy import select, delete, desc, func, Select, JSON
 from sqlalchemy.orm import Session
 
 from prime_backup.db import schema, db_logger
 from prime_backup.exceptions import BackupNotFound
-from prime_backup.types.backup_filter import BackupFilter
+from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.utils import collection_utils
 
 _T = TypeVar('_T')
@@ -149,8 +149,37 @@ class DbSession:
 			s = s.where(schema.Backup.timestamp >= backup_filter.timestamp_start)
 		if backup_filter.timestamp_end is not None:
 			s = s.where(schema.Backup.timestamp <= backup_filter.timestamp_end)
-		if backup_filter.hidden is not None:
-			s = s.filter_by(hidden=backup_filter.hidden)
+		for tf in backup_filter.tag_filters:
+			element = schema.Backup.tags[tf.name.name]
+			if tf.policy == BackupTagFilter.Policy.exists:
+				s = s.filter(element != JSON.NULL)
+			elif tf.policy == BackupTagFilter.Policy.not_exists:
+				s = s.filter(element == JSON.NULL)
+			elif tf.policy in [BackupTagFilter.Policy.equals, BackupTagFilter.Policy.not_equals, BackupTagFilter.Policy.exists_and_not_equals]:
+				value_type = tf.name.value.type
+				if value_type == bool:
+					js_value, value = element.as_boolean(), bool(tf.value)
+				elif value_type == str:
+					js_value, value = element.as_string(), str(tf.value)
+				elif value_type == float:
+					js_value, value = element.as_float(), float(tf.value)
+				elif value_type == int:
+					js_value, value = element.as_integer(), int(tf.value)
+				else:
+					raise TypeError(value_type)
+
+				if tf.policy == BackupTagFilter.Policy.equals:
+					filter_ = js_value == value
+				elif tf.policy == BackupTagFilter.Policy.not_equals:
+					filter_ = (js_value != value) | (element == JSON.NULL)
+				elif tf.policy == BackupTagFilter.Policy.exists_and_not_equals:
+					filter_ = js_value != value
+				else:
+					raise ValueError(tf.policy)
+
+				s = s.filter(filter_)
+			else:
+				raise ValueError(tf.policy)
 		return s
 
 	def get_backup_count(self, backup_filter: Optional[BackupFilter] = None) -> int:

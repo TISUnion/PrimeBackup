@@ -4,7 +4,7 @@ import gzip
 import lzma
 import shutil
 from abc import abstractmethod, ABC
-from typing import BinaryIO, Union, ContextManager, NamedTuple
+from typing import BinaryIO, Union, ContextManager, NamedTuple, Tuple
 
 from typing_extensions import Protocol
 
@@ -51,6 +51,13 @@ class Compressor(ABC):
 		with open(target_path, 'wb') as f:
 			with self.compress_stream(f) as f_compressed:
 				yield f_compressed
+
+	@contextlib.contextmanager
+	def open_compressed_bypassed(self, target_path: PathLike) -> ContextManager[Tuple[ByPassWriter, BinaryIO]]:
+		with open(target_path, 'wb') as f:
+			writer = ByPassWriter(f)
+			with self.compress_stream(writer) as f_compressed:
+				yield writer, f_compressed
 
 	@contextlib.contextmanager
 	def open_decompressed(self, source_path: PathLike) -> ContextManager[BinaryIO]:

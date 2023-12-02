@@ -1,7 +1,7 @@
 import functools
 from abc import ABC
 from pathlib import Path
-from typing import List, Callable, NamedTuple
+from typing import List, Callable, NamedTuple, Optional
 
 from prime_backup.action import Action
 from prime_backup.db import schema
@@ -10,9 +10,15 @@ from prime_backup.types.blob_info import BlobInfo
 
 
 class CreateBackupActionBase(Action, ABC):
+	class BlobsSummary(NamedTuple):
+		count: int
+		stored_size: int
+		raw_size: int
+
 	def __init__(self):
 		super().__init__()
 		self.__new_blobs: List[BlobInfo] = []
+		self.__new_blobs_summary: Optional[CreateBackupActionBase.BlobsSummary] = None
 		self.__blobs_rollbackers: List[Callable] = []
 
 	def _remove_file(self, file_to_remove: Path):
@@ -37,18 +43,16 @@ class CreateBackupActionBase(Action, ABC):
 		self.__new_blobs.append(BlobInfo.of(blob))
 		return blob
 
-	class NewBlobSummary(NamedTuple):
-		count: int
-		stored_size: int
-		raw_size: int
-
-	def _summarize_new_blobs(self) -> NewBlobSummary:
-		return self.NewBlobSummary(
-			len(self.__new_blobs),
-			sum([b.stored_size for b in self.__new_blobs]),
-			sum([b.raw_size for b in self.__new_blobs]),
-		)
+	def get_new_blobs_summary(self) -> BlobsSummary:
+		if self.__new_blobs_summary is None:
+			self.__new_blobs_summary = self.BlobsSummary(
+				len(self.__new_blobs),
+				sum([b.stored_size for b in self.__new_blobs]),
+				sum([b.raw_size for b in self.__new_blobs]),
+			)
+		return self.__new_blobs_summary
 
 	def run(self) -> None:
 		self.__new_blobs.clear()
+		self.__new_blobs_summary = None
 		self.__blobs_rollbackers.clear()

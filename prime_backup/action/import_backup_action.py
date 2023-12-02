@@ -21,7 +21,6 @@ from prime_backup.types.backup_meta import BackupMeta
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, blob_utils, misc_utils
-from prime_backup.utils.bypass_io import ByPassWriter
 from prime_backup.utils.hash_utils import SizeAndHash
 
 
@@ -255,10 +254,8 @@ class ImportBackupAction(CreateBackupActionBase):
 
 		compress_method = self.config.backup.get_compress_method_from_size(sah.size)
 		compressor = Compressor.create(compress_method)
-		with open(blob_path, 'wb') as f:
-			writer = ByPassWriter(f)
-			with compressor.compress_stream(writer) as f_compressed:
-				shutil.copyfileobj(file_reader, f_compressed)
+		with compressor.open_compressed_bypassed(blob_path) as (writer, f):
+			shutil.copyfileobj(file_reader, f)
 
 		blob = self._create_blob(
 			session,
@@ -390,8 +387,10 @@ class ImportBackupAction(CreateBackupActionBase):
 					backup = self.__import_packed_backup_file(session, file_holder)
 				info = BackupInfo.of(backup)
 
-			s = self._summarize_new_blobs()
-			self.logger.info('Import backup #{} done, +{} blobs (size {} / {})'.format(info.id, s.count, ByteCount(s.stored_size), ByteCount(s.raw_size)))
+			s = self.get_new_blobs_summary()
+			self.logger.info('Import backup #{} done, +{} blobs (size {} / {})'.format(
+				info.id, s.count, ByteCount(s.stored_size).auto_str(), ByteCount(s.raw_size).auto_str(),
+			))
 			return info
 
 		except Exception:

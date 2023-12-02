@@ -1,5 +1,7 @@
 import functools
+import json
 import re
+import unittest
 from abc import ABC, abstractmethod
 from typing import Union, Tuple, NamedTuple, Generic, Dict, TypeVar
 
@@ -22,7 +24,7 @@ def _parse_number(s: str) -> Union[int, float]:
 
 
 def _split_unit(s: str) -> Tuple[float, str]:
-	match = re.fullmatch(r'([-+.\d]+)(.*)', s)
+	match = re.fullmatch(r'([-+.\d]+)(\w*)', s)
 	if not match:
 		raise ValueError('bad value {!r}'.format(s))
 	return _parse_number(match.group(1)), match.group(2)
@@ -33,7 +35,10 @@ class UnitValuePair(NamedTuple):
 	unit: str
 
 	def to_str(self, ndigits: int = 2) -> str:
-		return f'{round(self.value, ndigits)}{self.unit}'
+		if ndigits >= 0:
+			return f'{self.value:.{ndigits}f}{self.unit}'
+		else:
+			return f'{self.value}{self.unit}'
 
 
 class _UnitValueBase(Generic[_T], str, ABC):
@@ -43,6 +48,10 @@ class _UnitValueBase(Generic[_T], str, ABC):
 	@abstractmethod
 	def _get_unit_map(cls) -> Dict[str, _T]:
 		...
+
+	@classmethod
+	def _get_formatting_unit_map(cls) -> Dict[str, _T]:
+		return cls._get_unit_map()
 
 	@classmethod
 	@functools.lru_cache
@@ -60,23 +69,55 @@ class _UnitValueBase(Generic[_T], str, ABC):
 	def value(self) -> _T:
 		return self._value
 
+	@staticmethod
+	def __precise_div(a: Union[float, int], b: Union[float, int]) -> Union[float, int]:
+		if isinstance(a, int) and (1 / b).is_integer():
+			return a * int(1 / b)
+		return a / b
+
 	@classmethod
 	def _auto_format(cls, val: _T) -> UnitValuePair:
 		ret = None
-		for unit, k in cls._get_unit_map().items():
-			if val >= k or ret is None:
-				ret = UnitValuePair(val / k, unit)
+		for unit, k in cls._get_formatting_unit_map().items():
+			x = cls.__precise_div(val, k)
+			if x >= 1 or ret is None:
+				if isinstance(x, float) and x.is_integer():
+					x = int(x)
+				ret = UnitValuePair(x, unit)
 			else:
 				break
 		if ret is None:
 			raise AssertionError()
 		return ret
 
+	@classmethod
+	def _precise_format(cls, val: _T) -> UnitValuePair:
+		units = list(reversed(cls._get_formatting_unit_map().items()))
+		if val == 0:
+			return UnitValuePair(val, units[-1][0])
+		for i, tp in enumerate(units):  # high -> low
+			unit, k = tp
+			x = cls.__precise_div(val, k)
+			if isinstance(x, int) or (isinstance(x, float) and x.is_integer()) or i == len(units) - 1:
+				if isinstance(x, float) and x.is_integer():
+					x = int(x)
+				return UnitValuePair(x, unit)
+		raise AssertionError()
+
+	def precise_format(self) -> UnitValuePair:
+		return self._precise_format(self._value)
+
 	def auto_format(self) -> UnitValuePair:
 		return self._auto_format(self._value)
 
+	def auto_str(self, ndigits: int = 2) -> str:
+		return self.auto_format().to_str(ndigits=ndigits)
+
+	def precise_str(self, ndigits: int = 2) -> str:
+		return self.precise_format().to_str(ndigits=ndigits)
+
 	def __str__(self) -> str:
-		return self.auto_format().to_str()
+		return self.precise_str(ndigits=-1)
 
 	def __repr__(self) -> str:
 		return misc_utils.represent(self, attrs={'value': self._value})
@@ -86,32 +127,43 @@ class Duration(_UnitValueBase[float]):
 	_value: Union[float, int]
 	"""duration in seconds"""
 
+	__units = {
+		('ms',): 1e-3,
+		('s', 'sec'): 1,
+		('m', 'min'): 60,
+		('h', 'hour'): 60 * 60,
+		('d', 'day'): 60 * 60 * 24,
+		('mon', 'month'): 60 * 60 * 24 * 30,
+		('y', 'year'): 60 * 60 * 24 * 365,
+	}
+
 	@classmethod
 	@functools.lru_cache
 	def _get_unit_map(cls) -> Dict[str, float]:
-		data = {
-			('ms',): 1e-3,
-			('s', 'sec'): 1,
-			('m', 'min'): 60,
-			('h', 'hour'): 60 * 60,
-			('d', 'day'): 60 * 60 * 24,
-			('month',): 60 * 60 * 24 * 30,
-			('y', 'year'): 60 * 60 * 24 * 365,
-		}
 		ret = {}
-		for units, v in data.items():
+		for units, v in cls.__units.items():
 			for k in units:
 				ret[k] = v
+		return ret
+
+	@classmethod
+	@functools.lru_cache
+	def _get_formatting_unit_map(cls) -> Dict[str, float]:
+		ret = {}
+		for units, v in cls.__units.items():
+			ret[units[0]] = v
 		return ret
 
 	def __new__(cls, s: Union[int, float, str]):
 		if isinstance(s, str):
 			value, unit = _split_unit(s)
 			duration = value * cls.parse_unit(unit)
+			if isinstance(duration, float) and duration.is_integer():
+				duration = int(duration)
 			obj = super().__new__(cls, s)
 			obj._value = duration
 		elif isinstance(s, (float, int)):
-			obj = super().__new__(cls, cls._auto_format(s).to_str())
+			obj = super().__new__(cls, cls._precise_format(s).to_str(ndigits=-1))
 			obj._value = s
 		else:
 			raise TypeError(type(s))
@@ -148,8 +200,7 @@ class Quantity(_UnitValueBase[Union[float, int]]):
 		else:
 			raise TypeError(type(s))
 
-		s = cls._auto_format(value).to_str()
-		obj = super().__new__(cls, s)
+		obj = super().__new__(cls, cls._precise_format(value).to_str(ndigits=-1))
 		obj._value = value
 		return obj
 
@@ -171,3 +222,78 @@ class ByteCount(Quantity):
 	def _auto_format(cls, val) -> UnitValuePair:
 		uv = super()._auto_format(val)
 		return UnitValuePair(uv.value, uv.unit + 'B')
+
+	@classmethod
+	def _precise_format(cls, val) -> UnitValuePair:
+		uv = super()._precise_format(val)
+		return UnitValuePair(uv.value, uv.unit + 'B')
+
+
+class UnitTests(unittest.TestCase):
+	def test_1_types(self):
+		for cls in [Duration, Quantity, ByteCount]:
+			for val in [0, '18', 127, 1024, 1440]:
+				inst = cls(val + 's' if cls == Duration and isinstance(val, str) else val)
+				self.assertEqual(cls, type(inst))
+				self.assertIsInstance(inst, str)
+				self.assertEqual(int(val), getattr(inst, 'value'))
+
+	def test_2_1_duration_format(self):
+		self.assertEqual(123, Duration(123).value)
+		self.assertEqual(123, Duration('123s').value)
+		self.assertEqual(UnitValuePair(2.05, 'm'), Duration('123s').auto_format())
+		self.assertEqual(UnitValuePair(123, 's'), Duration('123sec').precise_format())
+
+		self.assertEqual(1440, Duration(1440).value)
+		self.assertEqual('24m', str(Duration('1440s')))
+		self.assertEqual(UnitValuePair(24, 'm'), Duration('1440s').auto_format())
+		self.assertEqual(UnitValuePair(24, 'm'), Duration('1440s').precise_format())
+
+		self.assertEqual(12.3, Duration(12.3).value)
+		self.assertEqual(12.3, Duration('12.3s').value)
+		self.assertEqual(UnitValuePair(12.3, 's'), Duration('12.3s').auto_format())
+		self.assertEqual(UnitValuePair(12300, 'ms'), Duration('12.3s').precise_format())
+
+		self.assertEqual(1234.5678, Duration(1234.5678).value)
+		self.assertEqual(1234.5678, Duration('1234.5678s').value)
+		self.assertEqual(UnitValuePair(1234.5678 / 60, 'm'), Duration('1234.5678s').auto_format())
+		self.assertEqual(UnitValuePair(1234567.8, 'ms'), Duration('1234.5678s').precise_format())
+
+	def test_2_2_quantity_format(self):
+		self.assertEqual(1234, Quantity(1234).value)
+		self.assertEqual(1234, Quantity('1234').value)
+		self.assertEqual(UnitValuePair(1234 / 1024, 'Ki'), Quantity('1234').auto_format())
+		self.assertEqual(UnitValuePair(1234, ''), Quantity('1234').precise_format())
+
+		self.assertEqual(4096, Quantity(4096).value)
+		self.assertEqual('4Ki', str(Quantity('4096')))
+		self.assertEqual(UnitValuePair(4, 'Ki'), Quantity('4096').auto_format())
+		self.assertEqual(UnitValuePair(4, 'Ki'), Quantity('4096').precise_format())
+
+	def test_2_3_byte_count_format(self):
+		self.assertEqual(1234, ByteCount(1234).value)
+		self.assertEqual(1234, ByteCount('1234').value)
+		self.assertEqual('4KiB', str(ByteCount('4096')))
+
+	def test_3_convert(self):
+		from mcdreforged.api.utils import serializer
+		for cls in [Duration, Quantity, ByteCount]:
+			vals = [0, 127, 1024, 1440]
+			if cls in [Duration]:
+				vals.extend(['18s', '36m'])
+			else:
+				vals += ['2Gi', '3M', '4ki']
+			for val in vals:
+				a = cls(val)
+				self.assertEqual(str(a), serializer.serialize(a))
+
+				b = serializer.deserialize(serializer.serialize(a), cls)
+				self.assertEqual(a.value, b.value)
+
+				c = json.loads(json.dumps(a))
+				self.assertEqual(str(a), c)
+
+
+if __name__ == '__main__':
+	unittest.main()
+

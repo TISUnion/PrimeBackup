@@ -67,7 +67,7 @@ class BackupConfig(Serializable):
 	]
 	hash_method: HashMethod = HashMethod.xxh128
 	compress_method: CompressMethod = CompressMethod.zstd
-	compress_threshold: int = 128
+	compress_threshold: int = 64
 	backup_on_overwrite: bool = True
 
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):

@@ -8,7 +8,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set, Deque
+from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set, Deque, ContextManager
 
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
@@ -34,9 +34,10 @@ class _BlobCreatePolicy(enum.Enum):
 	"""
 	the policy of how to create a blob from a given file path
 	"""
-	read_all = enum.auto()  # for small files: read all in memory, calc hash. read once
+	read_all = enum.auto()   # small files: read all in memory, calc hash. read once
 	hash_once = enum.auto()  # files with unique size: compress+hash to temp file, then move. read once
-	default = enum.auto()  # file with duplicated size: read twice (slower)
+	copy_hash = enum.auto()  # files that keep changing: copy to temp file, calc hash, compress to blob. read twice and need more spaces
+	default = enum.auto()    # default policy: compress+hash to blob store, check hash again. read twice
 
 
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
@@ -82,10 +83,11 @@ class BlobBySizeFetcher(BatchFetcherBase):
 	Callback = Callable[[Rsp], Any]
 	tasks: Dict[int, List[Callback]]
 
-	def __init__(self, session: DbSession, max_batch_size: int):
+	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[int, bool]):
 		super().__init__(session, max_batch_size)
 		self.tasks: List[Tuple[int, BlobBySizeFetcher.Callback]] = []
 		self.sizes: Set[int] = set()
+		self.result_cache = result_cache
 
 	def query(self, query: Req, callback: Callback):
 		self.tasks.append((query.size, callback))
@@ -94,6 +96,8 @@ class BlobBySizeFetcher(BatchFetcherBase):
 
 	def _batch_run(self):
 		existence = self.session.has_blob_with_size_batched(list(self.sizes))
+		for sz, e in existence.items():
+			self.result_cache[sz] = e
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for sz, callback in reversed(self.tasks):
 			callback(self.Rsp(existence[sz]))
@@ -111,10 +115,11 @@ class BlobByHashFetcher(BatchFetcherBase):
 	Callback = Callable[[Rsp], Any]
 	tasks: Dict[str, List[Callback]]
 
-	def __init__(self, session: DbSession, max_batch_size: int):
+	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[str, schema.Blob]):
 		super().__init__(session, max_batch_size)
 		self.tasks: List[Tuple[str, BlobByHashFetcher.Callback]] = []
 		self.hashes: Set[str] = set()
+		self.result_cache = result_cache
 
 	def query(self, query: Req, callback: Callback):
 		self.tasks.append((query.hash, callback))
@@ -123,6 +128,8 @@ class BlobByHashFetcher(BatchFetcherBase):
 
 	def _batch_run(self):
 		blobs = self.session.get_blobs(list(self.hashes))
+		for h, blob in blobs.items():
+			self.result_cache[h] = blob
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for h, callback in reversed(self.tasks):
 			callback(self.Rsp(blobs[h]))
@@ -133,9 +140,9 @@ class BlobByHashFetcher(BatchFetcherBase):
 class BatchQueryManager:
 	Reqs = Union[BlobBySizeFetcher.Req, BlobByHashFetcher.Req]
 
-	def __init__(self, session: DbSession, max_batch_size: int = 100):
-		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size)
-		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size)
+	def __init__(self, session: DbSession, size_result_cache: dict, hash_result_cache: dict, max_batch_size: int = 100):
+		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size, size_result_cache)
+		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size, hash_result_cache)
 
 	def query(self, query: Reqs, callback: callable):
 		if isinstance(query, BlobBySizeFetcher.Req):
@@ -186,7 +193,15 @@ class CreateBackupAction(CreateBackupActionBase):
 		return [p for p in collected if not self.config.backup.is_file_ignore(p)]
 
 	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Generator[Any, Any, Tuple[schema.Blob, os.stat_result]]:
-		def attempt_once() -> Generator[Any, Any, schema.Blob]:
+		@contextlib.contextmanager
+		def make_temp_file() -> ContextManager[Path]:
+			temp_file_path = self.config.storage_path / 'temp' / '{}.tmp'.format(threading.current_thread().ident or 'backup')
+			temp_file_path.parent.mkdir(parents=True, exist_ok=True)
+			with contextlib.ExitStack() as exit_stack:
+				exit_stack.callback(functools.partial(self._remove_file, temp_file_path))
+				yield temp_file_path
+
+		def attempt_once(last_chance: bool = False) -> Generator[Any, Any, schema.Blob]:
 			compress_method = self.config.backup.get_compress_method_from_size(st.st_size)
 			can_copy_on_write = (
 					file_utils.HAS_COPY_FILE_RANGE and
@@ -198,22 +213,25 @@ class CreateBackupAction(CreateBackupActionBase):
 			policy: Optional[_BlobCreatePolicy] = None
 			blob_hash: Optional[str] = None
 			blob_content: Optional[bytes] = None
-			if st.st_size < _READ_ALL_SIZE_THRESHOLD:
+			raw_size: Optional[int] = None
+			stored_size: Optional[int] = None
+
+			if last_chance:
+				policy = _BlobCreatePolicy.copy_hash
+			elif st.st_size <= _READ_ALL_SIZE_THRESHOLD:
 				policy = _BlobCreatePolicy.read_all
 				with open(src_path, 'rb') as f:
 					blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
-				if len(blob_content) != st.st_size:
-					self.logger.warning('File size mismatch, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
+				if len(blob_content) > _READ_ALL_SIZE_THRESHOLD:
+					self.logger.warning('Read too many bytes for read_all policy, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					raise _BlobFileChanged()
 				blob_hash = hash_utils.calc_bytes_hash(blob_content)
 			elif not can_copy_on_write and st.st_size > _HASH_ONCE_SIZE_THRESHOLD:
 				can_hash_once = self.__blob_by_size_cache.get(st.st_size, False) is False
 				if can_hash_once:
 					# noinspection PyTypeChecker
-					rsp: BlobBySizeFetcher.Rsp = yield BlobBySizeFetcher.Req(st.st_size)
-					if rsp.exists:
-						self.__blob_by_size_cache[st.st_size] = rsp.exists
-					can_hash_once = not rsp.exists and self.__blob_by_size_cache.get(st.st_size, False) is False
+					yield BlobBySizeFetcher.Req(st.st_size)
+					can_hash_once = self.__blob_by_size_cache.get(st.st_size, False) is False
 				if can_hash_once:
 					# it's certain that this blob is unique, but notes: the following code
 					# cannot be interrupted (yield), or other generator could make a same blob
@@ -225,25 +243,16 @@ class CreateBackupAction(CreateBackupActionBase):
 			# self.logger.info("%s %s %s", policy.name, compress_method.name, src_path)
 			if blob_hash is not None:
 				misc_utils.assert_true(policy != _BlobCreatePolicy.hash_once, 'unexpected policy')
-				cache = self.__blob_by_hash_cache.get(blob_hash)
-				if cache is not None:
+
+				if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
 					return cache
-
-				# self.logger.info('query %s %s', blob_hash, src_path)
-				# noinspection PyTypeChecker
-				rsp: BlobByHashFetcher.Rsp = yield BlobByHashFetcher.Req(blob_hash)
-				# self.logger.info('get   %s %s %s', blob_hash, src_path, rsp)
-				if rsp.blob is not None:
-					self.__blob_by_hash_cache[blob_hash] = rsp.blob
-					return rsp.blob
-
-				# other generators might just create the blob
-				cache = self.__blob_by_hash_cache.get(blob_hash)
-				if cache is not None:
+				yield BlobByHashFetcher.Req(blob_hash)
+				if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
 					return cache
 
 			# notes: the following code cannot be interrupted (yield).
 			# The blob is specifically generated by the generator
+			# if any yield is done, ensure to check __blob_by_hash_cache again
 
 			def check_changes(new_size: int, new_hash: Optional[str]):
 				if new_size != st.st_size:
@@ -258,57 +267,78 @@ class CreateBackupAction(CreateBackupActionBase):
 				self._add_remove_file_rollbacker(bp)
 				return bp
 
-			stored_size = None
 			compressor = Compressor.create(compress_method)
-			if policy == _BlobCreatePolicy.hash_once:
+			if policy == _BlobCreatePolicy.copy_hash:
+				# copy to temp file, calc hash, then compress to blob store
+				misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
+				with make_temp_file() as temp_file_path:
+					file_utils.copy_file_fast(src_path, temp_file_path)
+					blob_hash = hash_utils.calc_file_hash(temp_file_path)
+
+					misc_utils.assert_true(last_chance, 'only last_chance=True can use do hash_once without checking uniqueness')
+					if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
+						return cache
+					yield BlobByHashFetcher.Req(blob_hash)
+					if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
+						return cache
+
+					blob_path = bp_rba(blob_hash)
+					cr = compressor.copy_compressed(temp_file_path, blob_path, calc_hash=False)
+					raw_size, stored_size = cr.read_size, cr.write_size
+
+			elif policy == _BlobCreatePolicy.hash_once:
 				# read once, compress+hash to temp file, then move
-				temp_file_path = self.config.storage_path / 'temp' / '{}.tmp'.format(threading.current_thread().ident or 'backup')
-				temp_file_path.parent.mkdir(parents=True, exist_ok=True)
-
-				with contextlib.ExitStack() as exit_stack:
-					exit_stack.callback(functools.partial(self._remove_file, temp_file_path))
-
+				misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
+				with make_temp_file() as temp_file_path:
 					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True)
-					check_changes(cr.read_size, None)
+					check_changes(cr.read_size, None)  # the size must be unchanged, to satisfy the uniqueness
 
-					blob_hash, stored_size = cr.read_hash, cr.write_size
+					raw_size, blob_hash, stored_size = cr.read_size, cr.read_hash, cr.write_size
 					blob_path = bp_rba(blob_hash)
 					os.rename(temp_file_path, blob_path)
-			else:  # hash already calculated
+
+			else:
 				misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
 				blob_path = bp_rba(blob_hash)
 
 				if policy == _BlobCreatePolicy.read_all:
-					# the file content is already in memory, no need to read
+					# the file content is already in memory, just write+compress to blob store
 					misc_utils.assert_true(blob_content is not None, 'blob_content is None')
-					with compressor.open_compressed(blob_path) as f:
+					with compressor.open_compressed_bypassed(blob_path) as (writer, f):
 						f.write(blob_content)
-						stored_size = len(blob_content)
+					raw_size, stored_size = len(blob_content), writer.get_write_len()
 				elif policy == _BlobCreatePolicy.default:
 					if can_copy_on_write and compress_method == CompressMethod.plain:
-						# fast copy + hash again might be faster than simple copy+hash
+						# fast copy, then calc size and hash to verify
 						file_utils.copy_file_fast(src_path, blob_path)
-						stored_size, new_hash = hash_utils.calc_file_size_and_hash(blob_path)
-						check_changes(stored_size, new_hash)
+						stored_size, h2 = hash_utils.calc_file_size_and_hash(blob_path)
+						raw_size = stored_size
+						check_changes(stored_size, h2)
 					else:
+						# copy+compress+hash to blob store
 						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True)
-						stored_size = cr.write_size
+						raw_size, stored_size = cr.read_size, cr.write_size
 						check_changes(cr.read_size, cr.read_hash)
 				else:
 					raise AssertionError()
 
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
+			misc_utils.assert_true(raw_size is not None, 'stored_size is None')
 			misc_utils.assert_true(stored_size is not None, 'stored_size is None')
 			return self._create_blob(
 				session,
 				hash=blob_hash,
 				compress=compress_method.name,
-				raw_size=st.st_size,
+				raw_size=raw_size,
 				stored_size=stored_size,
 			)
 
+		src_path_str = repr(str(src_path.as_posix()))
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
-			gen = attempt_once()
+			last_chance = i == _BLOB_FILE_CHANGED_RETRY_COUNT - 1
+			if i > 0:
+				self.logger.warning('Try to create blob {} (attempt {} / {})'.format(src_path_str, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
+			gen = attempt_once(last_chance=last_chance)
 			try:
 				query = gen.send(None)
 				while True:
@@ -320,11 +350,11 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.__blob_by_hash_cache[blob.hash] = blob
 				return blob, st
 			except _BlobFileChanged:
-				self.logger.warning('Blob {} stat has changed, retrying (attempt {} / {})'.format(src_path, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
+				self.logger.warning('Blob {} stat has changed, {}'.format(src_path_str, 'no more retry' if last_chance else 'retrying'))
 				st = src_path.stat()
 
-		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(src_path))
-		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path))
+		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(src_path_str))
+		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path_str))
 
 	def __create_file(self, session: DbSession, backup: schema.Backup, path: Path) -> Generator[Any, Any, schema.File]:
 		related_path = path.relative_to(self.config.source_path)
@@ -341,7 +371,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					query = gen.send(result)
 			except StopIteration as e:
 				blob, st = e.value
-				# notes: st.st_size might be incorrect, use blob.size instead
+				# notes: st.st_size might be incorrect, use blob.raw_size instead
 		elif stat.S_ISDIR(st.st_mode):
 			pass
 		elif stat.S_ISLNK(st.st_mode):
@@ -371,7 +401,7 @@ class CreateBackupAction(CreateBackupActionBase):
 
 		try:
 			with DbAccess.open_session() as session:
-				self.__batch_query_manager = BatchQueryManager(session)
+				self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache)
 
 				backup = session.create_backup(
 					author=str(self.author),
@@ -405,8 +435,10 @@ class CreateBackupAction(CreateBackupActionBase):
 
 				info = BackupInfo.of(backup)
 
-			s = self._summarize_new_blobs()
-			self.logger.info('Create backup #{} done, +{} blobs (size {} / {})'.format(info.id, s.count, ByteCount(s.stored_size), ByteCount(s.raw_size)))
+			s = self.get_new_blobs_summary()
+			self.logger.info('Create backup #{} done, +{} blobs (size {} / {})'.format(
+				info.id, s.count, ByteCount(s.stored_size).auto_str(), ByteCount(s.raw_size).auto_str(),
+			))
 			return info
 
 		except Exception as e:

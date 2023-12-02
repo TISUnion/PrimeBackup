@@ -9,7 +9,6 @@ from prime_backup.action.import_backup_action import ImportBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.db.access import DbAccess
 from prime_backup.types.operator import Operator
-from prime_backup.types.tar_format import TarFormat
 
 
 # @memory_profiler.profile
@@ -42,21 +41,22 @@ def main():
 	def export():
 		t = time.time()
 
-		ExportBackupActions.to_tar(backup_id, Path('export.tar'), TarFormat.plain).run()
+		# ExportBackupActions.to_tar(backup_id, Path('export.tar'), TarFormat.plain).run()
 		# ExportBackupActions.to_tar(backup_id, Path('export.tar.gz'), TarFormat.gzip).run()
 		# ExportBackupActions.to_tar(backup_id, Path('export.tar.zst'), TarFormat.zstd).run()
 		# ExportBackupActions.to_tar(backup_id, Path('export.tar.xz'), TarFormat.lzma).run()
 		# ExportBackupActions.to_zip(backup_id, Path('export.zip')).run()
-		# ExportBackupActions.to_dir(bka.backup_id, Path('export'), True).run()
+		ExportBackupActions.to_dir(backup_id, Path('export'), True).run()
 
 		print('cost', round(time.time() - t, 2), 's')
 
 	def import_():
 		t = time.time()
-		ImportBackupAction(Path('export.tar')).run()
-		# ImportBackupAction(Path('export.zip')).run()
+		# bi = ImportBackupAction(Path('export.tar')).run()
+		bi = ImportBackupAction(Path('export.zip')).run()
 		print('cost', round(time.time() - t, 2), 's')
-		t = time.time()
+		nonlocal backup_id
+		backup_id = bi.id
 
 	def delete():
 		t = time.time()
@@ -69,9 +69,9 @@ def main():
 			print(backup)
 		print('cost', round(time.time() - t, 2), 's')
 
-	# create(1)
-	import_()
-	list_()
+	create(2)
+	# import_()
+	# list_()
 	# export()
 	# delete()
 

@@ -64,7 +64,7 @@ class DeleteOrphanBlobsAction(Action):
 		summary = trash_bin.make_summary()
 		trash_bin.erase_all()
 		self.logger.info('Delete blobs done, erasing blobs (count {}, size {} / {})'.format(
-			summary.count, ByteCount(summary.stored_size_sum), ByteCount(summary.raw_size_sum),
+			summary.count, ByteCount(summary.stored_size_sum).auto_str(), ByteCount(summary.raw_size_sum).auto_str(),
 		))
 
 

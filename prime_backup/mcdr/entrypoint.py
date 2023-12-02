@@ -20,9 +20,13 @@ mcdr_globals.load()
 init_ok = False
 
 
-def check_config(server: PluginServerInterface):
+def __check_config(server: PluginServerInterface):
 	if (cm := config.backup.compress_method) == CompressMethod.lzma:
 		server.logger.warning('WARN: Using {} as the compress method might significantly increase the backup time'.format(cm.name))
+
+
+def is_enabled() -> bool:
+	return config.enabled
 
 
 def on_load(server: PluginServerInterface, old):
@@ -30,9 +34,9 @@ def on_load(server: PluginServerInterface, old):
 	try:
 		config = server.load_config_simple(target_class=Config)
 		set_config_instance(config)
-		check_config(server)
-
-		# TODO: respect config.enabled
+		__check_config(server)
+		if not is_enabled():
+			return
 
 		DbAccess.init()
 		task_manager = TaskManager()
@@ -49,7 +53,7 @@ def on_load(server: PluginServerInterface, old):
 		raise
 	else:
 		global init_ok
-		init_ok = True
+		init_ok = is_enabled()
 
 
 def on_unload(server: PluginServerInterface):

@@ -1,5 +1,6 @@
+import contextlib
 import time
-from typing import Optional, Sequence, Dict
+from typing import Optional, Sequence, Dict, ContextManager
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select
@@ -30,8 +31,16 @@ class DbSession:
 
 	# ========================= General Database Operations =========================
 
+	def add(self, obj: schema.Base):
+		self.session.add(obj)
+
 	def flush(self):
 		self.session.flush()
+
+	@contextlib.contextmanager
+	def no_auto_flush(self) -> ContextManager[None]:
+		with self.session.no_autoflush:
+			yield
 
 	# ===================================== Blob =====================================
 
@@ -86,8 +95,8 @@ class DbSession:
 
 	# ===================================== File =====================================
 
-	def create_file(self, **kwargs) -> schema.File:
-		if (blob := kwargs.pop('blob')) is not None:
+	def create_file(self, *, add_to_session: bool = True, blob: Optional[schema.Blob] = None, **kwargs) -> schema.File:
+		if blob is not None:
 			kwargs |= dict(
 				blob_hash=blob.hash,
 				blob_compress=blob.compress,
@@ -95,7 +104,8 @@ class DbSession:
 				blob_stored_size=blob.stored_size,
 			)
 		file = schema.File(**kwargs)
-		self.session.add(file)
+		if add_to_session:
+			self.session.add(file)
 		return file
 
 	def delete_file(self, file: schema.File):
@@ -109,11 +119,13 @@ class DbSession:
 	# ==================================== Backup ====================================
 
 	def create_backup(self, **kwargs) -> schema.Backup:
+		"""
+		Notes: the backup id is not generated yet. Invoke :meth:`flush` to generate the backup id
+		"""
 		if 'timestamp' not in kwargs:
 			kwargs['timestamp'] = time.time_ns()
 		backup = schema.Backup(**kwargs)
 		self.session.add(backup)
-		self.session.flush()  # so the backup id populates
 		return backup
 
 	def get_backup_opt(self, backup_id: int) -> Optional[schema.Backup]:

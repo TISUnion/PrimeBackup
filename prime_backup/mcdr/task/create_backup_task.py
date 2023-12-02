@@ -52,7 +52,8 @@ class CreateBackupTask(OperationTask):
 				TextComponents.backup_size(backup),
 			))
 		except Exception as e:
-			self.broadcast(self.tr('failed', e))
+			err_str = str(e)
+			self.broadcast(self.tr('failed', err_str[:128] + ('...' if len(err_str) > 128 else '')))
 			raise
 		finally:
 			if self.config.server.turn_off_auto_save and len(cmds.auto_save_on) > 0:

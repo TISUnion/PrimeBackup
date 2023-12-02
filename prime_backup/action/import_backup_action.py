@@ -273,7 +273,7 @@ class ImportBackupAction(CreateBackupActionBase):
 
 	def __import_member(
 			self, session: DbSession,
-			member: PackedBackupFileHandler.Member, backup: schema.Backup, now_ns: int,
+			member: PackedBackupFileHandler.Member, now_ns: int,
 			file_sah: Optional[SizeAndHash],
 	):
 		blob: Optional[schema.Blob] = None
@@ -293,7 +293,6 @@ class ImportBackupAction(CreateBackupActionBase):
 
 		mtime_ns = member.mtime_ns
 		return session.create_file(
-			backup_id=backup.id,
 			path=self.__format_path(member.path),
 			content=content,
 
@@ -304,6 +303,7 @@ class ImportBackupAction(CreateBackupActionBase):
 			mtime_ns=mtime_ns,
 			atime_ns=mtime_ns,
 
+			add_to_session=False,
 			blob=blob,
 		)
 
@@ -356,9 +356,15 @@ class ImportBackupAction(CreateBackupActionBase):
 		for h, blob in blobs.items():
 			self.__blob_cache[h] = blob
 
+		files = []
 		blob_utils.prepare_blob_directories()
 		for i, member in enumerate(members):
-			self.__import_member(session, member, backup, now_ns, sah_dict.get(i))
+			files.append(self.__import_member(session, member, now_ns, sah_dict.get(i)))
+
+		session.flush()  # generate backup id
+		for file in files:
+			file.backup_id = backup.id
+			session.add(file)
 
 		return backup
 

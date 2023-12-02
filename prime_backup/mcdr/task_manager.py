@@ -51,13 +51,13 @@ class ThreadedWorker:
 
 				holder.task.run()
 			except BackupNotFound as e:
-				holder.source.reply(tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
+				reply_message(holder.source, tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
 			except Exception as e:
 				self.logger.exception('Task {} run error'.format(holder.task))
 				if isinstance(e, OperationalError) and isinstance(e.orig, sqlite3.OperationalError) and str(e.orig) == 'database is locked':
-					holder.source.reply(tr('error.db_locked', holder.task_name()).set_color(RColor.red))
+					reply_message(holder.source, tr('error.db_locked', holder.task_name()).set_color(RColor.red))
 				else:
-					holder.source.reply(tr('error.generic', holder.task_name()).set_color(RColor.red))
+					reply_message(holder.source, tr('error.generic', holder.task_name()).set_color(RColor.red))
 			finally:
 				self.task_queue.task_done()
 		self.logger.info('Worker %s stops', self.name)

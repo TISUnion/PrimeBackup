@@ -24,7 +24,10 @@ class TextComponents:
 
 	@classmethod
 	def percent(cls, value: float, total: float) -> RTextBase:
-		return RText(f'{100 * value / total:.1f}%', RColor.blue)
+		if total != 0:
+			return RText(f'{100 * value / total:.1f}%', RColor.blue)
+		else:
+			return RText('N/A', RColor.gray)
 
 	@classmethod
 	def title(cls, text: Any):

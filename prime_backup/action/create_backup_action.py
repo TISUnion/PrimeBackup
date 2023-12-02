@@ -356,7 +356,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(src_path_str))
 		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path_str))
 
-	def __create_file(self, session: DbSession, backup: schema.Backup, path: Path) -> Generator[Any, Any, schema.File]:
+	def __create_file(self, session: DbSession, path: Path) -> Generator[Any, Any, schema.File]:
 		related_path = path.relative_to(self.config.source_path)
 		st = path.stat()
 
@@ -380,7 +380,6 @@ class CreateBackupAction(CreateBackupActionBase):
 			raise NotImplementedError('unsupported yet')
 
 		return session.create_file(
-			backup_id=backup.id,
 			path=str(related_path.as_posix()),
 			content=content,
 
@@ -391,6 +390,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			mtime_ns=st.st_mtime_ns,
 			atime_ns=st.st_atime_ns,
 
+			add_to_session=False,
 			blob=blob,
 		)
 
@@ -403,7 +403,6 @@ class CreateBackupAction(CreateBackupActionBase):
 			with DbAccess.open_session() as session:
 				self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache)
 
-				# TODO: generate the backup id as late as possible, since it will flush here, holding the write lock for too long
 				backup = session.create_backup(
 					author=str(self.author),
 					comment=self.comment,
@@ -417,22 +416,30 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.__blob_store_st = bs_path.stat()
 				self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
 
+				files = []
 				schedule_queue: Deque[Tuple[Generator, Any]] = collections.deque()
-				for f in self.scan_files():
-					schedule_queue.append((self.__create_file(session, backup, f), None))
+				for file_path in self.scan_files():
+					schedule_queue.append((self.__create_file(session, file_path), None))
 				while len(schedule_queue) > 0:
 					gen, value = schedule_queue.popleft()
 
-					with contextlib.suppress(StopIteration):
+					try:
 						def callback(v, g=gen):
 							schedule_queue.appendleft((g, v))
 
 						query = gen.send(value)
 						self.__batch_query_manager.query(query, callback)
+					except StopIteration as e:
+						files.append(misc_utils.ensure_type(e.value, schema.File))
 
 					self.__batch_query_manager.flush_if_needed()
 					if len(schedule_queue) == 0:
 						self.__batch_query_manager.flush()
+
+				session.flush()  # generate backup id
+				for file in files:
+					file.backup_id = backup.id
+					session.add(file)
 
 				info = BackupInfo.of(backup)
 

@@ -82,7 +82,7 @@ class PruneBackupTask(OperationTask):
 	@contextlib.contextmanager
 	def open_prune_logger(self) -> ContextManager[logging.Logger]:
 		logger = logging.Logger(f'{constants.PLUGIN_ID}-prune')
-		logger.setLevel(logging.INFO)
+		logger.setLevel(logging.DEBUG if self.config.debug else logging.INFO)
 		handler = logging.FileHandler(self.config.storage_path / 'logs' / 'prune.log')
 		handler.setFormatter(logging.Formatter('[%(asctime)s %(levelname)s] (%(funcName)s) %(message)s'))
 		logger.addHandler(handler)
@@ -119,16 +119,16 @@ class PruneBackupTask(OperationTask):
 				bucket = bucket_mapper(backup)
 				if bucket in already_included:
 					existed = already_included[bucket]
-					fallback_marks[backup.id] = fallback_marks.get(backup.id) or PruneMark.create_remove(f'superseded by {existed.id}')
+					fallback_marks[backup.id] = fallback_marks.get(backup.id) or PruneMark.create_remove(f'superseded by {existed.id} ({policy})')
 					continue
 				if bucket in handled_buckets:
 					existed = handled_buckets[bucket]
-					marks[backup.id] = PruneMark.create_remove(f'superseded by {existed.id}')
+					marks[backup.id] = PruneMark.create_remove(f'superseded by {existed.id} ({policy})')
 				else:
 					if 0 <= limit <= len(handled_buckets):
 						break
 					handled_buckets[bucket] = backup
-					marks[backup.id] = PruneMark.create_keep(f'{policy} {len(handled_buckets)}')
+					marks[backup.id] = PruneMark.create_keep(f'keep {policy} {len(handled_buckets)}')
 
 		def create_time_str_func(fmt: str):
 			def func(backup: BackupInfo):
@@ -185,15 +185,23 @@ class PruneBackupTask(OperationTask):
 				timezone = None
 
 		result = self.calc_prune_backups(backups, self.setting, timezone=timezone)
+		for pri in result:
+			misc_utils.assert_true(pri.backup.id in backup_ids, lambda: 'unexpected backup id {}, {}'.format(pri.backup.id, backup_ids))
 
+		bls = BlobListSummary.zero()
+		cnt = 0
 		with self.open_prune_logger() as prune_logger:
 			prune_logger.info('Prune started')
-			to_deleted_ids = []
+			to_deleted_ids = [pri.backup.id for pri in result if not pri.mark.keep]
+			if len(to_deleted_ids) == 0:
+				self.reply(self.tr('nothing_to_prune'))
+				prune_logger.info('Nothing to prune')
+				return cnt, bls
+
+			prune_logger.info('============== Prune calculate result start ==============')
 			for pri in result:
-				misc_utils.assert_true(pri.backup.id in backup_ids, lambda: 'unexpected backup id {}, {}'.format(pri.backup.id, backup_ids))
-				if not pri.mark.keep:
-					to_deleted_ids.append(pri.backup.id)
 				prune_logger.info('Backup #{} at {}: keep={} reason={}'.format(pri.backup.id, pri.backup.date_str, pri.mark.keep, pri.mark.reason))
+			prune_logger.info('============== Prune calculate result end ==============')
 
 			self.reply(self.tr(
 				'list_to_be_pruned',
@@ -205,24 +213,23 @@ class PruneBackupTask(OperationTask):
 				),
 			))
 
-			bls = BlobListSummary.zero()
-			cnt = 0
 			for pri in result:
+				bid = pri.backup.id
 				if self.is_aborted.is_set():
 					self.reply(self.tr('aborted'))
 					break
 				if not pri.mark.keep:
-					self.reply(self.tr('prune', TextComponents.backup_id(pri.backup.id, hover=False, click=False)))
+					self.reply(self.tr('prune', TextComponents.backup_id(bid, hover=False, click=False)))
 					try:
-						dr = DeleteBackupAction(pri.backup.id).run()
+						dr = DeleteBackupAction(bid).run()
 					except Exception as e:
 						if isinstance(e, BackupNotFound):
-							prune_logger.error('Delete backup #%s resulting in BackupNotFound')
+							prune_logger.error('Delete backup #%s resulting in BackupNotFound', bid)
 						else:
-							prune_logger.exception('Delete backup #%s error')
+							prune_logger.exception('Delete backup #%s error', bid)
 							raise
 					else:
-						prune_logger.info('Delete backup #%s done')
+						prune_logger.info('Delete backup #%s done', bid)
 						bls = bls + dr.bls
 						cnt += 1
 			for logger in [self.logger, prune_logger]:
@@ -304,8 +311,8 @@ def __main():
 	date = datetime.datetime.now().replace(hour=0, minute=10, second=0, microsecond=0) - datetime.timedelta(hours=1)
 	for i in range(150):
 		add(date)
-		if i < 10:
-			date -= datetime.timedelta(minutes=30)
+		if i < 30:
+			date -= datetime.timedelta(minutes=10)
 		else:
 			date -= datetime.timedelta(hours=6)
 

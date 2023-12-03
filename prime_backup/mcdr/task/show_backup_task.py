@@ -27,4 +27,4 @@ class ShowBackupTask(ReaderTask):
 			for k, v in backup.tags.items():
 				self.reply(self.tr('tag.pair', k, v))
 		else:
-			self.reply(self.tr('tag.empty'))
+			self.reply(self.tr('tag.empty_title', self.tr('tag.empty').set_color(RColor.gray)))

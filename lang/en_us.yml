@@ -77,9 +77,10 @@ prime_backup:
       stored_size: 'Size (stored): {} ({})'
       raw_size: 'Size (raw): {}'
       author: 'Author: {}'
-      tag.empty: 'Tags: empty'
       tag.title: 'Tags (size={}):'
       tag.pair: '  {}: {}'
+      tag.empty_title: 'Tags: {}'
+      tag.empty: empty
     rename:
       name: rename backup
       modified: Modified the comment of backup {} to {}

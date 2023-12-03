@@ -26,7 +26,9 @@ class DbAccess:
 
 	@classmethod
 	def shutdown(cls):
-		pass  # no op for now
+		logger = db_logger.get()
+		for hdr in list(logger.handlers):
+			logger.removeHandler(hdr)
 
 	@classmethod
 	@contextlib.contextmanager

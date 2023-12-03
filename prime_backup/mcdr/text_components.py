@@ -153,7 +153,7 @@ class TextComponents:
 	@classmethod
 	def percent(cls, value: float, total: float) -> RTextBase:
 		if total != 0:
-			return RText(f'{100 * value / total:.1f}%', RColor.green)
+			return RText(f'{100 * value / total:.1f}%', RColor.dark_green)
 		else:
 			return RText('N/A', RColor.gray)
 

@@ -73,6 +73,7 @@ class ServerConfig(Serializable):
 class ScheduledBackupConfig(Serializable):
 	enabled: bool = False
 	interval: Duration = Duration('12h')
+	jitter: Duration = Duration('10s')
 	reset_timer_on_backup: bool = True
 
 
@@ -129,7 +130,8 @@ class PruneSetting(Serializable):
 
 
 class PruneConfig(Serializable):
-	interval: Duration = Duration('1h')
+	interval: Duration = Duration('3h')
+	jitter: Duration = Duration('10s')
 	timezone_override: Optional[str] = None
 	regular_backup: PruneSetting = PruneSetting()
 	pre_restore_backup: PruneSetting = PruneSetting(

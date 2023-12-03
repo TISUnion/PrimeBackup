@@ -1,3 +1,6 @@
+> [!CAUTION]
+> Still in early stages of development, expect unstable feature and breaking changes!
+
 # Prime Backup
 
 A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world

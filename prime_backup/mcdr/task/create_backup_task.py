@@ -28,17 +28,20 @@ class CreateBackupTask(OperationTask):
 		self.broadcast(self.tr('start'))
 
 		cmds = self.config.server.commands
-		if self.config.server.turn_off_auto_save and len(cmds.auto_save_off) > 0:
+		applied_auto_save_off = False
+		if self.server.is_server_running() and self.config.server.turn_off_auto_save and len(cmds.auto_save_off) > 0:
 			self.server.execute(cmds.auto_save_off)
+			applied_auto_save_off = True
 		try:
 			timer = Timer()
-			if len(cmds.save_all_worlds) > 0:
-				self.server.execute(cmds.save_all_worlds)
-			if len(self.config.server.saved_world_regex) > 0:
-				ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait.value)
-				if not ok:
-					self.broadcast(self.tr('abort.save_wait_time_out').set_color(RColor.red))
-					return
+			if self.server.is_server_running():
+				if len(cmds.save_all_worlds) > 0:
+					self.server.execute(cmds.save_all_worlds)
+				if len(self.config.server.saved_world_regex) > 0:
+					ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait.value)
+					if not ok:
+						self.broadcast(self.tr('abort.save_wait_time_out').set_color(RColor.red))
+						return
 			cost_save_wait = timer.get_and_restart()
 			if self.plugin_unload:
 				self.broadcast(self.tr('abort.unloaded').set_color(RColor.red))
@@ -68,7 +71,7 @@ class CreateBackupTask(OperationTask):
 			self.broadcast(self.tr('failed', err_str[:128] + ('...' if len(err_str) > 128 else '')))
 			raise
 		finally:
-			if self.config.server.turn_off_auto_save and len(cmds.auto_save_on) > 0:
+			if applied_auto_save_off and len(cmds.auto_save_on) > 0:
 				self.server.execute(cmds.auto_save_on)
 
 	def on_event(self, event: TaskEvent):

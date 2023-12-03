@@ -30,7 +30,7 @@ class ScheduledBackupJob(CrontabJob):
 		return CrontabJobId.scheduled_backup
 
 	def _create_trigger(self) -> BaseTrigger:
-		return IntervalTrigger(seconds=self.config.interval.value)
+		return IntervalTrigger(seconds=self.config.interval.value, jitter=self.config.jitter.value)
 
 	def run(self):
 		if not self.config.enabled:

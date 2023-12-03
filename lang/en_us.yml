@@ -97,22 +97,37 @@ prime_backup:
       aborted: Delete task aborted
       deleted: Deleted {}
       deleted.skipped: Skipped {} (missed)
-      done: Done, {} backups deleted
+      done: Done, {} backups deleted, freed {}
     export:
       name: export backup
       already_exists: File {} already exists
       exporting: Exporting backup {}
       exported: Exported backup {} to {}, cost {}, size {}
+    prune:
+      name: prune backups
+      list_to_be_pruned: 'Backups to be pruned (amount={}): {}'
+      prune: Pruning backup {}
+      aborted: Prune aborted
+      done: Finished pruning, removed {} backups, {} blobs, freed {}
+    prune_all:
+      name: prune all backups
+      nothing_to_do: No enabled prune jobs, no thing to do
+      what:
+        regular: regular backups
+        pre_restore: pre-restore backups
+      start: Start pruning {}
+      done: Finished pruning all backups, removed {} backups, {} blobs, freed {}
 
   job:
-    scheduled_backup:
-      comment: Scheduled Backup
-      triggered: Scheduled backup for every {} triggered
+    base:
       found_ongoing:
         skip: Found ongoing task, wait
         wait_retry: Found ongoing task, retry in {}s
       completed: Scheduled backup completed, next backup at {}
       completed_with_error: Scheduled backup completed with error, next backup at {}
+    scheduled_backup:
+      comment: Scheduled Backup
+      triggered: Scheduled backup for every {} triggered
       reset_on_backup: Detected backup, reset scheduler timer. Next backup at {}
     prune_backup:
 

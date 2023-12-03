@@ -78,7 +78,7 @@ class DeleteBackupRangeTask(OperationTask):
 				cnt += 1
 				bls = bls + dr.bls
 				self.reply(self.tr('deleted', TextComponents.backup_brief(dr.backup, backup_id_fancy=False)))
-		self.reply(self.tr('done', TextComponents.number(cnt)))
+		self.reply(self.tr('done', TextComponents.number(cnt), TextComponents.blob_list_summary_store_size(bls)))
 
 	def on_event(self, event: TaskEvent):
 		if event in [TaskEvent.plugin_unload, TaskEvent.operation_aborted]:

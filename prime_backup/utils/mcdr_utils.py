@@ -5,7 +5,6 @@ from mcdreforged.api.all import *
 
 from prime_backup import constants
 from prime_backup.config.config import Config
-from prime_backup.mcdr import mcdr_globals
 
 
 def tr(key: str, *args, **kwargs) -> RTextBase:
@@ -43,6 +42,7 @@ def reply_message(source: CommandSource, msg: Union[str, RTextBase], *, with_pre
 def broadcast_message(msg: Union[str, RTextBase], *, with_prefix: bool = True):
 	if with_prefix:
 		msg = RTextList(__make_message_prefix(), msg)
+	from prime_backup.mcdr import mcdr_globals
 	mcdr_globals.server.broadcast(msg)
 
 

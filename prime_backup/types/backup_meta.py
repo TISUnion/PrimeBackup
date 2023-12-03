@@ -1,7 +1,7 @@
 import time
 from typing import List, TYPE_CHECKING, Type, Any, Dict
 
-from mcdreforged.utils.serializer import Serializable
+from mcdreforged.api.all import Serializable
 from typing_extensions import Self
 
 from prime_backup.types.operator import Operator

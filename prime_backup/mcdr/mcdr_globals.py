@@ -18,7 +18,7 @@ def __init():
 		metadata = server.get_self_metadata()
 	else:
 		import os
-		warnings.warn('loading {} in an environment without MCDR running'.format(os.path.basename(__file__)))
+		warnings.warn('loading {} in an environment without MCDR running'.format(os.path.basename(__file__)), stacklevel=3)
 
 
 __init()

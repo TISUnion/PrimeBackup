@@ -10,6 +10,8 @@ from prime_backup.config.sub_configs import CommandConfig, ServerConfig, BackupC
 class Config(Serializable):
 	enabled: bool = True
 	debug: bool = False
+	storage_root: str = './pb_files'
+
 	command: CommandConfig = CommandConfig()
 	server: ServerConfig = ServerConfig()
 	backup: BackupConfig = BackupConfig()
@@ -29,7 +31,7 @@ class Config(Serializable):
 
 	@functools.cached_property
 	def storage_path(self) -> Path:
-		return Path(self.backup.storage_root)
+		return Path(self.storage_root)
 
 	@functools.cached_property
 	def source_path(self) -> Path:

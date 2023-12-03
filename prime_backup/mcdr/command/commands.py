@@ -3,7 +3,6 @@ from typing import List, Callable
 
 from mcdreforged.api.all import *
 
-from prime_backup import constants
 from prime_backup.config.config import Config
 from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode
 from prime_backup.mcdr.crontab_job import CrontabJobEvent
@@ -13,6 +12,7 @@ from prime_backup.mcdr.task.delete_backup_range_task import DeleteBackupRangeTas
 from prime_backup.mcdr.task.delete_backup_task import DeleteBackupTask
 from prime_backup.mcdr.task.export_backup_task import ExportBackupTask, ExportBackupFormat
 from prime_backup.mcdr.task.list_backup_task import ListBackupTask
+from prime_backup.mcdr.task.prune_backup_task import PruneAllBackupTask
 from prime_backup.mcdr.task.rename_backup_task import RenameBackupTask
 from prime_backup.mcdr.task.restore_backup_task import RestoreBackupTask
 from prime_backup.mcdr.task.show_backup_task import ShowBackupTask
@@ -102,6 +102,9 @@ class CommandManager:
 		backup_id = context.get('backup_id')
 		self.task_manager.add_task(RestoreBackupTask(source, backup_id, skip_confirm=skip_confirm))
 
+	def cmd_prune(self, source: CommandSource, context: CommandContext):
+		self.task_manager.add_task(PruneAllBackupTask(source))
+
 	def cmd_confirm(self, source: CommandSource, context: CommandContext):
 		if not self.task_manager.do_confirm():
 			reply_message(source, tr('command.confirm.noop'))
@@ -117,7 +120,7 @@ class CommandManager:
 		permissions = self.config.command.permission
 
 		def get_permission_checker(literal: str) -> Callable[[CommandSource], bool]:
-			return functools.partial(CommandSource.has_permission, level=permissions.get(literal, constants.DEFAULT_COMMAND_PERMISSION_LEVEL))
+			return functools.partial(CommandSource.has_permission, level=permissions.get(literal))
 
 		def get_permission_denied_text():
 			return tr('error.permission_denied').set_color(RColor.red)
@@ -141,6 +144,7 @@ class CommandManager:
 		builder.command('delete_range <backup_id_range>', self.cmd_delete_range)
 		builder.command('export <backup_id>', self.cmd_export)
 		builder.command('export <backup_id> <export_format>', self.cmd_export)
+		builder.command('prune', self.cmd_prune)
 		builder.command('confirm', self.cmd_confirm)
 		builder.command('abort', self.cmd_abort)
 

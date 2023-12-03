@@ -4,6 +4,7 @@ psutil
 xxhash
 SQLAlchemy>=2
 APScheduler>=3
+pytz
 
 # compress
 zstandard

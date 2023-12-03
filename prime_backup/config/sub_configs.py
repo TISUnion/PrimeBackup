@@ -1,30 +1,42 @@
 import functools
 import re
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import List, Any, Optional
 
+import pytz
 from mcdreforged.api.utils import Serializable
 
+from prime_backup import constants
 from prime_backup.compressors import CompressMethod
 from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.units import Duration
 
 
+class CommandPermissions(Serializable):
+	abort: int = 1
+	back: int = 2
+	confirm: int = 1
+	delete: int = 2
+	delete_range: int = 3
+	export: int = 3
+	list: int = 1
+	make: int = 1
+	prune: int = 3
+	rename: int = 2
+	show: int = 1
+
+	def get(self, literal: str) -> int:
+		if literal.startswith('_'):
+			raise KeyError(literal)
+		return getattr(self, literal, constants.DEFAULT_COMMAND_PERMISSION_LEVEL)
+
+	def items(self):
+		return self.serialize().items()
+
+
 class CommandConfig(Serializable):
 	prefix: str = '!!pb'
-	permission: Dict[str, int] = {
-		'list': 1,
-		'make': 1,
-		'back': 2,
-		'show': 1,
-		'del': 2,
-		'delete': 2,
-		'delete_range': 3,
-		'export': 3,
-		'rename': 2,
-		'confirm': 1,
-		'abort': 1,
-	}
+	permission: CommandPermissions = CommandPermissions()
 	confirm_time_wait: Duration = Duration('60s')
 	backup_on_restore: bool = True
 	restore_countdown_sec: int = 10
@@ -65,7 +77,6 @@ class ScheduledBackupConfig(Serializable):
 
 
 class BackupConfig(Serializable):
-	storage_root: str = './pb_files'
 	source_root: str = './server'
 	targets: List[str] = [
 		'world',
@@ -76,11 +87,6 @@ class BackupConfig(Serializable):
 	hash_method: HashMethod = HashMethod.xxh128
 	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 64
-
-	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
-		if attr_name == 'compress_method':
-			if attr_value not in CompressMethod:
-				raise ValueError('bad compress method {!r}'.format(attr_value))
 
 	def get_compress_method_from_size(self, file_size: int) -> CompressMethod:
 		if file_size < self.compress_threshold:
@@ -105,7 +111,7 @@ class BackupConfig(Serializable):
 		return False
 
 
-class PrunePolicy(Serializable):
+class PruneSetting(Serializable):
 	enabled: bool = False
 
 	max_amount: int = 0
@@ -113,7 +119,8 @@ class PrunePolicy(Serializable):
 
 	# https://pve.proxmox.com/wiki/Backup_and_Restore#vzdump_retention
 	# https://pbs.proxmox.com/docs/prune-simulator/
-	last: int = 0
+	# -1 means infinity
+	last: int = -1
 	hour: int = 0
 	day: int = 0
 	week: int = 0
@@ -122,7 +129,18 @@ class PrunePolicy(Serializable):
 
 
 class PruneConfig(Serializable):
-	check_interval: Duration = Duration('1h')
-	regular_backup: PrunePolicy = PrunePolicy()
-	pre_restore_backup: PrunePolicy = PrunePolicy(max_amount=10, max_lifetime=Duration('30d'))
+	interval: Duration = Duration('1h')
+	timezone_override: Optional[str] = None
+	regular_backup: PruneSetting = PruneSetting()
+	pre_restore_backup: PruneSetting = PruneSetting(
+		enabled=True,
+		max_amount=10,
+		max_lifetime=Duration('30d'),
+	)
 
+	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
+		if attr_name == 'timezone_override' and attr_value is not None:
+			try:
+				pytz.timezone(attr_value)
+			except pytz.UnknownTimeZoneError as e:
+				raise ValueError('bad timezone {!r}: {}'.format(attr_value, e))

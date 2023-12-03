@@ -14,8 +14,9 @@ class BackupTagValueType:
 
 class BackupTagName(enum.Enum):
 	# name -> type
-	pre_restore_backup = BackupTagValueType(bool)
 	hidden = BackupTagValueType(bool)
+	pre_restore_backup = BackupTagValueType(bool)
+	protected = BackupTagValueType(bool)
 
 
 def __check_backup_tag_keys():
@@ -58,3 +59,6 @@ class BackupTags:
 
 	def is_backup_before_restore(self) -> bool:
 		return self.get(BackupTagName.pre_restore_backup) is True
+
+	def is_protected(self) -> bool:
+		return self.get(BackupTagName.protected) is True

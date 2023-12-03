@@ -11,8 +11,7 @@ from prime_backup.action.list_backup_action import ListBackupIdAction
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import ReaderTask, TaskEvent
 from prime_backup.mcdr.text_components import TextComponents
-from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
-from prime_backup.types.backup_tags import BackupTagName
+from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils import conversion_utils
 from prime_backup.utils.mcdr_utils import mkcmd
 
@@ -29,7 +28,7 @@ class ListBackupTask(ReaderTask):
 		self.is_aborted = threading.Event()
 
 		if not self.show_all:
-			self.backup_filter.tag_filters.append(BackupTagFilter(BackupTagName.pre_restore_backup, True, BackupTagFilter.Policy.not_equals))
+			self.backup_filter.filter_non_pre_restore_backup()
 
 	@property
 	def name(self) -> str:

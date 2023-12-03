@@ -10,7 +10,7 @@ from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.mcdr.task import TaskEvent, OperationTask
 from prime_backup.mcdr.text_components import TextComponents
-from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
+from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags, BackupTagName
 from prime_backup.types.operator import Operator
@@ -60,7 +60,7 @@ class RestoreBackupTask(OperationTask):
 	def run(self):
 		if self.backup_id is None:
 			backup_filter = BackupFilter()
-			backup_filter.tag_filters.append(BackupTagFilter(BackupTagName.pre_restore_backup, True, BackupTagFilter.Policy.not_equals))
+			backup_filter.filter_non_pre_restore_backup()
 			candidates = ListBackupAction(backup_filter=backup_filter, limit=1).run()
 			if len(candidates) == 0:
 				self.reply(self.tr('no_backup'))

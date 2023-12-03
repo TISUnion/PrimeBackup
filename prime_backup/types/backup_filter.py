@@ -27,3 +27,11 @@ class BackupFilter:
 	timestamp_start: Optional[int] = None
 	timestamp_end: Optional[int] = None
 	tag_filters: List[BackupTagFilter] = dataclasses.field(default_factory=list)
+
+	def filter_pre_restore_backup(self) -> 'BackupFilter':
+		self.tag_filters.append(BackupTagFilter(BackupTagName.pre_restore_backup, True, BackupTagFilter.Policy.equals))
+		return self
+
+	def filter_non_pre_restore_backup(self) -> 'BackupFilter':
+		self.tag_filters.append(BackupTagFilter(BackupTagName.pre_restore_backup, True, BackupTagFilter.Policy.not_equals))
+		return self

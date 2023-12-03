@@ -33,7 +33,7 @@ def is_enabled() -> bool:
 def on_load(server: PluginServerInterface, old):
 	global config, task_manager, command_manager, crontab_manager
 	try:
-		config = server.load_config_simple(target_class=Config)
+		config = server.load_config_simple(target_class=Config, failure_policy='raise')
 		set_config_instance(config)
 		__check_config(server)
 		if not is_enabled():

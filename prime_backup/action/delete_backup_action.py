@@ -21,16 +21,18 @@ class BlobTrashBin(List[BlobInfo]):
 
 
 class DeleteOrphanBlobsAction(Action):
-	def __init__(self, blob_hash_to_check: Optional[List[str]]):
+	def __init__(self, blob_hash_to_check: Optional[List[str]], quiet: bool = False):
 		super().__init__()
 		self.blob_hash_to_check = blob_hash_to_check
 		if self.blob_hash_to_check is not None:
 			self.blob_hash_to_check = collection_utils.deduplicated_list(self.blob_hash_to_check)
+		self.quiet = quiet
 
 	def run(self) -> BlobListSummary:
 		trash_bin = BlobTrashBin()
 
-		self.logger.info('Delete blobs start')
+		if not self.quiet:
+			self.logger.info('Delete orphan blobs start')
 		with DbAccess.open_session() as session:
 			if self.blob_hash_to_check is None:
 				hashes = session.get_all_blob_hashes()
@@ -39,7 +41,6 @@ class DeleteOrphanBlobsAction(Action):
 
 			orphan_blob_hashes = session.filtered_orphan_blob_hashes(hashes)
 			orphan_blobs = session.get_blobs(orphan_blob_hashes)
-			self.logger.info('Collected %s orphan blob', len(orphan_blobs))
 
 			for blob in orphan_blobs.values():
 				trash_bin.append(BlobInfo.of(blob))
@@ -47,9 +48,10 @@ class DeleteOrphanBlobsAction(Action):
 
 		s = trash_bin.make_summary()
 		trash_bin.erase_all()
-		self.logger.info('Delete orphan blobs done, erasing blobs (count {}, size {} / {})'.format(
-			s.count, ByteCount(s.stored_size).auto_str(), ByteCount(s.raw_size).auto_str(),
-		))
+		if not self.quiet:
+			self.logger.info('Delete orphan blobs done, erasing blobs (count {}, size {} / {})'.format(
+				s.count, ByteCount(s.stored_size).auto_str(), ByteCount(s.raw_size).auto_str(),
+			))
 		return s
 
 
@@ -75,9 +77,9 @@ class DeleteBackupAction(Action):
 				session.delete_file(file)
 			session.delete_backup(backup)
 
-			orphan_blob_cleaner = DeleteOrphanBlobsAction(hashes)
-
+		orphan_blob_cleaner = DeleteOrphanBlobsAction(hashes, quiet=True)
 		bls = orphan_blob_cleaner.run()
+
 		self.logger.info('Deleted backup #{} done, -{} blobs (size {} / {})'.format(
 			info.id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
 		))

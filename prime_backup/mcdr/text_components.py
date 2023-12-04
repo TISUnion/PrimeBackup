@@ -74,6 +74,10 @@ class TextComponents:
 		return cls.file_size(bls.raw_size).h(cls.dual_size_hover(bls.raw_size, bls.stored_size))
 
 	@classmethod
+	def boolean(cls, value: bool) -> RTextBase:
+		return RText(str(value).lower(), RColor.green if value else RColor.red)
+
+	@classmethod
 	def command(cls, s: str, *, color: RColor = RColor.gray, suggest: bool = False, run: bool = False, raw: bool = False) -> RTextBase:
 		cmd = s if raw else mkcmd(s)
 		text = RText(cmd, color)

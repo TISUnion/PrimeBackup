@@ -40,10 +40,19 @@ class ShowHelpTask(ImmediateTask):
 	def run(self) -> None:
 		with self.source.preferred_language_context():
 			if self.full:
-				self.__reply_help(self.tr('help._header', name=mcdr_globals.metadata.name, version=mcdr_globals.metadata.version, description=mcdr_globals.metadata.get_description_rtext()), )
+				self.__reply_help(self.tr(
+					'help._header',
+					name=f'§3{mcdr_globals.metadata.name}§r',
+					version=mcdr_globals.metadata.version,
+					description=mcdr_globals.metadata.get_description_rtext(),
+				))
 
 			if self.what is None:
-				self.__reply_help(self.tr('help', prefix=self.__cmd_prefix), True)
+				from prime_backup.mcdr.crontab_job import CrontabJobId
+				from prime_backup.mcdr.task.backup.export_backup_task import ExportBackupFormat
+				t_export_formats = ', '.join([f'§3{ebf.name}§r' for ebf in ExportBackupFormat])
+				t_job_ids = ', '.join([f'§5{jid.name}§r' for jid in CrontabJobId])
+				self.__reply_help(self.tr('help', prefix=self.__cmd_prefix, export_formats=t_export_formats, job_ids=t_job_ids), True)
 			else:
 				self.__reply_help(self.tr(f'help.{self.what}', prefix=self.__cmd_prefix))
 

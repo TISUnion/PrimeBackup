@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class CrontabJobId(enum.Enum):
-	scheduled_backup = enum.auto()
+	schedule_backup = enum.auto()
 	prune_backup = enum.auto()
 
 
@@ -42,6 +42,10 @@ class CrontabJob(TranslationContext, ABC):
 		self.aps_job: Optional[Job] = None
 		self.abort_event = threading.Event()
 
+	def __ensure_aps_job(self):
+		if self.aps_job is None:
+			raise RuntimeError('job is not enabled yet')
+
 	def enable(self, trigger: Optional[BaseTrigger] = None):
 		if self.aps_job is not None:
 			raise RuntimeError('double-enable a job')
@@ -50,10 +54,26 @@ class CrontabJob(TranslationContext, ABC):
 		self.aps_job = self.scheduler.add_job(func=self.run, trigger=trigger, id=self.id.name)
 		# self.logger.info('Job %s enabled. Next run date: %s',  self.id, self.get_next_run_date())
 
+	def pause(self):
+		self.__ensure_aps_job()
+		self.aps_job.pause()
+
+	def resume(self):
+		self.__ensure_aps_job()
+		self.aps_job.resume()
+
+	def is_running(self) -> bool:
+		return self.aps_job.next_run_time is not None
+
+	def is_pause(self) -> bool:
+		return not self.is_running()
+
 	def get_next_run_date(self) -> RTextBase:
-		if self.aps_job is None:
-			raise RuntimeError('job is not enabled yet')
-		return TextComponents.date(self.aps_job.next_run_time)
+		self.__ensure_aps_job()
+		if (nrt := self.aps_job.next_run_time) is not None:
+			return TextComponents.date(nrt)
+		else:
+			return self.__base_tr('next_run_date_paused').set_color(RColor.gray)
 
 	class RunTaskWithRetryResult(NamedTuple):
 		executed: bool
@@ -83,6 +103,9 @@ class CrontabJob(TranslationContext, ABC):
 					broadcast_message(self.__base_tr('completed_with_error', self.get_next_run_date()))
 				return self.RunTaskWithRetryResult(True, err)
 		return self.RunTaskWithRetryResult(False, None)
+
+	def get_name_text(self) -> RTextBase:
+		return self.tr('name').set_color(RColor.light_purple)
 
 	@property
 	@abstractmethod

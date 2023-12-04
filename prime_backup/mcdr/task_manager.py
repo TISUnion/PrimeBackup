@@ -1,3 +1,4 @@
+import contextlib
 import sqlite3
 import threading
 from typing import Optional, List
@@ -34,11 +35,32 @@ class ThreadedWorker:
 		if self.thread.is_alive():
 			self.thread.join(Duration('10min').value)
 
+	@classmethod
+	def run_task(cls, holder: TaskHolder) -> Optional[Exception]:
+		try:
+			holder.task.run()
+		except Exception as e:
+			holder.run_callback(e)
+
+			if isinstance(e, BackupNotFound):
+				reply_message(holder.source, tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
+				return
+
+			logger.get().exception('Task {} run error'.format(holder.task))
+			if isinstance(e, OperationalError) and isinstance(e.orig, sqlite3.OperationalError) and str(e.orig) == 'database is locked':
+				reply_message(holder.source, tr('error.db_locked', holder.task_name()).set_color(RColor.red))
+			else:
+				reply_message(holder.source, tr('error.generic', holder.task_name()).set_color(RColor.red))
+		else:
+			holder.run_callback(None)
+
 	def __task_loop(self):
 		self.logger.info('Worker %s started', self.name)
 		while not self.stopped:
 			holder = self.task_queue.get()
-			try:
+			with contextlib.ExitStack() as exit_stack:
+				exit_stack.callback(self.task_queue.task_done)
+
 				if holder is None or self.stopped:
 					break
 
@@ -48,29 +70,15 @@ class ThreadedWorker:
 				for event in events:
 					holder.task.on_event(event)
 
-				holder.task.run()
-			except Exception as e:
-				holder.run_callback(e)
+				self.run_task(holder)
 
-				if isinstance(e, BackupNotFound):
-					reply_message(holder.source, tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
-					return
-
-				self.logger.exception('Task {} run error'.format(holder.task))
-				if isinstance(e, OperationalError) and isinstance(e.orig, sqlite3.OperationalError) and str(e.orig) == 'database is locked':
-					reply_message(holder.source, tr('error.db_locked', holder.task_name()).set_color(RColor.red))
-				else:
-					reply_message(holder.source, tr('error.generic', holder.task_name()).set_color(RColor.red))
-			else:
-				holder.run_callback(None)
-			finally:
-				self.task_queue.task_done()
 		self.logger.info('Worker %s stopped', self.name)
 
-	def submit(self, source: CommandSource, task: Task, callback: Optional[TaskCallback], *, handle_tmo_err: bool = True):
+	def submit(self, task_holder: TaskHolder, *, handle_tmo_err: bool = True):
+		source, callback = task_holder.source, task_holder.callback
 		if self.thread.is_alive():
 			try:
-				self.task_queue.put(TaskHolder(task, source, callback))
+				self.task_queue.put(task_holder)
 			except TaskQueue.TooManyOngoingTask as e:
 				if not handle_tmo_err:
 					raise
@@ -127,12 +135,13 @@ class TaskManager:
 
 	def add_task(self, task: Task, callback: Optional[TaskCallback] = None, *, handle_tmo_err: bool = True):
 		source = task.source
+		holder = TaskHolder(task, source, callback)
 		if isinstance(task, OperationTask):
-			self.worker_operator.submit(source, task, callback, handle_tmo_err=handle_tmo_err)
+			self.worker_operator.submit(holder, handle_tmo_err=handle_tmo_err)
 		elif isinstance(task, ReaderTask):
-			self.worker_reader.submit(source, task, callback, handle_tmo_err=handle_tmo_err)
+			self.worker_reader.submit(holder, handle_tmo_err=handle_tmo_err)
 		elif isinstance(task, ImmediateTask):
-			task.run()
+			ThreadedWorker.run_task(holder)
 		else:
 			raise TypeError(type(task))
 

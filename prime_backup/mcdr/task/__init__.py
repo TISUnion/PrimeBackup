@@ -2,7 +2,7 @@ import enum
 from abc import ABC, abstractmethod
 from typing import Union
 
-from mcdreforged.api.all import RTextBase, CommandSource
+from mcdreforged.api.all import *
 from typing_extensions import final
 
 from prime_backup.utils import mcdr_utils
@@ -26,8 +26,8 @@ class Task(mcdr_utils.TranslationContext, ABC):
 		self.logger = logger.get()
 		self.config = Config.get()
 
-	def create_name_text(self) -> RTextBase:
-		return self.tr('name')
+	def get_name_text(self) -> RTextBase:
+		return self.tr('name').set_color(RColor.aqua)
 
 	def is_abort_able(self) -> bool:
 		return False

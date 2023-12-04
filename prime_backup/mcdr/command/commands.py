@@ -5,18 +5,20 @@ from mcdreforged.api.all import *
 
 from prime_backup.config.config import Config
 from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode
-from prime_backup.mcdr.crontab_job import CrontabJobEvent
+from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_manager import CrontabManager
-from prime_backup.mcdr.task.create_backup_task import CreateBackupTask
-from prime_backup.mcdr.task.delete_backup_range_task import DeleteBackupRangeTask
-from prime_backup.mcdr.task.delete_backup_task import DeleteBackupTask
-from prime_backup.mcdr.task.export_backup_task import ExportBackupTask, ExportBackupFormat
-from prime_backup.mcdr.task.list_backup_task import ListBackupTask
-from prime_backup.mcdr.task.prune_backup_task import PruneAllBackupTask
-from prime_backup.mcdr.task.rename_backup_task import RenameBackupTask
-from prime_backup.mcdr.task.restore_backup_task import RestoreBackupTask
-from prime_backup.mcdr.task.show_backup_task import ShowBackupTask
-from prime_backup.mcdr.task.show_help_task import ShowHelpTask
+from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
+from prime_backup.mcdr.task.backup.delete_backup_range_task import DeleteBackupRangeTask
+from prime_backup.mcdr.task.backup.delete_backup_task import DeleteBackupTask
+from prime_backup.mcdr.task.backup.export_backup_task import ExportBackupTask, ExportBackupFormat
+from prime_backup.mcdr.task.backup.list_backup_task import ListBackupTask
+from prime_backup.mcdr.task.backup.prune_backup_task import PruneAllBackupTask
+from prime_backup.mcdr.task.backup.rename_backup_task import RenameBackupTask
+from prime_backup.mcdr.task.backup.restore_backup_task import RestoreBackupTask
+from prime_backup.mcdr.task.backup.show_backup_task import ShowBackupTask
+from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
+from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
+from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.operator import Operator
@@ -48,6 +50,18 @@ class CommandManager:
 
 		self.task_manager.add_task(ShowHelpTask(source, full, what))
 
+	def cmd_make(self, source: CommandSource, context: CommandContext):
+		def callback(err):
+			if err is None:
+				self.crontab_manager.send_event(CrontabJobEvent.manual_backup_created)
+
+		comment = context.get('comment', '')
+		self.task_manager.add_task(CreateBackupTask(source, comment), callback)
+
+	def cmd_back(self, source: CommandSource, context: CommandContext, *, skip_confirm: bool = False):
+		backup_id = context.get('backup_id')
+		self.task_manager.add_task(RestoreBackupTask(source, backup_id, skip_confirm=skip_confirm))
+
 	def cmd_list(self, source: CommandSource, context: CommandContext):
 		page = context.get('page', 1)
 		per_page = context.get('per_page', 10)
@@ -72,19 +86,6 @@ class CommandManager:
 		backup_id = context['backup_id']
 		self.task_manager.add_task(ShowBackupTask(source, backup_id))
 
-	def cmd_make(self, source: CommandSource, context: CommandContext):
-		def callback(err):
-			if err is None:
-				self.crontab_manager.send_event(CrontabJobEvent.manual_backup_created)
-
-		comment = context.get('comment', '')
-		self.task_manager.add_task(CreateBackupTask(source, comment), callback)
-
-	def cmd_export(self, source: CommandSource, context: CommandContext):
-		backup_id = context['backup_id']
-		export_format = context.get('export_format', ExportBackupFormat.tar)
-		self.task_manager.add_task(ExportBackupTask(source, backup_id, export_format))
-
 	def cmd_rename(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
 		comment = context['comment']
@@ -98,9 +99,22 @@ class CommandManager:
 		id_range: IdRangeNode.Range = context['backup_id_range']
 		self.task_manager.add_task(DeleteBackupRangeTask(source, id_range.start, id_range.end))
 
-	def cmd_back(self, source: CommandSource, context: CommandContext, *, skip_confirm: bool = False):
-		backup_id = context.get('backup_id')
-		self.task_manager.add_task(RestoreBackupTask(source, backup_id, skip_confirm=skip_confirm))
+	def cmd_export(self, source: CommandSource, context: CommandContext):
+		backup_id = context['backup_id']
+		export_format = context.get('export_format', ExportBackupFormat.tar)
+		self.task_manager.add_task(ExportBackupTask(source, backup_id, export_format))
+
+	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
+		job_id = context.get('job_id', CrontabJobId.schedule_backup)
+		self.task_manager.add_task(ShowCrontabJobTask(source, self.crontab_manager, job_id))
+
+	def cmd_crontab_pause(self, source: CommandSource, context: CommandContext):
+		job_id = context.get('job_id', CrontabJobId.schedule_backup)
+		self.task_manager.add_task(OperateCrontabJobTask(source, self.crontab_manager, job_id, OperateCrontabJobTask.Operation.pause))
+
+	def cmd_crontab_resume(self, source: CommandSource, context: CommandContext):
+		job_id = context.get('job_id', CrontabJobId.schedule_backup)
+		self.task_manager.add_task(OperateCrontabJobTask(source, self.crontab_manager, job_id, OperateCrontabJobTask.Operation.resume))
 
 	def cmd_prune(self, source: CommandSource, context: CommandContext):
 		self.task_manager.add_task(PruneAllBackupTask(source))
@@ -131,6 +145,7 @@ class CommandManager:
 
 		builder.command('help', self.cmd_help)
 		builder.command('help <what>', self.cmd_help)
+
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
 		builder.command('back', self.cmd_back)
@@ -144,16 +159,22 @@ class CommandManager:
 		builder.command('export <backup_id>', self.cmd_export)
 		builder.command('export <backup_id> <export_format>', self.cmd_export)
 		builder.command('prune', self.cmd_prune)
+
+		builder.command('crontab <job_id>', self.cmd_crontab_show)
+		builder.command('crontab <job_id> pause', self.cmd_crontab_pause)
+		builder.command('crontab <job_id> resume', self.cmd_crontab_resume)
+
 		builder.command('confirm', self.cmd_confirm)
 		builder.command('abort', self.cmd_abort)
 
-		builder.arg('what', Text).suggests(lambda: self.COMMANDS_WITH_DETAILED_HELP)
-		builder.arg('page', lambda n: Integer(n).at_min(1))
-		builder.arg('per_page', lambda n: Integer(n).at_min(1))
-		builder.arg('comment', GreedyText)
 		builder.arg('backup_id', Integer).suggests(self.suggest_backup_id)
 		builder.arg('backup_id_range', IdRangeNode)
+		builder.arg('comment', GreedyText)
 		builder.arg('export_format', lambda n: Enumeration(n, ExportBackupFormat))
+		builder.arg('job_id', lambda n: Enumeration(n, CrontabJobId))
+		builder.arg('page', lambda n: Integer(n).at_min(1))
+		builder.arg('per_page', lambda n: Integer(n).at_min(1))
+		builder.arg('what', Text).suggests(lambda: self.COMMANDS_WITH_DETAILED_HELP)
 
 		for name, level in permissions.items():
 			builder.literal(name).requires(get_permission_checker(name), get_permission_denied_text)

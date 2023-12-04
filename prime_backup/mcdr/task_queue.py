@@ -19,7 +19,7 @@ class TaskHolder(NamedTuple):
 	callback: Optional[TaskCallback]
 
 	def task_name(self) -> RTextBase:
-		return self.task.create_name_text().set_color(RColor.aqua)
+		return self.task.get_name_text()
 
 	def run_callback(self, err: Optional[Exception]):
 		if self.callback is not None:

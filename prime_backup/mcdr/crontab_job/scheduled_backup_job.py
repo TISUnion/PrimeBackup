@@ -9,7 +9,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from prime_backup.config.sub_configs import ScheduledBackupConfig
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobEvent, CrontabJobId
-from prime_backup.mcdr.task.create_backup_task import CreateBackupTask
+from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.operator import Operator
 from prime_backup.utils.mcdr_utils import broadcast_message
@@ -27,7 +27,7 @@ class ScheduledBackupJob(CrontabJob):
 
 	@property
 	def id(self) -> CrontabJobId:
-		return CrontabJobId.scheduled_backup
+		return CrontabJobId.schedule_backup
 
 	def _create_trigger(self) -> BaseTrigger:
 		return IntervalTrigger(seconds=self.config.interval.value, jitter=self.config.jitter.value)

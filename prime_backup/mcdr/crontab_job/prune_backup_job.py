@@ -7,7 +7,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from prime_backup.config.sub_configs import PruneConfig
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobId
-from prime_backup.mcdr.task.prune_backup_task import PruneAllBackupTask
+from prime_backup.mcdr.task.backup.prune_backup_task import PruneAllBackupTask
 
 if TYPE_CHECKING:
 	from prime_backup.mcdr.task_manager import TaskManager

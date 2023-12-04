@@ -43,7 +43,7 @@ class RestoreBackupTask(OperationTask):
 	def __countdown_and_stop_server(self, backup: BackupInfo) -> bool:
 		for countdown in range(max(0, self.config.command.restore_countdown_sec), 0, -1):
 			self.broadcast(click_and_run(
-				self.tr('countdown', countdown, TextComponents.backup_brief(backup)),
+				self.tr('countdown', countdown, TextComponents.backup_brief(backup, backup_id_fancy=False)),
 				self.tr('countdown.hover', TextComponents.command('abort')),
 				mkcmd('abort'),
 			))
@@ -93,7 +93,7 @@ class RestoreBackupTask(OperationTask):
 			self.logger.info('Creating backup of existing files to avoid idiot')
 			CreateBackupAction(
 				Operator.pb('pre_restore'),
-				'Automatic backup before restoring to #{}'.format(backup.id),  # TODO: translate this
+				self.tr('pre_restore_comment', backup.id).to_plain_text(),
 				tags=BackupTags().set(BackupTagName.pre_restore_backup, True),
 			).run()
 		cost_backup = timer.get_and_restart()

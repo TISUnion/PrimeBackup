@@ -1,7 +1,7 @@
 from mcdreforged.api.all import *
 
 from prime_backup.mcdr.task.crontab import CrontabTaskBase
-from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
@@ -19,6 +19,8 @@ class ShowCrontabJobTask(CrontabTaskBase):
 		))
 		self.reply(self.tr('enabled', TextComponents.boolean(self.config.scheduled_backup.enabled)))
 		self.reply(self.tr('running', TextComponents.boolean(not job.is_pause())))
+		self.reply(self.tr('interval', TextComponents.duration(job.interval, color=TextColors.number)))
+		self.reply(self.tr('jitter', TextComponents.duration(job.jitter, color=TextColors.number)))
 		self.reply(self.tr('next_run_date', job.get_next_run_date()))
 
 		def make(op: str, color: RColor) -> RTextBase:

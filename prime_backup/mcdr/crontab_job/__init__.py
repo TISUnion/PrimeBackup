@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, List, Optional, NamedTuple
 from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.triggers.base import BaseTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from mcdreforged.api.all import *
 
 from prime_backup import logger
@@ -13,6 +14,7 @@ from prime_backup.config.config import Config
 from prime_backup.mcdr.task import Task
 from prime_backup.mcdr.task_queue import TaskQueue
 from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.types.units import Duration
 from prime_backup.utils.mcdr_utils import broadcast_message, TranslationContext
 from prime_backup.utils.waitable_value import WaitableValue
 
@@ -112,8 +114,17 @@ class CrontabJob(TranslationContext, ABC):
 	def id(self) -> CrontabJobId:
 		...
 
-	@abstractmethod
 	def _create_trigger(self) -> BaseTrigger:
+		return IntervalTrigger(seconds=self.interval.value, jitter=self.jitter.value)
+
+	@property
+	@abstractmethod
+	def interval(self) -> Duration:
+		...
+
+	@property
+	@abstractmethod
+	def jitter(self) -> Duration:
 		...
 
 	@abstractmethod

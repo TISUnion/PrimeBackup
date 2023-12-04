@@ -3,6 +3,7 @@ from mcdreforged.api.all import *
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task import ReaderTask
 from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
@@ -34,8 +35,14 @@ class ShowBackupTask(ReaderTask):
 		))
 
 		if len(backup.tags) > 0:
-			self.reply(self.tr('tag.title', len(backup.tags)))
+			self.reply(self.tr('tag.title', TextComponents.number(len(backup.tags))))
 			for k, v in backup.tags.items():
-				self.reply(RTextBase.format('  {}: {}', k, v))
+				try:
+					btn = BackupTagName[k]
+				except KeyError:
+					pass
+				else:
+					k = RTextBase.format('{} ({})', btn.value.text, btn.value.flag)
+				self.reply(RTextBase.format('  {}: {}', k, TextComponents.auto(v)))
 		else:
 			self.reply(self.tr('tag.empty_title', self.tr('tag.empty').set_color(RColor.gray)))

@@ -1,13 +1,12 @@
 from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
-from apscheduler.triggers.base import BaseTrigger
-from apscheduler.triggers.interval import IntervalTrigger
 
 from prime_backup.config.sub_configs import PruneConfig
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobId
 from prime_backup.mcdr.task.backup.prune_backup_task import PruneAllBackupTask
+from prime_backup.types.units import Duration
 
 if TYPE_CHECKING:
 	from prime_backup.mcdr.task_manager import TaskManager
@@ -22,8 +21,13 @@ class PruneBackupJob(CrontabJob):
 	def id(self) -> CrontabJobId:
 		return CrontabJobId.prune_backup
 
-	def _create_trigger(self) -> BaseTrigger:
-		return IntervalTrigger(seconds=self.config.interval.value, jitter=self.config.jitter.value)
+	@property
+	def interval(self) -> Duration:
+		return self.config.interval
+
+	@property
+	def jitter(self) -> Duration:
+		return self.config.jitter
 
 	def run(self):
 		self.logger.info('Prune backup job started')

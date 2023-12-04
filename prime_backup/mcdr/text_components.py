@@ -1,16 +1,25 @@
 import datetime
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 from mcdreforged.api.all import *
 
 from prime_backup import constants
 from prime_backup.types.backup_info import BackupInfo
+from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount, Duration
-from prime_backup.utils import conversion_utils
+from prime_backup.utils import conversion_utils, misc_utils
 from prime_backup.utils.mcdr_utils import mkcmd, click_and_run
+
+
+class TextColors:
+	backup_id = RColor.gold
+	byte_count = RColor.green
+	date = RColor.aqua
+	file = RColor.dark_aqua
+	number = RColor.yellow
 
 
 class TextComponents:
@@ -37,8 +46,8 @@ class TextComponents:
 		return cls.date(backup.date)
 
 	@classmethod
-	def backup_full(cls, backup: BackupInfo, operation_buttons: bool = False, show_size: bool = False) -> RTextBase:
-		# "[#1] [>] [x] 1.2GiB 2023-11-30 09:30:13: foobar"
+	def backup_full(cls, backup: BackupInfo, operation_buttons: bool = False, *, show_flags: bool = False, show_size: bool = False) -> RTextBase:
+		# "[#1] [>] [x] H-- 1.2GiB 2023-11-30 09:30:13: foobar"
 		t_bid = cls.backup_id(backup.id)
 
 		rtl = RTextList(RText('[', RColor.gray), t_bid, RText('] ', RColor.gray))
@@ -47,6 +56,17 @@ class TextComponents:
 				RText('[>]', color=RColor.dark_green).h(cls.tr('backup_full.restore', t_bid)).c(RAction.suggest_command, mkcmd(f'back {backup.id}')), ' ',
 				RText('[x]', color=RColor.red).h(cls.tr('backup_full.delete', t_bid)).c(RAction.suggest_command, mkcmd(f'delete {backup.id}')), ' ',
 			)
+
+		if show_flags:
+			for name in [BackupTagName.hidden, BackupTagName.pre_restore_backup, BackupTagName.protected]:
+				misc_utils.assert_true(name.value.type is bool, 'it should be a bool field')
+				flag = backup.tags.get(name) is True
+				if flag:
+					rtl.append(name.value.flag)
+				else:
+					rtl.append(RText('-', RColor.dark_gray))
+			rtl.append(' ')
+
 		if show_size:
 			rtl.append(cls.backup_size(backup), ' ')
 		rtl.append(
@@ -57,9 +77,9 @@ class TextComponents:
 
 	@classmethod
 	def backup_id(cls, backup_id: int, *, hover: bool = True, click: bool = True) -> RTextBase:
-		text = RText(f'#{backup_id}', RColor.gold)
+		text = RText(f'#{backup_id}', TextColors.backup_id)
 		if hover:
-			text.h(cls.tr('backup_id.hover', RText(backup_id, RColor.gold)))
+			text.h(cls.tr('backup_id.hover', RText(backup_id, TextColors.backup_id)))
 		if click:
 			text.c(RAction.run_command, mkcmd(f'show {backup_id}'))
 		return text
@@ -112,7 +132,7 @@ class TextComponents:
 			hover = cls.tr('date.later', cls.duration(diff))
 		else:
 			hover = cls.tr('date.ago', cls.duration(-diff))
-		return RText(conversion_utils.datetime_to_str(date), RColor.aqua).h(hover)
+		return RText(conversion_utils.datetime_to_str(date), TextColors.date).h(hover)
 
 	@classmethod
 	def dual_size_hover(cls, raw_size: int, stored_size: int, *, ndigits: int = 2) -> RTextBase:
@@ -122,7 +142,7 @@ class TextComponents:
 		return cls.tr('dual_size_hover', t_stored_size, t_percent, t_raw_size)
 
 	@classmethod
-	def duration(cls, seconds_or_duration: Union[float, Duration], *, ndigits: int = 2) -> RTextBase:
+	def duration(cls, seconds_or_duration: Union[float, Duration], *, color: Optional[RColor] = None, ndigits: int = 2) -> RTextBase:
 		# full duration text, e.g. "1 minute", "2 hours"
 		if isinstance(seconds_or_duration, Duration):
 			duration = seconds_or_duration
@@ -132,19 +152,24 @@ class TextComponents:
 			raise TypeError(type(seconds_or_duration))
 		value, unit = duration.auto_format()
 		plural_suffix = cls.tr('duration.plural_suffix') if value != 1 else ''
-		return cls.tr('duration.text', round(value, ndigits), cls.tr('duration.' + unit, plural_suffix))
+		text = cls.tr('duration.text', round(value, ndigits), cls.tr('duration.' + unit, plural_suffix))
+		if color is not None:
+			text.set_color(color)
+		return text
 
 	@classmethod
 	def file_path(cls, file_path: Path) -> RTextBase:
-		return RText(file_path.name, RColor.dark_aqua).h(str(file_path.as_posix()))
+		return RText(file_path.name, TextColors.file).h(str(file_path.as_posix()))
 
 	@classmethod
-	def file_size(cls, byte_cnt: int, *, ndigits: int = 2) -> RTextBase:
-		return RText(ByteCount(byte_cnt).auto_str(ndigits=ndigits), color=RColor.green)
+	def file_size(cls, byte_cnt: Union[int, ByteCount], *, ndigits: int = 2) -> RTextBase:
+		if not isinstance(byte_cnt, ByteCount):
+			byte_cnt = ByteCount(byte_cnt)
+		return RText(byte_cnt.auto_str(ndigits=ndigits), color=TextColors.byte_count)
 
 	@classmethod
 	def number(cls, value: Any) -> RTextBase:
-		return RText(value, RColor.yellow)
+		return RText(value, TextColors.number)
 
 	@classmethod
 	def operator(cls, op: Operator) -> RTextBase:
@@ -154,6 +179,7 @@ class TextComponents:
 		elif op.type in ['console']:
 			return cls.tr(tr_key)
 		elif op.type == constants.PLUGIN_ID:
+			# TODO: detailed
 			return cls.tr(tr_key).set_color(RColor.dark_aqua)
 		else:
 			return RText(f'{op.type}:{op.name}')
@@ -168,3 +194,20 @@ class TextComponents:
 	@classmethod
 	def title(cls, text: Any):
 		return RTextList(RText('======== ', RColor.gray), text, RText(' ========', RColor.gray))
+
+	@classmethod
+	def auto(cls, value: Any) -> RTextBase:
+		if isinstance(value, bool):
+			return cls.boolean(value)
+		elif isinstance(value, (int, float, Duration)):
+			return cls.number(value)
+		elif isinstance(value, Operator):
+			return cls.operator(value)
+		elif isinstance(value, ByteCount):
+			return cls.file_size(value)
+		elif isinstance(value, Path):
+			return cls.file_path(value)
+		elif isinstance(value, datetime.datetime):
+			return cls.date(value)
+		else:
+			return RTextBase.from_any(value)

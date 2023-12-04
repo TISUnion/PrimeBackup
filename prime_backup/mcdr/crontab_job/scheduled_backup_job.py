@@ -3,8 +3,6 @@ import threading
 from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
-from apscheduler.triggers.base import BaseTrigger
-from apscheduler.triggers.interval import IntervalTrigger
 
 from prime_backup.config.sub_configs import ScheduledBackupConfig
 from prime_backup.mcdr import mcdr_globals
@@ -12,6 +10,7 @@ from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobEvent, CrontabJo
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.operator import Operator
+from prime_backup.types.units import Duration
 from prime_backup.utils.mcdr_utils import broadcast_message
 
 if TYPE_CHECKING:
@@ -29,8 +28,13 @@ class ScheduledBackupJob(CrontabJob):
 	def id(self) -> CrontabJobId:
 		return CrontabJobId.schedule_backup
 
-	def _create_trigger(self) -> BaseTrigger:
-		return IntervalTrigger(seconds=self.config.interval.value, jitter=self.config.jitter.value)
+	@property
+	def interval(self) -> Duration:
+		return self.config.interval
+
+	@property
+	def jitter(self) -> Duration:
+		return self.config.jitter
 
 	def run(self):
 		if not self.config.enabled:

@@ -17,13 +17,14 @@ from prime_backup.utils.mcdr_utils import mkcmd
 
 
 class ListBackupTask(ReaderTask):
-	def __init__(self, source: CommandSource, per_page: int, page: int, backup_filter: BackupFilter, show_all: bool, show_size: bool):
+	def __init__(self, source: CommandSource, per_page: int, page: int, backup_filter: BackupFilter, show_all: bool, show_flags: bool, show_size: bool):
 		super().__init__(source)
 		self.source = source
 		self.backup_filter = copy.copy(backup_filter)
 		self.per_page = per_page
 		self.page = page
 		self.show_all = show_all
+		self.show_flags = show_flags
 		self.show_size = show_size
 		self.is_aborted = threading.Event()
 
@@ -50,6 +51,8 @@ class ListBackupTask(ReaderTask):
 			cmd += f' --end {date_str(self.backup_filter.timestamp_end)}'
 		if self.show_all:
 			cmd += f' --all'
+		if self.show_flags:
+			cmd += f' --flags'
 		if self.show_size:
 			cmd += f' --size'
 
@@ -70,7 +73,7 @@ class ListBackupTask(ReaderTask):
 				return
 			with contextlib.suppress(BackupNotFound):
 				backup = GetBackupAction(backup_id, calc_size=self.show_size).run()
-				self.reply(TextComponents.backup_full(backup, self.source.is_player, show_size=self.show_size))
+				self.reply(TextComponents.backup_full(backup, self.source.is_player, show_flags=self.show_flags, show_size=self.show_size))
 
 		max_page = max(0, (total_count - 1) // self.per_page + 1)
 		t_prev = RText('<-')

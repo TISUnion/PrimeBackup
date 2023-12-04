@@ -45,6 +45,7 @@ prime_backup:
           §7--start §b<起始日期>§r: 仅列出给定日期之后的备份
           §7--end §b<结束日期>§r: 仅列出给定日期之前的备份
           §7--size§r: 展示备份原始大小。这将增加任务耗时
+          §7--flags§r: 展示备份标志位，这些标志位是基于备份的标签生成的
           §7--all§r: 展示所有的备份。默认情况下, 隐藏备份、回档前备份不会被展示
           §d【例子】§r
           §7{prefix} list --all§r
@@ -139,6 +140,8 @@ prime_backup:
       title: 定时任务"{}"
       enabled: '已启用: {}'
       running: '运行中: {}'
+      interval: '间隔: {}'
+      jitter: '抖动: {}'
       next_run_date: '下次运行: {}'
       quick_actions: '快捷操作: {}'
       pause: 暂停
@@ -215,3 +218,8 @@ prime_backup:
       command_source: 指令源{}
       unknown: '(未知) {}'
       prime_backup: Prime Backup
+
+  backup_tag:
+    hidden: 隐藏备份
+    pre_restore_backup: 回档前备份
+    protected: 受保护备份

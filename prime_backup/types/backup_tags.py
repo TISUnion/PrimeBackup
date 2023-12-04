@@ -1,22 +1,35 @@
 import enum
 from typing import Optional, TYPE_CHECKING, Any, Type
 
+from mcdreforged.api.all import RText, RTextBase, RColor
+
 from prime_backup.utils import misc_utils
 
 if TYPE_CHECKING:
 	from prime_backup.db.schema import BackupTagDict
 
 
-class BackupTagValueType:
-	def __init__(self, value_type: Type):
+class BackupTagValue:
+	def __init__(self, value_type: Type, char: str, color: RColor):
 		self.type = value_type
+		self.char = char
+		self.color = color
+
+	@property
+	def text(self) -> RTextBase:
+		from prime_backup.utils.mcdr_utils import tr
+		return tr(f'backup_tag.{BackupTagName(self).name}')
+
+	@property
+	def flag(self) -> RTextBase:
+		return RText(self.char, self.color).h(self.text)
 
 
 class BackupTagName(enum.Enum):
 	# name -> type
-	hidden = BackupTagValueType(bool)
-	pre_restore_backup = BackupTagValueType(bool)
-	protected = BackupTagValueType(bool)
+	hidden = BackupTagValue(bool, 'H', RColor.blue)
+	pre_restore_backup = BackupTagValue(bool, 'R', RColor.yellow)
+	protected = BackupTagValue(bool, 'P', RColor.dark_green)
 
 
 def __check_backup_tag_keys():

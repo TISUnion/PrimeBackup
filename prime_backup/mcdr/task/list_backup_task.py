@@ -70,7 +70,7 @@ class ListBackupTask(ReaderTask):
 				return
 			with contextlib.suppress(BackupNotFound):
 				backup = GetBackupAction(backup_id, calc_size=self.show_size).run()
-				self.reply(TextComponents.backup_full(backup, True, show_size=self.show_size))
+				self.reply(TextComponents.backup_full(backup, self.source.is_player, show_size=self.show_size))
 
 		max_page = max(0, (total_count - 1) // self.per_page + 1)
 		t_prev = RText('<-')

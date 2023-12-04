@@ -36,6 +36,6 @@ class ShowBackupTask(ReaderTask):
 		if len(backup.tags) > 0:
 			self.reply(self.tr('tag.title', len(backup.tags)))
 			for k, v in backup.tags.items():
-				self.reply(self.tr('tag.pair', k, v))
+				self.reply(RTextBase.format('  {}: {}', k, v))
 		else:
 			self.reply(self.tr('tag.empty_title', self.tr('tag.empty').set_color(RColor.gray)))

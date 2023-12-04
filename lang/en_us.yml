@@ -80,7 +80,6 @@ prime_backup:
       author: 'Author: {}'
       author.hover: 'Click to list backups created by {}'
       tag.title: 'Tags (size={}):'
-      tag.pair: '  {}: {}'
       tag.empty_title: 'Tags: {}'
       tag.empty: empty
     rename:
@@ -108,6 +107,7 @@ prime_backup:
       exported: Exported backup {} to {}, cost {}, size {}
     prune:
       name: prune backups
+      nothing_to_prune: No available backup to prune
       list_to_be_pruned: 'Backups to be pruned (amount={}): {}'
       prune: Deleting backup {}
       aborted: Prune task aborted
@@ -176,10 +176,11 @@ prime_backup:
       Raw size: {}
     duration:
       text: '{} {}'
-      s: seconds
-      m: minutes
-      h: hours
-      d: days
+      s: second{}
+      m: minute{}
+      h: hour{}
+      d: day{}
+      plural_suffix: s
     operator:
       player: Player {}
       console: Console

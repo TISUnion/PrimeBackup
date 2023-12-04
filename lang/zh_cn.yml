@@ -18,14 +18,14 @@ prime_backup:
           §d【指令帮助】§r
           §7{prefix}§r: 展示帮助信息
           §7{prefix} help §e[<指令>]§r: 展示给定指令的详细帮助
-          §7{prefix} make §e[<注释>]§r: 创建一个备份。§e<comment>§r为可选注释
+          §7{prefix} make §e[<注释>]§r: 创建一个备份。§e<注释>§r为可选注释
           §7{prefix} back §6[<备份ID>]§r: 回档至给定备份。若未指定备份ID，则使用最新的备份
           §7{prefix} list [...]§r: 列出备份，展示备份列表。具体详情见指令§7{prefix} help list§r
           §7{prefix} show §6<备份ID>§r: 展示给定备份的详细信息
-          §7{prefix} rename §6<备份ID>§r §e<comment>§r: 修改给定备份的备注
+          §7{prefix} rename §6<备份ID>§r §e<新注释>§r: 修改给定备份的注释
           §7{prefix} delete §6<备份ID>§r: 删除给定备份
           §7{prefix} delete_range §6<备份ID范围>§r: 删除给定ID范围的备份。参数例子: §62-7§r、§69-§r、§6*§r
-          §7{prefix} export §6<备份ID> §5[<export_format>]§r: 导出给定备份到§3export§r文件夹
+          §7{prefix} export §6<备份ID> §5[<导出格式>]§r: 以给定格式导出给定备份到§3export§r文件夹
           §7{prefix} prune §6<备份ID>§r: 手动触发一次备份裁剪
           §7{prefix} confirm§r: 确认当前的任务操作。需确认的任务: 回档、范围删除
           §7{prefix} abort§r: 终止当前的任务操作。可终止的任务: 回档、列出备份、范围删除、备份裁剪
@@ -65,7 +65,7 @@ prime_backup:
       aborted: 回档任务中止
     list:
       name: 列出备份
-      title: 正在列出{}个备份
+      title: 共{}个备份
       size: 体积
       next: 下一页
       prev: 上一页
@@ -80,7 +80,6 @@ prime_backup:
       author: '作者: {}'
       author.hover: '点击以列出作者{}创建的所有备份'
       tag.title: '标签(共{}条):'
-      tag.pair: '  {}: {}'
       tag.empty_title: '标签: {}'
       tag.empty: 空
     rename:
@@ -108,6 +107,7 @@ prime_backup:
       exported: 已将备份{}导出至{}，耗时{}，文件大小{}
     prune:
       name: 裁剪备份
+      nothing_to_prune: 未找到需要被裁剪的备份
       list_to_be_pruned: '将要裁剪的备份 (共{}个): {}'
       prune: 正在删除{}
       aborted: 裁剪任务中止
@@ -180,6 +180,7 @@ prime_backup:
       m: 分钟
       h: 小时
       d: 天
+      plural_suffix: ''
     operator:
       player: 玩家{}
       console: 控制台

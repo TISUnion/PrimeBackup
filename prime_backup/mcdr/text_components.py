@@ -119,6 +119,7 @@ class TextComponents:
 
 	@classmethod
 	def duration(cls, seconds_or_duration: Union[float, Duration], *, ndigits: int = 2) -> RTextBase:
+		# full duration text, e.g. "1 minute", "2 hours"
 		if isinstance(seconds_or_duration, Duration):
 			duration = seconds_or_duration
 		elif isinstance(seconds_or_duration, (int, float)):
@@ -126,7 +127,8 @@ class TextComponents:
 		else:
 			raise TypeError(type(seconds_or_duration))
 		value, unit = duration.auto_format()
-		return cls.tr('duration.text', round(value, ndigits), cls.tr('duration.' + unit))
+		plural_suffix = cls.tr('duration.plural_suffix') if value != 1 else ''
+		return cls.tr('duration.text', round(value, ndigits), cls.tr('duration.' + unit, plural_suffix))
 
 	@classmethod
 	def file_path(cls, file_path: Path) -> RTextBase:

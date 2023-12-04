@@ -64,6 +64,7 @@ class RestoreBackupTask(OperationTask):
 			candidates = ListBackupAction(backup_filter=backup_filter, limit=1).run()
 			if len(candidates) == 0:
 				self.reply(self.tr('no_backup'))
+				return
 			backup = candidates[0]
 		else:
 			backup = GetBackupAction(self.backup_id).run()
@@ -71,7 +72,7 @@ class RestoreBackupTask(OperationTask):
 		if not self.skip_confirm:
 			confirm_time_wait = self.config.command.confirm_time_wait
 			self.broadcast(self.tr('show_backup', TextComponents.backup_brief(backup)))
-			self.broadcast(TextComponents.confirm_hint(self.tr('confirm_target'), confirm_time_wait))
+			self.broadcast(TextComponents.confirm_hint(self.tr('confirm_target'), TextComponents.duration(confirm_time_wait)))
 			self.can_abort = True
 			self.confirm_result.wait(confirm_time_wait.value)
 

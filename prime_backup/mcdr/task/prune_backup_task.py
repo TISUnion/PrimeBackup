@@ -64,12 +64,13 @@ class PruneResult(List[PruneResultItem]):
 
 
 class PruneBackupTask(OperationTask):
-	def __init__(self, source: CommandSource, backup_filter: BackupFilter, setting: PruneSetting):
+	def __init__(self, source: CommandSource, backup_filter: BackupFilter, setting: PruneSetting, *, what_to_prune: Optional[RTextBase] = None):
 		super().__init__(source)
 		self.backup_filter = backup_filter
 		self.setting = setting
 		if not setting.enabled:
 			raise ValueError('the prune setting should be enabled')
+		self.what_to_prune = what_to_prune
 		self.is_aborted = threading.Event()
 
 	@property
@@ -171,6 +172,14 @@ class PruneBackupTask(OperationTask):
 					regular_keep_count += 1
 		return result
 
+	def __msg_header(self) -> RTextBase:
+		return RTextList('(', self.what_to_prune, ') ').set_color(RColor.gray)
+
+	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = True):
+		if self.what_to_prune is not None:
+			msg = self.__msg_header() + msg
+		super().reply(msg, with_prefix=with_prefix)
+
 	def run(self) -> Tuple[int, BlobListSummary]:  # backup count, bls sum
 		backups = ListBackupAction(calc_size=False, backup_filter=self.backup_filter).run()
 		backup_ids = {backup.id for backup in backups}
@@ -271,7 +280,7 @@ class PruneAllBackupTask(OperationTask):
 
 			self.reply(self.tr('start', self.tr(f'what.{what}')))
 
-			self.__current_task = PruneBackupTask(self.source, backup_filter, setting)
+			self.__current_task = PruneBackupTask(self.source, backup_filter, setting, what_to_prune=self.tr(f'what.{what}'))
 			cnt, bls = self.__current_task.run()
 			self.__current_task = None
 

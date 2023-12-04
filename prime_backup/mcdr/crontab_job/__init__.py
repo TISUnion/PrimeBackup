@@ -74,7 +74,7 @@ class CrontabJob(TranslationContext, ABC):
 					broadcast_message(self.__base_tr('found_ongoing.skip'))
 					break
 				else:
-					broadcast_message(self.__base_tr('found_ongoing.wait_retry', TextComponents.duration(delay)))
+					broadcast_message(self.__base_tr('found_ongoing.wait_retry', TextComponents.number(f'{delay}s')))
 			else:
 				err = wv.wait()
 				if err is None:

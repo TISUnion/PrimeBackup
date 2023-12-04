@@ -54,7 +54,7 @@ class DeleteBackupRangeTask(OperationTask):
 			self.__reply_backups(backup_ids[-n // 2:])
 
 		confirm_time_wait = self.config.command.confirm_time_wait
-		self.reply(TextComponents.confirm_hint(self.tr('confirm_target'), confirm_time_wait))
+		self.reply(TextComponents.confirm_hint(self.tr('confirm_target'), TextComponents.duration(confirm_time_wait)))
 		self.is_confirmed.wait(confirm_time_wait.value)
 
 		if not self.is_confirmed.is_set():

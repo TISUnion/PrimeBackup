@@ -145,8 +145,10 @@ class TextComponents:
 		tr_key = f'operator.{op.type}'
 		if op.type in ['player', 'command_source', 'unknown']:
 			return cls.tr(tr_key, op.name)
-		elif op.type in ['console', constants.PLUGIN_ID]:
+		elif op.type in ['console']:
 			return cls.tr(tr_key)
+		elif op.type == constants.PLUGIN_ID:
+			return cls.tr(tr_key).set_color(RColor.dark_aqua)
 		else:
 			return RText(f'{op.type}:{op.name}')
 

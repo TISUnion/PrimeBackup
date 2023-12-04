@@ -139,7 +139,6 @@ class CommandManager:
 		builder.command('back <backup_id> --confirm', functools.partial(self.cmd_back, skip_confirm=True))
 		builder.command('show <backup_id>', self.cmd_show)
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
-		builder.command('del <backup_id>', self.cmd_delete)
 		builder.command('delete <backup_id>', self.cmd_delete)
 		builder.command('delete_range <backup_id_range>', self.cmd_delete_range)
 		builder.command('export <backup_id>', self.cmd_export)

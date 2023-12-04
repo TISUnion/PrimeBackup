@@ -215,8 +215,8 @@ class CreateBackupAction(CreateBackupActionBase):
 			compress_method = self.config.backup.get_compress_method_from_size(st.st_size)
 			can_copy_on_write = (
 					file_utils.HAS_COPY_FILE_RANGE and
-					self.__blob_store_in_cow_fs and
 					compress_method == CompressMethod.plain and
+					self.__blob_store_in_cow_fs and
 					st.st_dev == self.__blob_store_st.st_dev
 			)
 
@@ -431,7 +431,6 @@ class CreateBackupAction(CreateBackupActionBase):
 					schedule_queue.append((self.__create_file(session, file_path), None))
 				while len(schedule_queue) > 0:
 					gen, value = schedule_queue.popleft()
-
 					try:
 						def callback(v, g=gen):
 							schedule_queue.appendleft((g, v))

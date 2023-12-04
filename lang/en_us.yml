@@ -23,22 +23,24 @@ prime_backup:
           §7{prefix} list [...]§r: List backups with given filters. Enter §7{prefix} help list§r for detailed help
           §7{prefix} show §6<backup_id>§r: Show detailed information of the given backup
           §7{prefix} rename §6<backup_id>§r §e<comment>§r: Modify the comment of the given backup
-          §7{prefix} del §6<backup_id>§r: Delete the given backup. Alias of §7{prefix} delete§r
+          §7{prefix} delete §6<backup_id>§r: Delete the given backup
           §7{prefix} delete_range §6<backup_id_range>§r: Delete backups inside the given ID range
-          §7{prefix} export §6<backup_id> §5[<export_format>]§r: Export the given backup to the export folder
+          §7{prefix} export §6<backup_id> §5[<export_format>]§r: Export the given backup to the §3export§r folder
+          §7{prefix} prune §6<backup_id>§r: Manually trigger a backup prune
           §7{prefix} confirm§r: Confirm the current task execution
           §7{prefix} abort§r: Abort the current task execution
         list: |-
           §d[List Command Usage]§r
+          List backups with given filters
           §7{prefix} list [<page>] [--arg-key <arg-value>] §r
-          Optional arguments:
-          §7--per-page §e<per_page>§r: Set number of backup displayed per page
+          §d[Optional arguments]§r
+          §7--per-page §e<per_page>§r: Set number of backup displayed per page. Default: §e10§r
           §7--author §e<author>§r: Show backup created by the given author only
           §7--start §b<start_date>§r: Show backup after the given date only
           §7--end §b<end_date>§r: Show backup before the given date only
           §7--size§r: Show backup sizes
           §7--all§r: Show all backups
-          Examples:
+          §d[Examples]§r
           §7{prefix} list --all§r
           §7{prefix} list --start 20231130 --size§r
           §7{prefix} list 3 --per-page 20§r
@@ -52,7 +54,6 @@ prime_backup:
       cost.hover: |-
         save wait: {}
         create backup: {}
-      failed: 'Backup failed, error: {}'
     restore:
       name: restore backup
       no_backup: No available backup to restore
@@ -77,6 +78,7 @@ prime_backup:
       stored_size: 'Size (stored): {} ({})'
       raw_size: 'Size (raw): {}'
       author: 'Author: {}'
+      author.hover: 'Click to list backups created by {}'
       tag.title: 'Tags (size={}):'
       tag.pair: '  {}: {}'
       tag.empty_title: 'Tags: {}'
@@ -90,7 +92,7 @@ prime_backup:
       deleted: Deleted backup {}, freed {}
     delete_range:
       name: delete backup range
-      no_backup: No available backup to restore
+      no_backup: No available backup to delete
       to_delete_count: 'Found {} backups to be deleted:'
       ellipsis.hover: Omitted {} backups
       confirm_target: delete
@@ -107,8 +109,8 @@ prime_backup:
     prune:
       name: prune backups
       list_to_be_pruned: 'Backups to be pruned (amount={}): {}'
-      prune: Pruning backup {}
-      aborted: Prune aborted
+      prune: Deleting backup {}
+      aborted: Prune task aborted
       done: Finished pruning, removed {} backups, {} blobs, freed {}
     prune_all:
       name: prune all backups
@@ -117,13 +119,13 @@ prime_backup:
         regular: regular backups
         pre_restore: pre-restore backups
       start: Start pruning {}
-      done: Finished pruning all backups, removed {} backups, {} blobs, freed {}
+      done: Finished all prune jobs, removed {} backups, {} blobs, freed {}
 
   job:
     base:
       found_ongoing:
-        skip: Found ongoing task, wait
-        wait_retry: Found ongoing task, retry in {}s
+        skip: Found ongoing task, task execution skipped
+        wait_retry: Found ongoing task, retry in {}
       completed: Scheduled backup completed, next backup at {}
       completed_with_error: Scheduled backup completed with error, next backup at {}
     scheduled_backup:
@@ -144,7 +146,8 @@ prime_backup:
     too_much_ongoing_task:
       exclusive: 'Please wait for the ongoing task "{}" to finish'
       try_abort: You can also abort the ongoing task
-      generic: 'Too many pending tasks (maximum = {}), please wait for some to finish.'
+      try_abort.hover: Click me or enter command {} to abort the ongoing task
+      generic: 'Too many pending tasks (maximum = {}), please wait for some to finish'
 
   text_components:
     backup_brief: 'backup {}: {}'
@@ -173,13 +176,10 @@ prime_backup:
       Raw size: {}
     duration:
       text: '{} {}'
-      ms: ms
       s: seconds
       m: minutes
       h: hours
       d: days
-      mon: months
-      y: years
     operator:
       player: Player {}
       console: Console

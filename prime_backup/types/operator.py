@@ -48,3 +48,6 @@ class Operator(NamedTuple):
 
 	def __str__(self):
 		return f'{self.type}:{self.name}'
+
+	def is_player(self) -> bool:
+		return self.type == 'player'

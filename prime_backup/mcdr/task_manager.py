@@ -81,7 +81,12 @@ class ThreadedWorker:
 					reply_message(source, tr('error.too_much_ongoing_task.exclusive', name))
 					if holder.task.is_abort_able():
 						cmd = mkcmd('abort')
-						reply_message(source, tr('error.too_much_ongoing_task.try_abort').h(cmd).c(RAction.suggest_command, cmd))
+						reply_message(
+							source,
+							tr('error.too_much_ongoing_task.try_abort').
+							h(tr('error.too_much_ongoing_task.try_abort.hover', RText(cmd, RColor.gray))).
+							c(RAction.suggest_command, cmd)
+						)
 				else:
 					reply_message(source, tr('error.too_much_ongoing_task.generic', self.max_ongoing_task))
 		else:

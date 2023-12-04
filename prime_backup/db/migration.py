@@ -67,6 +67,7 @@ class DbMigration:
 			raise ValueError('hash method mismatch, {} is used in this database, but {} is configured to used'.format(dbm.hash_method, self.__configured_hash_method))
 
 	def __migrate_1_2(self, session: Session):
+		# noinspection PyUnreachableCode
 		if False:
 			table = schema.Backup.__tablename__
 			column = schema.Backup.timestamp

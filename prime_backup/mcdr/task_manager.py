@@ -1,4 +1,3 @@
-import logging
 import sqlite3
 import threading
 from typing import Optional, List
@@ -15,9 +14,9 @@ from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
 class ThreadedWorker:
-	def __init__(self, name: str, logger: logging.Logger, max_ongoing_task: int):
+	def __init__(self, name: str, max_ongoing_task: int):
 		self.name = name
-		self.logger = logger
+		self.logger = logger.get()
 		self.max_ongoing_task = max_ongoing_task
 		self.thread = threading.Thread(target=self.__task_loop, name='PB@{}-task-{}'.format(constants.INSTANCE_ID, name), daemon=True)
 		self.stopped = False
@@ -108,8 +107,8 @@ class ThreadedWorker:
 class TaskManager:
 	def __init__(self):
 		self.logger = logger.get()
-		self.worker_operator = ThreadedWorker('operator', self.logger, 1)
-		self.worker_reader = ThreadedWorker('reader', self.logger, 3)
+		self.worker_operator = ThreadedWorker('operator', 1)
+		self.worker_reader = ThreadedWorker('reader',3)
 
 	def start(self):
 		self.worker_operator.start()

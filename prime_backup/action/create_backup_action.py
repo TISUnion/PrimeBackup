@@ -2,6 +2,7 @@ import collections
 import contextlib
 import enum
 import functools
+import hashlib
 import os
 import stat
 import threading
@@ -198,9 +199,13 @@ class CreateBackupAction(CreateBackupActionBase):
 		return [p for p in collected if not self.config.backup.is_file_ignore(p)]
 
 	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Generator[Any, Any, Tuple[schema.Blob, os.stat_result]]:
+		src_path_str = repr(str(src_path.as_posix()))
+		src_path_md5 = hashlib.md5(src_path_str.encode('utf8')).hexdigest()
+
 		@contextlib.contextmanager
 		def make_temp_file() -> ContextManager[Path]:
-			temp_file_path = self.config.storage_path / 'temp' / '{}.tmp'.format(threading.current_thread().ident or 'backup')
+			temp_id = f'blob-{threading.current_thread().ident}-{src_path_md5}'
+			temp_file_path = self.config.storage_path / 'temp' / '{}.tmp'.format(temp_id)
 			temp_file_path.parent.mkdir(parents=True, exist_ok=True)
 			with contextlib.ExitStack() as exit_stack:
 				exit_stack.callback(functools.partial(self._remove_file, temp_file_path))
@@ -338,12 +343,11 @@ class CreateBackupAction(CreateBackupActionBase):
 				stored_size=stored_size,
 			)
 
-		src_path_str = repr(str(src_path.as_posix()))
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
-			last_chance = i == _BLOB_FILE_CHANGED_RETRY_COUNT - 1
+			last_attempt = i == _BLOB_FILE_CHANGED_RETRY_COUNT - 1
 			if i > 0:
 				self.logger.warning('Try to create blob {} (attempt {} / {})'.format(src_path_str, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
-			gen = attempt_once(last_chance=last_chance)
+			gen = attempt_once(last_chance=last_attempt)
 			try:
 				query = gen.send(None)
 				while True:
@@ -355,7 +359,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.__blob_by_hash_cache[blob.hash] = blob
 				return blob, st
 			except _BlobFileChanged:
-				self.logger.warning('Blob {} stat has changed, {}'.format(src_path_str, 'no more retry' if last_chance else 'retrying'))
+				self.logger.warning('Blob {} stat has changed, {}'.format(src_path_str, 'no more retry' if last_attempt else 'retrying'))
 				st = src_path.stat()
 
 		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(src_path_str))

@@ -98,9 +98,9 @@ class PruneBackupTask(OperationTask):
 		backups = list(sorted(backups, key=lambda b: b.timestamp_ns, reverse=True))  # new -> old
 
 		def has_mark(backup: BackupInfo, keep: bool, protect: Optional[bool] = None) -> bool:
-			if (mark := marks.get(backup.id)) is None:
+			if (m := marks.get(backup.id)) is None:
 				return False
-			return mark.keep == keep and (protect is None or mark.is_protected() == protect)
+			return m.keep == keep and (protect is None or m.is_protected() == protect)
 
 		# ref: https://github.com/proxmox/proxmox-backup/blob/master/pbs-datastore/src/prune.rs
 		def mark_selections(limit: int, policy: str, bucket_mapper: Callable[[BackupInfo], str]):

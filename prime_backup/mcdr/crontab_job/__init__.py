@@ -23,8 +23,9 @@ if TYPE_CHECKING:
 
 
 class CrontabJobId(enum.Enum):
-	schedule_backup = enum.auto()
 	prune_backup = enum.auto()
+	schedule_backup = enum.auto()
+	vacuum_sqlite = enum.auto()
 
 
 class CrontabJobEvent(enum.Enum):
@@ -48,13 +49,16 @@ class CrontabJob(TranslationContext, ABC):
 		if self.aps_job is None:
 			raise RuntimeError('job is not enabled yet')
 
+	def is_enabled(self) -> bool:
+		return True
+
 	def enable(self, trigger: Optional[BaseTrigger] = None):
 		if self.aps_job is not None:
 			raise RuntimeError('double-enable a job')
-		if trigger is None:
-			trigger = self._create_trigger()
-		self.aps_job = self.scheduler.add_job(func=self.run, trigger=trigger, id=self.id.name)
-		# self.logger.info('Job %s enabled. Next run date: %s',  self.id, self.get_next_run_date())
+		if self.is_enabled():
+			if trigger is None:
+				trigger = self._create_trigger()
+			self.aps_job = self.scheduler.add_job(func=self.run, trigger=trigger, id=self.id.name)
 
 	def pause(self):
 		self.__ensure_aps_job()
@@ -108,6 +112,11 @@ class CrontabJob(TranslationContext, ABC):
 
 	def get_name_text(self) -> RTextBase:
 		return self.tr('name').set_color(RColor.light_purple)
+
+	@classmethod
+	def get_command_source(cls) -> CommandSource:
+		from prime_backup.mcdr import mcdr_globals
+		return mcdr_globals.server.get_plugin_command_source()
 
 	@property
 	@abstractmethod

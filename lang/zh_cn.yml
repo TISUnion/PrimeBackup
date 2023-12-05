@@ -147,6 +147,8 @@ prime_backup:
       tag.title: '标签(共{}条):'
       tag.empty_title: '标签: {}'
       tag.empty: 空
+    vacuum_sqlite:
+      name: 整理数据库
 
   job:
     base:
@@ -156,13 +158,15 @@ prime_backup:
       completed: '定时备份完成, 下次备份: {}'
       completed_with_error: '定时备份失败, 下次备份: {}'
       next_run_date_paused: 已暂停
+    prune_backup:
+      name: 裁剪备份
     schedule_backup:
       name: 定时备份
       comment: 定时备份
       triggered: 每{}一次的定时备份触发
       reset_on_backup: '检测到新增的备份, 重置定时器。下次备份: {}'
-    prune_backup:
-      name: 裁剪备份
+    vacuum_sqlite:
+      name: 整理数据库
 
   error:
     node:

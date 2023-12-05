@@ -36,6 +36,9 @@ class ScheduledBackupJob(CrontabJob):
 	def jitter(self) -> Duration:
 		return self.config.jitter
 
+	def is_enabled(self) -> bool:
+		return self.config.enabled
+
 	def run(self):
 		if not self.config.enabled:
 			return
@@ -48,19 +51,13 @@ class ScheduledBackupJob(CrontabJob):
 			self.is_executing.set()
 			exit_stack.callback(self.is_executing.clear)
 
-			source = mcdr_globals.server.get_plugin_command_source()
 			t_comment = self.tr('comment')
 			if getattr(t_comment, 'translation_key') != t_comment.to_plain_text():
 				comment = t_comment.to_plain_text()  # translation exists
 			else:
 				comment = 'Scheduled Backup'
-			task = CreateBackupTask(source, comment, operator=Operator.pb('scheduled_backup'))
+			task = CreateBackupTask(self.get_command_source(), comment, operator=Operator.pb('scheduled_backup'))
 			self.run_task_with_retry(task, self.config.interval.value > 300)  # task <= 5min, no need to retry
-
-	def enable(self, *args, **kwargs):
-		if self.config.enabled:
-			super().enable(*args, **kwargs)
-			self.aps_job.modify(max_instances=1)
 
 	def on_event(self, event: CrontabJobEvent):
 		super().on_event(event)

@@ -8,6 +8,7 @@ from prime_backup import constants, logger
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobId, CrontabJobEvent
 from prime_backup.mcdr.crontab_job.prune_backup_job import PruneBackupJob
 from prime_backup.mcdr.crontab_job.scheduled_backup_job import ScheduledBackupJob
+from prime_backup.mcdr.crontab_job.vacuum_sqlite_job import VacuumSqliteJob
 from prime_backup.mcdr.task_manager import TaskManager
 
 
@@ -24,10 +25,12 @@ class CrontabManager:
 				)
 			},
 		)
-		jobs = [
-			ScheduledBackupJob(self.scheduler, self.task_manager),
-			PruneBackupJob(self.scheduler, self.task_manager)
+		job_classes = [
+			PruneBackupJob,
+			ScheduledBackupJob,
+			VacuumSqliteJob,
 		]
+		jobs = [clazz(self.scheduler, self.task_manager) for clazz in job_classes]
 		self.jobs: Dict[CrontabJobId, CrontabJob] = {job.id: job for job in jobs}
 
 	def start(self):

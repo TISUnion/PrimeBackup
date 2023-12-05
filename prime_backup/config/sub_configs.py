@@ -50,7 +50,7 @@ class CustomServerCommands(Serializable):
 
 class ServerConfig(Serializable):
 	turn_off_auto_save: bool = True
-	commands: CustomServerCommands = CustomServerCommands.get_default()
+	commands: CustomServerCommands = CustomServerCommands()
 	saved_world_regex: List[str] = [
 		'^Saved the game$',
 		'^Saved the world$',
@@ -110,6 +110,16 @@ class BackupConfig(Serializable):
 				if name == item:
 					return True
 		return False
+
+
+class CompactDatabaseConfig(Serializable):
+	enabled: bool = False
+	interval: Duration = Duration('12h')
+	jitter: Duration = Duration('1m')
+
+
+class DatabaseConfig(Serializable):
+	compact: CompactDatabaseConfig = CompactDatabaseConfig()
 
 
 class PruneSetting(Serializable):

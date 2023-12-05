@@ -1,4 +1,5 @@
 import contextlib
+from pathlib import Path
 from typing import Optional, ContextManager
 
 from sqlalchemy import create_engine, Engine
@@ -12,7 +13,9 @@ from prime_backup.db.session import DbSession
 
 class DbAccess:
 	DB_FILE = 'prime_backup.db'
+
 	__engine: Optional[Engine] = None
+	__db_path: Optional[Path] = None
 
 	@classmethod
 	def init(cls, auto_migrate: bool = True):
@@ -22,6 +25,7 @@ class DbAccess:
 
 		db_path = db_dir / cls.DB_FILE
 		cls.__engine = create_engine('sqlite:///' + str(db_path))
+		cls.__db_path = db_path
 
 		migration = DbMigration(cls.__engine)
 		if auto_migrate:
@@ -34,6 +38,12 @@ class DbAccess:
 		logger = db_logger.get()
 		for hdr in list(logger.handlers):
 			logger.removeHandler(hdr)
+
+	@classmethod
+	def get_db_path(cls) -> Path:
+		if cls.__db_path is None:
+			raise RuntimeError('db not is not initialized yet')
+		return cls.__db_path
 
 	@classmethod
 	@contextlib.contextmanager

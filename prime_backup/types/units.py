@@ -77,6 +77,9 @@ class _UnitValueBase(Generic[_T], str, ABC):
 
 	@classmethod
 	def _auto_format(cls, val: _T) -> UnitValuePair:
+		if val < 0:
+			uvp = cls._auto_format(-val)
+			return UnitValuePair(-uvp.value, uvp.unit)
 		ret = None
 		for unit, k in cls._get_formatting_unit_map().items():
 			x = cls.__precise_div(val, k)
@@ -92,6 +95,10 @@ class _UnitValueBase(Generic[_T], str, ABC):
 
 	@classmethod
 	def _precise_format(cls, val: _T) -> UnitValuePair:
+		if val < 0:
+			uvp = cls._auto_format(-val)
+			return UnitValuePair(-uvp.value, uvp.unit)
+
 		units = list(reversed(cls._get_formatting_unit_map().items()))
 		if val == 0:
 			return UnitValuePair(val, units[-1][0])

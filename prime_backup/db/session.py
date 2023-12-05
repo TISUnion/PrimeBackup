@@ -3,7 +3,7 @@ import time
 from typing import Optional, Sequence, Dict, ContextManager
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select, JSON
+from sqlalchemy import select, delete, desc, func, Select, JSON, text
 from sqlalchemy.orm import Session
 
 from prime_backup.db import schema, db_logger, db_constants
@@ -41,6 +41,10 @@ class DbSession:
 	def no_auto_flush(self) -> ContextManager[None]:
 		with self.session.no_autoflush:
 			yield
+
+	def vacuum(self):
+		# https://www.sqlite.org/lang_vacuum.html
+		self.session.execute(text('VACUUM'))
 
 	# ==================================== DbMeta ====================================
 

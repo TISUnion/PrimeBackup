@@ -10,7 +10,7 @@ from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.task.backup.delete_backup_range_task import DeleteBackupRangeTask
 from prime_backup.mcdr.task.backup.delete_backup_task import DeleteBackupTask
-from prime_backup.mcdr.task.backup.export_backup_task import ExportBackupTask, ExportBackupFormat
+from prime_backup.mcdr.task.backup.export_backup_task import ExportBackupTask
 from prime_backup.mcdr.task.backup.list_backup_task import ListBackupTask
 from prime_backup.mcdr.task.backup.prune_backup_task import PruneAllBackupTask
 from prime_backup.mcdr.task.backup.rename_backup_task import RenameBackupTask
@@ -22,6 +22,7 @@ from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.operator import Operator
+from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
@@ -102,7 +103,7 @@ class CommandManager:
 
 	def cmd_export(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
-		export_format = context.get('export_format', ExportBackupFormat.tar)
+		export_format = context.get('export_format', StandaloneBackupFormat.tar)
 		self.task_manager.add_task(ExportBackupTask(source, backup_id, export_format))
 
 	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
@@ -171,7 +172,7 @@ class CommandManager:
 		builder.arg('backup_id', Integer).suggests(self.suggest_backup_id)
 		builder.arg('backup_id_range', IdRangeNode)
 		builder.arg('comment', GreedyText)
-		builder.arg('export_format', lambda n: Enumeration(n, ExportBackupFormat))
+		builder.arg('export_format', lambda n: Enumeration(n, StandaloneBackupFormat))
 		builder.arg('job_id', lambda n: Enumeration(n, CrontabJobId))
 		builder.arg('page', lambda n: Integer(n).at_min(1))
 		builder.arg('per_page', lambda n: Integer(n).at_min(1))

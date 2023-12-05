@@ -11,18 +11,23 @@ from prime_backup.db.session import DbSession
 
 
 class DbAccess:
+	DB_FILE = 'prime_backup.db'
 	__engine: Optional[Engine] = None
 
 	@classmethod
-	def init(cls):
+	def init(cls, auto_migrate: bool = True):
 		db_dir = Config.get().storage_path
 		db_dir.mkdir(parents=True, exist_ok=True)
 		db_logger.init_logger(db_dir)
 
-		db_path = db_dir / 'prime_backup.db'
+		db_path = db_dir / cls.DB_FILE
 		cls.__engine = create_engine('sqlite:///' + str(db_path))
 
-		DbMigration(cls.__engine).migrate()
+		migration = DbMigration(cls.__engine)
+		if auto_migrate:
+			migration.migrate()
+		else:
+			migration.ensure_version()
 
 	@classmethod
 	def shutdown(cls):

@@ -49,8 +49,8 @@ class ShowHelpTask(ImmediateTask):
 
 			if self.what is None:
 				from prime_backup.mcdr.crontab_job import CrontabJobId
-				from prime_backup.mcdr.task.backup.export_backup_task import ExportBackupFormat
-				t_export_formats = ', '.join([f'§3{ebf.name}§r' for ebf in ExportBackupFormat])
+				from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
+				t_export_formats = ', '.join([f'§3{ebf.name}§r' for ebf in StandaloneBackupFormat])
 				t_job_ids = ', '.join([f'§5{jid.name}§r' for jid in CrontabJobId])
 				self.__reply_help(self.tr('help', prefix=self.__cmd_prefix, export_formats=t_export_formats, job_ids=t_job_ids), True)
 			else:

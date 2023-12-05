@@ -9,7 +9,7 @@ import zipfile
 from abc import abstractmethod, ABC
 from io import BytesIO
 from pathlib import Path
-from typing import ContextManager
+from typing import ContextManager, Optional, List, Tuple
 
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor, CompressMethod
@@ -24,8 +24,14 @@ from prime_backup.utils import file_utils, blob_utils, misc_utils
 
 class ExportBackupActions:
 	@classmethod
-	def to_dir(cls, backup_id: int, output_path: Path, delete_existing: bool) -> 'ExportBackupActionBase':
-		return ExportBackupToDirectoryAction(backup_id, output_path, delete_existing)
+	def to_dir(
+			cls, backup_id: int, output_path: Path, delete_existing: bool, *,
+			child_to_export: Optional[Path] = None, recursively_export_child: bool = False,
+	) -> 'ExportBackupActionBase':
+		return ExportBackupToDirectoryAction(
+			backup_id, output_path, delete_existing,
+			child_to_export=child_to_export, recursively_export_child=recursively_export_child,
+		)
 
 	@classmethod
 	def to_tar(cls, backup_id: int, output_path: Path, tar_format: TarFormat) -> 'ExportBackupActionBase':
@@ -68,13 +74,17 @@ def _i_am_root():
 
 
 class ExportBackupToDirectoryAction(ExportBackupActionBase):
-	def __init__(self, backup_id: int, output_path: Path, delete_existing: bool):
+	def __init__(
+			self, backup_id: int, output_path: Path, delete_existing: bool, *,
+			child_to_export: Optional[Path] = None, recursively_export_child: bool = False,
+	):
 		super().__init__(backup_id, output_path)
 		self.delete_existing = delete_existing
+		self.child_to_export = child_to_export
+		self.recursively_export_child = recursively_export_child
 
-	def __set_attrs(self, file: schema.File):
-		file_path = self.output_path / file.path
-
+	@classmethod
+	def __set_attrs(cls, file: schema.File, file_path: Path):
 		# reference: tarfile.TarFile.extractall, tarfile.TarFile._extract_member
 
 		if _i_am_root() and file.uid is not None and file.gid is not None:
@@ -90,7 +100,10 @@ class ExportBackupToDirectoryAction(ExportBackupActionBase):
 				os.utime(file_path, (file.atime_ns / 1e9, file.mtime_ns / 1e9))
 
 	def _export_backup(self, session, backup: schema.Backup):
-		self.logger.info('Exporting backup {} to directory {}'.format(backup, self.output_path))
+		if self.child_to_export is None:
+			self.logger.info('Exporting {} to directory {}'.format(backup, self.output_path))
+		else:
+			self.logger.info('Exporting child {!r} in {} to directory {}, recursively = {}'.format(self.child_to_export.as_posix(), backup, self.output_path, self.recursively_export_child))
 		self.output_path.mkdir(parents=True, exist_ok=True)
 
 		# clean up existing
@@ -102,10 +115,20 @@ class ExportBackupToDirectoryAction(ExportBackupActionBase):
 				else:
 					target_path.unlink(missing_ok=True)
 
-		directories = []
+		directories: List[Tuple[schema.File, Path]] = []
 		file: schema.File
 		for file in backup.files:
-			file_path = self.output_path / file.path
+			if self.child_to_export is not None:
+				try:
+					rel_path = Path(file.path).relative_to(self.child_to_export)
+				except ValueError:
+					continue
+				if rel_path != Path('.') and not self.recursively_export_child:
+					continue
+				file_path = self.output_path / self.child_to_export.name / rel_path
+				self.logger.info('Exporting child {!r} to {!r}'.format(file.path, file_path.as_posix()))
+			else:
+				file_path = self.output_path / file.path
 
 			if stat.S_ISREG(file.mode):
 				self.logger.debug('write file {}'.format(file.path))
@@ -122,7 +145,7 @@ class ExportBackupToDirectoryAction(ExportBackupActionBase):
 			elif stat.S_ISDIR(file.mode):
 				file_path.mkdir(parents=True, exist_ok=True)
 				self.logger.debug('write dir {}'.format(file.path))
-				directories.append(file)
+				directories.append((file, file_path))
 
 			elif stat.S_ISLNK(file.mode):
 				link_target = file.content.decode('utf8')
@@ -132,12 +155,12 @@ class ExportBackupToDirectoryAction(ExportBackupActionBase):
 				self._on_unsupported_file_mode(file)
 
 			if not stat.S_ISDIR(file.mode):
-				self.__set_attrs(file)
+				self.__set_attrs(file, file_path)
 
 		# child dir first
 		# reference: tarfile.TarFile.extractall
-		for dir_file in sorted(directories, key=lambda d: d.path, reverse=True):
-			self.__set_attrs(dir_file)
+		for dir_file, dir_file_path in sorted(directories, key=lambda d: d[0].path, reverse=True):
+			self.__set_attrs(dir_file, dir_file_path)
 
 
 class ExportBackupToTarAction(ExportBackupActionBase):

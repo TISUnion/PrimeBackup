@@ -159,7 +159,7 @@ class TextComponents:
 
 	@classmethod
 	def file_path(cls, file_path: Path) -> RTextBase:
-		return RText(file_path.name, TextColors.file).h(str(file_path.as_posix()))
+		return RText(file_path.name, TextColors.file).h(file_path.as_posix())
 
 	@classmethod
 	def file_size(cls, byte_cnt: Union[int, ByteCount], *, ndigits: int = 2) -> RTextBase:

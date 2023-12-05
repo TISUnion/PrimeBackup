@@ -18,6 +18,7 @@ from prime_backup.db.session import DbSession
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_meta import BackupMeta
+from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, blob_utils, misc_utils
@@ -243,9 +244,14 @@ class ZipBackupHandler(PackedBackupFileHandler):
 
 
 class ImportBackupAction(CreateBackupActionBase):
-	def __init__(self, file_path: Path):
+	def __init__(self, file_path: Path, backup_format: Optional[StandaloneBackupFormat] = None):
 		super().__init__()
+
+		if backup_format is None:
+			backup_format = StandaloneBackupFormat.from_file_name(file_path)
+
 		self.file_path = file_path
+		self.backup_format = backup_format
 		self.__blob_cache: Dict[str, schema.Blob] = {}
 
 	def __create_blob(self, session: DbSession, file_reader: IO[bytes], sah: SizeAndHash) -> schema.Blob:
@@ -269,7 +275,7 @@ class ImportBackupAction(CreateBackupActionBase):
 
 	@classmethod
 	def __format_path(cls, path: str) -> str:
-		return str(Path(path).as_posix())
+		return Path(path).as_posix()
 
 	def __import_member(
 			self, session: DbSession,
@@ -369,14 +375,10 @@ class ImportBackupAction(CreateBackupActionBase):
 		return backup
 
 	def run(self) -> BackupInfo:
-		for tar_format in TarFormat:
-			if self.file_path.name.endswith(tar_format.value.extension):
-				break
+		if isinstance(self.backup_format.value, TarFormat):
+			tar_format = self.backup_format.value
 		else:
-			if self.file_path.name.endswith('.zip'):
-				tar_format = None
-			else:
-				raise UnsupportedFormat(self.file_path.name)
+			tar_format = None
 
 		super().run()
 		self.__blob_cache.clear()

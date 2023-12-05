@@ -14,9 +14,10 @@
         "mcdreforged": ">=2.12.0-alpha.0"
     },
     "entrypoint": "prime_backup.mcdr.entrypoint",
-    "archive_name": "PrimeBackup-v{version}",
+    "archive_name": "PrimeBackup-v{version}.pyz",
     "resources": [
         "lang",
+        "__main__.py",
         "LICENSE"
     ]
 }

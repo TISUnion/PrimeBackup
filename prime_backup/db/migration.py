@@ -5,12 +5,17 @@ from sqlalchemy.orm import Session
 
 from prime_backup import logger
 from prime_backup.config.config import Config
-from prime_backup.db import schema
+from prime_backup.db import schema, db_constants
+from prime_backup.exceptions import PrimeBackupError
+
+
+class BadDbVersion(PrimeBackupError):
+	pass
 
 
 class DbMigration:
-	DB_MAGIC_INDEX: int = 0
-	DB_VERSION: int = 1
+	DB_MAGIC_INDEX = db_constants.DB_MAGIC_INDEX
+	DB_VERSION = db_constants.DB_VERSION
 
 	def __init__(self, engine: Engine):
 		self.config = Config.get()
@@ -48,6 +53,20 @@ class DbMigration:
 			self.logger.info('Table {} does not exist, assuming newly create db, create everything'.format(schema.DbMeta.__tablename__))
 			self.__create_the_world()
 			pass
+
+	def ensure_version(self):
+		inspector = Inspector.from_engine(self.engine)
+		if inspector.has_table(schema.DbMeta.__tablename__):
+			with Session(self.engine) as session:
+				dbm = session.get(schema.DbMeta, self.DB_MAGIC_INDEX)
+				if dbm is not None:
+					if dbm.version == self.DB_VERSION:
+						return
+					else:
+						raise BadDbVersion('DB version mismatch (expect {}, found {}), please migrate in the MCDR', self.DB_VERSION, dbm.version)
+				else:
+					raise BadDbVersion('Bad DbMeta table')
+		raise BadDbVersion('DbMeta table not found')
 
 	@property
 	def __configured_hash_method(self) -> str:

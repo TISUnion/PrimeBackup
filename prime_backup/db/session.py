@@ -6,8 +6,8 @@ from typing import TypeVar, List
 from sqlalchemy import select, delete, desc, func, Select, JSON
 from sqlalchemy.orm import Session
 
-from prime_backup.db import schema, db_logger
-from prime_backup.exceptions import BackupNotFound
+from prime_backup.db import schema, db_logger, db_constants
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.utils import collection_utils
 
@@ -42,6 +42,14 @@ class DbSession:
 		with self.session.no_autoflush:
 			yield
 
+	# ==================================== DbMeta ====================================
+
+	def get_db_meta(self) -> schema.DbMeta:
+		meta: Optional[schema.DbMeta] = self.session.get(schema.DbMeta, db_constants.DB_MAGIC_INDEX)
+		if meta is None:
+			raise ValueError('None db meta')
+		return meta
+
 	# ===================================== Blob =====================================
 
 	def create_blob(self, **kwargs) -> schema.Blob:
@@ -49,7 +57,10 @@ class DbSession:
 		self.session.add(blob)
 		return blob
 
-	def get_blob(self, h: str) -> Optional[schema.Blob]:
+	def get_blob_count(self) -> int:
+		return int(self.session.execute(select(func.count()).select_from(schema.Blob)).scalar_one())
+
+	def get_blob_opt(self, h: str) -> Optional[schema.Blob]:
 		return self.session.get(schema.Blob, h)
 
 	def get_blobs(self, hashes: List[str]) -> Dict[str, schema.Blob]:
@@ -108,6 +119,18 @@ class DbSession:
 			self.session.add(file)
 		return file
 
+	def get_file_count(self) -> int:
+		return int(self.session.execute(select(func.count()).select_from(schema.File)).scalar_one())
+
+	def get_file_opt(self, backup_id: int, path: str) -> Optional[schema.File]:
+		return self.session.get(schema.File, dict(backup_id=backup_id, path=path))
+
+	def get_file(self, backup_id: int, path: str) -> schema.File:
+		file = self.get_file_opt(backup_id, path)
+		if file is None:
+			raise BackupFileNotFound(backup_id, path)
+		return file
+
 	def delete_file(self, file: schema.File):
 		self.session.delete(file)
 
@@ -127,6 +150,9 @@ class DbSession:
 		backup = schema.Backup(**kwargs)
 		self.session.add(backup)
 		return backup
+
+	def get_backup_count(self) -> int:
+		return int(self.session.execute(select(func.count()).select_from(schema.Backup)).scalar_one())
 
 	def get_backup_opt(self, backup_id: int) -> Optional[schema.Backup]:
 		return self.session.get(schema.Backup, backup_id)

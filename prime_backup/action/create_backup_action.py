@@ -199,7 +199,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		return [p for p in collected if not self.config.backup.is_file_ignore(p)]
 
 	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Generator[Any, Any, Tuple[schema.Blob, os.stat_result]]:
-		src_path_str = repr(str(src_path.as_posix()))
+		src_path_str = repr(src_path.as_posix())
 		src_path_md5 = hashlib.md5(src_path_str.encode('utf8')).hexdigest()
 
 		@contextlib.contextmanager
@@ -384,12 +384,12 @@ class CreateBackupAction(CreateBackupActionBase):
 		elif stat.S_ISDIR(st.st_mode):
 			pass
 		elif stat.S_ISLNK(st.st_mode):
-			content = str(path.readlink().as_posix()).encode('utf8')
+			content = path.readlink().as_posix().encode('utf8')
 		else:
 			raise NotImplementedError('unsupported yet')
 
 		return session.create_file(
-			path=str(related_path.as_posix()),
+			path=related_path.as_posix(),
 			content=content,
 
 			mode=st.st_mode,
@@ -415,7 +415,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				backup = session.create_backup(
 					author=str(self.author),
 					comment=self.comment,
-					targets=[str(Path(t).as_posix()) for t in self.config.backup.targets],
+					targets=[Path(t).as_posix() for t in self.config.backup.targets],
 					tags=self.tags.to_dict()
 				)
 				self.logger.info('Creating backup {}'.format(backup))

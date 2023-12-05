@@ -25,9 +25,9 @@ Python package requirements: See [requirements.txt](requirements.txt)
 - [x] Crontab
 - [x] Prune
 - [ ] Health scan
-- [ ] CLI tools
+- [x] CLI tools
 - [ ] Unix socket API server
-- [ ] Translation
+- [x] Translation
 - [ ] Code clean up
 - [ ] Regression Testing
 - [ ] Document

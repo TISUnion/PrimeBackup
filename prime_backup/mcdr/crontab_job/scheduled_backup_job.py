@@ -9,7 +9,7 @@ from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.text_components import TextComponents
-from prime_backup.types.operator import Operator
+from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.types.units import Duration
 from prime_backup.utils.mcdr_utils import broadcast_message
 
@@ -56,7 +56,7 @@ class ScheduledBackupJob(CrontabJob):
 				comment = t_comment.to_plain_text()  # translation exists
 			else:
 				comment = 'Scheduled Backup'
-			task = CreateBackupTask(self.get_command_source(), comment, operator=Operator.pb('scheduled_backup'))
+			task = CreateBackupTask(self.get_command_source(), comment, operator=Operator.pb(PrimeBackupOperatorNames.scheduled_backup))
 			self.run_task_with_retry(task, self.config.interval.value > 300)  # task <= 5min, no need to retry
 
 	def on_event(self, event: CrontabJobEvent):

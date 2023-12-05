@@ -4,6 +4,7 @@ from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_tasks import ReaderTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_tags import BackupTagName
+from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
@@ -27,11 +28,14 @@ class ShowBackupTask(ReaderTask):
 		self.reply(self.tr('raw_size', TextComponents.file_size(backup.raw_size)))
 
 		t_author = TextComponents.operator(backup.author)
+		cmd_author = f'list --author {backup.author.name if backup.author.is_player() else str(backup.author)}'
+		if backup.author == Operator.pb(PrimeBackupOperatorNames.pre_restore):
+			cmd_author += ' --all'  # pre restore backups are hidden by default
 		self.reply(self.tr(
 			'author',
 			t_author.copy().
 			h(self.tr('author.hover', t_author.copy())).
-			c(RAction.suggest_command, mkcmd(f'list --author {backup.author.name if backup.author.is_player() else str(backup.author)}'))
+			c(RAction.suggest_command, mkcmd(cmd_author))
 		))
 
 		if len(backup.tags) > 0:

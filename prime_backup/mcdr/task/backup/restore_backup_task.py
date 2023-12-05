@@ -11,7 +11,7 @@ from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags, BackupTagName
-from prime_backup.types.operator import Operator
+from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.utils.mcdr_utils import click_and_run, mkcmd
 from prime_backup.utils.timer import Timer
 
@@ -72,7 +72,7 @@ class RestoreBackupTask(OperationTask):
 		if self.config.command.backup_on_restore:
 			self.logger.info('Creating backup of existing files to avoid idiot')
 			CreateBackupAction(
-				Operator.pb('pre_restore'),
+				Operator.pb(PrimeBackupOperatorNames.pre_restore),
 				self.tr('pre_restore_comment', backup.id).to_plain_text(),
 				tags=BackupTags().set(BackupTagName.pre_restore_backup, True),
 			).run()

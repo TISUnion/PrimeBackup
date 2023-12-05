@@ -6,6 +6,12 @@ if TYPE_CHECKING:
 	from mcdreforged.api.all import CommandSource, RTextBase
 
 
+class PrimeBackupOperatorNames:
+	pre_restore = 'pre_restore'
+	scheduled_backup = 'scheduled_backup'
+	test = 'test'
+
+
 class Operator(NamedTuple):
 	type: str
 	name: str

@@ -113,12 +113,12 @@ class TextComponents:
 			'confirm_hint.base',
 			time_wait_text,
 			click_and_run(
-				cls.tr('confirm_hint.confirm', what).set_color(RColor.red),
+				RTextList(cls.tr('confirm_hint.confirm', what), '√').set_color(RColor.yellow),
 				cls.tr('confirm_hint.confirm.hover', cls.command('confirm'), what),
 				mkcmd('confirm'),
 			),
 			click_and_run(
-				cls.tr('confirm_hint.abort', what).set_color(RColor.yellow),
+				RTextList(cls.tr('confirm_hint.abort', what), '×').set_color(RColor.gold),
 				cls.tr('confirm_hint.abort.hover', cls.command('abort'), what),
 				mkcmd('abort'),
 			),

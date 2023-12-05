@@ -4,7 +4,7 @@ from mcdreforged.api.all import CommandSource
 
 from prime_backup.mcdr.crontab_job import CrontabJobId, CrontabJob
 from prime_backup.mcdr.crontab_manager import CrontabManager
-from prime_backup.mcdr.task import ImmediateTask
+from prime_backup.mcdr.task.basic_tasks import ImmediateTask
 
 
 class CrontabTaskBase(ImmediateTask, ABC):

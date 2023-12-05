@@ -2,7 +2,7 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.get_backup_action import GetBackupAction
-from prime_backup.mcdr.task import OperationTask
+from prime_backup.mcdr.task.basic_tasks import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 
 

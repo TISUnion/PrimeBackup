@@ -1,9 +1,7 @@
 import enum
 from abc import ABC, abstractmethod
-from typing import Union
 
 from mcdreforged.api.all import *
-from typing_extensions import final
 
 from prime_backup.utils import mcdr_utils
 
@@ -20,11 +18,6 @@ class Task(mcdr_utils.TranslationContext, ABC):
 		super().__init__(f'task.{self.name}')
 		self.source = source
 		self.server = source.get_server()
-
-		from prime_backup import logger
-		from prime_backup.config.config import Config
-		self.logger = logger.get()
-		self.config = Config.get()
 
 	def get_name_text(self) -> RTextBase:
 		return self.tr('name').set_color(RColor.aqua)
@@ -43,26 +36,3 @@ class Task(mcdr_utils.TranslationContext, ABC):
 
 	def on_event(self, event: TaskEvent):
 		pass
-
-	# ==================================== Utils ====================================
-
-	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = True):
-		mcdr_utils.reply_message(self.source, msg, with_prefix=with_prefix)
-
-	def broadcast(self, msg: Union[str, RTextBase], *, with_prefix: bool = True):
-		mcdr_utils.broadcast_message(msg, with_prefix=with_prefix)
-
-
-class OperationTask(Task, ABC):
-	pass
-
-
-class ReaderTask(Task, ABC):
-	pass
-
-
-class ImmediateTask(Task, ABC):
-	@final
-	def is_abort_able(self) -> bool:
-		return super().is_abort_able()
-

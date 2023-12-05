@@ -115,13 +115,13 @@ prime_backup:
       aborted: 裁剪任务中止
       done: 裁剪完成, 共删除{}个备份、{}个对象, 共释放{}
     prune_all:
-      name: 裁剪全范围备份
-      nothing_to_do: 没有生效的裁剪任务, 裁剪中止
+      name: 全范围裁剪备份
+      nothing_to_do: 没有生效的裁剪子任务, 裁剪中止
       what:
         regular: 普通备份
         pre_restore: 回档前备份
       start: 开始裁剪{}
-      done: 已完成所有裁剪任务, 共删除{}个备份、{}个对象, 共释放{}
+      done: 已完成所有裁剪子任务, 共删除{}个备份、{}个对象, 共释放{}
     rename:
       name: 重命名备份
       modified: 已将备份{}的注释修改为{}

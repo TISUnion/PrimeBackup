@@ -1,5 +1,5 @@
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
-from prime_backup.mcdr.task import OperationTask
+from prime_backup.mcdr.task.basic_tasks import OperationTask
 from prime_backup.types.units import ByteCount
 
 

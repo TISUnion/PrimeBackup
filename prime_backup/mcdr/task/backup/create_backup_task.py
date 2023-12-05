@@ -4,7 +4,8 @@ from typing import Optional
 from mcdreforged.api.all import *
 
 from prime_backup.action.create_backup_action import CreateBackupAction
-from prime_backup.mcdr.task import TaskEvent, OperationTask
+from prime_backup.mcdr.task import TaskEvent
+from prime_backup.mcdr.task.basic_tasks import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.operator import Operator
 from prime_backup.utils.timer import Timer
@@ -18,7 +19,6 @@ class CreateBackupTask(OperationTask):
 			operator = Operator.of(source)
 		self.operator = operator
 		self.world_saved_done = threading.Event()
-		self.plugin_unload = False
 
 	@property
 	def name(self) -> str:
@@ -43,7 +43,7 @@ class CreateBackupTask(OperationTask):
 						self.broadcast(self.tr('abort.save_wait_time_out').set_color(RColor.red))
 						return
 			cost_save_wait = timer.get_and_restart()
-			if self.plugin_unload:
+			if self.plugin_unloaded_event.is_set():
 				self.broadcast(self.tr('abort.unloaded').set_color(RColor.red))
 				return
 
@@ -71,8 +71,8 @@ class CreateBackupTask(OperationTask):
 				self.server.execute(cmds.auto_save_on)
 
 	def on_event(self, event: TaskEvent):
+		super().on_event(event)
 		if event == TaskEvent.plugin_unload:
-			self.plugin_unload = True
 			self.world_saved_done.set()
 		elif event == TaskEvent.world_save_done:
 			self.world_saved_done.set()

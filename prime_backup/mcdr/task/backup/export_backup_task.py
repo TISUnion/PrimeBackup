@@ -4,7 +4,7 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.export_backup_action import ExportBackupActions
 from prime_backup.action.get_backup_action import GetBackupAction
-from prime_backup.mcdr.task import OperationTask
+from prime_backup.mcdr.task.basic_tasks import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.standalone_backup_format import _ZipFormat, StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat

@@ -59,9 +59,9 @@ class CommandManager:
 		comment = context.get('comment', '')
 		self.task_manager.add_task(CreateBackupTask(source, comment), callback)
 
-	def cmd_back(self, source: CommandSource, context: CommandContext, *, skip_confirm: bool = False):
+	def cmd_back(self, source: CommandSource, context: CommandContext, *, needs_confirm: bool = True):
 		backup_id = context.get('backup_id')
-		self.task_manager.add_task(RestoreBackupTask(source, backup_id, skip_confirm=skip_confirm))
+		self.task_manager.add_task(RestoreBackupTask(source, backup_id, needs_confirm=needs_confirm))
 
 	def cmd_list(self, source: CommandSource, context: CommandContext):
 		page = context.get('page', 1)
@@ -151,9 +151,9 @@ class CommandManager:
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
 		builder.command('back', self.cmd_back)
-		builder.command('back --confirm', functools.partial(self.cmd_back, skip_confirm=True))
+		builder.command('back --confirm', functools.partial(self.cmd_back, needs_confirm=False))
 		builder.command('back <backup_id>', self.cmd_back)
-		builder.command('back <backup_id> --confirm', functools.partial(self.cmd_back, skip_confirm=True))
+		builder.command('back <backup_id> --confirm', functools.partial(self.cmd_back, needs_confirm=False))
 		builder.command('show <backup_id>', self.cmd_show)
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
 		builder.command('delete <backup_id>', self.cmd_delete)

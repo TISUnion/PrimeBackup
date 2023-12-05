@@ -3,7 +3,6 @@ import contextlib
 import datetime
 import functools
 import logging
-import threading
 import time
 from typing import List, NamedTuple, Dict, Union, Optional, Callable, ContextManager, Tuple
 
@@ -15,7 +14,8 @@ from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.config.prune_config import PruneSetting
 from prime_backup.exceptions import BackupNotFound
-from prime_backup.mcdr.task import OperationTask, TaskEvent
+from prime_backup.mcdr.task import TaskEvent
+from prime_backup.mcdr.task.basic_tasks import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
@@ -71,7 +71,6 @@ class PruneBackupTask(OperationTask):
 		if not setting.enabled:
 			raise ValueError('the prune setting should be enabled')
 		self.what_to_prune = what_to_prune
-		self.is_aborted = threading.Event()
 
 	@property
 	def name(self) -> str:
@@ -164,7 +163,7 @@ class PruneBackupTask(OperationTask):
 				if mark.keep:
 					if 0 < settings.max_amount <= regular_keep_count:
 						mark = PruneMark.create_remove('max_amount exceeded')
-					elif 0 < settings.max_lifetime.value < (now - backup_info.timestamp_ns):
+					elif 0 < settings.max_lifetime.value_nano < (now - backup_info.timestamp_ns):
 						mark = PruneMark.create_remove('max_lifetime exceeded')
 
 				result.append(PruneResultItem(backup_info, mark))
@@ -224,7 +223,7 @@ class PruneBackupTask(OperationTask):
 
 			for pri in result:
 				bid = pri.backup.id
-				if self.is_aborted.is_set():
+				if self.aborted_event.is_set():
 					self.reply(self.tr('aborted'))
 					break
 				if not pri.mark.keep:
@@ -249,16 +248,11 @@ class PruneBackupTask(OperationTask):
 		self.reply(self.tr('done', cnt, TextComponents.number(bls.count), TextComponents.blob_list_summary_store_size(bls)))
 		return cnt, bls
 
-	def on_event(self, event: TaskEvent):
-		if event in [TaskEvent.plugin_unload, TaskEvent.operation_aborted]:
-			self.is_aborted.set()
-
 
 class PruneAllBackupTask(OperationTask):
 	def __init__(self, source: CommandSource):
 		super().__init__(source)
 		self.__current_task: Optional[PruneBackupTask] = None
-		self.is_aborted = threading.Event()
 
 	@property
 	def name(self) -> str:
@@ -275,7 +269,7 @@ class PruneAllBackupTask(OperationTask):
 			return cnt_sum, bls_sum
 
 		def prune_backups(what: str, backup_filter: BackupFilter, setting: PruneSetting) -> Tuple[int, BlobListSummary]:
-			if not setting.enabled or self.is_aborted.is_set():
+			if not setting.enabled or self.aborted_event.is_set():
 				return BlobListSummary.zero()
 
 			self.reply(self.tr('start', self.tr(f'what.{what}')))
@@ -289,17 +283,16 @@ class PruneAllBackupTask(OperationTask):
 			bls_sum = bls_sum + bls
 
 		prune_backups('regular', BackupFilter().filter_non_pre_restore_backup(), config.regular_backup)
-		prune_backups('pre_restore', BackupFilter().filter_pre_restore_backup(), config.pre_restore_backup)
+		if not self.aborted_event.is_set():
+			prune_backups('pre_restore', BackupFilter().filter_pre_restore_backup(), config.pre_restore_backup)
 
 		self.reply(self.tr('done', cnt_sum, TextComponents.number(bls_sum.count), TextComponents.blob_list_summary_store_size(bls_sum)))
 		return cnt_sum, bls_sum
 
 	def on_event(self, event: TaskEvent):
+		super().on_event(event)
 		if (task := self.__current_task) is not None:
 			task.on_event(event)
-
-		if event in [TaskEvent.plugin_unload, TaskEvent.operation_aborted]:
-			self.is_aborted.set()
 
 
 def __main():

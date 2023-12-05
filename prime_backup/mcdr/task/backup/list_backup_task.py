@@ -9,7 +9,8 @@ from prime_backup.action.count_backup_action import CountBackupAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupIdAction
 from prime_backup.exceptions import BackupNotFound
-from prime_backup.mcdr.task import ReaderTask, TaskEvent
+from prime_backup.mcdr.task import TaskEvent
+from prime_backup.mcdr.task.basic_tasks import ReaderTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils import conversion_utils
@@ -89,5 +90,6 @@ class ListBackupTask(ReaderTask):
 		self.reply(RTextList(t_prev, ' ', TextComponents.number(self.page), '/', TextComponents.number(max_page), ' ', t_next))
 
 	def on_event(self, event: TaskEvent):
+		super().on_event(event)
 		if event in [TaskEvent.plugin_unload, TaskEvent.operation_aborted]:
 			self.is_aborted.set()

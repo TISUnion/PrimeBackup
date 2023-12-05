@@ -16,17 +16,20 @@ class WaitableValue(Generic[_T]):
 	EMPTY = _Empty()
 
 	def __init__(self):
+		self.__lock = threading.Lock()
 		self.__event = threading.Event()
 		self.__value = self.EMPTY
 
 	def get(self) -> _T:
-		if not self.__event.is_set():
-			raise ValueError('value is unset')
-		return self.__value
+		with self.__lock:
+			if not self.__event.is_set():
+				raise ValueError('value is unset')
+			return self.__value
 
 	def set(self, value: _T):
-		self.__value = value
-		self.__event.set()
+		with self.__lock:
+			self.__value = value
+			self.__event.set()
 
 	def is_set(self) -> bool:
 		return self.__event.is_set()
@@ -37,8 +40,14 @@ class WaitableValue(Generic[_T]):
 		else:
 			return self.EMPTY
 
+	def clear(self):
+		with self.__lock:
+			self.__value = self.EMPTY
+			self.__event.clear()
+
 	def __str__(self):
-		if self.is_set():
-			return 'WaitableValue[value={}]'.format(self.__value)
-		else:
-			return 'WaitableValue[empty]'
+		with self.__lock:
+			if self.is_set():
+				return 'WaitableValue[value={}]'.format(self.__value)
+			else:
+				return 'WaitableValue[empty]'

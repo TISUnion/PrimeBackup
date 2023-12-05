@@ -1,7 +1,7 @@
 from mcdreforged.api.all import *
 
 from prime_backup.action.get_backup_action import GetBackupAction
-from prime_backup.mcdr.task import ReaderTask
+from prime_backup.mcdr.task.basic_tasks import ReaderTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.utils.mcdr_utils import mkcmd

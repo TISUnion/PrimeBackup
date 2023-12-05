@@ -116,7 +116,7 @@ prime_backup:
       done: Finished pruning, removed {} backups, {} blobs, freed {}
     prune_all:
       name: prune all backups
-      nothing_to_do: No enabled prune jobs, no thing to do
+      nothing_to_do: No enabled prune job, no thing to do
       what:
         regular: regular backups
         pre_restore: pre-restore backups

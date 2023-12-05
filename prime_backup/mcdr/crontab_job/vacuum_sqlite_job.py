@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
 
-from prime_backup.config.sub_configs import CompactDatabaseConfig
+from prime_backup.config.database_config import CompactDatabaseConfig
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobId
 from prime_backup.mcdr.task.general.vacuum_sqlite_task import VacuumSqliteTask
 from prime_backup.types.units import Duration

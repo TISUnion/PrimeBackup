@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
 
-from prime_backup.config.sub_configs import PruneConfig
+from prime_backup.config.prune_config import PruneConfig
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobId
 from prime_backup.mcdr.task.backup.prune_backup_task import PruneAllBackupTask
 from prime_backup.types.units import Duration

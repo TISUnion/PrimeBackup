@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
 
-from prime_backup.config.sub_configs import ScheduledBackupConfig
+from prime_backup.config.scheduled_backup import ScheduledBackupConfig
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask

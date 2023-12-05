@@ -13,7 +13,7 @@ from mcdreforged.api.all import *
 from prime_backup import constants
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
-from prime_backup.config.sub_configs import PruneSetting
+from prime_backup.config.prune_config import PruneSetting
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import OperationTask, TaskEvent
 from prime_backup.mcdr.text_components import TextComponents

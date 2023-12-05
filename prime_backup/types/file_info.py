@@ -1,23 +1,34 @@
+import dataclasses
+import enum
+import functools
 import stat
-from typing import NamedTuple, Optional
+from typing import Optional
 
 from prime_backup.db import schema
 from prime_backup.types.blob_info import BlobInfo
 
 
-class FileInfo(NamedTuple):
+class FileType(enum.Enum):
+	file = enum.auto()
+	directory = enum.auto()
+	symlink = enum.auto()
+	unknown = enum.auto()
+
+
+@dataclasses.dataclass(frozen=True)
+class FileInfo:
 	backup_id: int
 	path: str
 
 	mode: int
-	content: Optional[bytes]
-	blob: BlobInfo
+	content: Optional[bytes] = None
+	blob: Optional[BlobInfo] = None
 
-	uid: Optional[int]
-	gid: Optional[int]
-	ctime_ns: Optional[int]
-	mtime_ns: Optional[int]
-	atime_ns: Optional[int]
+	uid: Optional[int] = None
+	gid: Optional[int] = None
+	ctime_ns: Optional[int] = None
+	mtime_ns: Optional[int] = None
+	atime_ns: Optional[int] = None
 
 	@classmethod
 	def of(cls, file: schema.File) -> 'FileInfo':
@@ -41,6 +52,17 @@ class FileInfo(NamedTuple):
 			mtime_ns=file.mtime_ns,
 			atime_ns=file.atime_ns,
 		)
+
+	@functools.cached_property
+	def file_type(self) -> FileType:
+		if self.is_file():
+			return FileType.file
+		elif self.is_dir():
+			return FileType.directory
+		elif self.is_link():
+			return FileType.symlink
+		else:
+			return FileType.unknown
 
 	def is_file(self) -> bool:
 		return stat.S_ISREG(self.mode)

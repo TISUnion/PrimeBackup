@@ -1,7 +1,9 @@
 import argparse
+import enum
 import shutil
 import sys
 from pathlib import Path
+from typing import Type
 
 from prime_backup.action.export_backup_action import ExportBackupActions
 from prime_backup.action.get_backup_action import GetBackupAction
@@ -14,12 +16,17 @@ from prime_backup.db.access import DbAccess
 from prime_backup.db.migration import BadDbVersion
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound
 from prime_backup.logger import get as get_logger
+from prime_backup.types.file_info import FileType
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
 
 logger = get_logger()
 DEFAULT_STORAGE_ROOT = Config.get_default().storage_root
+
+
+def enum_options(clazz: Type[enum.Enum]) -> str:
+	return ', '.join([e_.name for e_ in clazz])
 
 
 class CliHandler:
@@ -56,7 +63,7 @@ class CliHandler:
 			try:
 				return StandaloneBackupFormat[self.args.format]
 			except KeyError:
-				logger.error('Bad format {!r}, should be one of {}'.format(self.args.format, [ebf.name for ebf in StandaloneBackupFormat]))
+				logger.error('Bad format {!r}, should be one of {}'.format(self.args.format, enum_options(StandaloneBackupFormat)))
 		sys.exit(1)
 
 	def cmd_db_status(self):
@@ -134,19 +141,24 @@ class CliHandler:
 		output_path = Path(self.args.output)
 		self.init_environment()
 
-		file = GetFileAction(self.args.backup_id, file_path).run()  # ensure file exists
-		# expect states:
-		#   output/filename
-		#   output/filename/
-		#      ^- output_path
+		file = GetFileAction(self.args.backup_id, file_path).run()
+		logger.info('Found file {}'.format(file))
+		if self.args.type is not None:
+			try:
+				ft = FileType[self.args.type]
+			except KeyError:
+				logger.error('Bad file type {!r}, should be one of {}'.format(self.args.type, enum_options(FileType)))
+				sys.exit(1)
+			else:
+				if ft != file.file_type:
+					logger.error('Unexpected file type, expected {}, but found {} for the to-be-extracted file'.format(self.args.type, file.file_type.name))
+					sys.exit(2)
+
 		dest_path = output_path / file_path.name
-		if dest_path.is_file() and file.is_file():
-			pass
-		else:
-			if dest_path.is_file():
-				dest_path.unlink()
-			elif dest_path.is_dir():
-				shutil.rmtree(dest_path)
+		if dest_path.is_file():
+			dest_path.unlink()
+		elif dest_path.is_dir():
+			shutil.rmtree(dest_path)
 
 		ExportBackupActions.to_dir(
 			self.args.backup_id, output_path, True,
@@ -175,13 +187,13 @@ class CliHandler:
 		desc = 'Import a backup from the given file'
 		parser_import = subparsers.add_parser('import', help=desc, description=desc)
 		parser_import.add_argument('input', help='The file name of the backup to be imported. Example: my_backup.tar')
-		parser_import.add_argument('-f', '--format', help='The format of the input file. If not given, attempt to infer from the input file name. Available: {}'.format(', '.join([ebf.name for ebf in StandaloneBackupFormat])))
+		parser_import.add_argument('-f', '--format', help='The format of the input file. If not given, attempt to infer from the input file name. Options: {}'.format(enum_options(StandaloneBackupFormat)))
 
 		desc = 'Export the given backup to a single file'
 		parser_export = subparsers.add_parser('export', help=desc, description=desc)
 		parser_export.add_argument('backup_id', type=int, help='The ID of the backup to export')
 		parser_export.add_argument('output', help='The output file name of the exported backup. Example: my_backup.tar')
-		parser_export.add_argument('-f', '--format', help='The format of the output file. If not given, attempt to infer from the output file name. Available: {}'.format(', '.join([ebf.name for ebf in StandaloneBackupFormat])))
+		parser_export.add_argument('-f', '--format', help='The format of the output file. If not given, attempt to infer from the output file name. Options: {}'.format(enum_options(StandaloneBackupFormat)))
 
 		desc = 'Extract a single file from a backup'
 		parser_extract = subparsers.add_parser('extract', help=desc, description=desc)
@@ -189,6 +201,7 @@ class CliHandler:
 		parser_extract.add_argument('file', help='The related path of the to-be-extracted file inside the backup')
 		parser_extract.add_argument('output', help='The output file name of the extracted file')
 		parser_extract.add_argument('-r', '--recursively', action='store_true', help='If the file to extract is a directory, recursively extract all of its containing files')
+		parser_extract.add_argument('-t', '--type', help='Type assertion of the extracted file. Default: no assertion. Options: {}'.format(enum_options(FileType)))
 
 		args = parser.parse_args()
 		if args.command is None:

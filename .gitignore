@@ -7,9 +7,6 @@ __pycache__
 *.pyc
 /venv/
 
-# MCDR
-*.mcdr
-
 # runtime & temp files
 /test.py
 *.db

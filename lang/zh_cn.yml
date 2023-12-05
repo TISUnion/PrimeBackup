@@ -171,7 +171,7 @@ prime_backup:
       bad_id_range: 非法ID范围
     disabled: 插件已禁用
     permission_denied: 权限不足
-    backup_not_found: ID为{}的插件不存在
+    backup_not_found: ID为{}的备份不存在
     db_locked: 任务{}执行失败, 数据库已被锁定。请稍候再试
     generic: 任务{}执行失败, 见控制台以了解错误详情
     too_much_ongoing_task:
@@ -217,7 +217,11 @@ prime_backup:
       console: 控制台
       command_source: 指令源{}
       unknown: '(未知) {}'
-      prime_backup: Prime Backup
+      prime_backup:
+        .: Prime Backup
+        test: 测试
+        scheduled_backup: 定时备份
+        pre_restore: 回档前的自动备份
 
   backup_tag:
     hidden: 隐藏备份

@@ -179,8 +179,11 @@ class TextComponents:
 		elif op.type in ['console']:
 			return cls.tr(tr_key)
 		elif op.type == constants.PLUGIN_ID:
-			# TODO: detailed
-			return cls.tr(tr_key).set_color(RColor.dark_aqua)
+			from prime_backup.mcdr import mcdr_globals
+			t_name = cls.tr(tr_key + '.' + op.name)
+			if not mcdr_globals.server.has_translation(misc_utils.ensure_type(getattr(t_name, 'translation_key'), str)):
+				t_name = RText(op.name, styles=RStyle.italic)
+			return RTextList(cls.tr(tr_key), RText('-', RColor.gray), t_name).set_color(RColor.dark_aqua)
 		else:
 			return RText(f'{op.type}:{op.name}')
 

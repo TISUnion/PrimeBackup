@@ -217,9 +217,13 @@ prime_backup:
       console: Console
       command_source: Command source {}
       unknown: '(Unknown) {}'
-      prime_backup: Prime Backup
+      prime_backup:
+        .: Prime Backup
+        test: Test
+        scheduled_backup: Scheduled backup
+        pre_restore: Automatic backup before restore
 
   backup_tag:
     hidden: Hidden backup
     pre_restore_backup: Backup before restore
-    protected: 受保护备份
+    protected: Protected backup

@@ -49,7 +49,12 @@ class ScheduledBackupJob(CrontabJob):
 			exit_stack.callback(self.is_executing.clear)
 
 			source = mcdr_globals.server.get_plugin_command_source()
-			task = CreateBackupTask(source, self.tr('comment').to_plain_text(), operator=Operator.pb('scheduled_backup'))
+			t_comment = self.tr('comment')
+			if getattr(t_comment, 'translation_key') != t_comment.to_plain_text():
+				comment = t_comment.to_plain_text()  # translation exists
+			else:
+				comment = 'Scheduled Backup'
+			task = CreateBackupTask(source, comment, operator=Operator.pb('scheduled_backup'))
 			self.run_task_with_retry(task, self.config.interval.value > 300)  # task <= 5min, no need to retry
 
 	def enable(self, *args, **kwargs):

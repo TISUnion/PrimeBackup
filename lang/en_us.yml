@@ -8,6 +8,55 @@ prime_backup:
       noop: Nothing to abort
 
   task:
+    create:
+      name: create backup
+      start: Creating backup, please wait
+      abort.save_wait_time_out: Waiting for the world to save timed out, aborting backup task
+      abort.unloaded: Plugin unloaded, backup task aborted
+      completed: 'Backup completed, ID {}, cost {}, total {} (+{})'
+      cost.hover: |-
+        save wait: {}
+        create backup: {}
+    crontab_operate:
+      name: operate crontab
+      pause.already: Crontab job "{}" is already paused
+      pause.done: Crontab job "{}" paused until plugin reload
+      pause.done.notes: If you want to disable it permanently, you need to modify related config
+      resume.already: 'Crontab job "{}" is already running. Next run at: {}'
+      resume.done: 'Crontab job "{}" resumed. Next run at: {}'
+    crontab_show:
+      name: show crontab
+      title: Crontab job "{}"
+      enabled: 'Enabled: {}'
+      running: 'Running: {}'
+      interval: 'Interval: {}'
+      jitter: 'Jitter: {}'
+      next_run_date: 'Next at: {}'
+      quick_actions: 'Quick actions: {} {}'
+      pause: pause
+      pause.hover: Click to pause job "{}"
+      resume: resume
+      resume.hover: Click to resume job "{}"
+    delete:
+      name: delete backup
+      deleting: Deleting {}
+      deleted: Deleted backup {}, freed {}
+    delete_range:
+      name: delete backup range
+      no_backup: No available backup to delete
+      to_delete_count: 'Found {} backups to be deleted:'
+      ellipsis.hover: Omitted {} backups
+      confirm_target: delete
+      no_confirm: No choice has been made, delete task aborted
+      aborted: Delete task aborted
+      deleted: Deleted {}
+      deleted.skipped: Skipped {} (missed)
+      done: Done, {} backups deleted, freed {}
+    export:
+      name: export backup
+      already_exists: File {} already exists
+      exporting: Exporting backup {}
+      exported: Exported backup {} to {}, cost {}, size {}
     help:
       name: show help
       help:
@@ -51,26 +100,6 @@ prime_backup:
           §7{prefix} list --all§r
           §7{prefix} list --start 20231130 --size§r
           §7{prefix} list 3 --per-page 20§r
-
-    create:
-      name: create backup
-      start: Creating backup, please wait
-      abort.save_wait_time_out: Waiting for the world to save timed out, aborting backup task
-      abort.unloaded: Plugin unloaded, backup task aborted
-      completed: 'Backup completed, ID {}, cost {}, total {} (+{})'
-      cost.hover: |-
-        save wait: {}
-        create backup: {}
-    restore:
-      name: restore backup
-      no_backup: No available backup to restore
-      show_backup: Gonna restore the world to {}
-      confirm_target: restore
-      countdown: '§c!!!§r {} second later, the world will §cbe restored§r to {}'
-      countdown.hover: Click me or enter command {} to abort restore
-      no_confirm: No choice has been made, restore task aborted
-      pre_restore_comment: 'Automatic backup before restoring to #{}'
-      aborted: Restore task aborted
     list:
       name: list backup
       title: Listing {} backups
@@ -78,41 +107,6 @@ prime_backup:
       next: Next Page
       prev: Previous Page
       aborted: List task aborted
-    show:
-      name: show backup
-      title: 'Backup {}'
-      date: 'Creation date: {}'
-      comment: 'Comment: {}'
-      stored_size: 'Size (stored): {} ({})'
-      raw_size: 'Size (raw): {}'
-      author: 'Author: {}'
-      author.hover: 'Click to list backups created by {}'
-      tag.title: 'Tags (size={}):'
-      tag.empty_title: 'Tags: {}'
-      tag.empty: empty
-    rename:
-      name: rename backup
-      modified: Modified the comment of backup {} to {}
-    delete:
-      name: delete backup
-      deleting: Deleting {}
-      deleted: Deleted backup {}, freed {}
-    delete_range:
-      name: delete backup range
-      no_backup: No available backup to delete
-      to_delete_count: 'Found {} backups to be deleted:'
-      ellipsis.hover: Omitted {} backups
-      confirm_target: delete
-      no_confirm: No choice has been made, delete task aborted
-      aborted: Delete task aborted
-      deleted: Deleted {}
-      deleted.skipped: Skipped {} (missed)
-      done: Done, {} backups deleted, freed {}
-    export:
-      name: export backup
-      already_exists: File {} already exists
-      exporting: Exporting backup {}
-      exported: Exported backup {} to {}, cost {}, size {}
     prune:
       name: prune backups
       nothing_to_prune: No available backup to prune
@@ -128,26 +122,31 @@ prime_backup:
         pre_restore: pre-restore backups
       start: Start pruning {}
       done: Finished all prune jobs, removed {} backups, {} blobs, freed {}
-    crontab_operate:
-      name: operate crontab
-      pause.already: Crontab job "{}" is already paused
-      pause.done: Crontab job "{}" paused until plugin reload
-      pause.done.notes: If you want to disable it permanently, you need to modify related config
-      resume.already: 'Crontab job "{}" is already running. Next run at: {}'
-      resume.done: 'Crontab job "{}" resumed. Next run at: {}'
-    crontab_show:
-      name: show crontab
-      title: Crontab job "{}"
-      enabled: 'Enabled: {}'
-      running: 'Running: {}'
-      interval: 'Interval: {}'
-      jitter: 'Jitter: {}'
-      next_run_date: 'Next at: {}'
-      quick_actions: 'Quick actions: {} {}'
-      pause: pause
-      pause.hover: Click to pause job "{}"
-      resume: resume
-      resume.hover: Click to resume job "{}"
+    rename:
+      name: rename backup
+      modified: Modified the comment of backup {} to {}
+    restore:
+      name: restore backup
+      no_backup: No available backup to restore
+      show_backup: Gonna restore the world to {}
+      confirm_target: restore
+      countdown: '§c!!!§r {} second later, the world will §cbe restored§r to {}'
+      countdown.hover: Click me or enter command {} to abort restore
+      no_confirm: No choice has been made, restore task aborted
+      pre_restore_comment: 'Automatic backup before restoring to #{}'
+      aborted: Restore task aborted
+    show:
+      name: show backup
+      title: 'Backup {}'
+      date: 'Creation date: {}'
+      comment: 'Comment: {}'
+      stored_size: 'Size (stored): {} ({})'
+      raw_size: 'Size (raw): {}'
+      author: 'Author: {}'
+      author.hover: 'Click to list backups created by {}'
+      tag.title: 'Tags (size={}):'
+      tag.empty_title: 'Tags: {}'
+      tag.empty: empty
 
   job:
     base:

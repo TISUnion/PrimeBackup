@@ -196,7 +196,7 @@ class TextComponents:
 
 	@classmethod
 	def tag_name(cls, tag_name: BackupTagName) -> RTextBase:
-		return RText(tag_name.name, RColor.aqua)
+		return RText(tag_name.name, RColor.aqua).h(tag_name.value.text)
 
 	@classmethod
 	def title(cls, text: Any):

@@ -11,7 +11,7 @@ prime_backup:
     clear_tag:
       name: set backup tag
       cleared: Cleared tag {1} of backup {0}
-      not_exists: backup {0} does not have tag {1}
+      not_exists: Backup {0} does not have tag {1}
     create:
       name: create backup
       start: Creating backup, please wait
@@ -65,6 +65,7 @@ prime_backup:
     help:
       name: show help
       help:
+        # TODO: refactor, one usage one line, only show common commands in welcome page
         _header: |-
           ------ {name} v{version} ------
           {description}
@@ -82,6 +83,8 @@ prime_backup:
           §7{prefix} export §6<backup_id> §3[<export_format>]§r: Export the given backup to the §3export§r folder
           §7{prefix} prune §6<backup_id>§r: Manually trigger a backup prune
           §7{prefix} crontab §5<job_id> [pause|resume]§r: Show state or operate given crontab job
+          §7{prefix} tag §6<backup_id> [set <value>|clear]§r§r: Tag operation on the given backup
+          §7{prefix} database [overview|vacuum|verify]§r§r: Database queries and operations
           §7{prefix} confirm§r: Confirm the current task execution
           §7{prefix} abort§r: Abort the current task execution
           §d[Arguments]§r
@@ -155,6 +158,18 @@ prime_backup:
       tag.title: 'Tags (size={}):'
       tag.empty_title: 'Tags: {}'
       tag.empty: empty
+    show_tag:
+      name: show backup tags
+      title: Tags of backup {}
+      amount: 'Amount: {}'
+      create: Click to create tag {}
+      edit: Click to edit tag {}
+      clear: Click to clear tag {}
+      not_exists: not exists
+    show_tag_single:
+      name: show backup single tag
+      value: Tag {1} of backup {0} is {2}
+      not_exists: Backup {0} does not have tag {1}
     db_overview:
       name: overview database
       title: Database overview

@@ -43,6 +43,7 @@ __check_backup_tag_keys()
 
 class BackupTags:
 	data: 'BackupTagDict'
+	NONE = object()
 
 	def __init__(self, data: Optional['BackupTagDict'] = None):
 		self.data = {}
@@ -50,7 +51,7 @@ class BackupTags:
 			self.data.update(data)
 
 	def get(self, name: BackupTagName) -> Any:
-		return self.data.get(name.name)
+		return self.data.get(name.name) if name.name in self.data else self.NONE
 
 	def set(self, name: BackupTagName, value: Any) -> 'BackupTags':
 		self.data[name.name] = misc_utils.ensure_type(value, name.value.type)

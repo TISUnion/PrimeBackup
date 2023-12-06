@@ -1,6 +1,6 @@
 import functools
 import typing
-from typing import List, Callable
+from typing import List, Callable, Optional
 
 from mcdreforged.api.all import *
 
@@ -17,6 +17,7 @@ from prime_backup.mcdr.task.backup.operate_backup_tag_task import SetBackupTagTa
 from prime_backup.mcdr.task.backup.prune_backup_task import PruneAllBackupTask
 from prime_backup.mcdr.task.backup.rename_backup_task import RenameBackupTask
 from prime_backup.mcdr.task.backup.restore_backup_task import RestoreBackupTask
+from prime_backup.mcdr.task.backup.show_backup_tag_task import ShowBackupTagTask, ShowBackupSingleTagTask
 from prime_backup.mcdr.task.backup.show_backup_task import ShowBackupTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
@@ -146,6 +147,13 @@ class CommandManager:
 		if not self.task_manager.do_abort():
 			reply_message(source, tr('command.abort.noop'))
 
+	def cmd_show_backup_tag(self, source: CommandSource, context: CommandContext, tag_name: Optional[BackupTagName] = None):
+		backup_id = context['backup_id']
+		if tag_name is not None:
+			self.task_manager.add_task(ShowBackupSingleTagTask(source, backup_id, tag_name))
+		else:
+			self.task_manager.add_task(ShowBackupTagTask(source, backup_id))
+
 	def cmd_operate_backup_tag(self, source: CommandSource, context: CommandContext, tag_name: BackupTagName, mode: typing.Literal['set', 'clear']):
 		backup_id = context['backup_id']
 		if mode == 'set':
@@ -246,7 +254,10 @@ class CommandManager:
 			return node
 
 		def make_tag_cmd() -> Literal:
-			node = Integer('backup_id').at_min(1)
+			node = (
+				Integer('backup_id').at_min(1).
+				runs(self.cmd_show_backup_tag)
+			)
 			for tag_name in BackupTagName:
 				arg_type = {
 					bool: Boolean,
@@ -256,6 +267,7 @@ class CommandManager:
 				}[tag_name.value.type]
 
 				bldr = SimpleCommandBuilder()
+				bldr.command(f'{tag_name.name}', functools.partial(self.cmd_show_backup_tag, tag_name=tag_name))
 				bldr.command(f'{tag_name.name} set <value>', functools.partial(self.cmd_operate_backup_tag, tag_name=tag_name, mode='set'))
 				bldr.command(f'{tag_name.name} clear', functools.partial(self.cmd_operate_backup_tag, tag_name=tag_name, mode='clear'))
 				bldr.arg('value', arg_type)

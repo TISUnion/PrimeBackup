@@ -82,6 +82,8 @@ prime_backup:
           §7{prefix} export §6<备份ID> §3[<导出格式>]§r: 以给定格式导出给定备份到§3export§r文件夹
           §7{prefix} prune §6<备份ID>§r: 手动触发一次备份裁剪
           §7{prefix} crontab §5<任务ID> §7[pause|resume]§r: 展示给定的定时任务的其状态, 或者将暂停/继续其执行
+          §7{prefix} tag §6<备份ID> [set <value>|clear]§r§r: 操作给定备份的标签
+          §7{prefix} database [overview|vacuum|verify]§r§r: 操作数据库
           §7{prefix} confirm§r: 确认当前的任务操作。需确认的任务: 回档、范围删除
           §7{prefix} abort§r: 终止当前的任务操作。可终止的任务: 回档、列出备份、范围删除、备份裁剪
           §d【参数帮助】§r
@@ -155,6 +157,18 @@ prime_backup:
       tag.title: '标签(共{}条):'
       tag.empty_title: '标签: {}'
       tag.empty: 空
+    show_tag:
+      name: 展示备份标签
+      title: 备份{}的标签
+      amount: '数量: {}'
+      create: 点我创建标签{}
+      edit: 点我编辑标签{}
+      clear: 点我清除标签{}
+      not_exists: 不存在
+    show_tag_single:
+      name: 展示备份的单个标签
+      value: 备份{0}的标签{1}是{2}
+      not_exists: 备份{0}不存在标签{1}
     db_overview:
       name: 概览数据库
       title: 数据库概览

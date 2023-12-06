@@ -8,10 +8,10 @@ from prime_backup import constants
 
 
 def __create_logger() -> logging.Logger:
-	logger = logging.Logger(constants.PLUGIN_ID)
-	logger.setLevel(logging.INFO)
+	from prime_backup.utils.log_utils import LOG_FORMATTER, __get_log_mode
+	logger = logging.Logger(constants.PLUGIN_ID, __get_log_mode())
 	handler = logging.StreamHandler(sys.stdout)
-	handler.setFormatter(logging.Formatter('[%(asctime)s %(levelname)s] (%(funcName)s) %(message)s'))
+	handler.setFormatter(LOG_FORMATTER)
 	logger.addHandler(handler)
 	return logger
 

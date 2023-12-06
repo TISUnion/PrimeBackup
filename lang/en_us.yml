@@ -84,7 +84,7 @@ prime_backup:
           §7{prefix} prune §6<backup_id>§r: Manually trigger a backup prune
           §7{prefix} crontab §5<job_id> [pause|resume]§r: Show state or operate given crontab job
           §7{prefix} tag §6<backup_id> [set <value>|clear]§r§r: Tag operation on the given backup
-          §7{prefix} database [overview|vacuum|verify]§r§r: Database queries and operations
+          §7{prefix} database [overview|validate|vacuum]§r§r: Database queries and operations
           §7{prefix} confirm§r: Confirm the current task execution
           §7{prefix} abort§r: Abort the current task execution
           §d[Arguments]§r
@@ -184,20 +184,28 @@ prime_backup:
     db_vacuum:
       name: tidy up database
       start: Compacting database, please wait...
-      done: 'Database compaction complete, cost {}, size change: {} -> {} ({})'
-    db_verify:
-      name: verify database
-      nothing_to_verify: Nothing is requested to be verified
-      verify_blobs:
-        .: Start verifying blobs, please wait
+      done: 'Database compaction complete, cost {}, size change: {} -> {} ({}) ({})'
+    db_validate:
+      name: validate database
+      nothing_to_validate: Nothing is requested to be validated
+      validate_blobs:
+        .: Start validating blobs, please wait...
+        done: Validated {} / {} blobs
         all_ok: All {} blobs are healthy
-        found_bad_blobs: Found {} bad blobs in totals
+        found_bad_blobs: Found {} / {} bad blobs in total
         invalid: 'Invalid blob amount: {}'
         missing: 'Missing blob amount: {}'
         corrupted: 'Corrupted blob amount: {}'
         mismatched: 'Mismatched blob amount: {}'
-      verify_files: Start verifying files, please wait
-      done: Verification done, cost {}
+      validate_files:
+        .: Start validating files (including file, directory and symlink), please wait...
+        done: Validated {} / {} files
+        all_ok: All {} files are healthy
+        found_bad_files: Found {} / {} bad files in total
+        invalid: 'Invalid blob amount: {}'
+        bad_blob_relation: 'Bad blob relationship: {}'
+        file_blob_mismatched: 'File-blob mismatch: {}'
+      done: Validation done, cost {}
 
   job:
     base:

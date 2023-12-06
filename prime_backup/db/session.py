@@ -70,15 +70,23 @@ class DbSession:
 	def get_blob_opt(self, h: str) -> Optional[schema.Blob]:
 		return self.session.get(schema.Blob, h)
 
-	def get_blobs(self, hashes: List[str]) -> Dict[str, schema.Blob]:
+	def get_blobs(self, hashes: List[str]) -> Dict[str, Optional[schema.Blob]]:
+		"""
+		:return: a dict, hash -> optional blob. All given hashes are in the dict
+		"""
 		result = {h: None for h in hashes}
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			for blob in self.session.execute(select(schema.Blob).where(schema.Blob.hash.in_(view))).scalars().all():
 				result[blob.hash] = blob
 		return result
 
-	def get_all_blobs(self) -> List[schema.Blob]:
-		return _list_it(self.session.execute(select(schema.Blob)).scalars().all())
+	def list_blobs(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Blob]:
+		s = select(schema.Blob)
+		if limit is not None:
+			s = s.limit(limit)
+		if offset is not None:
+			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
 
 	def get_all_blob_hashes(self) -> List[str]:
 		return _list_it(self.session.execute(select(schema.Blob.hash)).scalars().all())
@@ -146,6 +154,14 @@ class DbSession:
 
 	def get_file_raw_size_sum(self) -> int:
 		return int(self.session.execute(func.sum(schema.File.blob_raw_size).select()).scalar_one())
+
+	def list_files(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.File]:
+		s = select(schema.File)
+		if limit is not None:
+			s = s.limit(limit)
+		if offset is not None:
+			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
 
 	def delete_file(self, file: schema.File):
 		self.session.delete(file)

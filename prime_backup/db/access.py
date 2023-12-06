@@ -19,7 +19,7 @@ class DbAccess:
 	def init(cls, auto_migrate: bool = True):
 		db_dir = Config.get().storage_path
 		db_dir.mkdir(parents=True, exist_ok=True)
-		db_logger.init_logger(db_dir)
+		db_logger.init_logger()
 
 		db_path = db_dir / db_constants.DB_FILE_NAME
 		cls.__engine = create_engine('sqlite:///' + str(db_path))

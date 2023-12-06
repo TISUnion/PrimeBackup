@@ -14,8 +14,9 @@ class BadBlobItem(NamedTuple):
 
 
 @dataclasses.dataclass
-class VerifyBlobsResult:
+class ValidateBlobsResult:
 	total: int = 0
+	validated: int = 0
 	ok: int = 0
 	invalid: List[BadBlobItem] = dataclasses.field(default_factory=list)  # wierd blobs
 	missing: List[BadBlobItem] = dataclasses.field(default_factory=list)  # the file of the blob is missing
@@ -23,17 +24,13 @@ class VerifyBlobsResult:
 	mismatched: List[BadBlobItem] = dataclasses.field(default_factory=list)  # hash mismatch
 
 
-class VerifyBlobsAction(Action):
-	def run(self) -> VerifyBlobsResult:
-		with DbAccess.open_session() as session:
-			blobs = list(map(BlobInfo.of, session.get_all_blobs()))
-
-		result = VerifyBlobsResult()
+class ValidateBlobsAction(Action):
+	def __validate(self, result: ValidateBlobsResult, blobs: List[BlobInfo]):
 		for blob in blobs:
 			if self.is_interrupted.is_set():
 				break
 
-			result.total += 1
+			result.validated += 1
 			blob_path = blob_utils.get_blob_path(blob.hash)
 
 			if not blob_path.is_file():
@@ -66,4 +63,15 @@ class VerifyBlobsAction(Action):
 
 			result.ok += 1
 
+	def run(self) -> ValidateBlobsResult:
+		result = ValidateBlobsResult()
+		with DbAccess.open_session() as session:
+			result.total = session.get_blob_count()
+			limit, offset = 3000, 0
+			while not self.is_interrupted.is_set():
+				blobs = session.list_blobs(limit=limit, offset=offset)
+				if len(blobs) == 0:
+					break
+				self.__validate(result, list(map(BlobInfo.of, blobs)))
+				offset += limit
 		return result

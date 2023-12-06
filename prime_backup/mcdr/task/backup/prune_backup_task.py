@@ -1,15 +1,12 @@
 import collections
-import contextlib
 import datetime
 import functools
-import logging
 import time
-from typing import List, NamedTuple, Dict, Union, Optional, Callable, ContextManager, Tuple
+from typing import List, NamedTuple, Dict, Union, Optional, Callable, Tuple
 
 import pytz
 from mcdreforged.api.all import *
 
-from prime_backup import constants
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.config.prune_config import PruneSetting
@@ -21,7 +18,7 @@ from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import misc_utils
+from prime_backup.utils import misc_utils, log_utils
 
 
 class PruneMark(NamedTuple):
@@ -78,18 +75,6 @@ class PruneBackupTask(OperationTask):
 
 	def is_abort_able(self) -> bool:
 		return True
-
-	@contextlib.contextmanager
-	def open_prune_logger(self) -> ContextManager[logging.Logger]:
-		logger = logging.Logger(f'{constants.PLUGIN_ID}-prune')
-		logger.setLevel(logging.DEBUG if self.config.debug else logging.INFO)
-		handler = logging.FileHandler(self.config.storage_path / 'logs' / 'prune.log')
-		handler.setFormatter(logging.Formatter('[%(asctime)s %(levelname)s] (%(funcName)s) %(message)s'))
-		logger.addHandler(handler)
-		try:
-			yield logger
-		finally:
-			logger.removeHandler(handler)
 
 	@classmethod
 	def calc_prune_backups(cls, backups: List[BackupInfo], settings: PruneSetting, *, timezone: Optional[datetime.tzinfo] = None) -> PruneResult:
@@ -198,7 +183,7 @@ class PruneBackupTask(OperationTask):
 
 		bls = BlobListSummary.zero()
 		cnt = 0
-		with self.open_prune_logger() as prune_logger:
+		with log_utils.open_file_logger('prune') as prune_logger:
 			prune_logger.info('Prune started')
 			to_deleted_ids = [pri.backup.id for pri in result if not pri.mark.keep]
 			if len(to_deleted_ids) == 0:

@@ -29,4 +29,5 @@ class VacuumSqliteTask(OperationTask):
 			TextComponents.file_size(diff.before),
 			TextComponents.file_size(diff.after),
 			TextComponents.file_size(diff.diff, color=RColor.dark_green) if diff.diff != 0 else RText('-0B', RColor.dark_green),
+			TextComponents.percent(diff.after, diff.before),
 		))

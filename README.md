@@ -24,7 +24,7 @@ Python package requirements: See [requirements.txt](requirements.txt)
 - [x] MCDR integration
 - [x] Crontab
 - [x] Prune
-- [ ] Health scan
+- [x] Health scan
 - [x] CLI tools
 - [ ] Unix socket API server
 - [x] Translation

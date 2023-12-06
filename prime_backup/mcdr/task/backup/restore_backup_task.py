@@ -65,8 +65,12 @@ class RestoreBackupTask(OperationTask):
 				self.broadcast(self.tr('aborted'))
 				return
 
-		if not self.__countdown_and_stop_server(backup):
-			return
+		server_was_running = self.server.is_server_running()
+		if server_was_running:
+			if not self.__countdown_and_stop_server(backup):
+				return
+		else:
+			self.logger.info('Found an already-stopped server')
 
 		timer = Timer()
 		if self.config.command.backup_on_restore:
@@ -85,4 +89,6 @@ class RestoreBackupTask(OperationTask):
 		self.logger.info('Restore done, cost {}s (backup {}s, restore {}s), starting the server'.format(
 			round(cost_backup + cost_restore, 2), round(cost_backup, 2), round(cost_restore, 2),
 		))
-		self.server.start()
+
+		if server_was_running:
+			self.server.start()

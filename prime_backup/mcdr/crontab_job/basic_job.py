@@ -1,6 +1,6 @@
 import threading
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional, NamedTuple
+from typing import TYPE_CHECKING, List, Optional, NamedTuple, Any
 
 from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
@@ -93,32 +93,49 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 	class RunTaskWithRetryResult(NamedTuple):
 		executed: bool
+		ret: Optional[Any]
 		error: Optional[Exception]
 
-	def run_task_with_retry(self, task: Task, can_retry: bool, delays: Optional[List[float]] = None) -> RunTaskWithRetryResult:
+	def run_task_with_retry(self, task: Task, can_retry: bool, delays: Optional[List[float]] = None, broadcast: bool = False, report_success: bool = True) -> RunTaskWithRetryResult:
 		if delays is None:
 			delays = [0, 10, 60]
+
+		def log_info(msg: RTextBase):
+			if broadcast:
+				broadcast_message(msg)
+			else:
+				self.logger.info(msg.to_colored_text())
+
+		def log_err(msg: RTextBase):
+			if broadcast:
+				broadcast_message(msg)
+			else:
+				self.logger.error(msg.to_colored_text())
+
 		for delay in delays:
 			self.abort_event.wait(delay)
 			if self.abort_event.is_set():
 				break
 			try:
+				def callback(*args):
+					wv.set(args)
 				wv = WaitableValue()
-				self.task_manager.add_task(task, wv.set, handle_tmo_err=False)
+				self.task_manager.add_task(task, callback, handle_tmo_err=False)
 			except TaskQueue.TooManyOngoingTask:
 				if delay is None or not can_retry:  # <= 5min, no need to retry
-					broadcast_message(self.__base_tr('found_ongoing.skip'))
+					log_info(self.__base_tr('found_ongoing.skip'))
 					break
 				else:
-					broadcast_message(self.__base_tr('found_ongoing.wait_retry', TextComponents.number(f'{delay}s')))
+					log_info(self.__base_tr('found_ongoing.wait_retry', TextComponents.number(f'{delay}s')))
 			else:
-				err = wv.wait()
+				ret, err = wv.wait()
 				if err is None:
-					broadcast_message(self.__base_tr('completed', self.get_next_run_date()))
+					if report_success:
+						log_info(self.__base_tr('completed', self.get_name_text(), self.get_next_run_date()))
 				else:
-					broadcast_message(self.__base_tr('completed_with_error', self.get_next_run_date()))
-				return self.RunTaskWithRetryResult(True, err)
-		return self.RunTaskWithRetryResult(False, None)
+					log_err(self.__base_tr('completed_with_error', self.get_name_text(), self.get_next_run_date()))
+				return self.RunTaskWithRetryResult(True, ret, err)
+		return self.RunTaskWithRetryResult(False, None, None)
 
 	@classmethod
 	def get_command_source(cls) -> CommandSource:

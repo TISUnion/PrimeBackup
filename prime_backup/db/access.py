@@ -6,14 +6,12 @@ from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session
 
 from prime_backup.config.config import Config
-from prime_backup.db import db_logger
+from prime_backup.db import db_logger, db_constants
 from prime_backup.db.migration import DbMigration
 from prime_backup.db.session import DbSession
 
 
 class DbAccess:
-	DB_FILE = 'prime_backup.db'
-
 	__engine: Optional[Engine] = None
 	__db_path: Optional[Path] = None
 
@@ -23,7 +21,7 @@ class DbAccess:
 		db_dir.mkdir(parents=True, exist_ok=True)
 		db_logger.init_logger(db_dir)
 
-		db_path = db_dir / cls.DB_FILE
+		db_path = db_dir / db_constants.DB_FILE_NAME
 		cls.__engine = create_engine('sqlite:///' + str(db_path))
 		cls.__db_path = db_path
 

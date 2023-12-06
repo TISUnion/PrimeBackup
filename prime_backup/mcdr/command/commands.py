@@ -71,7 +71,7 @@ class CommandManager:
 		self.task_manager.add_task(VacuumSqliteTask(source))
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
-		def callback(err):
+		def callback(_, err):
 			if err is None:
 				self.crontab_manager.send_event(CrontabJobEvent.manual_backup_created)
 

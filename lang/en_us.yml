@@ -204,9 +204,11 @@ prime_backup:
       found_ongoing:
         skip: Found ongoing task, task execution skipped
         wait_retry: Found ongoing task, retry in {}
-      completed: Scheduled backup completed, next backup at {}
-      completed_with_error: Scheduled backup completed with error, next backup at {}
+      completed: '{} completed, next execution at {}'
+      completed_with_error: '{} completed with error, next execution at {}'
       next_run_date_paused: Paused
+    create_db_backup:
+      name: create database backup
     prune_backup:
       name: prune backup
     schedule_backup:

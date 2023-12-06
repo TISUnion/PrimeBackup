@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 
 class CrontabJobId(enum.Enum):
+	create_db_backup = enum.auto()
 	prune_backup = enum.auto()
 	schedule_backup = enum.auto()
 	vacuum_sqlite = enum.auto()

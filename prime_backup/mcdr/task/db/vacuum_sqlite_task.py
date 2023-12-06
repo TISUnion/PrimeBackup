@@ -1,4 +1,6 @@
 import time
+from pathlib import Path
+from typing import Optional
 
 from mcdreforged.api.all import *
 
@@ -8,6 +10,10 @@ from prime_backup.mcdr.text_components import TextComponents
 
 
 class VacuumSqliteTask(OperationTask):
+	def __init__(self, source: CommandSource, target_path: Optional[Path] = None):
+		super().__init__(source)
+		self.target_path = target_path
+
 	@property
 	def name(self) -> str:
 		return 'db_vacuum'
@@ -15,7 +21,7 @@ class VacuumSqliteTask(OperationTask):
 	def run(self) -> None:
 		self.reply(self.tr('start'))
 		t = time.time()
-		diff = VacuumSqliteAction().run()
+		diff = VacuumSqliteAction(self.target_path).run()
 		cost = time.time() - t
 		self.reply(self.tr(
 			'done',

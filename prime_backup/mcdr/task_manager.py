@@ -6,12 +6,13 @@ from typing import Optional, List
 from mcdreforged.api.all import *
 from sqlalchemy.exc import OperationalError
 
-from prime_backup import constants, logger
+from prime_backup import logger
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.mcdr.task.basic_task import OperationTask, ReaderTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
 from prime_backup.types.units import Duration
+from prime_backup.utils import misc_utils
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
@@ -20,7 +21,7 @@ class ThreadedWorker:
 		self.name = name
 		self.logger = logger.get()
 		self.max_ongoing_task = max_ongoing_task
-		self.thread = threading.Thread(target=self.__task_loop, name='PB@{}-task-{}'.format(constants.INSTANCE_ID, name), daemon=True)
+		self.thread = threading.Thread(target=self.__task_loop, name=misc_utils.make_thread_name(f'task-{name}'), daemon=True)
 		self.stopped = False
 		self.task_queue: TaskQueue[Optional[TaskHolder]] = TaskQueue(max_ongoing_task)
 		self.current_task_holder_pending_events: List[TaskEvent] = []
@@ -39,9 +40,9 @@ class ThreadedWorker:
 	@classmethod
 	def run_task(cls, holder: TaskHolder) -> Optional[Exception]:
 		try:
-			holder.task.run()
+			ret = holder.task.run()
 		except Exception as e:
-			holder.run_callback(e)
+			holder.run_callback(None, e)
 
 			if isinstance(e, BackupNotFound):
 				reply_message(holder.source, tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
@@ -53,7 +54,7 @@ class ThreadedWorker:
 			else:
 				reply_message(holder.source, tr('error.generic', holder.task_name()).set_color(RColor.red))
 		else:
-			holder.run_callback(None)
+			holder.run_callback(ret, None)
 
 	def __task_loop(self):
 		self.logger.info('Worker %s started', self.name)

@@ -190,9 +190,11 @@ prime_backup:
       found_ongoing:
         skip: 发现正在进行的任务, 跳过本次执行
         wait_retry: 发现正在进行的任务, 将在{}后重试
-      completed: '定时备份完成, 下次备份: {}'
-      completed_with_error: '定时备份失败, 下次备份: {}'
+      completed: '{}完成, 下次执行: {}'
+      completed_with_error: '{}失败, 下次执行: {}'
       next_run_date_paused: 已暂停
+    create_db_backup:
+      name: 创建数据库备份
     prune_backup:
       name: 裁剪备份
     schedule_backup:

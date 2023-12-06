@@ -4,28 +4,31 @@ from typing import Dict
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from prime_backup import constants, logger
+from prime_backup import logger
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobId, CrontabJobEvent
+from prime_backup.mcdr.crontab_job.create_db_backup_job import CreateDbBackupJob
 from prime_backup.mcdr.crontab_job.prune_backup_job import PruneBackupJob
 from prime_backup.mcdr.crontab_job.scheduled_backup_job import ScheduledBackupJob
 from prime_backup.mcdr.crontab_job.vacuum_sqlite_job import VacuumSqliteJob
 from prime_backup.mcdr.task_manager import TaskManager
+from prime_backup.utils import misc_utils
 
 
 class CrontabManager:
 	def __init__(self, task_manager: TaskManager):
 		self.task_manager = task_manager
 		self.logger = logger.get()
-		self.thread = threading.Thread(target=self.__crontab_loop, name='PB@{}-crontab'.format(constants.INSTANCE_ID), daemon=True)
+		self.thread = threading.Thread(target=self.__crontab_loop, name=misc_utils.make_thread_name('crontab'), daemon=True)
 		self.scheduler = BlockingScheduler(
 			logger=self.logger,
 			executors={
 				'default': ThreadPoolExecutor(
-					pool_kwargs=dict(thread_name_prefix='PB@{}-crontab-worker'.format(constants.INSTANCE_ID)),
+					pool_kwargs=dict(thread_name_prefix=misc_utils.make_thread_name('crontab-worker')),
 				)
 			},
 		)
 		job_classes = [
+			CreateDbBackupJob,
 			PruneBackupJob,
 			ScheduledBackupJob,
 			VacuumSqliteJob,

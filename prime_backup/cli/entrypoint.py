@@ -12,6 +12,7 @@ from prime_backup.action.get_file_action import GetFileAction
 from prime_backup.action.import_backup_action import ImportBackupAction
 from prime_backup.action.list_backup_action import ListBackupIdAction
 from prime_backup.config.config import Config, set_config_instance
+from prime_backup.db import db_constants
 from prime_backup.db.access import DbAccess
 from prime_backup.db.migration import BadDbVersion
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound
@@ -37,10 +38,10 @@ class CliHandler:
 		config = Config.get_default()
 
 		root_path = Path(self.args.db)
-		if root_path.is_file() and root_path.name == DbAccess.DB_FILE:
+		if root_path.is_file() and root_path.name == db_constants.DB_FILE_NAME:
 			root_path = root_path.parent
 
-		if not (dbf := root_path / DbAccess.DB_FILE).is_file():
+		if not (dbf := root_path / db_constants.DB_FILE_NAME).is_file():
 			logger.error('Database file {!r} in does not exists'.format(dbf.as_posix()))
 			sys.exit(1)
 
@@ -170,7 +171,7 @@ class CliHandler:
 	@classmethod
 	def entrypoint(cls):
 		parser = argparse.ArgumentParser(description='Prime Backup CLI tools', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-		parser.add_argument('-d', '--db', default=DEFAULT_STORAGE_ROOT, help='Path to the {db} database file, or path to the directory that contains the {db} database file, e.g. "/my/path/{db}", or "/my/path"'.format(db=DbAccess.DB_FILE))
+		parser.add_argument('-d', '--db', default=DEFAULT_STORAGE_ROOT, help='Path to the {db} database file, or path to the directory that contains the {db} database file, e.g. "/my/path/{db}", or "/my/path"'.format(db=db_constants.DB_FILE_NAME))
 		subparsers = parser.add_subparsers(title='Command', help='Available commands', dest='command')
 
 		desc = 'Show overview information of the database'

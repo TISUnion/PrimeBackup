@@ -25,6 +25,7 @@ class _BasicTask(Task, ABC):
 		self.plugin_unloaded_event = threading.Event()
 		self.is_waiting_confirm = False
 		self._confirm_helper = ConfirmHelper()
+		self._quiet = False
 
 	# ================================== Overrides ==================================
 
@@ -51,10 +52,13 @@ class _BasicTask(Task, ABC):
 			self.is_waiting_confirm = False
 
 	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = True):
+		if self._quiet:
+			return
 		mcdr_utils.reply_message(self.source, msg, with_prefix=with_prefix)
 
-	@classmethod
-	def broadcast(cls, msg: Union[str, RTextBase], *, with_prefix: bool = True):
+	def broadcast(self, msg: Union[str, RTextBase], *, with_prefix: bool = True):
+		if self._quiet:
+			return
 		mcdr_utils.broadcast_message(msg, with_prefix=with_prefix)
 
 

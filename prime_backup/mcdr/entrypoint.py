@@ -4,7 +4,6 @@ from typing import Optional
 
 from mcdreforged.api.all import *
 
-from prime_backup import constants
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config, set_config_instance
 from prime_backup.db.access import DbAccess
@@ -12,6 +11,7 @@ from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.command.commands import CommandManager
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task_manager import TaskManager
+from prime_backup.utils import misc_utils
 
 config: Optional[Config] = None
 task_manager: Optional[TaskManager] = None
@@ -77,7 +77,7 @@ def on_unload(server: PluginServerInterface):
 			shutdown_event.set()
 
 	shutdown_event = threading.Event()
-	thread = threading.Thread(target=shutdown, name='PB@{}-shutdown'.format(constants.INSTANCE_ID), daemon=True)
+	thread = threading.Thread(target=shutdown, name=misc_utils.make_thread_name('shutdown'), daemon=True)
 	thread.start()
 
 	start_time = time.time()
@@ -85,13 +85,12 @@ def on_unload(server: PluginServerInterface):
 		elapsed = time.time() - start_time
 		if i > 0:
 			server.logger.info(f'Waiting for manager shutdown ... time elapsed {elapsed:.1f}s')
-			if i > 1:
-				if (cm := crontab_manager) is not None:
-					server.logger.info('crontab_manager is still alive')
-				elif (tm := task_manager) is not None:
-					server.logger.info('task_manager is still alive')
-					server.logger.info('task worker operator: queue size %s current %s', tm.worker_operator.task_queue.qsize(), tm.worker_operator.task_queue.current_item)
-					server.logger.info('task worker reader: queue size %s current %s', tm.worker_reader.task_queue.qsize(), tm.worker_operator.task_queue.current_item)
+			if (cm := crontab_manager) is not None:
+				server.logger.info('crontab_manager is still alive')
+			elif (tm := task_manager) is not None:
+				server.logger.info('task_manager is still alive')
+				server.logger.info('task worker operator: queue size %s current %s', tm.worker_operator.task_queue.qsize(), tm.worker_operator.task_queue.current_item)
+				server.logger.info('task worker reader: queue size %s current %s', tm.worker_reader.task_queue.qsize(), tm.worker_operator.task_queue.current_item)
 
 		shutdown_event.wait(max(0.0, delay - elapsed) if delay is not None else delay)
 		if shutdown_event.is_set():

@@ -58,7 +58,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 			else:
 				comment = 'Scheduled Backup'
 			task = CreateBackupTask(self.get_command_source(), comment, operator=Operator.pb(PrimeBackupOperatorNames.scheduled_backup))
-			self.run_task_with_retry(task, self.config.interval.value > 300)  # task <= 5min, no need to retry
+			self.run_task_with_retry(task, self.config.interval.value > 300, broadcast=True)  # task <= 5min, no need to retry
 
 	def on_event(self, event: CrontabJobEvent):
 		super().on_event(event)

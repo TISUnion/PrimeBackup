@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 	from prime_backup.mcdr.task import Task
 
 
-TaskCallback = Callable[[Optional[Exception]], Any]
+TaskCallback = Callable[[Optional[Any], Optional[Exception]], Any]
 
 
 class TaskHolder(NamedTuple):
@@ -21,9 +21,9 @@ class TaskHolder(NamedTuple):
 	def task_name(self) -> RTextBase:
 		return self.task.get_name_text()
 
-	def run_callback(self, err: Optional[Exception]):
+	def run_callback(self, ret: Optional[Any], err: Optional[Exception]):
 		if self.callback is not None:
-			self.callback(err)
+			self.callback(ret, err)
 
 
 _T = TypeVar('_T')

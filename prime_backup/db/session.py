@@ -42,9 +42,12 @@ class DbSession:
 		with self.session.no_autoflush:
 			yield
 
-	def vacuum(self):
+	def vacuum(self, into_file: Optional[str] = None):
 		# https://www.sqlite.org/lang_vacuum.html
-		self.session.execute(text('VACUUM'))
+		if into_file is not None:
+			self.session.execute(text(f"VACUUM INTO '{into_file}'"))
+		else:
+			self.session.execute(text('VACUUM'))
 
 	# ==================================== DbMeta ====================================
 

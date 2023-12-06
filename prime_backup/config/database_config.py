@@ -9,5 +9,12 @@ class CompactDatabaseConfig(Serializable):
 	jitter: Duration = Duration('5m')
 
 
+class BackUpDatabaseConfig(Serializable):
+	enabled: bool = True
+	interval: Duration = Duration('7d')
+	jitter: Duration = Duration('10m')
+
+
 class DatabaseConfig(Serializable):
 	compact: CompactDatabaseConfig = CompactDatabaseConfig()
+	backup: BackUpDatabaseConfig = BackUpDatabaseConfig()

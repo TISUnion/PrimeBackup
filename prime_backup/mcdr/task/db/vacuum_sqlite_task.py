@@ -10,7 +10,7 @@ from prime_backup.mcdr.text_components import TextComponents
 class VacuumSqliteTask(OperationTask):
 	@property
 	def name(self) -> str:
-		return 'vacuum_sqlite'
+		return 'db_vacuum'
 
 	def run(self) -> None:
 		self.reply(self.tr('start'))

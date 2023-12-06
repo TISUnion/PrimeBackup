@@ -181,10 +181,23 @@ prime_backup:
       blob_cnt: 'Blob count: {}'
       blob_stored_size: 'Blob stored size sum: {} ({})'
       blob_raw_size: 'Blob raw size sum: {}'
-    vacuum_sqlite:
+    db_vacuum:
       name: tidy up database
       start: Compacting database, please wait...
       done: 'Database compaction complete, cost {}, size change: {} -> {} ({})'
+    db_verify:
+      name: verify database
+      nothing_to_verify: Nothing is requested to be verified
+      verify_blobs:
+        .: Start verifying blobs, please wait
+        all_ok: All {} blobs are healthy
+        found_bad_blobs: Found {} bad blobs in totals
+        invalid: 'Invalid blob amount: {}'
+        missing: 'Missing blob amount: {}'
+        corrupted: 'Corrupted blob amount: {}'
+        mismatched: 'Mismatched blob amount: {}'
+      verify_files: Start verifying files, please wait
+      done: Verification done, cost {}
 
   job:
     base:

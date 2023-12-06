@@ -65,6 +65,13 @@ class Compressor(ABC):
 			with self.decompress_stream(f) as f_decompressed:
 				yield f_decompressed
 
+	@contextlib.contextmanager
+	def open_decompressed_bypassed(self, source_path: PathLike) -> ContextManager[Tuple[ByPassReader, BinaryIO]]:
+		with open(source_path, 'rb') as f:
+			reader = ByPassReader(f, calc_hash=False)  # it's meaningless to calc hash on the compressed file
+			with self.decompress_stream(reader) as f_decompressed:
+				yield reader, f_decompressed
+
 	@abstractmethod
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
 		...

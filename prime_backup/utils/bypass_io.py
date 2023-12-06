@@ -3,11 +3,11 @@ from typing import Union
 
 
 class ByPassReader(io.BytesIO):
-	def __init__(self, file_obj, do_hash: bool):
+	def __init__(self, file_obj, calc_hash: bool):
 		super().__init__()
 		self.file_obj: io.BytesIO = file_obj
 		from prime_backup.utils import hash_utils
-		self.hasher = hash_utils.create_hasher() if do_hash else None
+		self.hasher = hash_utils.create_hasher() if calc_hash else None
 		self.read_len = 0
 
 	def read(self, *args, **kwargs):

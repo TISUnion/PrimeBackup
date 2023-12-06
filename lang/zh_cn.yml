@@ -180,7 +180,7 @@ prime_backup:
       blob_cnt: '数据对象数: {}'
       blob_stored_size: '数据对象总储存大小: {} ({})'
       blob_raw_size: '数据对象总原始大小: {}'
-    vacuum_sqlite:
+    db_vacuum:
       name: 整理数据库
       start: 正在整理数据库，请稍等
       done: '数据库整理完毕，耗时{}, 体积变化: {} -> {} ({})'

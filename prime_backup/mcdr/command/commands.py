@@ -23,6 +23,7 @@ from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJo
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
 from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
 from prime_backup.mcdr.task.db.vacuum_sqlite_task import VacuumSqliteTask
+from prime_backup.mcdr.task.db.verify_db_task import VerifyDbTask, VerifyParts
 from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
@@ -63,8 +64,8 @@ class CommandManager:
 	def cmd_db_overview(self, source: CommandSource, context: CommandContext):
 		self.task_manager.add_task(ShowDbOverviewTask(source))
 
-	def cmd_db_verify(self, source: CommandSource, context: CommandContext):
-		pass
+	def cmd_db_verify(self, source: CommandSource, context: CommandContext, parts: VerifyParts):
+		self.task_manager.add_task(VerifyDbTask(source, parts))
 
 	def cmd_db_vacuum(self, source: CommandSource, context: CommandContext):
 		self.task_manager.add_task(VacuumSqliteTask(source))
@@ -209,9 +210,9 @@ class CommandManager:
 		# db
 		builder.command('database overview', self.cmd_db_overview)
 		builder.command('database vacuum', self.cmd_db_vacuum)
-		builder.command('database verify all', functools.partial(self.cmd_db_verify))
-		builder.command('database verify blobs', functools.partial(self.cmd_db_verify))
-		builder.command('database verify files', functools.partial(self.cmd_db_verify))
+		builder.command('database verify all', functools.partial(self.cmd_db_verify, parts=VerifyParts.all()))
+		builder.command('database verify blobs', functools.partial(self.cmd_db_verify, parts=VerifyParts.blobs))
+		builder.command('database verify files', functools.partial(self.cmd_db_verify, parts=VerifyParts.files))
 
 		# operations
 		builder.command('confirm', self.cmd_confirm)

@@ -17,8 +17,11 @@ class DeleteBackupTask(OperationTask):
 
 	def run(self):
 		backup = GetBackupAction(self.backup_id).run()
-		self.reply(self.tr('deleting', TextComponents.backup_brief(backup, backup_id_fancy=False)))
+		if backup.tags.is_protected():
+			self.reply(self.tr('protected', TextComponents.backup_id(backup.id)))
+			return
 
+		self.reply(self.tr('deleting', TextComponents.backup_brief(backup, backup_id_fancy=False)))
 		dr = DeleteBackupAction(self.backup_id).run()
 
 		self.reply(self.tr(

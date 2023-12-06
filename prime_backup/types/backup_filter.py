@@ -35,3 +35,11 @@ class BackupFilter:
 	def filter_non_pre_restore_backup(self) -> 'BackupFilter':
 		self.tag_filters.append(BackupTagFilter(BackupTagName.pre_restore_backup, True, BackupTagFilter.Policy.not_equals))
 		return self
+
+	def filter_non_hidden_backup(self) -> 'BackupFilter':
+		self.tag_filters.append(BackupTagFilter(BackupTagName.hidden, True, BackupTagFilter.Policy.not_equals))
+		return self
+
+	def filter_non_protected_backup(self) -> 'BackupFilter':
+		self.tag_filters.append(BackupTagFilter(BackupTagName.protected, True, BackupTagFilter.Policy.not_equals))
+		return self

@@ -1,0 +1,26 @@
+import time
+
+from mcdreforged.api.all import *
+
+from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
+from prime_backup.mcdr.task.basic_tasks import OperationTask
+from prime_backup.mcdr.text_components import TextComponents
+
+
+class VacuumSqliteTask(OperationTask):
+	@property
+	def name(self) -> str:
+		return 'vacuum_sqlite'
+
+	def run(self) -> None:
+		self.reply(self.tr('start'))
+		t = time.time()
+		diff = VacuumSqliteAction().run()
+		cost = time.time() - t
+		self.reply(self.tr(
+			'done',
+			TextComponents.number(f'{cost:.2f}s'),
+			TextComponents.file_size(diff.before),
+			TextComponents.file_size(diff.after),
+			TextComponents.file_size(diff.diff, color=RColor.dark_green) if diff.diff != 0 else RText('-0B', RColor.dark_green),
+		))

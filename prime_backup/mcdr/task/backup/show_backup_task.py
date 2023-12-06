@@ -46,7 +46,7 @@ class ShowBackupTask(ReaderTask):
 				except KeyError:
 					pass
 				else:
-					k = RTextBase.format('{} ({})', btn.value.text, btn.value.flag)
+					k = RTextBase.format('{} ({})', btn.value.text.h(btn.name), btn.value.flag)
 				self.reply(RTextBase.format('  {}: {}', k, TextComponents.auto(v)))
 		else:
 			self.reply(self.tr('tag.empty_title', self.tr('tag.empty').set_color(RColor.gray)))

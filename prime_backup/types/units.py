@@ -235,12 +235,16 @@ class ByteCount(Quantity):
 	@classmethod
 	def _auto_format(cls, val) -> UnitValuePair:
 		uv = super()._auto_format(val)
-		return UnitValuePair(uv.value, uv.unit + 'B')
+		if not uv.unit.endswith('B'):
+			uv = UnitValuePair(uv.value, uv.unit + 'B')
+		return uv
 
 	@classmethod
 	def _precise_format(cls, val) -> UnitValuePair:
 		uv = super()._precise_format(val)
-		return UnitValuePair(uv.value, uv.unit + 'B')
+		if not uv.unit.endswith('B'):
+			uv = UnitValuePair(uv.value, uv.unit + 'B')
+		return uv
 
 
 class UnitTests(unittest.TestCase):

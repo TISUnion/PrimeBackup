@@ -56,6 +56,13 @@ class BackupTags:
 		self.data[name.name] = misc_utils.ensure_type(value, name.value.type)
 		return self
 
+	def clear(self, name: BackupTagName) -> bool:
+		try:
+			self.data.pop(name.name)
+			return True
+		except KeyError:
+			return False
+
 	def to_dict(self) -> 'BackupTagDict':
 		return self.data.copy()
 

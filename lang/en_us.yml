@@ -8,6 +8,10 @@ prime_backup:
       noop: Nothing to abort
 
   task:
+    clear_tag:
+      name: set backup tag
+      cleared: Cleared tag {1} of backup {0}
+      not_exists: backup {0} does not have tag {1}
     create:
       name: create backup
       start: Creating backup, please wait
@@ -39,6 +43,7 @@ prime_backup:
       resume.hover: Click to resume job "{}"
     delete:
       name: delete backup
+      protected: Backup {} is protected and cannot be deleted
       deleting: Deleting {}
       deleted: Deleted backup {}, freed {}
     delete_range:
@@ -135,6 +140,9 @@ prime_backup:
       no_confirm: No choice has been made, restore task aborted
       pre_restore_comment: 'Automatic backup before restoring to #{}'
       aborted: Restore task aborted
+    set_tag:
+      name: set backup tag
+      set: Set tag {1} of backup {0} to {2}
     show:
       name: show backup
       title: 'Backup {}'
@@ -147,8 +155,21 @@ prime_backup:
       tag.title: 'Tags (size={}):'
       tag.empty_title: 'Tags: {}'
       tag.empty: empty
+    db_overview:
+      name: overview database
+      title: Database overview
+      db_version: 'Database version: {}'
+      hash_method: 'Hash method: {}'
+      backup_cnt: 'Backup count: {}'
+      file_cnt: 'File count: {}'
+      file_raw_size: 'File raw size sum: {}'
+      blob_cnt: 'Blob count: {}'
+      blob_stored_size: 'Blob stored size sum: {} ({})'
+      blob_raw_size: 'Blob raw size sum: {}'
     vacuum_sqlite:
       name: tidy up database
+      start: Compacting database, please wait...
+      done: 'Database compaction complete, cost {}, size change: {} -> {} ({})'
 
   job:
     base:

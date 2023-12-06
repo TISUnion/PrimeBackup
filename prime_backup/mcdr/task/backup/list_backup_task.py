@@ -31,6 +31,7 @@ class ListBackupTask(ReaderTask):
 
 		if not self.show_all:
 			self.backup_filter.filter_non_pre_restore_backup()
+			self.backup_filter.filter_non_hidden_backup()
 
 	@property
 	def name(self) -> str:
@@ -63,11 +64,7 @@ class ListBackupTask(ReaderTask):
 		total_count = CountBackupAction(self.backup_filter).run()
 		backup_ids = ListBackupIdAction(backup_filter=self.backup_filter, limit=self.per_page, offset=(self.page - 1) * self.per_page).run()
 
-		self.reply(RTextList(
-			RText('======== ', RColor.gray),
-			self.tr('title', TextComponents.number(total_count)),
-			RText(' ========', RColor.gray),
-		))
+		self.reply(TextComponents.title(self.tr('title', TextComponents.number(total_count))))
 		for backup_id in backup_ids:
 			if self.is_aborted.is_set():
 				self.reply(self.tr('aborted'))

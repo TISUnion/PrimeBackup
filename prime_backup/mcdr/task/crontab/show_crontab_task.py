@@ -12,11 +12,7 @@ class ShowCrontabJobTask(CrontabTaskBase):
 
 	def run(self) -> None:
 		job = self.get_job()
-		self.reply(RTextList(
-			RText('======== ', RColor.gray),
-			self.tr('title', job.get_name_text()),
-			RText(' ========', RColor.gray),
-		))
+		self.reply(TextComponents.title(self.tr('title', job.get_name_text())))
 		self.reply(self.tr('enabled', TextComponents.boolean(self.config.scheduled_backup.enabled)))
 		self.reply(self.tr('running', TextComponents.boolean(not job.is_pause())))
 		self.reply(self.tr('interval', TextComponents.duration(job.interval, color=TextColors.number)))

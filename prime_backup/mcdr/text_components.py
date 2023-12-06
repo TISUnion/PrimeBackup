@@ -162,10 +162,10 @@ class TextComponents:
 		return RText(file_path.name, TextColors.file).h(file_path.as_posix())
 
 	@classmethod
-	def file_size(cls, byte_cnt: Union[int, ByteCount], *, ndigits: int = 2) -> RTextBase:
+	def file_size(cls, byte_cnt: Union[int, ByteCount], *, ndigits: int = 2, color: RColor = TextColors.byte_count) -> RTextBase:
 		if not isinstance(byte_cnt, ByteCount):
 			byte_cnt = ByteCount(byte_cnt)
-		return RText(byte_cnt.auto_str(ndigits=ndigits), color=TextColors.byte_count)
+		return RText(byte_cnt.auto_str(ndigits=ndigits), color=color)
 
 	@classmethod
 	def number(cls, value: Any) -> RTextBase:
@@ -193,6 +193,10 @@ class TextComponents:
 			return RText(f'{100 * value / total:.1f}%', RColor.dark_green)
 		else:
 			return RText('N/A', RColor.gray)
+
+	@classmethod
+	def tag_name(cls, tag_name: BackupTagName) -> RTextBase:
+		return RText(tag_name.name, RColor.aqua)
 
 	@classmethod
 	def title(cls, text: Any):

@@ -1,4 +1,5 @@
 import functools
+import typing
 from typing import List, Callable
 
 from mcdreforged.api.all import *
@@ -12,17 +13,22 @@ from prime_backup.mcdr.task.backup.delete_backup_range_task import DeleteBackupR
 from prime_backup.mcdr.task.backup.delete_backup_task import DeleteBackupTask
 from prime_backup.mcdr.task.backup.export_backup_task import ExportBackupTask
 from prime_backup.mcdr.task.backup.list_backup_task import ListBackupTask
+from prime_backup.mcdr.task.backup.operate_backup_tag_task import SetBackupTagTask, ClearBackupTagTask
 from prime_backup.mcdr.task.backup.prune_backup_task import PruneAllBackupTask
 from prime_backup.mcdr.task.backup.rename_backup_task import RenameBackupTask
 from prime_backup.mcdr.task.backup.restore_backup_task import RestoreBackupTask
 from prime_backup.mcdr.task.backup.show_backup_task import ShowBackupTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
+from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
+from prime_backup.mcdr.task.db.vacuum_sqlite_task import VacuumSqliteTask
 from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
+from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.operator import Operator
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
+from prime_backup.utils import misc_utils
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
@@ -39,6 +45,8 @@ class CommandManager:
 	def close_the_door(self):
 		self.plugin_disabled = True
 
+	# =============================== Command Callback ===============================
+
 	def cmd_welcome(self, source: CommandSource, context: CommandContext):
 		# TODO
 		self.cmd_help(source, context, full=True)
@@ -50,6 +58,15 @@ class CommandManager:
 			return
 
 		self.task_manager.add_task(ShowHelpTask(source, full, what))
+
+	def cmd_db_overview(self, source: CommandSource, context: CommandContext):
+		self.task_manager.add_task(ShowDbOverviewTask(source))
+
+	def cmd_db_verify(self, source: CommandSource, context: CommandContext):
+		pass
+
+	def cmd_db_vacuum(self, source: CommandSource, context: CommandContext):
+		self.task_manager.add_task(VacuumSqliteTask(source))
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
 		def callback(err):
@@ -129,6 +146,18 @@ class CommandManager:
 		if not self.task_manager.do_abort():
 			reply_message(source, tr('command.abort.noop'))
 
+	def cmd_operate_backup_tag(self, source: CommandSource, context: CommandContext, tag_name: BackupTagName, mode: typing.Literal['set', 'clear']):
+		backup_id = context['backup_id']
+		if mode == 'set':
+			value = context['value']
+			self.task_manager.add_task(SetBackupTagTask(source, backup_id, tag_name, value))
+		elif mode == 'clear':
+			self.task_manager.add_task(ClearBackupTagTask(source, backup_id, tag_name))
+		else:
+			raise ValueError(mode)
+
+	# ============================ Command Callback ends ============================
+
 	def suggest_backup_id(self) -> List[str]:
 		return []  # TODO
 
@@ -148,6 +177,8 @@ class CommandManager:
 		builder.command('help', self.cmd_help)
 		builder.command('help <what>', self.cmd_help)
 
+		# backup
+		# TODO: add "backup_" prefix
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
 		builder.command('back', self.cmd_back)
@@ -162,14 +193,23 @@ class CommandManager:
 		builder.command('export <backup_id> <export_format>', self.cmd_export)
 		builder.command('prune', self.cmd_prune)
 
+		# crontab
 		builder.command('crontab <job_id>', self.cmd_crontab_show)
 		builder.command('crontab <job_id> pause', self.cmd_crontab_pause)
 		builder.command('crontab <job_id> resume', self.cmd_crontab_resume)
 
+		# db
+		builder.command('database overview', self.cmd_db_overview)
+		builder.command('database vacuum', self.cmd_db_vacuum)
+		builder.command('database verify all', functools.partial(self.cmd_db_verify))
+		builder.command('database verify blobs', functools.partial(self.cmd_db_verify))
+		builder.command('database verify files', functools.partial(self.cmd_db_verify))
+
+		# operations
 		builder.command('confirm', self.cmd_confirm)
 		builder.command('abort', self.cmd_abort)
 
-		builder.arg('backup_id', Integer).suggests(self.suggest_backup_id)
+		builder.arg('backup_id', lambda n: Integer(n).at_min(1)).suggests(self.suggest_backup_id)
 		builder.arg('backup_id_range', IdRangeNode)
 		builder.arg('comment', GreedyText)
 		builder.arg('export_format', lambda n: Enumeration(n, StandaloneBackupFormat))
@@ -205,7 +245,32 @@ class CommandManager:
 			node.then(CountingLiteral('--flags', 'flags').redirects(node))
 			return node
 
+		def make_tag_cmd() -> Literal:
+			node = Integer('backup_id').at_min(1)
+			for tag_name in BackupTagName:
+				arg_type = {
+					bool: Boolean,
+					int: Integer,
+					float: Float,
+					str: QuotableText,
+				}[tag_name.value.type]
+
+				bldr = SimpleCommandBuilder()
+				bldr.command(f'{tag_name.name} set <value>', functools.partial(self.cmd_operate_backup_tag, tag_name=tag_name, mode='set'))
+				bldr.command(f'{tag_name.name} clear', functools.partial(self.cmd_operate_backup_tag, tag_name=tag_name, mode='clear'))
+				bldr.arg('value', arg_type)
+				children = bldr.build()
+				misc_utils.assert_true(len(children) == 1, 'should build only 1 node')
+
+				node.then(children[0])
+			return (
+				Literal('tag').
+				requires(get_permission_checker('tag'), get_permission_denied_text).
+				then(node)
+			)
+
 		root.then(make_list_cmd())
+		root.then(make_tag_cmd())
 
 		# register
 

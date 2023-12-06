@@ -8,6 +8,10 @@ prime_backup:
       noop: 没有什么是需要终止的
 
   task:
+    clear_tag:
+      name: 清除备份标签
+      cleared: 已清理备份{0}的标签{1}
+      not_exists: 备份{0}不存在标签{1}
     create:
       name: 创建备份
       start: 创建备份中...请稍等
@@ -39,6 +43,7 @@ prime_backup:
       resume.hover: 点击以继续运行任务"{}"
     delete:
       name: 删除备份
+      protected: 备份{}受到保护，无法删除
       deleting: 正在删除{}
       deleted: 已删除备份{}, 释放{}
     delete_range:
@@ -121,7 +126,7 @@ prime_backup:
         regular: 普通备份
         pre_restore: 回档前备份
       start: 开始裁剪{}
-      done: 已完成所有裁剪子任务, 共删除{}个备份、{}个对象, 共释放{}
+      done: 已完成所有裁剪子任务, 共删除{}个备份、{}个数据对象, 共释放{}
     rename:
       name: 重命名备份
       modified: 已将备份{}的注释修改为{}
@@ -135,6 +140,9 @@ prime_backup:
       no_confirm: 未做出选择, 回档任务中止
       pre_restore_comment: '回档至#{}前的自动备份'
       aborted: 回档任务中止
+    set_tag:
+      name: 设置备份标签
+      set: 已将备份{0}的标签{1}设置为{2}
     show:
       name: 展示备份
       title: '备份{}'
@@ -147,8 +155,21 @@ prime_backup:
       tag.title: '标签(共{}条):'
       tag.empty_title: '标签: {}'
       tag.empty: 空
+    db_overview:
+      name: 概览数据库
+      title: 数据库概览
+      db_version: '数据库版本: {}'
+      hash_method: '哈希算法: {}'
+      backup_cnt: '备份数: {}'
+      file_cnt: '文件数: {}'
+      file_raw_size: '文件总大小: {}'
+      blob_cnt: '数据对象数: {}'
+      blob_stored_size: '数据对象总储存大小: {} ({})'
+      blob_raw_size: '数据对象总原始大小: {}'
     vacuum_sqlite:
       name: 整理数据库
+      start: 正在整理数据库，请稍等
+      done: '数据库整理完毕，耗时{}, 体积变化: {} -> {} ({})'
 
   job:
     base:

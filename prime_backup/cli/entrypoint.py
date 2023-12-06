@@ -7,7 +7,7 @@ from typing import Type
 
 from prime_backup.action.export_backup_action import ExportBackupActions
 from prime_backup.action.get_backup_action import GetBackupAction
-from prime_backup.action.get_db_meta_action import GetDbMetaAction
+from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.get_file_action import GetFileAction
 from prime_backup.action.import_backup_action import ImportBackupAction
 from prime_backup.action.list_backup_action import ListBackupIdAction
@@ -66,15 +66,17 @@ class CliHandler:
 				logger.error('Bad format {!r}, should be one of {}'.format(self.args.format, enum_options(StandaloneBackupFormat)))
 		sys.exit(1)
 
-	def cmd_db_status(self):
+	def cmd_db_overview(self):
 		self.init_environment()
-		meta = GetDbMetaAction().run()
-		logger.info('DB version: %s', meta.version)
-		logger.info('Hash method: %s', meta.hash_method)
-		with DbAccess.open_session() as session:
-			logger.info('Blob count: %s', session.get_blob_count())
-			logger.info('File count: %s', session.get_file_count())
-			logger.info('Backup count: %s', session.get_backup_count())
+		result = GetDbOverviewAction().run()
+		logger.info('DB version: %s', result.db_version)
+		logger.info('Hash method: %s', result.hash_method)
+		logger.info('Backup count: %s', result.backup_cnt)
+		logger.info('Blob count: %s', result.blob_cnt)
+		logger.info('Blob stored size sum: %s (%s)', result.blob_stored_size_sum, ByteCount(result.blob_stored_size_sum).auto_str())
+		logger.info('Blob raw size sum: %s (%s)', result.blob_raw_size_sum, ByteCount(result.blob_raw_size_sum).auto_str())
+		logger.info('File count: %s', result.file_cnt)
+		logger.info('File raw size sum: %s (%s)', result.file_raw_size_sum, ByteCount(result.file_raw_size_sum).auto_str())
 
 	def cmd_show(self):
 		self.init_environment()
@@ -171,8 +173,8 @@ class CliHandler:
 		parser.add_argument('-d', '--db', default=DEFAULT_STORAGE_ROOT, help='Path to the {db} database file, or path to the directory that contains the {db} database file, e.g. "/my/path/{db}", or "/my/path"'.format(db=DbAccess.DB_FILE))
 		subparsers = parser.add_subparsers(title='Command', help='Available commands', dest='command')
 
-		desc = 'Show basic information of the database'
-		parser_status = subparsers.add_parser('status', help=desc, description=desc)
+		desc = 'Show overview information of the database'
+		parser_overview = subparsers.add_parser('overview', help=desc, description=desc)
 
 		desc = 'List backups'
 		parser_list = subparsers.add_parser('list', help=desc, description=desc, add_help=False)
@@ -210,8 +212,8 @@ class CliHandler:
 
 		handler = CliHandler(args)
 		try:
-			if args.command == 'status':
-				handler.cmd_db_status()
+			if args.command == 'overview':
+				handler.cmd_db_overview()
 			elif args.command == 'show':
 				handler.cmd_show()
 			elif args.command == 'list':

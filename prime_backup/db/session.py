@@ -91,6 +91,12 @@ class DbSession:
 				result[size] = True
 		return result
 
+	def get_blob_stored_size_sum(self) -> int:
+		return int(self.session.execute(func.sum(schema.Blob.stored_size).select()).scalar_one())
+
+	def get_blob_raw_size_sum(self) -> int:
+		return int(self.session.execute(func.sum(schema.Blob.raw_size).select()).scalar_one())
+
 	def delete_blob(self, blob: schema.Blob):
 		self.session.delete(blob)
 
@@ -135,6 +141,9 @@ class DbSession:
 			raise BackupFileNotFound(backup_id, path)
 		return file
 
+	def get_file_raw_size_sum(self) -> int:
+		return int(self.session.execute(func.sum(schema.File.blob_raw_size).select()).scalar_one())
+
 	def delete_file(self, file: schema.File):
 		self.session.delete(file)
 
@@ -155,8 +164,11 @@ class DbSession:
 		self.session.add(backup)
 		return backup
 
-	def get_backup_count(self) -> int:
-		return int(self.session.execute(select(func.count()).select_from(schema.Backup)).scalar_one())
+	def get_backup_count(self, backup_filter: Optional[BackupFilter] = None) -> int:
+		s = select(func.count()).select_from(schema.Backup)
+		if backup_filter is not None:
+			s = self.__apply_backup_filter(s, backup_filter)
+		return int(self.session.execute(s).scalar())
 
 	def get_backup_opt(self, backup_id: int) -> Optional[schema.Backup]:
 		return self.session.get(schema.Backup, backup_id)
@@ -211,12 +223,6 @@ class DbSession:
 			else:
 				raise ValueError(tf.policy)
 		return s
-
-	def get_backup_count(self, backup_filter: Optional[BackupFilter] = None) -> int:
-		s = select(func.count()).select_from(schema.Backup)
-		if backup_filter is not None:
-			s = self.__apply_backup_filter(s, backup_filter)
-		return self.session.execute(s).scalar()
 
 	def list_backup(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Backup]:
 		s = select(schema.Backup)

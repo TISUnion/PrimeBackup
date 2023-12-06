@@ -26,7 +26,7 @@ class _BasicTask(Task, ABC):
 		self.is_waiting_confirm = False
 		self._confirm_helper = ConfirmHelper()
 
-	# ==================================== Overrides ====================================
+	# ================================== Overrides ==================================
 
 	def is_abort_able(self) -> bool:
 		return self.is_waiting_confirm

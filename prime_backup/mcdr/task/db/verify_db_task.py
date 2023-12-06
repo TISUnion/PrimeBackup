@@ -9,7 +9,7 @@ from prime_backup.action import Action
 from prime_backup.action.verify_blobs_action import VerifyBlobsAction, BadBlobItem
 from prime_backup.action.verify_files_action import VerifyFilesAction
 from prime_backup.mcdr.task import TaskEvent
-from prime_backup.mcdr.task.basic_tasks import OperationTask
+from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 
 

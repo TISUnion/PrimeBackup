@@ -6,7 +6,7 @@ from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.export_backup_action import ExportBackupActions
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
-from prime_backup.mcdr.task.basic_tasks import OperationTask
+from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo

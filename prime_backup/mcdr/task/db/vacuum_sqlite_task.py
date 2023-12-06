@@ -3,7 +3,7 @@ import time
 from mcdreforged.api.all import *
 
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
-from prime_backup.mcdr.task.basic_tasks import OperationTask
+from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 
 

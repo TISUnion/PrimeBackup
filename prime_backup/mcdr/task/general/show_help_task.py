@@ -4,7 +4,7 @@ from typing import Optional
 from mcdreforged.api.all import *
 
 from prime_backup.mcdr import mcdr_globals
-from prime_backup.mcdr.task.basic_tasks import ImmediateTask
+from prime_backup.mcdr.task.basic_task import ImmediateTask
 
 
 class ShowHelpTask(ImmediateTask):

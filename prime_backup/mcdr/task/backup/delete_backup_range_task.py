@@ -5,7 +5,7 @@ from mcdreforged.api.all import *
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.exceptions import BackupNotFound
-from prime_backup.mcdr.task.basic_tasks import OperationTask
+from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo

@@ -9,7 +9,7 @@ from sqlalchemy.exc import OperationalError
 from prime_backup import constants, logger
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import TaskEvent, Task
-from prime_backup.mcdr.task.basic_tasks import OperationTask, ReaderTask, ImmediateTask
+from prime_backup.mcdr.task.basic_task import OperationTask, ReaderTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
 from prime_backup.types.units import Duration
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd

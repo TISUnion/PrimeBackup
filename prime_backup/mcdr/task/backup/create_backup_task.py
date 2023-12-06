@@ -5,7 +5,7 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.mcdr.task import TaskEvent
-from prime_backup.mcdr.task.basic_tasks import OperationTask
+from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.operator import Operator
 from prime_backup.utils.timer import Timer

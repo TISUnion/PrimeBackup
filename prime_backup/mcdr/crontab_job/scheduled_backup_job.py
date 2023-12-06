@@ -6,7 +6,8 @@ from apscheduler.schedulers.base import BaseScheduler
 
 from prime_backup.config.scheduled_backup import ScheduledBackupConfig
 from prime_backup.mcdr import mcdr_globals
-from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobEvent, CrontabJobId
+from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
+from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
 	from prime_backup.mcdr.task_manager import TaskManager
 
 
-class ScheduledBackupJob(CrontabJob):
+class ScheduledBackupJob(BasicCrontabJob):
 	def __init__(self, scheduler: BaseScheduler, task_manager: 'TaskManager'):
 		super().__init__(scheduler, task_manager)
 		self.config: ScheduledBackupConfig = self._root_config.scheduled_backup

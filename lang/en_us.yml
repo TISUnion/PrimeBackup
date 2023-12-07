@@ -313,6 +313,7 @@ prime_backup:
       author: 'Author: {}'
       restore: Restore to backup {}
       delete: Delete backup {}
+      protected: Backup {} is protected
     backup_id.hover: |-
       Backup ID: {}
       Click to show details

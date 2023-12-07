@@ -313,6 +313,7 @@ prime_backup:
       author: '作者: {}'
       restore: 回档至备份{}
       delete: 删除备份{}
+      protected: 备份{}受保护
     backup_id.hover: |-
       备份ID: {}
       点击以展示详情

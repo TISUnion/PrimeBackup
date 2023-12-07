@@ -58,10 +58,11 @@ class TextComponents:
 
 		rtl = RTextList(RText('[', RColor.gray), t_bid, RText('] ', RColor.gray))
 		if operation_buttons:
-			rtl.append(
-				RText('[>]', color=RColor.dark_green).h(cls.tr('backup_full.restore', t_bid)).c(RAction.suggest_command, mkcmd(f'back {backup.id}')), ' ',
-				RText('[x]', color=RColor.red).h(cls.tr('backup_full.delete', t_bid)).c(RAction.suggest_command, mkcmd(f'delete {backup.id}')), ' ',
-			)
+			rtl.append(RText('[>]', color=RColor.dark_green).h(cls.tr('backup_full.restore', t_bid)).c(RAction.suggest_command, mkcmd(f'back {backup.id}')), ' ')
+			if not backup.tags.is_protected():
+				rtl.append(RText('[x]', color=RColor.red).h(cls.tr('backup_full.delete', t_bid)).c(RAction.suggest_command, mkcmd(f'delete {backup.id}')), ' ')
+			else:
+				rtl.append(RText('[x]', color=RColor.dark_gray).h(cls.tr('backup_full.protected', t_bid)), ' ')
 
 		if show_flags:
 			for name in [BackupTagName.hidden, BackupTagName.pre_restore_backup, BackupTagName.protected]:

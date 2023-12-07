@@ -21,6 +21,15 @@ prime_backup:
       cost.hover: |-
         save wait: {}
         create backup: {}
+    crontab_list_job:
+      name: list crontab
+      title: Crontab job list
+      enabled: Enabled
+      disabled: Disabled
+      running: Running
+      paused: Paused
+      line.running: '{} {}, next: {} ({})'
+      line.paused: '{} {}'
     crontab_operate:
       name: operate crontab
       pause.already: Crontab job "{}" is already paused
@@ -103,20 +112,20 @@ prime_backup:
       commands:
         title: '[Commands Usages]'
         content: |-
-          §7{prefix}§r: Display help message
-          §7{prefix} help §e[<what>]§r: Display help message of the given command
+          §7{prefix}§r: Display the current welcome page
+          §7{prefix} help §e[<what>]§r: Display help message of all / given command
           §7{prefix} make §e[<comment>]§r: Make a backup. §e<comment>§r is an optional comment message
           §7{prefix} back §6[<backup_id>]§r: Restore the world to the given backup. Default: latest backup
-          §7{prefix} list [...]§r: List backups with given filters. Enter §7{prefix} help list§r for detailed help
+          §7{prefix} list [...]§r: List backups with given filters. See §7{prefix} help list§r for detailed help
           §7{prefix} show §6<backup_id>§r: Show detailed information of the given backup
           §7{prefix} rename §6<backup_id>§r §e<comment>§r: Modify the comment of the given backup
           §7{prefix} delete §6<backup_id>§r: Delete the given backup
           §7{prefix} delete_range §6<backup_id_range>§r: Delete backups inside the given ID range
           §7{prefix} export §6<backup_id> §3[<export_format>]§r: Export the given backup to the §3export§r folder
           §7{prefix} prune §6<backup_id>§r: Manually trigger a backup prune
-          §7{prefix} crontab §5<job_id> [pause|resume]§r: Show state or operate given crontab job
-          §7{prefix} tag §6<backup_id> [set <value>|clear]§r§r: Tag operation on the given backup
-          §7{prefix} database [overview|validate|vacuum]§r§r: Database queries and operations
+          §7{prefix} crontab §5<job_id> §7[...]§r: Crontab job operations. See §7{prefix} help crontab§r for help
+          §7{prefix} tag §6<backup_id> §7[...]§r: Tag operation on the given backup
+          §7{prefix} database [...]§r: Database operations. See §7{prefix} help database§r for help
           §7{prefix} confirm§r: Confirm the current task execution
           §7{prefix} abort§r: Abort the current task execution
       arguments:
@@ -125,13 +134,39 @@ prime_backup:
           §6<backup_id>§r: A positive integer, the unique identifier for a backup, e.g.: §612§r
           §6<backup_id_range>§r: An integer closed interval, e.g.: §63-12§r, §64~9§r, §64~§r, §64~§r, §6*§r
           §3<export_format>§r: Available options: {export_formats}
-          §5<job_id>§r: Available options: {job_ids}
-      docs:
-        title: '[Documentation]'
-        hover: Click to open the url
+      other:
+        title: '[Others]'
+        nodes_with_help: 'Subcommands with detailed help: {}'
+        docs: 'Documentation: {}'
+        docs.hover: Click to open the url
       node_help:
+        crontab: |-
+          §d[crontab Command Usage]§r
+          Operate crontab jobs
+          §d[Usages]§r
+          §7{prefix}§r: Show all currently enabled crontab jobs
+          §7{prefix} §5<job_id>§r: Show status of the given crontab job
+          §7{prefix} §5<job_id> §7pause§r: Temporarily pause the given job. The job will still start on next plugin load
+          §7{prefix} §5<job_id> §7resume§r: Cancel the pause state of the given job, resume its run
+          §d[Arguments]§r
+          §5<job_id>§r: Available options: {job_ids}
+        database: |-
+          §d[database Command Usage]§r
+          Operate the core SQLite database of {name}
+          §d[Usages]§r
+          §7{prefix} database overview§r: Report an overview of the database
+          §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database
+          §7{prefix} database vacuum§r: prune database manually, to reduce the size of the database file
+          {scheduled_compact_notes}
+          §d[Arguments]§r
+          §a<part>§r: 
+          - §ablobs§r: Validate the correctness of blobs, e.g. data size, hash value
+          - §afiles§r: Validate the correctness of file objects, e.g. the association between files and blobs
+          - §aall§r: Validate all of the above
+        database.scheduled_compact.on: 'Notes: With the current config, {name} will automatically prune the database every {interval}'
+        database.scheduled_compact.off: 'Notes: With the current config, scheduled database prune is disabled'
         list: |-
-          §d[List Command Usage]§r
+          §d[list Command Usage]§r
           List backups with given filters
           §7{prefix} list [<page>] [--arg-key <arg-value>]§r
           §d[Optional arguments]§r
@@ -146,9 +181,19 @@ prime_backup:
           §7{prefix} list --all§r
           §7{prefix} list --start 20231130 --size§r
           §7{prefix} list 3 --per-page 20§r
+        tag: |-
+          §d[tag Command Usage]§r
+          Operate tags on the given backup
+          §d[Usages]§r
+          §7{prefix} tag §6<backup_id>§r: Show all the tags of the backup. All known tags will be listed, regardless of their existence
+          §7{prefix} tag §6<backup_id> §b<tag_name>§r: Show the value of the given tag of the backup
+          §7{prefix} tag §6<backup_id> §b<tag_name> §7set §e<tag_value>§r: Set the value of the given tag for the backup
+          §7{prefix} tag §6<backup_id> §b<tag_name> §7clear§r: Clear the given tag of the backup
+      permission_denied: You don't have the permission to see help message of subcommand {}
     list:
       name: list backup
-      title: Listing {} backups
+      title: Backup list
+      backup_count: 'There are {} backups:'
       size: Size
       next: Next Page
       prev: Previous Page
@@ -199,7 +244,8 @@ prime_backup:
     show_tag:
       name: show backup tags
       title: Tags of backup {}
-      amount: 'Amount: {}'
+      amount: 'Tag amount: {}'
+      value_type: 'Value type: {}'
       create: Click to create tag {}
       edit: Click to edit tag {}
       clear: Click to clear tag {}
@@ -209,10 +255,10 @@ prime_backup:
       value: Tag {1} of backup {0} is {2}
       not_exists: Backup {0} does not have tag {1}
     welcome:
-      title: '{name} v{version}'
+      title: '{name} {version}'
       common_commands: '[Common Commands]'
       common_commands.hover: 'Enter command {} to see the full command list'
-      recent_backups: '[Recent {} Backups]'
+      recent_backups: '[Latest {} Backups]'
       quick_actions:
         title: '[Quick Actions]'
         create: 'Create a new backup'
@@ -222,21 +268,26 @@ prime_backup:
   job:
     base:
       found_ongoing:
-        skip: Found ongoing task, task execution skipped
-        wait_retry: Found ongoing task, retry in {}
+        unknown_task: unknown
+        skip: 'Found ongoing task "{}", job {} execution skipped'
+        wait_retry: 'Found ongoing task "{}", job {} will retry in {}'
       completed: '{} completed, next execution at {}'
       completed_with_error: '{} completed with error, next execution at {}'
       next_run_date_paused: Paused
     create_db_backup:
       name: create database backup
+      name_titled: Create database backup
     prune_backup:
       name: prune backup
+      name_titled: Prune database backup
     schedule_backup:
       name: schedule backup
-      triggered: Scheduled backup for every {} triggered
+      name_titled: Schedule backup
+      triggered: '{0} for every {1} triggered'
       reset_on_backup: Detected new backup, timer reset. Next scheduled backup at {}
     vacuum_sqlite:
       name: compact database
+      name_titled: Compact database
 
   error:
     node:
@@ -274,7 +325,7 @@ prime_backup:
       confirm.hover: Click me or enter command {} to confirm {}
       abort: Abort {}
       abort.hover: Click me or enter command {} to abort {}
-    date:
+    date_diff:
       ago: '{} ago'
       later: '{} later'
     dual_size_hover: |-

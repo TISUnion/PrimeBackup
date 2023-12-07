@@ -64,7 +64,8 @@ class ListBackupTask(ReaderTask):
 		total_count = CountBackupAction(self.backup_filter).run()
 		backup_ids = ListBackupIdAction(backup_filter=self.backup_filter, limit=self.per_page, offset=(self.page - 1) * self.per_page).run()
 
-		self.reply(TextComponents.title(self.tr('title', TextComponents.number(total_count))))
+		self.reply(TextComponents.title(self.tr('title')))
+		self.reply(self.tr('backup_count', TextComponents.number(total_count)))
 		for backup_id in backup_ids:
 			if self.is_aborted.is_set():
 				self.reply(self.tr('aborted'))

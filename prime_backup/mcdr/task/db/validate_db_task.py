@@ -125,7 +125,6 @@ class ValidateDbTask(OperationTask):
 		self.reply(self.tr('done', TextComponents.number(f'{cost:.2f}s')))
 
 	def on_event(self, event: TaskEvent):
+		super().on_event(event)
 		if (act := self.__current_action) is not None:
 			act.interrupt()
-
-

@@ -33,4 +33,4 @@ class VacuumSqliteJob(BasicCrontabJob):
 		return self.config.enabled
 
 	def run(self):
-		self.run_task_with_retry(VacuumSqliteTask(self.get_command_source()), True)
+		self.run_task_with_retry(VacuumSqliteTask(self.get_command_source()), True).report()

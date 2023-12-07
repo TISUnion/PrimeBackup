@@ -48,7 +48,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 		if not mcdr_globals.server.is_server_running():
 			return
 
-		broadcast_message(self.tr('triggered', TextComponents.duration(self.config.interval)))
+		broadcast_message(self.tr('triggered', self.get_name_text_titled(), TextComponents.duration(self.config.interval)))
 		with contextlib.ExitStack() as exit_stack:
 			self.is_executing.set()
 			exit_stack.callback(self.is_executing.clear)
@@ -56,7 +56,8 @@ class ScheduledBackupJob(BasicCrontabJob):
 			comment = backup_utils.create_translated_backup_comment('scheduled_backup')
 			operator = Operator.pb(PrimeBackupOperatorNames.scheduled_backup)
 			task = CreateBackupTask(self.get_command_source(), comment, operator=operator)
-			self.run_task_with_retry(task, self.config.interval.value > 300, broadcast=True)  # task <= 5min, no need to retry
+
+			self.run_task_with_retry(task, True, broadcast=True).report()
 
 	def on_event(self, event: CrontabJobEvent):
 		super().on_event(event)

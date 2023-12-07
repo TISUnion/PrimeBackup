@@ -1,6 +1,7 @@
+import dataclasses
 import threading
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional, NamedTuple, Any
+from typing import TYPE_CHECKING, List, Optional, Any
 
 from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
@@ -15,6 +16,7 @@ from prime_backup.mcdr.task import Task
 from prime_backup.mcdr.task_queue import TaskQueue
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.units import Duration
+from prime_backup.utils import misc_utils
 from prime_backup.utils.mcdr_utils import broadcast_message, TranslationContext
 from prime_backup.utils.waitable_value import WaitableValue
 
@@ -38,6 +40,11 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 	def __ensure_aps_job(self):
 		if self.aps_job is None:
 			raise RuntimeError('job is not enabled yet')
+
+	def __ensure_running(self):
+		self.__ensure_aps_job()
+		if not self.is_running():
+			raise RuntimeError('job is not running')
 
 	def _create_trigger(self) -> BaseTrigger:
 		return IntervalTrigger(seconds=self.interval.value, jitter=self.jitter.value)
@@ -70,10 +77,14 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 		self.aps_job.resume()
 
 	def is_running(self) -> bool:
-		return self.aps_job.next_run_time is not None
+		return self.aps_job is not None and self.aps_job.next_run_time is not None
 
 	def is_pause(self) -> bool:
 		return not self.is_running()
+
+	def get_duration_until_next_run(self) -> RTextBase:
+		self.__ensure_running()
+		return TextComponents.date_diff(self.aps_job.next_run_time)
 
 	def get_next_run_date(self) -> RTextBase:
 		self.__ensure_aps_job()
@@ -83,7 +94,10 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			return self.__base_tr('next_run_date_paused').set_color(RColor.gray)
 
 	def get_name_text(self) -> RTextBase:
-		return self.tr('name').set_color(RColor.light_purple)
+		return self.tr('name').set_color(RColor.aqua).h(self.id.name)
+
+	def get_name_text_titled(self) -> RTextBase:
+		return self.tr('name_titled').set_color(RColor.aqua).h(self.id.name)
 
 	def on_event(self, event: CrontabJobEvent):
 		if event == CrontabJobEvent.plugin_unload:
@@ -91,14 +105,36 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 	# ==================================== Utils ====================================
 
-	class RunTaskWithRetryResult(NamedTuple):
+	def __create_run_tasks_delays(self) -> List[int]:
+		delays = [0]
+		wait_max = (self.interval.value - self.jitter.value) * 0.2  # 20% of the minimum next run wait
+		wait_sum = 0
+		for d in [Duration('10s'), Duration('1m'), Duration('5m')]:
+			wait_sum += d.value
+			if wait_sum >= wait_max:
+				break
+			delays.append(d.value)
+		return delays
+
+	@dataclasses.dataclass(frozen=True)
+	class RunTaskWithRetryResult(ABC):
 		executed: bool
 		ret: Optional[Any]
 		error: Optional[Exception]
 
-	def run_task_with_retry(self, task: Task, can_retry: bool, delays: Optional[List[float]] = None, broadcast: bool = False, report_success: bool = True) -> RunTaskWithRetryResult:
+		@abstractmethod
+		def report(self):
+			"""
+			Use this when the `run_task_with_retry` call is what the job does
+
+			This method report the job execution result based on the method call result
+			"""
+			...
+
+	def run_task_with_retry(self, task: Task, can_retry: bool, delays: Optional[List[float]] = None, broadcast: bool = False) -> RunTaskWithRetryResult:
 		if delays is None:
-			delays = [0, 10, 60]
+			delays = self.__create_run_tasks_delays()
+		misc_utils.assert_true(len(delays) > 0, 'delay should not be empty')
 
 		def log_info(msg: RTextBase):
 			if broadcast:
@@ -112,6 +148,18 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			else:
 				self.logger.error(msg.to_colored_text())
 
+		this, base_tr = self, self.__base_tr
+
+		class RunTaskWithRetryResultImpl(self.RunTaskWithRetryResult):
+			def report(self):
+				if self.executed:
+					if self.error is None:
+						log_info(base_tr('completed', this.get_name_text_titled(), this.get_next_run_date()))
+					else:
+						log_err(base_tr('completed_with_error', this.get_name_text_titled(), this.get_next_run_date()))
+				else:
+					log_info(base_tr('found_ongoing.skip', current_task, this.get_name_text()))
+
 		for delay in delays:
 			self.abort_event.wait(delay)
 			if self.abort_event.is_set():
@@ -121,21 +169,16 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 					wv.set(args)
 				wv = WaitableValue()
 				self.task_manager.add_task(task, callback, handle_tmo_err=False)
-			except TaskQueue.TooManyOngoingTask:
+			except TaskQueue.TooManyOngoingTask as e:
+				current_task = e.current_item.task_name() if e.current_item is not None else self.tr('found_ongoing.unknown').set_color(RColor.gray)
 				if delay is None or not can_retry:  # <= 5min, no need to retry
-					log_info(self.__base_tr('found_ongoing.skip'))
 					break
 				else:
-					log_info(self.__base_tr('found_ongoing.wait_retry', TextComponents.number(f'{delay}s')))
+					log_info(self.__base_tr('found_ongoing.wait_retry', current_task, self.get_name_text(), TextComponents.number(f'{delay}s')))
 			else:
 				ret, err = wv.wait()
-				if err is None:
-					if report_success:
-						log_info(self.__base_tr('completed', self.get_name_text(), self.get_next_run_date()))
-				else:
-					log_err(self.__base_tr('completed_with_error', self.get_name_text(), self.get_next_run_date()))
-				return self.RunTaskWithRetryResult(True, ret, err)
-		return self.RunTaskWithRetryResult(False, None, None)
+				return RunTaskWithRetryResultImpl(True, ret, err)
+		return RunTaskWithRetryResultImpl(False, None, None)
 
 	@classmethod
 	def get_command_source(cls) -> CommandSource:

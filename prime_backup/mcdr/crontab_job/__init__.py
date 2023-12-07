@@ -31,8 +31,9 @@ class CrontabJob(ABC):
 	def id(self) -> CrontabJobId:
 		...
 
+	@abstractmethod
 	def is_enabled(self) -> bool:
-		return True
+		...
 
 	@abstractmethod
 	def enable(self):
@@ -52,6 +53,10 @@ class CrontabJob(ABC):
 
 	@abstractmethod
 	def is_pause(self) -> bool:
+		...
+
+	@abstractmethod
+	def get_duration_until_next_run(self) -> RTextBase:
 		...
 
 	@abstractmethod

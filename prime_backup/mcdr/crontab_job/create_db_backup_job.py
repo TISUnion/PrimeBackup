@@ -35,7 +35,9 @@ class CreateDbBackupJob(BasicCrontabJob):
 		return self.config.jitter
 
 	def run(self):
-		result = self.run_task_with_retry(CreateDbBackupTask(self.get_command_source()), True, report_success=False)
+		result = self.run_task_with_retry(CreateDbBackupTask(self.get_command_source()), True)
 		if result.ret is not None:
 			misc_utils.ensure_type(result.ret, threading.Thread)
 			result.ret.join()
+		else:
+			result.report()

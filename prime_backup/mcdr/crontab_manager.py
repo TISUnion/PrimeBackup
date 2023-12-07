@@ -1,5 +1,5 @@
 import threading
-from typing import Dict
+from typing import Dict, Iterable
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -49,6 +49,9 @@ class CrontabManager:
 
 	def get_job(self, job_id: CrontabJobId) -> CrontabJob:
 		return self.jobs[job_id]
+
+	def list_jobs(self) -> Iterable[CrontabJob]:
+		return self.jobs.values()
 
 	def __crontab_loop(self):
 		try:

@@ -21,6 +21,9 @@ class PruneBackupJob(BasicCrontabJob):
 	def id(self) -> CrontabJobId:
 		return CrontabJobId.prune_backup
 
+	def is_enabled(self) -> bool:
+		return True
+
 	@property
 	def interval(self) -> Duration:
 		return self.config.interval
@@ -34,6 +37,4 @@ class PruneBackupJob(BasicCrontabJob):
 
 		# enable state is checked inside the task
 		task = PruneAllBackupTask(self.get_command_source())
-		result = self.run_task_with_retry(task, self.config.interval.value > 300)
-		if result.executed:
-			self.logger.info('Prune backup job done')
+		self.run_task_with_retry(task, True).report()

@@ -42,9 +42,11 @@ class ShowBackupTagTask(ReaderTask):
 		try:
 			tag_name = BackupTagName[key]
 		except KeyError:
-			t_key = RText(key)
+			t_value_type = self.tr('value_type', type(value).__name__)
+			t_key = RText(key).h(t_value_type)
 		else:
-			t_key = TextComponents.tag_name(tag_name)
+			t_value_type = self.tr('value_type', tag_name.value.type.__name__)
+			t_key = TextComponents.tag_name(tag_name).h(RTextList(tag_name.value.text, '\n', t_value_type))
 
 		if value is not BackupTags.NONE:
 			t_value = TextComponents.auto(value)

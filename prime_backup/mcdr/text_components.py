@@ -19,6 +19,7 @@ class TextColors:
 	byte_count = RColor.green
 	date = RColor.aqua
 	file = RColor.dark_aqua
+	help_title = RColor.light_purple
 	number = RColor.yellow
 
 
@@ -130,14 +131,17 @@ class TextComponents:
 		)
 
 	@classmethod
-	def date(cls, date: datetime.datetime) -> RTextBase:
+	def date_diff(cls, date: datetime.datetime) -> RTextBase:
 		now = datetime.datetime.now(date.tzinfo)
 		diff = (date - now).total_seconds()
 		if diff >= 0:
-			hover = cls.tr('date.later', cls.duration(diff))
+			return cls.tr('date_diff.later', cls.duration(diff))
 		else:
-			hover = cls.tr('date.ago', cls.duration(-diff))
-		return RText(conversion_utils.datetime_to_str(date), TextColors.date).h(hover)
+			return cls.tr('date_diff.ago', cls.duration(-diff))
+
+	@classmethod
+	def date(cls, date: datetime.datetime) -> RTextBase:
+		return RText(conversion_utils.datetime_to_str(date), TextColors.date).h(cls.date_diff(date))
 
 	@classmethod
 	def dual_size_hover(cls, raw_size: int, stored_size: int, *, ndigits: int = 2) -> RTextBase:
@@ -147,7 +151,7 @@ class TextComponents:
 		return cls.tr('dual_size_hover', t_stored_size, t_percent, t_raw_size)
 
 	@classmethod
-	def duration(cls, seconds_or_duration: Union[float, Duration], *, color: Optional[RColor] = None, ndigits: int = 2) -> RTextBase:
+	def duration(cls, seconds_or_duration: Union[float, Duration], *, color: Optional[RColor] = TextColors.number, ndigits: int = 2) -> RTextBase:
 		# full duration text, e.g. "1 minute", "2 hours"
 		if isinstance(seconds_or_duration, Duration):
 			duration = seconds_or_duration

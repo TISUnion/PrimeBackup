@@ -230,7 +230,7 @@ class PruneBackupTask(OperationTask):
 					bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str()
 				))
 
-		self.reply(self.tr('done', cnt, TextComponents.number(bls.count), TextComponents.blob_list_summary_store_size(bls)))
+		self.reply(self.tr('done',  TextComponents.number(cnt), TextComponents.number(bls.count), TextComponents.blob_list_summary_store_size(bls)))
 		return cnt, bls
 
 

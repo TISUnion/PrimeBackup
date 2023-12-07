@@ -19,6 +19,7 @@ from prime_backup.mcdr.task.backup.rename_backup_task import RenameBackupTask
 from prime_backup.mcdr.task.backup.restore_backup_task import RestoreBackupTask
 from prime_backup.mcdr.task.backup.show_backup_tag_task import ShowBackupTagTask, ShowBackupSingleTagTask
 from prime_backup.mcdr.task.backup.show_backup_task import ShowBackupTask
+from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
 from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
@@ -36,8 +37,6 @@ from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
 class CommandManager:
-	COMMANDS_WITH_DETAILED_HELP = ['list']
-
 	def __init__(self, server: PluginServerInterface, task_manager: TaskManager, crontab_manager: CrontabManager):
 		self.server = server
 		self.task_manager = task_manager
@@ -55,7 +54,7 @@ class CommandManager:
 
 	def cmd_help(self, source: CommandSource, context: CommandContext):
 		what = context.get('what')
-		if what is not None and what not in self.COMMANDS_WITH_DETAILED_HELP:
+		if what is not None and what not in ShowHelpTask.COMMANDS_WITH_DETAILED_HELP:
 			reply_message(source, tr('command.help.no_help', RText(mkcmd(what), RColor.gray)))
 			return
 
@@ -126,8 +125,11 @@ class CommandManager:
 		self.task_manager.add_task(ExportBackupTask(source, backup_id, export_format))
 
 	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
-		job_id = context.get('job_id', CrontabJobId.schedule_backup)
-		self.task_manager.add_task(ShowCrontabJobTask(source, self.crontab_manager, job_id))
+		job_id = context.get('job_id')
+		if job_id is None:
+			self.task_manager.add_task(ListCrontabJobTask(source, self.crontab_manager))
+		else:
+			self.task_manager.add_task(ShowCrontabJobTask(source, self.crontab_manager, job_id))
 
 	def cmd_crontab_pause(self, source: CommandSource, context: CommandContext):
 		job_id = context.get('job_id', CrontabJobId.schedule_backup)
@@ -203,6 +205,7 @@ class CommandManager:
 		builder.command('prune', self.cmd_prune)
 
 		# crontab
+		builder.command('crontab', self.cmd_crontab_show)
 		builder.command('crontab <job_id>', self.cmd_crontab_show)
 		builder.command('crontab <job_id> pause', self.cmd_crontab_pause)
 		builder.command('crontab <job_id> resume', self.cmd_crontab_resume)

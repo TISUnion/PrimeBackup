@@ -8,4 +8,4 @@ APScheduler>=3
 
 # compress
 zstandard
-lz4
+# lz4

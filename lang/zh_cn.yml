@@ -230,9 +230,8 @@ prime_backup:
       name: 裁剪备份
     schedule_backup:
       name: 定时备份
-      comment: 定时备份
       triggered: 每{}一次的定时备份触发
-      reset_on_backup: '检测到新增的备份, 重置定时器。下次备份: {}'
+      reset_on_backup: '检测到新增的备份, 重置定时器。下次定时备份: {}'
     vacuum_sqlite:
       name: 整理数据库
 
@@ -253,7 +252,9 @@ prime_backup:
 
   text_components:
     backup_brief: '备份{}: {}'
-    backup_comment.none: 空
+    backup_comment:
+      none: 空
+      scheduled_backup: 定时备份
     backup_full:
       author: '作者: {}'
       restore: 回档至备份{}

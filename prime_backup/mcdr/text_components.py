@@ -10,7 +10,7 @@ from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount, Duration
-from prime_backup.utils import conversion_utils, misc_utils
+from prime_backup.utils import conversion_utils, misc_utils, backup_utils
 from prime_backup.utils.mcdr_utils import mkcmd, click_and_run
 
 
@@ -39,7 +39,12 @@ class TextComponents:
 
 	@classmethod
 	def backup_comment(cls, comment: str) -> RTextBase:
-		return RText(comment) if len(comment) > 0 else cls.tr('backup_comment.none').set_color(RColor.gray).set_styles(RStyle.italic)
+		if len(comment) > 0:
+			if (key := backup_utils.extract_backup_comment_translation_key(comment)) is not None:
+				return cls.tr(f'backup_comment.{key}')
+			return RText(comment)
+		else:
+			cls.tr('backup_comment.none').set_color(RColor.gray).set_styles(RStyle.italic)
 
 	@classmethod
 	def backup_date(cls, backup: BackupInfo):

@@ -230,9 +230,8 @@ prime_backup:
       name: prune backup
     schedule_backup:
       name: schedule backup
-      comment: Scheduled Backup
       triggered: Scheduled backup for every {} triggered
-      reset_on_backup: Detected backup, reset scheduler timer. Next backup at {}
+      reset_on_backup: Detected new backup, timer reset. Next scheduled backup at {}
     vacuum_sqlite:
       name: compact database
 
@@ -253,7 +252,9 @@ prime_backup:
 
   text_components:
     backup_brief: 'backup {}: {}'
-    backup_comment.none: no comment
+    backup_comment:
+      none: no comment
+      scheduled_backup: Scheduled Backup
     backup_full:
       author: 'Author: {}'
       restore: Restore to backup {}

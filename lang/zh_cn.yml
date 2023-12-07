@@ -41,6 +41,42 @@ prime_backup:
       pause.hover: 点击以暂停运行任务"{}"
       resume: 继续
       resume.hover: 点击以继续运行任务"{}"
+    db_overview:
+      name: 概览数据库
+      title: 数据库概览
+      db_version: '数据库版本: {}'
+      hash_method: '哈希算法: {}'
+      backup_cnt: '备份数: {}'
+      file_cnt: '文件数: {}'
+      file_raw_size: '文件总大小: {}'
+      blob_cnt: '数据对象数: {}'
+      blob_stored_size: '数据对象总储存大小: {} ({})'
+      blob_raw_size: '数据对象总原始大小: {}'
+    db_vacuum:
+      name: 整理数据库
+      start: 正在整理数据库, 请稍等...
+      done: '数据库整理完毕, 耗时{}, 体积变化: {} -> {} ({}) ({})'
+    db_validate:
+      name: 验证数据库
+      nothing_to_validate: 没有要验证的内容
+      validate_blobs:
+        .: 正在验证所有数据对象, 请稍等...
+        done: 已验证{} / {}个数据对象
+        all_ok: 全部{}个数据对象都是健康的
+        found_bad_blobs: 发现了{} / {}个异常数据对象
+        invalid: '非法数据对象: {}个'
+        missing: '文件缺失的数据对象: {}个'
+        corrupted: '文件损坏的数据对象: {}个'
+        mismatched: '信息不匹配的数据对象: {}个'
+      validate_files:
+        .: 正在验证所有文件 (包括文件、文件夹、符号链接), 请稍等...
+        done: 已验证{} / {}个文件
+        all_ok: 全部{}个文件都是健康的
+        found_bad_files: 发现了{} / {}个异常文件
+        invalid: '非法文件对象: {}个'
+        bad_blob_relation: '与数据对象错误关联: {}个'
+        file_blob_mismatched: '文件与数据对象间信息不匹配: {}个'
+      done: 验证完成, 耗时{}
     delete:
       name: 删除备份
       protected: 备份{}受到保护, 无法删除
@@ -169,42 +205,6 @@ prime_backup:
       name: 展示备份的单个标签
       value: 备份{0}的标签{1}是{2}
       not_exists: 备份{0}不存在标签{1}
-    db_overview:
-      name: 概览数据库
-      title: 数据库概览
-      db_version: '数据库版本: {}'
-      hash_method: '哈希算法: {}'
-      backup_cnt: '备份数: {}'
-      file_cnt: '文件数: {}'
-      file_raw_size: '文件总大小: {}'
-      blob_cnt: '数据对象数: {}'
-      blob_stored_size: '数据对象总储存大小: {} ({})'
-      blob_raw_size: '数据对象总原始大小: {}'
-    db_vacuum:
-      name: 整理数据库
-      start: 正在整理数据库, 请稍等...
-      done: '数据库整理完毕, 耗时{}, 体积变化: {} -> {} ({}) ({})'
-    db_validate:
-      name: 验证数据库
-      nothing_to_validate: 没有要验证的内容
-      validate_blobs:
-        .: 正在验证所有数据对象, 请稍等...
-        done: 已验证{} / {}个数据对象
-        all_ok: 全部{}个数据对象都是健康的
-        found_bad_blobs: 发现了{} / {}个异常数据对象
-        invalid: '非法数据对象: {}个'
-        missing: '文件缺失的数据对象: {}个'
-        corrupted: '文件损坏的数据对象: {}个'
-        mismatched: '信息不匹配的数据对象: {}个'
-      validate_files:
-        .: 正在验证所有文件 (包括文件、文件夹、符号链接), 请稍等...
-        done: 已验证{} / {}个文件
-        all_ok: 全部{}个文件都是健康的
-        found_bad_files: 发现了{} / {}个异常文件
-        invalid: '非法文件对象: {}个'
-        bad_blob_relation: '与数据对象错误关联: {}个'
-        file_blob_mismatched: '文件与数据对象间信息不匹配: {}个'
-      done: 验证完成, 耗时{}
 
   job:
     base:

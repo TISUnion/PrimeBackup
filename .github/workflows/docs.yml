@@ -1,0 +1,22 @@
+# https://squidfunk.github.io/mkdocs-material/publishing-your-site/#with-github-actions
+name: Build docs page
+on:
+  push:
+    branches:
+      - master
+permissions:
+  contents: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+      - run: pip install -r docs/requirements.txt
+      - run: mkdocs gh-deploy --force

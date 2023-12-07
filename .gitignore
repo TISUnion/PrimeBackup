@@ -13,3 +13,6 @@ __pycache__
 *.mcdr
 *.pyz
 /run
+
+# docs
+/site/

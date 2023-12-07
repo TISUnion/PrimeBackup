@@ -1,0 +1,40 @@
+# https://www.mkdocs.org/
+site_name: Prime Backup Documents
+site_url: https://tisunion.github.io/PrimeBackup/
+site_author: Fallen_Breath
+site_description: A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world
+repo_url: https://github.com/TISUnion/PrimeBackup
+copyright: Copyright &copy; 2023 Fallen_Breath
+exclude_docs: |-
+  /requirements.txt
+theme:
+  name: material
+  # https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/#automatic-light-dark-mode
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+plugins:
+  - search
+  - i18n:
+      # https://ultrabug.github.io/mkdocs-static-i18n/getting-started/quick-start/#configure-the-plugin-in-your-mkdocsyml
+      docs_structure: suffix
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: zh
+          name: 简体中文
+          build: true

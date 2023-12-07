@@ -2,6 +2,7 @@ from typing import Optional, Union
 
 from mcdreforged.api.all import *
 
+from prime_backup import constants
 from prime_backup.mcdr.task.basic_task import ImmediateTask
 from prime_backup.mcdr.task.general import help_message_utils
 
@@ -35,10 +36,15 @@ class ShowHelpTask(ImmediateTask):
 				from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 				t_export_formats = ', '.join([f'§3{ebf.name}§r' for ebf in StandaloneBackupFormat])
 				t_job_ids = ', '.join([f'§5{jid.name}§r' for jid in CrontabJobId])
+
 				self.reply(self.tr('commands.title').set_color(RColor.light_purple))
 				self.__reply_help(self.tr('commands.content', prefix=self.__cmd_prefix), True)
 				self.reply(self.tr('arguments.title').set_color(RColor.light_purple))
 				self.__reply_help(self.tr('arguments.content', export_formats=t_export_formats, job_ids=t_job_ids))
+
+				self.reply(self.tr('docs.title').set_color(RColor.light_purple))
+				self.reply(RText(constants.DOCUMENTATION_URL, RColor.blue, RStyle.underlined).h(self.tr('docs.hover')).c(RAction.open_url, constants.DOCUMENTATION_URL))
+
 			else:
 				self.__reply_help(self.tr(f'node_help.{self.what}', prefix=self.__cmd_prefix))
 

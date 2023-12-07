@@ -126,6 +126,9 @@ prime_backup:
           §6<backup_id_range>§r: An integer closed interval, e.g.: §63-12§r, §64~9§r, §64~§r, §64~§r, §6*§r
           §3<export_format>§r: Available options: {export_formats}
           §5<job_id>§r: Available options: {job_ids}
+      docs:
+        title: '[Documentation]'
+        hover: Click to open the url
       node_help:
         list: |-
           §d[List Command Usage]§r

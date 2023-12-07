@@ -29,7 +29,7 @@ class RestoreBackupTask(OperationTask):
 	def __countdown_and_stop_server(self, backup: BackupInfo) -> bool:
 		for countdown in range(max(0, self.config.command.restore_countdown_sec), 0, -1):
 			self.broadcast(click_and_run(
-				self.tr('countdown', countdown, TextComponents.backup_brief(backup, backup_id_fancy=False)),
+				RText('!!! ', RColor.red) + self.tr('countdown', countdown, TextComponents.backup_brief(backup, backup_id_fancy=False)),
 				self.tr('countdown.hover', TextComponents.command('abort')),
 				mkcmd('abort'),
 			))

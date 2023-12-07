@@ -100,13 +100,9 @@ prime_backup:
       exported: Exported backup {} to {}, cost {}, size {}
     help:
       name: show help
-      help:
-        # TODO: refactor, one usage one line, only show common commands in welcome page
-        _header: |-
-          ------ {name} v{version} ------
-          {description}
-        .: |-
-          §d[Commands Usages]§r
+      commands:
+        title: '[Commands Usages]'
+        content: |-
           §7{prefix}§r: Display help message
           §7{prefix} help §e[<what>]§r: Display help message of the given command
           §7{prefix} make §e[<comment>]§r: Make a backup. §e<comment>§r is an optional comment message
@@ -123,15 +119,18 @@ prime_backup:
           §7{prefix} database [overview|validate|vacuum]§r§r: Database queries and operations
           §7{prefix} confirm§r: Confirm the current task execution
           §7{prefix} abort§r: Abort the current task execution
-          §d[Arguments]§r
+      arguments:
+        title: '[Arguments]'
+        content: |-
           §6<backup_id>§r: A positive integer, the unique identifier for a backup, e.g.: §612§r
           §6<backup_id_range>§r: An integer closed interval, e.g.: §63-12§r, §64~9§r, §64~§r, §64~§r, §6*§r
           §3<export_format>§r: Available options: {export_formats}
           §5<job_id>§r: Available options: {job_ids}
+      node_help:
         list: |-
           §d[List Command Usage]§r
           List backups with given filters
-          §7{prefix} list [<page>] [--arg-key <arg-value>] §r
+          §7{prefix} list [<page>] [--arg-key <arg-value>]§r
           §d[Optional arguments]§r
           §7--per-page §e<per_page>§r: Set number of backup displayed per page. Default: §e10§r
           §7--author §e<author>§r: Show backup created by the given author only
@@ -174,7 +173,7 @@ prime_backup:
       no_backup: No available backup to restore
       show_backup: Gonna restore the world to {}
       confirm_target: restore
-      countdown: '§c!!!§r {} second later, the world will §cbe restored§r to {}'
+      countdown: '{} second later, the world will §cbe restored§r to {}'
       countdown.hover: Click me or enter command {} to abort restore
       no_confirm: No choice has been made, restore task aborted
       pre_restore_comment: 'Automatic backup before restoring to #{}'
@@ -206,6 +205,15 @@ prime_backup:
       name: show backup single tag
       value: Tag {1} of backup {0} is {2}
       not_exists: Backup {0} does not have tag {1}
+    welcome:
+      title: '{name} v{version}'
+      common_commands: '[Common Commands]'
+      common_commands.hover: 'Enter command {} to see the full command list'
+      recent_backups: '[Recent {} Backups]'
+      quick_actions:
+        title: '[Quick Actions]'
+        create: '>>> Create a new backup <<<'
+        restore: '>>> Restore to the latest backup <<<'
 
   job:
     base:

@@ -100,12 +100,9 @@ prime_backup:
       exported: 已将备份{}导出至{}, 耗时{}, 文件大小{}
     help:
       name: 展示帮助
-      help:
-        _header: |-
-          ------ {name} v{version} ------
-          {description}
-        .: |-
-          §d【指令帮助】§r
+      commands:
+        title: 【指令帮助】
+        content: |-
           §7{prefix}§r: 展示帮助信息
           §7{prefix} help §e[<指令>]§r: 展示给定指令的详细帮助
           §7{prefix} make §e[<注释>]§r: 创建一个备份。§e<注释>§r为可选注释
@@ -122,15 +119,18 @@ prime_backup:
           §7{prefix} database [overview|validate|vacuum]§r§r: 操作数据库
           §7{prefix} confirm§r: 确认当前的任务操作。需确认的任务: 回档、范围删除
           §7{prefix} abort§r: 终止当前的任务操作。可终止的任务: 回档、列出备份、范围删除、备份裁剪
-          §d【参数帮助】§r
+      arguments:
+        title: 【参数帮助】
+        content: |-
           §6<备份ID>§r: 一个正整数, 备份的唯一标识符, 如: §612§r
           §6<备份ID范围>§r: 一个整数闭区间, 如: §63-12§r, §64~9§r, §64~§r, §64~§r, §6*§r
           §3<导出格式>§r: 可用选项: {export_formats}
           §5<任务ID>§r: 可用选项: {job_ids}
+      node_help:
         list: |-
           §d【list指令帮助】§r
           列出备份, 展示备份列表
-          §7{prefix} list [<页数>] [--参数 <值>] §r
+          §7{prefix} list [<页数>] [--参数 <值>]§r
           §d【可选参数】§r
           §7--per-page §e<每页行数>§r: 设置每页展示的备份数量。默认: §e10§r
           §7--author §e<作者>§r: 仅列出给定作者的备份
@@ -173,7 +173,7 @@ prime_backup:
       no_backup: 未找到可用于回档的备份
       show_backup: 将要回档至{}
       confirm_target: 回档
-      countdown: '§c!!!§r {}秒后将§c回档§r至{}'
+      countdown: '{}秒后将§c回档§r至{}'
       countdown.hover: 点我或输入{}以终止回档
       no_confirm: 未做出选择, 回档任务中止
       pre_restore_comment: '回档至#{}前的自动备份'
@@ -205,6 +205,15 @@ prime_backup:
       name: 展示备份的单个标签
       value: 备份{0}的标签{1}是{2}
       not_exists: 备份{0}不存在标签{1}
+    welcome:
+      title: '{name} v{version}'
+      common_commands: '【常用指令】'
+      common_commands.hover: '输入指令{}以查看完整的指令列表'
+      recent_backups: '【最近{}个备份】'
+      quick_actions:
+        title: '【快捷操作】'
+        create: '>>> 创建一个新备份 <<<'
+        restore: '>>> 回档到最新的备份 <<<'
 
   job:
     base:

@@ -25,6 +25,7 @@ from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
 from prime_backup.mcdr.task.db.vacuum_sqlite_task import VacuumSqliteTask
 from prime_backup.mcdr.task.db.validate_db_task import ValidateDbTask, ValidateParts
 from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
+from prime_backup.mcdr.task.general.show_welcome_task import ShowWelcomeTask
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_tags import BackupTagName
@@ -50,16 +51,15 @@ class CommandManager:
 	# =============================== Command Callback ===============================
 
 	def cmd_welcome(self, source: CommandSource, context: CommandContext):
-		# TODO
-		self.cmd_help(source, context, full=True)
+		self.task_manager.add_task(ShowWelcomeTask(source))
 
-	def cmd_help(self, source: CommandSource, context: CommandContext, *, full: bool = False):
+	def cmd_help(self, source: CommandSource, context: CommandContext):
 		what = context.get('what')
 		if what is not None and what not in self.COMMANDS_WITH_DETAILED_HELP:
 			reply_message(source, tr('command.help.no_help', RText(mkcmd(what), RColor.gray)))
 			return
 
-		self.task_manager.add_task(ShowHelpTask(source, full, what))
+		self.task_manager.add_task(ShowHelpTask(source, what))
 
 	def cmd_db_overview(self, source: CommandSource, context: CommandContext):
 		self.task_manager.add_task(ShowDbOverviewTask(source))

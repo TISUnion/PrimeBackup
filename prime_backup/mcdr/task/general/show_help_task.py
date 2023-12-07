@@ -1,16 +1,14 @@
-import re
-from typing import Optional
+from typing import Optional, Union
 
 from mcdreforged.api.all import *
 
-from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.task.basic_task import ImmediateTask
+from prime_backup.mcdr.task.general import help_message_utils
 
 
 class ShowHelpTask(ImmediateTask):
-	def __init__(self, source: CommandSource, full: bool, what: Optional[str] = None):
+	def __init__(self, source: CommandSource, what: Optional[str] = None):
 		super().__init__(source)
-		self.full = full
 		self.what = what
 
 	@property
@@ -21,38 +19,26 @@ class ShowHelpTask(ImmediateTask):
 	def __cmd_prefix(self) -> str:
 		return self.config.command.prefix
 
-	def __reply_help(self, msg: RTextBase, hide_for_permission: bool = False):
-		for line in msg.to_plain_text().splitlines():
-			if hide_for_permission:
-				match = re.match(r'(§7){} (\w+)([§ ])'.format(self.__cmd_prefix), line)
-				if match is not None:
-					literal = match.group(2)
-					level = self.config.command.permission.get(literal)
-					if not self.source.has_permission(level):
-						continue
+	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = False):
+		super().reply(msg, with_prefix=with_prefix)
 
-			prefix = re.search(r'(?<=§7){}[-\w ]*(?=§)'.format(self.__cmd_prefix), line)
-			if prefix is not None:
-				self.reply(RText(line).set_click_event(RAction.suggest_command, prefix.group()), with_prefix=False)
-			else:
-				self.reply(line, with_prefix=False)
+	def __reply_help(self, msg: RTextBase, hide_for_permission: bool = False):
+		for h in help_message_utils.parse_help_message(msg):
+			if hide_for_permission and h.is_help() and not self.source.has_permission(h.permission):
+				continue
+			self.reply(h.text)
 
 	def run(self) -> None:
 		with self.source.preferred_language_context():
-			if self.full:
-				self.__reply_help(self.tr(
-					'help._header',
-					name=f'§3{mcdr_globals.metadata.name}§r',
-					version=mcdr_globals.metadata.version,
-					description=mcdr_globals.metadata.get_description_rtext(),
-				))
-
 			if self.what is None:
 				from prime_backup.mcdr.crontab_job import CrontabJobId
 				from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 				t_export_formats = ', '.join([f'§3{ebf.name}§r' for ebf in StandaloneBackupFormat])
 				t_job_ids = ', '.join([f'§5{jid.name}§r' for jid in CrontabJobId])
-				self.__reply_help(self.tr('help', prefix=self.__cmd_prefix, export_formats=t_export_formats, job_ids=t_job_ids), True)
+				self.reply(self.tr('commands.title').set_color(RColor.light_purple))
+				self.__reply_help(self.tr('commands.content', prefix=self.__cmd_prefix), True)
+				self.reply(self.tr('arguments.title').set_color(RColor.light_purple))
+				self.__reply_help(self.tr('arguments.content', export_formats=t_export_formats, job_ids=t_job_ids))
 			else:
-				self.__reply_help(self.tr(f'help.{self.what}', prefix=self.__cmd_prefix))
+				self.__reply_help(self.tr(f'node_help.{self.what}', prefix=self.__cmd_prefix))
 

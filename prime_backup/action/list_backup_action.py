@@ -16,7 +16,7 @@ class _ListBackupActionBase(Action, ABC):
 
 
 class ListBackupAction(_ListBackupActionBase):
-	def __init__(self, calc_size: bool = True, **kwargs):
+	def __init__(self, *, calc_size: bool = False, **kwargs):
 		super().__init__(**kwargs)
 		self.calc_size = calc_size
 

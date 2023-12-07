@@ -1,5 +1,5 @@
-> [!CAUTION]
-> Still in early stages of development, expect unstable feature and breaking changes!
+> [!WARNING]
+> Still in early stages of development, expect incomplete feature and missing document!
 
 # Prime Backup
 

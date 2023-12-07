@@ -212,8 +212,9 @@ prime_backup:
       recent_backups: '[Recent {} Backups]'
       quick_actions:
         title: '[Quick Actions]'
-        create: '>>> Create a new backup <<<'
-        restore: '>>> Restore to the latest backup <<<'
+        create: 'Create a new backup'
+        create.comment: "I'm a comment"
+        restore: 'restore to the latest backup'
 
   job:
     base:

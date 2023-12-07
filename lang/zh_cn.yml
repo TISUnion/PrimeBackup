@@ -212,8 +212,9 @@ prime_backup:
       recent_backups: '【最近{}个备份】'
       quick_actions:
         title: '【快捷操作】'
-        create: '>>> 创建一个新备份 <<<'
-        restore: '>>> 回档到最新的备份 <<<'
+        create: '创建一个新备份'
+        create.comment: '我是一个注释'
+        restore: '回档到最新的备份'
 
   job:
     base:

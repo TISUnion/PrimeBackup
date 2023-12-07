@@ -58,15 +58,16 @@ class ShowWelcomeTask(ReaderTask):
 			self.reply(TextComponents.backup_full(backup, operation_buttons=True))
 
 		self.reply(self.tr('quick_actions.title').set_color(RColor.light_purple))
-		buttons = [
-			self.tr('quick_actions.create').
-			set_color(RColor.green).
-			h(mkcmd('make ')).
-			c(RAction.suggest_command, mkcmd('make '))
-		]
+		with self.source.preferred_language_context():
+			buttons = [
+				RTextList('[', self.tr('quick_actions.create'), ']').
+				set_color(RColor.green).
+				h(TextComponents.command('make ')).
+				c(RAction.suggest_command, mkcmd('make ' + self.tr('quick_actions.create.comment').to_plain_text()))
+			]
 		if len(backups) > 0:
 			buttons.append(
-				self.tr('quick_actions.restore', TextComponents.backup_brief(backups[0])).
+				RTextList('[', self.tr('quick_actions.restore', TextComponents.backup_brief(backups[0])), ']').
 				set_color(RColor.red).
 				h(TextComponents.command('back')).
 				c(RAction.suggest_command, mkcmd('back'))

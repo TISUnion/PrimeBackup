@@ -100,7 +100,7 @@ def on_unload(server: PluginServerInterface):
 
 def on_info(server: PluginServerInterface, info: Info):
 	if init_ok and not info.is_user:
-		for pattern in config.server.saved_world_regex_patterns:
+		for pattern in config.server.saved_world_regex:
 			if pattern.fullmatch(info.content):
 				task_manager.on_world_saved()
 				break

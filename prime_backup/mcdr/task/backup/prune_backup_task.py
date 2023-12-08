@@ -214,11 +214,7 @@ class PruneBackupTask(OperationTask[PruneBackupResult]):
 			self.reply(self.tr(
 				'list_to_be_pruned',
 				TextComponents.number(len(to_deleted_ids)),
-				RTextList(
-					'[',
-					RTextBase.join(', ', map(functools.partial(TextComponents.backup_id, hover=False, click=False), to_deleted_ids)),
-					']',
-				),
+				TextComponents.backup_id_list(to_deleted_ids, hover=False, click=False),
 			))
 
 			for pl in plan_list:

@@ -23,6 +23,7 @@ prime_backup:
         create backup: {}
     backup_delete:
       name: delete backup
+      multi_delete: 'Multiple backups will be deleted (amount={}): {}'
       protected: Backup {} is protected and cannot be deleted
       deleting: Deleting {}
       deleted: Deleted backup {}, freed {}
@@ -42,6 +43,7 @@ prime_backup:
       already_exists: File {} already exists
       exporting: Exporting backup {}
       exported: Exported backup {} to {}, cost {}, size {}
+      failures: 'Found {} errors during the export:'
     backup_list:
       name: list backup
       title: Backup list
@@ -291,14 +293,15 @@ prime_backup:
       name_titled: Compact database
 
   error:
+    backup_not_found: Backup with ID {} does not exist
+    db_locked: Task {} execution error cuz the database is locked. Please retry later
+    disabled: Plugin disabled
+    generic: Task {} execution error, see console for more error
+    missing_backup_id: Please supply the backup ID
     node:
       bad_date: Bad input date
       bad_id_range: Bad ID Range
-    disabled: Plugin disabled
     permission_denied: Permission denied
-    backup_not_found: Backup with ID {} does not exist
-    db_locked: Task {} execution error cuz the database is locked. Please retry later
-    generic: Task {} execution error, see console for more error
     too_much_ongoing_task:
       exclusive: 'Please wait for the ongoing task "{}" to finish'
       try_abort: You can also abort the ongoing task

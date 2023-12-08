@@ -5,7 +5,7 @@ from mcdreforged.api.all import *
 from prime_backup.action.export_backup_action import ExportBackupToZipAction, ExportBackupToTarAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_task import OperationTask
-from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.standalone_backup_format import ZipFormat, StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils.timer import Timer
@@ -19,10 +19,11 @@ def _sanitize_file_name(s: str, max_length: int = 64):
 
 
 class ExportBackupTask(OperationTask[None]):
-	def __init__(self, source: CommandSource, backup_id: int, export_format: StandaloneBackupFormat):
+	def __init__(self, source: CommandSource, backup_id: int, export_format: StandaloneBackupFormat, fail_soft: bool):
 		super().__init__(source)
 		self.backup_id = backup_id
 		self.export_format = export_format
+		self.fail_soft = fail_soft
 
 	@property
 	def id(self) -> str:
@@ -39,12 +40,13 @@ class ExportBackupTask(OperationTask[None]):
 			return self.config.storage_path / 'export' / name
 
 		efv = self.export_format.value
+		kwargs = dict(fail_soft=self.fail_soft)
 		if isinstance(efv, TarFormat):
 			path = make_output(efv.value.extension)
-			action = ExportBackupToTarAction(self.backup_id, path, efv)
+			action = ExportBackupToTarAction(self.backup_id, path, efv, **kwargs)
 		elif isinstance(efv, ZipFormat):
 			path = make_output(efv.extension)
-			action = ExportBackupToZipAction(self.backup_id, path)
+			action = ExportBackupToZipAction(self.backup_id, path, **kwargs)
 		else:
 			raise TypeError(efv)
 
@@ -54,6 +56,18 @@ class ExportBackupTask(OperationTask[None]):
 
 		self.reply(self.tr('exporting', TextComponents.backup_id(backup.id)))
 		timer = Timer()
-		action.run()
+		failures = action.run()
 		t_cost = RText(f'{round(timer.get_elapsed(), 2)}s', RColor.gold)
+
 		self.reply(self.tr('exported', TextComponents.backup_id(backup.id), TextComponents.file_path(path), t_cost, TextComponents.file_size(path.stat().st_size)))
+		if len(failures) > 0:
+			self.reply(self.tr('failures', len(failures)))
+			for failure in failures:
+				self.reply(RTextBase.format(
+					'{} mode={}: ({}) {}',
+					RText(failure.file.path, TextColors.file),
+					oct(failure.file.mode),
+					RText(failure.file.path, TextColors.file),
+					type(failure.error).__name__,
+					str(failure.error),
+				))

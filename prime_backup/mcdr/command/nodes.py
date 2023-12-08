@@ -17,6 +17,13 @@ class DateNode(ArgumentNode):
 			raise IllegalArgument(tr('error.node.bad_date'), result.char_read)
 
 
+class MultiIntegerNode(Integer):
+	def _on_visited(self, context: CommandContext, parsed_result: ParseResult):
+		if self.get_name() not in context:
+			context[self.get_name()] = []
+		context[self.get_name()].append(parsed_result.value)
+
+
 class IdRangeNode(ArgumentNode):
 	class Range(NamedTuple):
 		start: Optional[int]

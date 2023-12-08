@@ -23,6 +23,7 @@ prime_backup:
         创建备份: {}
     backup_delete:
       name: 删除备份
+      multi_delete: '准备删除多个备份 (数量={}): {}'
       protected: 备份{}受到保护, 无法删除
       deleting: 正在删除{}
       deleted: 已删除备份{}, 释放{}
@@ -42,6 +43,7 @@ prime_backup:
       already_exists: 文件{}已存在
       exporting: 正在导出备份{}
       exported: 已将备份{}导出至{}, 耗时{}, 文件大小{}
+      failures: '在导出过程中发现{}个错误:'
     backup_list:
       name: 列出备份
       title: 备份列表
@@ -291,14 +293,15 @@ prime_backup:
       name_titled: 整理数据库
 
   error:
+    backup_not_found: ID为{}的备份不存在
+    db_locked: 任务{}执行失败, 数据库已被锁定。请稍候再试
+    disabled: 插件已禁用
+    generic: 任务{}执行失败, 见控制台以了解错误详情
+    missing_backup_id: 请提供备份ID
     node:
       bad_date: 非法日期格式
       bad_id_range: 非法ID范围
-    disabled: 插件已禁用
     permission_denied: 权限不足
-    backup_not_found: ID为{}的备份不存在
-    db_locked: 任务{}执行失败, 数据库已被锁定。请稍候再试
-    generic: 任务{}执行失败, 见控制台以了解错误详情
     too_much_ongoing_task:
       exclusive: '请等待当前任务"{}"完成'
       try_abort: 你也可以选择中止当前任务

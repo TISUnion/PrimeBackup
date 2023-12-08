@@ -137,7 +137,12 @@ class CliHandler:
 			act = ExportBackupToTarAction(backup.id, output_path, fmt.value)
 		else:
 			act = ExportBackupToZipAction(backup.id, output_path)
-		act.run()
+
+		failures = act.run()
+		if len(failures) > 0:
+			logger.warning('Found {} failures during the export'.format(len(failures)))
+			for failure in failures:
+				logger.warning('  {} mode={}: {} {}'.format(failure.file.path, oct(failure.file.mode), type(failure.error), str(failure.error)))
 
 	def cmd_extract(self):
 		file_path = Path(self.args.file)
@@ -164,8 +169,10 @@ class CliHandler:
 			shutil.rmtree(dest_path)
 
 		ExportBackupToDirectoryAction(
-			self.args.backup_id, output_path, True,
-			child_to_export=file_path, recursively_export_child=self.args.recursively
+			self.args.backup_id, output_path,
+			delete_existing=True,
+			child_to_export=file_path,
+			recursively_export_child=self.args.recursively,
 		).run()
 
 	@classmethod

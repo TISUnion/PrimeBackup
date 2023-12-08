@@ -4,11 +4,12 @@ from pathlib import Path
 from prime_backup import logger
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.delete_backup_action import DeleteBackupAction
-from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction
+from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction, ExportBackupToTarAction, ExportBackupToZipAction
 from prime_backup.action.import_backup_action import ImportBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.db.access import DbAccess
 from prime_backup.types.operator import Operator
+from prime_backup.types.tar_format import TarFormat
 
 
 # @memory_profiler.profile
@@ -41,12 +42,13 @@ def main():
 	def export():
 		t = time.time()
 
-		# ExportBackupActions.to_tar(backup_id, Path('export.tar'), TarFormat.plain).run()
-		# ExportBackupActions.to_tar(backup_id, Path('export.tar.gz'), TarFormat.gzip).run()
-		# ExportBackupActions.to_tar(backup_id, Path('export.tar.zst'), TarFormat.zstd).run()
-		# ExportBackupActions.to_tar(backup_id, Path('export.tar.xz'), TarFormat.lzma).run()
-		# ExportBackupActions.to_zip(backup_id, Path('export.zip')).run()
-		ExportBackupToDirectoryAction(backup_id, Path('export'), True).run()
+		_ = [ExportBackupToDirectoryAction, ExportBackupToTarAction, ExportBackupToZipAction, TarFormat]
+		# ExportBackupToTarAction(backup_id, Path('export.tar'), TarFormat.plain).run()
+		# ExportBackupToTarAction(backup_id, Path('export.tar.gz'), TarFormat.gzip).run()
+		# ExportBackupToTarAction(backup_id, Path('export.tar.zst'), TarFormat.zstd).run()
+		# ExportBackupToTarAction(backup_id, Path('export.tar.xz'), TarFormat.lzma).run()
+		# ExportBackupToZipAction(backup_id, Path('export.zip')).run()
+		ExportBackupToDirectoryAction(backup_id, Path('export'), delete_existing=True).run()
 
 		print('cost', round(time.time() - t, 2), 's')
 

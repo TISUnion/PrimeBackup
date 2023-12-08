@@ -9,7 +9,7 @@ import zipfile
 from abc import abstractmethod, ABC
 from io import BytesIO
 from pathlib import Path
-from typing import ContextManager, Optional, List, Tuple, NamedTuple, Union
+from typing import ContextManager, Optional, List, Tuple
 
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor, CompressMethod
@@ -18,31 +18,9 @@ from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.types.backup_meta import BackupMeta
-from prime_backup.types.file_info import FileInfo
+from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils import file_utils, blob_utils, misc_utils
-
-
-class ExportFailure(NamedTuple):
-	file: FileInfo
-	error: Exception
-
-
-class ExportFailures:
-	def __init__(self, fail_soft: bool):
-		self.__fail_soft = fail_soft
-		self.failures: List[ExportFailure] = []
-
-	def add_or_raise(self, file: Union[FileInfo, schema.File], error: Exception):
-		if self.__fail_soft:
-			if isinstance(file, schema.File):
-				file = FileInfo.of(file)
-			self.failures.append(ExportFailure(file, error))
-		else:
-			raise error
-
-	def __len__(self) -> int:
-		return len(self.failures)
 
 
 class _ExportBackupActionBase(Action[ExportFailures], ABC):
@@ -83,10 +61,11 @@ def _i_am_root():
 
 class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 	def __init__(
-			self, backup_id: int, output_path: Path, delete_existing: bool, *,
+			self, backup_id: int, output_path: Path, *,
+			fail_soft: bool = False, delete_existing: bool = True,
 			child_to_export: Optional[Path] = None, recursively_export_child: bool = False,
 	):
-		super().__init__(backup_id, output_path)
+		super().__init__(backup_id, output_path, fail_soft=fail_soft)
 		self.delete_existing = delete_existing
 		self.child_to_export = child_to_export
 		self.recursively_export_child = recursively_export_child
@@ -183,8 +162,8 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 
 
 class ExportBackupToTarAction(_ExportBackupActionBase):
-	def __init__(self, backup_id: int, output_path: Path, tar_format: TarFormat):
-		super().__init__(backup_id, output_path)
+	def __init__(self, backup_id: int, output_path: Path, tar_format: TarFormat, *, fail_soft: bool = False):
+		super().__init__(backup_id, output_path, fail_soft=fail_soft)
 		self.tar_format = tar_format
 
 	@contextlib.contextmanager

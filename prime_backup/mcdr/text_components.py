@@ -1,6 +1,6 @@
 import datetime
 from pathlib import Path
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, Iterable
 
 from mcdreforged.api.all import *
 
@@ -111,6 +111,14 @@ class TextComponents:
 		return text
 
 	@classmethod
+	def backup_id_list(cls, backup_ids: Iterable[Any], **kwargs) -> RTextBase:
+		return RTextList(
+			'[',
+			RTextBase.join(', ', [cls.backup_id(backup_id, **kwargs) for backup_id in backup_ids]),
+			']',
+		)
+
+	@classmethod
 	def backup_size(cls, backup_or_blob_list_summary: Union[BackupInfo, BlobListSummary], *, ndigits: int = 2) -> RTextBase:
 		b = backup_or_blob_list_summary
 		return cls.file_size(b.raw_size, ndigits=ndigits).h(cls.dual_size_hover(b.raw_size, b.stored_size))
@@ -199,6 +207,14 @@ class TextComponents:
 	@classmethod
 	def number(cls, value: Any) -> RTextBase:
 		return RText(value, TextColors.number)
+
+	@classmethod
+	def number_list(cls, values: Iterable[Any]) -> RTextBase:
+		return RTextList(
+			'[',
+			RTextBase.join(', ', [cls.number(v) for v in values]),
+			']',
+		)
 
 	@classmethod
 	def operator(cls, op: Operator) -> RTextBase:

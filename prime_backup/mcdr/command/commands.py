@@ -1,11 +1,11 @@
 import functools
 import typing
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Type
 
 from mcdreforged.api.all import *
 
 from prime_backup.config.config import Config
-from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode
+from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, MultiIntegerNode
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
@@ -77,9 +77,11 @@ class CommandManager:
 		comment = context.get('comment', '')
 		self.task_manager.add_task(CreateBackupTask(source, comment), callback)
 
-	def cmd_back(self, source: CommandSource, context: CommandContext, *, needs_confirm: bool = True):
+	def cmd_back(self, source: CommandSource, context: CommandContext):
+		needs_confirm = context.get('confirm', 0) == 0
+		fail_soft = context.get('fail_soft', 0) > 0
 		backup_id = context.get('backup_id')
-		self.task_manager.add_task(RestoreBackupTask(source, backup_id, needs_confirm=needs_confirm))
+		self.task_manager.add_task(RestoreBackupTask(source, backup_id, needs_confirm=needs_confirm, fail_soft=fail_soft))
 
 	def cmd_list(self, source: CommandSource, context: CommandContext):
 		page = context.get('page', 1)
@@ -112,8 +114,12 @@ class CommandManager:
 		self.task_manager.add_task(RenameBackupTask(source, backup_id, comment))
 
 	def cmd_delete(self, source: CommandSource, context: CommandContext):
-		backup_id = context['backup_id']
-		self.task_manager.add_task(DeleteBackupTask(source, backup_id))
+		if 'backup_id' not in context:
+			reply_message(source, tr('error.missing_backup_id').set_color(RColor.red))
+			return
+
+		backup_ids = misc_utils.ensure_type(context['backup_id'], list)
+		self.task_manager.add_task(DeleteBackupTask(source, backup_ids))
 
 	def cmd_delete_range(self, source: CommandSource, context: CommandContext):
 		id_range: IdRangeNode.Range = context['backup_id_range']
@@ -122,7 +128,8 @@ class CommandManager:
 	def cmd_export(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
 		export_format = context.get('export_format', StandaloneBackupFormat.tar)
-		self.task_manager.add_task(ExportBackupTask(source, backup_id, export_format))
+		fail_soft = context.get('fail_soft', 0) > 0
+		self.task_manager.add_task(ExportBackupTask(source, backup_id, export_format, fail_soft=fail_soft))
 
 	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
 		job_id = context.get('job_id')
@@ -173,6 +180,8 @@ class CommandManager:
 		return []  # TODO
 
 	def register_commands(self):
+		# --------------- common utils ---------------
+
 		permissions = self.config.command.permission
 
 		def get_permission_checker(literal: str) -> Callable[[CommandSource], bool]:
@@ -181,27 +190,25 @@ class CommandManager:
 		def get_permission_denied_text():
 			return tr('error.permission_denied').set_color(RColor.red)
 
-		builder = SimpleCommandBuilder()
+		def create_subcommand(literal: str) -> Literal:
+			node = Literal(literal)
+			node.requires(get_permission_checker('back'), get_permission_denied_text)
+			return node
 
-		# simple commands
+		def create_backup_id(arg: str = 'backup_id', clazz: Type[Integer] = Integer) -> Integer:
+			return clazz(arg).at_min(1).suggests(self.suggest_backup_id)
+
+		# --------------- simple commands ---------------
+
+		builder = SimpleCommandBuilder()
 
 		builder.command('help', self.cmd_help)
 		builder.command('help <what>', self.cmd_help)
 
 		# backup
-		# TODO: add "backup_" prefix
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
-		builder.command('back', self.cmd_back)
-		builder.command('back --confirm', functools.partial(self.cmd_back, needs_confirm=False))
-		builder.command('back <backup_id>', self.cmd_back)
-		builder.command('back <backup_id> --confirm', functools.partial(self.cmd_back, needs_confirm=False))
-		builder.command('show <backup_id>', self.cmd_show)
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
-		builder.command('delete <backup_id>', self.cmd_delete)
-		builder.command('delete_range <backup_id_range>', self.cmd_delete_range)
-		builder.command('export <backup_id>', self.cmd_export)
-		builder.command('export <backup_id> <export_format>', self.cmd_export)
 		builder.command('prune', self.cmd_prune)
 
 		# crontab
@@ -221,10 +228,10 @@ class CommandManager:
 		builder.command('confirm', self.cmd_confirm)
 		builder.command('abort', self.cmd_abort)
 
-		builder.arg('backup_id', lambda n: Integer(n).at_min(1)).suggests(self.suggest_backup_id)
+		# node defs
+		builder.arg('backup_id', create_backup_id)
 		builder.arg('backup_id_range', IdRangeNode)
 		builder.arg('comment', GreedyText)
-		builder.arg('export_format', lambda n: Enumeration(n, StandaloneBackupFormat))
 		builder.arg('job_id', lambda n: Enumeration(n, CrontabJobId))
 		builder.arg('page', lambda n: Integer(n).at_min(1))
 		builder.arg('per_page', lambda n: Integer(n).at_min(1))
@@ -240,11 +247,46 @@ class CommandManager:
 		)
 		builder.add_children_for(root)
 
-		# complex commands
+		# --------------- complex commands ---------------
+
+		def set_confirm_able(node: AbstractNode):
+			node.then(CountingLiteral('--confirm', 'confirm').redirects(node))
+
+		def set_fail_soft_able(node: AbstractNode):
+			node.then(CountingLiteral('--fail-soft', 'fail_soft').redirects(node))
+
+		def make_back_cmd() -> Literal:
+			node_sc = create_subcommand('back')
+			node_bid = create_backup_id()
+			node_sc.then(node_bid)
+			for node in [node_sc, node_bid]:
+				set_confirm_able(node)
+				set_fail_soft_able(node)
+				node.runs(self.cmd_back)
+			return node_sc
+
+		def make_delete_cmd() -> Literal:
+			node_sc = create_subcommand('delete').runs(self.cmd_delete)
+			node_bid = create_backup_id(clazz=MultiIntegerNode).redirects(node_sc)
+			node_sc.then(node_bid)
+			return node_sc
+
+		def make_export_cmd() -> Literal:
+			node_sc = create_subcommand('export')
+			node_bid = create_backup_id()
+			node_ef = Enumeration('export_format', StandaloneBackupFormat)
+
+			node_sc.then(node_bid)
+			node_bid.then(node_ef)
+
+			for node in [node_bid, node_ef]:
+				set_fail_soft_able(node)
+				node.runs(self.cmd_export)
+
+			return node_sc
 
 		def make_list_cmd() -> Literal:
-			node = Literal('list')
-			node.requires(get_permission_checker('list'), get_permission_denied_text)
+			node = create_subcommand('list')
 			node.runs(self.cmd_list)
 			node.then(Integer('page').at_min(1).redirects(node))
 			node.then(Literal('--per-page').then(Integer('per_page').in_range(1, 20).redirects(node)))
@@ -258,10 +300,7 @@ class CommandManager:
 			return node
 
 		def make_tag_cmd() -> Literal:
-			node = (
-				Integer('backup_id').at_min(1).
-				runs(self.cmd_show_backup_tag)
-			)
+			node = create_backup_id().runs(self.cmd_show_backup_tag)
 			for tag_name in BackupTagName:
 				arg_type = {
 					bool: Boolean,
@@ -279,15 +318,15 @@ class CommandManager:
 				misc_utils.assert_true(len(children) == 1, 'should build only 1 node')
 
 				node.then(children[0])
-			return (
-				Literal('tag').
-				requires(get_permission_checker('tag'), get_permission_denied_text).
-				then(node)
-			)
+			return create_subcommand('tag').then(node)
 
+		# backup
+		root.then(make_back_cmd())
+		root.then(make_delete_cmd())
+		root.then(make_export_cmd())
 		root.then(make_list_cmd())
 		root.then(make_tag_cmd())
 
-		# register
+		# --------------- register ---------------
 
 		self.server.register_command(root)

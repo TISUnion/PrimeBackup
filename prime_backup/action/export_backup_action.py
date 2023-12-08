@@ -23,27 +23,6 @@ from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils import file_utils, blob_utils, misc_utils
 
 
-# TODO: yeet this useless factory class
-class ExportBackupActions:
-	@classmethod
-	def to_dir(
-			cls, backup_id: int, output_path: Path, delete_existing: bool, *,
-			child_to_export: Optional[Path] = None, recursively_export_child: bool = False,
-	) -> 'ExportBackupActionBase':
-		return ExportBackupToDirectoryAction(
-			backup_id, output_path, delete_existing,
-			child_to_export=child_to_export, recursively_export_child=recursively_export_child,
-		)
-
-	@classmethod
-	def to_tar(cls, backup_id: int, output_path: Path, tar_format: TarFormat) -> 'ExportBackupActionBase':
-		return ExportBackupToTarAction(backup_id, output_path, tar_format)
-
-	@classmethod
-	def to_zip(cls, backup_id: int, output_path: Path) -> 'ExportBackupActionBase':
-		return ExportBackupToZipAction(backup_id, output_path)
-
-
 class ExportFailure(NamedTuple):
 	file: FileInfo
 	error: Exception

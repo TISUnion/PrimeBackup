@@ -2,7 +2,7 @@ from pathlib import Path
 
 from mcdreforged.api.all import *
 
-from prime_backup.action.export_backup_action import ExportBackupActions
+from prime_backup.action.export_backup_action import ExportBackupToZipAction, ExportBackupToTarAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
@@ -41,10 +41,10 @@ class ExportBackupTask(OperationTask[None]):
 		efv = self.export_format.value
 		if isinstance(efv, TarFormat):
 			path = make_output(efv.value.extension)
-			action = ExportBackupActions.to_tar(self.backup_id, path, efv)
+			action = ExportBackupToTarAction(self.backup_id, path, efv)
 		elif isinstance(efv, ZipFormat):
 			path = make_output(efv.extension)
-			action = ExportBackupActions.to_zip(self.backup_id, path)
+			action = ExportBackupToZipAction(self.backup_id, path)
 		else:
 			raise TypeError(efv)
 

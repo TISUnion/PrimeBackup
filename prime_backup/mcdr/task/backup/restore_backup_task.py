@@ -3,7 +3,7 @@ from typing import Optional
 from mcdreforged.api.all import *
 
 from prime_backup.action.create_backup_action import CreateBackupAction
-from prime_backup.action.export_backup_action import ExportBackupActions
+from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.mcdr.task.basic_task import OperationTask
@@ -83,7 +83,7 @@ class RestoreBackupTask(OperationTask[None]):
 		cost_backup = timer.get_and_restart()
 
 		self.logger.info('Restoring backup')
-		ExportBackupActions.to_dir(backup.id, self.config.source_path, delete_existing=True).run()
+		ExportBackupToDirectoryAction(backup.id, self.config.source_path, delete_existing=True).run()
 		cost_restore = timer.get_and_restart()
 
 		self.logger.info('Restore done, cost {}s (backup {}s, restore {}s), starting the server'.format(

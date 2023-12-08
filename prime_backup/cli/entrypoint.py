@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import Type
 
-from prime_backup.action.export_backup_action import ExportBackupActions
+from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction, ExportBackupToTarAction, ExportBackupToZipAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.get_file_action import GetFileAction
@@ -134,9 +134,9 @@ class CliHandler:
 		backup = GetBackupAction(self.args.backup_id).run()
 		logger.info('Exporting backup #{} to {}, format {}'.format(backup.id, str(output_path.as_posix()), fmt.name))
 		if isinstance(fmt.value, TarFormat):
-			act = ExportBackupActions.to_tar(backup.id, output_path, fmt.value)
+			act = ExportBackupToTarAction(backup.id, output_path, fmt.value)
 		else:
-			act = ExportBackupActions.to_zip(backup.id, output_path)
+			act = ExportBackupToZipAction(backup.id, output_path)
 		act.run()
 
 	def cmd_extract(self):
@@ -163,7 +163,7 @@ class CliHandler:
 		elif dest_path.is_dir():
 			shutil.rmtree(dest_path)
 
-		ExportBackupActions.to_dir(
+		ExportBackupToDirectoryAction(
 			self.args.backup_id, output_path, True,
 			child_to_export=file_path, recursively_export_child=self.args.recursively
 		).run()

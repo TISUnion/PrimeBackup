@@ -9,7 +9,7 @@ from typing import BinaryIO, Union, ContextManager, NamedTuple, Tuple
 from typing_extensions import Protocol
 
 from prime_backup.types.common import PathLike
-from prime_backup.utils.bypass_io import ByPassReader, ByPassWriter
+from prime_backup.utils.bypass_io import BypassReader, BypassWriter
 
 
 class Compressor(ABC):
@@ -36,9 +36,12 @@ class Compressor(ABC):
 		return cls.get_method().name
 
 	def copy_compressed(self, source_path: PathLike, dest_path: PathLike, *, calc_hash: bool = False) -> CopyCompressResult:
+		"""
+		source --[compressor]--> destination
+		"""
 		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
-			reader = ByPassReader(f_in, calc_hash)
-			writer = ByPassWriter(f_out)
+			reader = BypassReader(f_in, calc_hash=calc_hash)
+			writer = BypassWriter(f_out)
 			self._copy_compressed(reader, writer)
 			return self.CopyCompressResult(reader.get_read_len(), reader.get_hash(), writer.get_write_len())
 
@@ -53,9 +56,12 @@ class Compressor(ABC):
 				yield f_compressed
 
 	@contextlib.contextmanager
-	def open_compressed_bypassed(self, target_path: PathLike) -> ContextManager[Tuple[ByPassWriter, BinaryIO]]:
+	def open_compressed_bypassed(self, target_path: PathLike) -> ContextManager[Tuple[BypassWriter, BinaryIO]]:
+		"""
+		Bypass the receiving-compressed-content file writer
+		"""
 		with open(target_path, 'wb') as f:
-			writer = ByPassWriter(f)
+			writer = BypassWriter(f)
 			with self.compress_stream(writer) as f_compressed:
 				yield writer, f_compressed
 
@@ -66,9 +72,12 @@ class Compressor(ABC):
 				yield f_decompressed
 
 	@contextlib.contextmanager
-	def open_decompressed_bypassed(self, source_path: PathLike) -> ContextManager[Tuple[ByPassReader, BinaryIO]]:
+	def open_decompressed_bypassed(self, source_path: PathLike) -> ContextManager[Tuple[BypassReader, BinaryIO]]:
+		"""
+		Bypass the raw compressed file reader
+		"""
 		with open(source_path, 'rb') as f:
-			reader = ByPassReader(f, calc_hash=False)  # it's meaningless to calc hash on the compressed file
+			reader = BypassReader(f, calc_hash=False)  # it's meaningless to calc hash on the compressed file
 			with self.decompress_stream(reader) as f_decompressed:
 				yield reader, f_decompressed
 

@@ -3,7 +3,7 @@ from typing import NamedTuple, IO
 
 from prime_backup.config.config import Config
 from prime_backup.types.hash_method import Hasher
-from prime_backup.utils.bypass_io import ByPassReader
+from prime_backup.utils.bypass_io import BypassReader
 
 
 def create_hasher() -> 'Hasher':
@@ -19,7 +19,7 @@ class SizeAndHash(NamedTuple):
 
 
 def calc_reader_size_and_hash(file_obj: IO[bytes], *, buf_size: int = _READ_BUF_SIZE) -> SizeAndHash:
-	reader = ByPassReader(file_obj, True)
+	reader = BypassReader(file_obj, True)
 	while reader.read(buf_size):
 		pass
 	return SizeAndHash(reader.get_read_len(), reader.get_hash())

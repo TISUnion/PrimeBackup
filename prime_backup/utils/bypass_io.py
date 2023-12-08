@@ -2,13 +2,14 @@ import io
 from typing import Union
 
 
-class ByPassReader(io.BytesIO):
+class BypassReader(io.BytesIO):
 	def __init__(self, file_obj, calc_hash: bool):
 		super().__init__()
 		self.file_obj: io.BytesIO = file_obj
+		self.read_len = 0
+
 		from prime_backup.utils import hash_utils
 		self.hasher = hash_utils.create_hasher() if calc_hash else None
-		self.read_len = 0
 
 	def read(self, *args, **kwargs):
 		data = self.file_obj.read(*args, **kwargs)
@@ -44,7 +45,7 @@ class ByPassReader(io.BytesIO):
 			return self.file_obj.__getattribute__(item)
 
 
-class ByPassWriter(io.BytesIO):
+class BypassWriter(io.BytesIO):
 	def __init__(self, file_obj):
 		super().__init__()
 		self.file_obj: io.BytesIO = file_obj

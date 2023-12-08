@@ -1,5 +1,4 @@
 import enum
-import enum
 import logging
 import time
 from typing import List, Optional, TypeVar
@@ -57,7 +56,7 @@ class ValidateDbTask(OperationTask[None]):
 				self.reply(self.tr(f'validate_blobs.{what}', TextComponents.number(len(lst))))
 				item: BadBlobItem
 				for i, item in enumerate(lst):
-					text = RTextList('{}: {}', item.blob.hash, item.desc)
+					text = RTextBase.format('{}. {}: {}', i + 1, item.blob.hash, item.desc)
 					vlogger.info('%s. %s', i + 1, text.to_plain_text())
 					self.reply(text)
 
@@ -67,6 +66,17 @@ class ValidateDbTask(OperationTask[None]):
 		show('corrupted', result.corrupted)
 		show('mismatched', result.mismatched)
 		show('orphan', result.orphan)
+
+		vlogger.info('Affected file amount: {}'.format(result.affected_file_count))
+		vlogger.info('Affected backup amount: {}'.format(len(result.affected_backup_ids)))
+		vlogger.info('Affected backups: {}'.format(result.affected_backup_ids))
+		self.reply(self.tr(
+			'validate_blobs.affected',
+			TextComponents.number(result.affected_file_count),
+			TextComponents.number(len(result.affected_backup_ids)).
+			h(TextComponents.backup_id_list(result.affected_backup_ids)).
+			c(RAction.copy_to_clipboard, ', '.join(map(str, result.affected_backup_ids))),
+		))
 
 	def __validate_files(self, vlogger: logging.Logger):
 		result = self.run_action(ValidateFilesAction())
@@ -83,7 +93,7 @@ class ValidateDbTask(OperationTask[None]):
 				self.reply(self.tr(f'validate_files.{what}', TextComponents.number(len(lst))))
 				item: BadFileItem
 				for i, item in enumerate(lst):
-					text = RTextList('#{} {!r}: {}', item.file.backup_id, item.file.path, item.desc)
+					text = RTextBase.format('{}. #{} {!r}: {}', i + 1, item.file.backup_id, item.file.path, item.desc)
 					vlogger.info('%s. %s', i + 1, text.to_plain_text())
 					self.reply(text)
 

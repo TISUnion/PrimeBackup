@@ -155,6 +155,16 @@ class DbSession:
 	def get_file_raw_size_sum(self) -> int:
 		return int(self.session.execute(func.sum(schema.File.blob_raw_size).select()).scalar_one())
 
+	def get_file_count_by_blob_hashes(self, hashes: List[str]) -> int:
+		cnt = 0
+		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+			cnt += self.session.execute(
+				select(func.count()).
+				select_from(schema.File).
+				where(schema.File.blob_hash.in_(view))
+			).scalar_one()
+		return cnt
+
 	def list_files(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.File]:
 		s = select(schema.File)
 		if limit is not None:
@@ -197,6 +207,18 @@ class DbSession:
 		if backup is None:
 			raise BackupNotFound(backup_id)
 		return backup
+
+	def get_backup_ids_by_blob_hashes(self, hashes: List[str]) -> List[int]:
+		backup_ids = set()
+		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+			backup_ids.update(
+				self.session.execute(
+					select(schema.File.backup_id).
+					where(schema.File.blob_hash.in_(view)).
+					distinct()
+				).scalars().all()
+			)
+		return list(sorted(backup_ids))
 
 	@staticmethod
 	def __apply_backup_filter(s: Select[T], backup_filter: BackupFilter) -> Select[T]:

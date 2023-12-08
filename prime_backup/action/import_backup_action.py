@@ -7,7 +7,7 @@ import time
 import zipfile
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import ContextManager, IO, Optional, NamedTuple, List, Dict
+from typing import ContextManager, IO, Optional, NamedTuple, List, Dict, Tuple
 
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
@@ -254,7 +254,7 @@ class ImportBackupAction(CreateBackupActionBase):
 		self.backup_format = backup_format
 		self.__blob_cache: Dict[str, schema.Blob] = {}
 
-	def __create_blob(self, session: DbSession, file_reader: IO[bytes], sah: SizeAndHash) -> schema.Blob:
+	def __create_blob_file(self, file_reader: IO[bytes], sah: SizeAndHash) -> Tuple[int, CompressMethod]:
 		blob_path = blob_utils.get_blob_path(sah.hash)
 		self._add_remove_file_rollbacker(blob_path)
 
@@ -263,12 +263,16 @@ class ImportBackupAction(CreateBackupActionBase):
 		with compressor.open_compressed_bypassed(blob_path) as (writer, f):
 			shutil.copyfileobj(file_reader, f)
 
+		return writer.get_write_len(), compress_method
+
+	def __create_blob(self, session: DbSession, file_reader: IO[bytes], sah: SizeAndHash) -> schema.Blob:
+		stored_size, compress_method = self.__create_blob_file(file_reader, sah)
 		blob = self._create_blob(
 			session,
 			hash=sah.hash,
 			compress=compress_method.name,
 			raw_size=sah.size,
-			stored_size=writer.get_write_len(),
+			stored_size=stored_size,
 		)
 		self.__blob_cache[sah.hash] = blob
 		return blob

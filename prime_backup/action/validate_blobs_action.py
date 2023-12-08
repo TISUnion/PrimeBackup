@@ -25,6 +25,9 @@ class ValidateBlobsResult:
 	mismatched: List[BadBlobItem] = dataclasses.field(default_factory=list)  # hash mismatch
 	orphan: List[BadBlobItem] = dataclasses.field(default_factory=list)  # orphan blobs
 
+	affected_file_count: int = 0
+	affected_backup_ids: List[int] = 0
+
 
 class ValidateBlobsAction(Action[ValidateBlobsResult]):
 	def is_interruptable(self) -> bool:
@@ -53,18 +56,18 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 				with compressor.open_decompressed_bypassed(blob_path) as (reader, f_decompressed):
 					sah = hash_utils.calc_reader_size_and_hash(f_decompressed)
 			except Exception as e:
-				result.invalid.append(BadBlobItem(blob, f'cannot read and decompress blob file: ({type(e)} {e}'))
+				result.corrupted.append(BadBlobItem(blob, f'cannot read and decompress blob file: ({type(e)} {e}'))
 				continue
 
 			file_size = reader.get_read_len()
 			if file_size != blob.stored_size:
-				result.corrupted.append(BadBlobItem(blob, f'stored size mismatch, expect {blob.stored_size}, found {file_size}'))
+				result.mismatched.append(BadBlobItem(blob, f'stored size mismatch, expect {blob.stored_size}, found {file_size}'))
 				continue
 			if sah.hash != blob.hash:
-				result.corrupted.append(BadBlobItem(blob, f'hash mismatch, expect {blob.hash}, found {sah.hash}'))
+				result.mismatched.append(BadBlobItem(blob, f'hash mismatch, expect {blob.hash}, found {sah.hash}'))
 				continue
 			if sah.size != blob.raw_size:
-				result.corrupted.append(BadBlobItem(blob, f'raw size mismatch, expect {blob.raw_size}, found {sah.size}'))
+				result.mismatched.append(BadBlobItem(blob, f'raw size mismatch, expect {blob.raw_size}, found {sah.size}'))
 				continue
 
 			hash_to_blobs[blob.hash] = blob
@@ -87,4 +90,15 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 					break
 				self.__validate(session, result, list(map(BlobInfo.of, blobs)))
 				offset += limit
+
+			bad_blob_hashes = []
+			bad_blob_hashes.extend([bbi.blob.hash for bbi in result.invalid])
+			bad_blob_hashes.extend([bbi.blob.hash for bbi in result.missing])
+			bad_blob_hashes.extend([bbi.blob.hash for bbi in result.corrupted])
+			bad_blob_hashes.extend([bbi.blob.hash for bbi in result.mismatched])
+			bad_blob_hashes.extend([bbi.blob.hash for bbi in result.orphan])
+			if len(bad_blob_hashes) > 0:
+				result.affected_file_count = session.get_file_count_by_blob_hashes(bad_blob_hashes)
+				result.affected_backup_ids = session.get_backup_ids_by_blob_hashes(bad_blob_hashes)
+
 		return result

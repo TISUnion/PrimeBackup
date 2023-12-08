@@ -13,7 +13,7 @@ from prime_backup.config.server_config import ServerConfig
 
 
 class Config(Serializable):
-	enabled: bool = True
+	enabled: bool = False
 	debug: bool = False
 	storage_root: str = './pb_files'
 

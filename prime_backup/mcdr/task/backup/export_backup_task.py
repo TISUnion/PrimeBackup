@@ -19,11 +19,16 @@ def _sanitize_file_name(s: str, max_length: int = 64):
 
 
 class ExportBackupTask(OperationTask[None]):
-	def __init__(self, source: CommandSource, backup_id: int, export_format: StandaloneBackupFormat, fail_soft: bool):
+	def __init__(
+			self, source: CommandSource, backup_id: int, export_format: StandaloneBackupFormat, *,
+			fail_soft: bool, verify_blob: bool, overwrite_existing: bool,
+	):
 		super().__init__(source)
 		self.backup_id = backup_id
 		self.export_format = export_format
 		self.fail_soft = fail_soft
+		self.verify_blob = verify_blob
+		self.overwrite_existing = overwrite_existing
 
 	@property
 	def id(self) -> str:
@@ -41,7 +46,7 @@ class ExportBackupTask(OperationTask[None]):
 			return self.config.storage_path / 'export' / name
 
 		efv = self.export_format.value
-		kwargs = dict(fail_soft=self.fail_soft)
+		kwargs = dict(fail_soft=self.fail_soft, verify_blob=self.verify_blob)
 		if isinstance(efv, TarFormat):
 			path = make_output(efv.value.extension)
 			action = ExportBackupToTarAction(self.backup_id, path, efv, **kwargs)
@@ -51,7 +56,7 @@ class ExportBackupTask(OperationTask[None]):
 		else:
 			raise TypeError(efv)
 
-		if path.exists():
+		if path.exists() and not self.overwrite_existing:
 			self.reply(self.tr('already_exists', TextComponents.file_path(path)))
 			return
 

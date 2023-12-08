@@ -12,8 +12,10 @@ from prime_backup.utils.mcdr_utils import mkcmd
 
 class ShowHelpTask(ImmediateTask[None]):
 	COMMANDS_WITH_DETAILED_HELP = [
+		'back',
 		'crontab',
 		'database',
+		'export',
 		'list',
 		'tag',
 	]
@@ -45,13 +47,10 @@ class ShowHelpTask(ImmediateTask[None]):
 	def run(self) -> None:
 		with self.source.preferred_language_context():
 			if self.what is None:
-				from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
-				t_export_formats = ', '.join([f'§3{ebf.name}§r' for ebf in StandaloneBackupFormat])
-
 				self.reply(self.tr('commands.title').set_color(TextColors.help_title))
 				self.__reply_help(self.tr('commands.content', prefix=self.__cmd_prefix), True)
 				self.reply(self.tr('arguments.title').set_color(TextColors.help_title))
-				self.__reply_help(self.tr('arguments.content', export_formats=t_export_formats))
+				self.__reply_help(self.tr('arguments.content'))
 
 				self.reply(self.tr('other.title').set_color(TextColors.help_title))
 				self.reply(self.tr(
@@ -94,6 +93,9 @@ class ShowHelpTask(ImmediateTask[None]):
 						)
 					else:
 						kwargs['scheduled_compact_notes'] = self.tr(f'node_help.{self.what}.scheduled_compact.off')
+				elif self.what == 'export':
+					from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
+					kwargs['export_formats'] = ', '.join([f'§3{ebf.name}§r' for ebf in StandaloneBackupFormat])
 
 				self.__reply_help(self.tr(f'node_help.{self.what}', **kwargs))
 

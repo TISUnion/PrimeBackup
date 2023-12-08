@@ -77,10 +77,11 @@ def _i_am_root():
 class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 	def __init__(
 			self, backup_id: int, output_path: Path, *,
-			fail_soft: bool = False, delete_existing: bool = True,
+			fail_soft: bool = False, verify_blob: bool = True,
+			delete_existing: bool = True,
 			child_to_export: Optional[Path] = None, recursively_export_child: bool = False,
 	):
-		super().__init__(backup_id, output_path, fail_soft=fail_soft)
+		super().__init__(backup_id, output_path, fail_soft=fail_soft, verify_blob=verify_blob)
 		self.delete_existing = delete_existing
 		self.child_to_export = child_to_export
 		self.recursively_export_child = recursively_export_child
@@ -192,8 +193,11 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 
 
 class ExportBackupToTarAction(_ExportBackupActionBase):
-	def __init__(self, backup_id: int, output_path: Path, tar_format: TarFormat, *, fail_soft: bool = False):
-		super().__init__(backup_id, output_path, fail_soft=fail_soft)
+	def __init__(
+			self, backup_id: int, output_path: Path, tar_format: TarFormat, *,
+			fail_soft: bool = False, verify_blob: bool = True,
+	):
+		super().__init__(backup_id, output_path, fail_soft=fail_soft, verify_blob=verify_blob)
 		self.tar_format = tar_format
 
 	@contextlib.contextmanager
@@ -228,6 +232,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 					reader = None
 					tar.addfile(tarinfo=info, fileobj=stream)
 			if reader is not None:
+				# notes: the read len is always <= info.size
 				self._verify_exported_blob(file, reader.get_read_len(), reader.get_hash())
 
 		elif stat.S_ISDIR(file.mode):

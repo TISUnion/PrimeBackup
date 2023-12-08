@@ -133,10 +133,11 @@ class CliHandler:
 
 		backup = GetBackupAction(self.args.backup_id).run()
 		logger.info('Exporting backup #{} to {}, format {}'.format(backup.id, str(output_path.as_posix()), fmt.name))
+		kwargs = dict(fail_soft=self.args.fail_soft, verify_blob=not self.args.no_verify)
 		if isinstance(fmt.value, TarFormat):
-			act = ExportBackupToTarAction(backup.id, output_path, fmt.value)
+			act = ExportBackupToTarAction(backup.id, output_path, fmt.value, **kwargs)
 		else:
-			act = ExportBackupToZipAction(backup.id, output_path)
+			act = ExportBackupToZipAction(backup.id, output_path, **kwargs)
 
 		failures = act.run()
 		if len(failures) > 0:
@@ -204,6 +205,8 @@ class CliHandler:
 		parser_export.add_argument('backup_id', type=int, help='The ID of the backup to export')
 		parser_export.add_argument('output', help='The output file name of the exported backup. Example: my_backup.tar')
 		parser_export.add_argument('-f', '--format', help='The format of the output file. If not given, attempt to infer from the output file name. Options: {}'.format(enum_options(StandaloneBackupFormat)))
+		parser_export.add_argument('--fail-soft', action='store_true', help='Skip files with export failure in the backup, so a single failure will not abort the export')
+		parser_export.add_argument('--no-verify', action='store_true', help='Do not verify the exported file contents')
 
 		desc = 'Extract a single file from a backup'
 		parser_extract = subparsers.add_parser('extract', help=desc, description=desc)

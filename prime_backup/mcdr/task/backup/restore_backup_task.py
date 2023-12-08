@@ -17,11 +17,12 @@ from prime_backup.utils.timer import Timer
 
 
 class RestoreBackupTask(OperationTask[None]):
-	def __init__(self, source: CommandSource, backup_id: Optional[int] = None, needs_confirm: bool = True, fail_soft: bool = False):
+	def __init__(self, source: CommandSource, backup_id: Optional[int] = None, needs_confirm: bool = True, fail_soft: bool = False, verify_blob: bool = True):
 		super().__init__(source)
 		self.backup_id = backup_id
 		self.needs_confirm = needs_confirm
 		self.fail_soft = fail_soft
+		self.verify_blob = verify_blob
 
 	@property
 	def id(self) -> str:
@@ -83,8 +84,8 @@ class RestoreBackupTask(OperationTask[None]):
 			).run()
 		cost_backup = timer.get_and_restart()
 
-		self.logger.info('Restoring backup (fail-soft={})'.format(self.fail_soft))
-		ExportBackupToDirectoryAction(backup.id, self.config.source_path, delete_existing=True, fail_soft=self.fail_soft).run()
+		self.logger.info('Restoring backup (fail_soft={}, verify_blob={})'.format(self.fail_soft, self.no_verify))
+		ExportBackupToDirectoryAction(backup.id, self.config.source_path, delete_existing=True, fail_soft=self.fail_soft, verify_blob=self.verify_blob).run()
 		cost_restore = timer.get_and_restart()
 
 		self.logger.info('Restore done, cost {}s (backup {}s, restore {}s), starting the server'.format(

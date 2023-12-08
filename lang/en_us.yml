@@ -183,13 +183,13 @@ prime_backup:
           §7{prefix}§r: Display the current welcome page
           §7{prefix} help §e[<what>]§r: Display help message of all / given command
           §7{prefix} make §e[<comment>]§r: Make a backup. §e<comment>§r is an optional comment message
-          §7{prefix} back §6[<backup_id>]§r: Restore the world to the given backup. Default: latest backup
+          §7{prefix} back §6[<backup_id>]§r: Restore to the given backup. See §7{prefix} help back§r for detailed help 
           §7{prefix} list [...]§r: List backups with given filters. See §7{prefix} help list§r for detailed help
           §7{prefix} show §6<backup_id>§r: Show detailed information of the given backup
           §7{prefix} rename §6<backup_id>§r §e<comment>§r: Modify the comment of the given backup
-          §7{prefix} delete §6<backup_id>§r: Delete the given backup
+          §7{prefix} delete §6<backup_id> [<backup_id>...]§r: Delete the given backup. You can enter multiple backup IDs
           §7{prefix} delete_range §6<backup_id_range>§r: Delete backups inside the given ID range
-          §7{prefix} export §6<backup_id> §3[<export_format>]§r: Export the given backup to the §3export§r folder
+          §7{prefix} export §6<backup_id> §7[...]§r: Export the given backup. See §7{prefix} help export§r for detailed help
           §7{prefix} prune §6<backup_id>§r: Manually trigger a backup prune
           §7{prefix} crontab §5<job_id> §7[...]§r: Crontab job operations. See §7{prefix} help crontab§r for help
           §7{prefix} tag §6<backup_id> §7[...]§r: Tag operation on the given backup
@@ -199,15 +199,24 @@ prime_backup:
       arguments:
         title: '[Arguments]'
         content: |-
-          §6<backup_id>§r: A positive integer, the unique identifier for a backup, e.g.: §612§r
+          §6<backup_id>§r: A positive integer, the unique ID for a backup, e.g.: §612§r
           §6<backup_id_range>§r: An integer closed interval, e.g.: §63-12§r, §64~9§r, §64~§r, §64~§r, §6*§r
-          §3<export_format>§r: Available options: {export_formats}
       other:
         title: '[Others]'
         nodes_with_help: 'Subcommands with detailed help: {}'
         docs: 'Documentation: {}'
         docs.hover: Click to open the url
       node_help:
+        back: |-
+          §d[back Command Usage]§r
+          Restore the world to the given backup
+          §7{prefix} back §6[<backup_id>] §7[--flags]§r
+          §d[Arguments]§r
+          §3<backup_id>§r: The ID of the backup to restore. If not specified, the latest not pre-restore backup will be used
+          §d[Optional flags]§r
+          §7--confirm§r: Skip the confirm step and start the restore directly
+          §7--fail-soft§r: Skip files with export failure in the backup, so a single failure will not abort the export
+          §7--no-verify§r: Do not verify the exported file contents
         crontab: |-
           §d[crontab Command Usage]§r
           Operate crontab jobs
@@ -233,6 +242,20 @@ prime_backup:
           - §aall§r: Validate all of the above
         database.scheduled_compact.on: 'Notes: With the current config, {name} will automatically prune the database every {interval}'
         database.scheduled_compact.off: 'Notes: With the current config, scheduled database prune is disabled'
+        export: |-
+          §d[export Command Usage]§r
+          Export the given backup to the §3export§r folder
+          §7{prefix} export §6<backup_id> §3[<export_format>] §7[--flags]§r
+          §d[Arguments]§r
+          §3<export_format>§r: Available options: {export_formats}. Use §3tar§r format if not specified
+          §d[Optional flags]§r
+          §7--overwrite§r: Overwrites existing exported backup. By default, no export will be made if the output file exists
+          §7--fail-soft§r: Skip files with export failure in the backup, so a single failure will not abort the export
+          §7--no-verify§r: Do not verify the exported file contents
+          §d[Examples]§r
+          §7{prefix} export 12§r: Use the default §3tar§r format to export backup §612§r
+          §7{prefix} export 12 tar_gz§r: Use the §tar_gz§r format to export backup §612§r
+          §7{prefix} export 12 tar --fail-soft --no-verify§r: Export backup §612§r with best effort
         list: |-
           §d[list Command Usage]§r
           List backups with given filters
@@ -242,11 +265,11 @@ prime_backup:
           §7--author §e<author>§r: Show backup created by the given author only
           §7--start §b<start_date>§r: Show backup after the given date only
           §7--end §b<end_date>§r: Show backup before the given date only
+          §7--all§r: Show all backups. By default, hidden backups and pre-restore backups will not be shown
           §7--size§r: Show backup sizes
           §7--flags§r: Show backup flags, based on the tags of the backup
-          §7--all§r: Show all backups. By default, hidden backups and pre-restore backups will not be shown
           §d[Examples]§r
-          §7{prefix} list --all§r
+          §7{prefix} list --all --flags§r
           §7{prefix} list --start 20231130 --size§r
           §7{prefix} list 3 --per-page 20§r
         tag: |-

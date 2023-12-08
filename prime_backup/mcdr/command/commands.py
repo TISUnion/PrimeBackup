@@ -80,8 +80,9 @@ class CommandManager:
 	def cmd_back(self, source: CommandSource, context: CommandContext):
 		needs_confirm = context.get('confirm', 0) == 0
 		fail_soft = context.get('fail_soft', 0) > 0
+		verify_blob = context.get('no_verify', 0) == 0
 		backup_id = context.get('backup_id')
-		self.task_manager.add_task(RestoreBackupTask(source, backup_id, needs_confirm=needs_confirm, fail_soft=fail_soft))
+		self.task_manager.add_task(RestoreBackupTask(source, backup_id, needs_confirm=needs_confirm, fail_soft=fail_soft, verify_blob=verify_blob))
 
 	def cmd_list(self, source: CommandSource, context: CommandContext):
 		page = context.get('page', 1)
@@ -129,7 +130,9 @@ class CommandManager:
 		backup_id = context['backup_id']
 		export_format = context.get('export_format', StandaloneBackupFormat.tar)
 		fail_soft = context.get('fail_soft', 0) > 0
-		self.task_manager.add_task(ExportBackupTask(source, backup_id, export_format, fail_soft=fail_soft))
+		verify_blob = context.get('no_verify', 0) == 0
+		overwrite_existing = context.get('overwrite', 0) > 0
+		self.task_manager.add_task(ExportBackupTask(source, backup_id, export_format, fail_soft=fail_soft, verify_blob=verify_blob, overwrite_existing=overwrite_existing))
 
 	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
 		job_id = context.get('job_id')
@@ -255,6 +258,9 @@ class CommandManager:
 		def set_fail_soft_able(node: AbstractNode):
 			node.then(CountingLiteral('--fail-soft', 'fail_soft').redirects(node))
 
+		def set_no_verify_able(node: AbstractNode):
+			node.then(CountingLiteral('--no-verify', 'no_verify').redirects(node))
+
 		def make_back_cmd() -> Literal:
 			node_sc = create_subcommand('back')
 			node_bid = create_backup_id()
@@ -262,6 +268,7 @@ class CommandManager:
 			for node in [node_sc, node_bid]:
 				set_confirm_able(node)
 				set_fail_soft_able(node)
+				set_no_verify_able(node)
 				node.runs(self.cmd_back)
 			return node_sc
 
@@ -281,6 +288,8 @@ class CommandManager:
 
 			for node in [node_bid, node_ef]:
 				set_fail_soft_able(node)
+				set_no_verify_able(node)
+				node.then(CountingLiteral('--overwrite', 'overwrite').redirects(node))
 				node.runs(self.cmd_export)
 
 			return node_sc

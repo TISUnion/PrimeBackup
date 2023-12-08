@@ -6,7 +6,7 @@ from prime_backup.action.export_backup_action import ExportBackupActions
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
-from prime_backup.types.standalone_backup_format import _ZipFormat, StandaloneBackupFormat
+from prime_backup.types.standalone_backup_format import ZipFormat, StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils.timer import Timer
 
@@ -42,7 +42,7 @@ class ExportBackupTask(OperationTask):
 		if isinstance(efv, TarFormat):
 			path = make_output(efv.value.extension)
 			action = ExportBackupActions.to_tar(self.backup_id, path, efv)
-		elif isinstance(efv, _ZipFormat):
+		elif isinstance(efv, ZipFormat):
 			path = make_output(efv.extension)
 			action = ExportBackupActions.to_zip(self.backup_id, path)
 		else:

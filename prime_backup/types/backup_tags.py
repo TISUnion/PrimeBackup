@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class BackupTagValue:
 	def __init__(self, value_type: Type, char: str, color: RColor):
-		self.type = value_type
+		self.type: Type = value_type
 		self.char = char
 		self.color = color
 

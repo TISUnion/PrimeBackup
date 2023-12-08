@@ -253,9 +253,9 @@ class PruneAllBackupTask(OperationTask):
 			self.reply(self.tr('nothing_to_do'))
 			return cnt_sum, bls_sum
 
-		def prune_backups(what: str, backup_filter: BackupFilter, setting: PruneSetting) -> Tuple[int, BlobListSummary]:
+		def prune_backups(what: str, backup_filter: BackupFilter, setting: PruneSetting):
 			if not setting.enabled or self.aborted_event.is_set():
-				return BlobListSummary.zero()
+				return
 
 			self.reply(self.tr('start', self.tr(f'what.{what}')))
 

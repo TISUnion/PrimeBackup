@@ -2,8 +2,7 @@ from typing import Union, Callable, Any, Optional, Type, Tuple, TypeVar
 
 from prime_backup import constants
 
-_T1 = TypeVar('_T1')
-_T2 = TypeVar('_T2')
+_T = TypeVar('_T')
 
 
 def assert_true(expr: bool, msg: Union[str, Callable[[], str]]):
@@ -22,7 +21,7 @@ def represent(obj: Any, *, attrs: Optional[dict] = None) -> str:
 	return '{}({})'.format(type(obj).__name__, ', '.join(kv))
 
 
-def ensure_type(value: _T1, class_or_tuple: Union[Tuple[Type[_T2]], Type[_T2]]) -> _T2:
+def ensure_type(value: Any, class_or_tuple: Union[Tuple[Type[_T]], Type[_T], Type]) -> _T:
 	if not isinstance(value, class_or_tuple):
 		raise TypeError('bad type {}, should be {}'.format(type(value), class_or_tuple))
 	return value

@@ -74,7 +74,7 @@ class DbSession:
 		"""
 		:return: a dict, hash -> optional blob. All given hashes are in the dict
 		"""
-		result = {h: None for h in hashes}
+		result: Dict[str, Optional[schema.Blob]] = {h: None for h in hashes}
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			for blob in self.session.execute(select(schema.Blob).where(schema.Blob.hash.in_(view))).scalars().all():
 				result[blob.hash] = blob

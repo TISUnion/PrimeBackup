@@ -228,7 +228,7 @@ class CommandManager:
 		builder.arg('job_id', lambda n: Enumeration(n, CrontabJobId))
 		builder.arg('page', lambda n: Integer(n).at_min(1))
 		builder.arg('per_page', lambda n: Integer(n).at_min(1))
-		builder.arg('what', Text).suggests(lambda: self.COMMANDS_WITH_DETAILED_HELP)
+		builder.arg('what', Text).suggests(lambda: ShowHelpTask.COMMANDS_WITH_DETAILED_HELP)
 
 		for name, level in permissions.items():
 			builder.literal(name).requires(get_permission_checker(name), get_permission_denied_text)

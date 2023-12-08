@@ -7,7 +7,7 @@ from prime_backup.types.common import PathLike
 from prime_backup.types.tar_format import TarFormat
 
 
-class _ZipFormat(NamedTuple):
+class ZipFormat(NamedTuple):
 	extension: str
 
 
@@ -16,13 +16,13 @@ class StandaloneBackupFormat(enum.Enum):
 	tar_gz = TarFormat.gzip
 	tar_xz = TarFormat.lzma
 	tar_zst = TarFormat.zstd
-	zip = _ZipFormat('.zip')
+	zip = ZipFormat('.zip')
 
 	@property
 	def file_ext(self) -> str:
 		if isinstance(self.value, TarFormat):
 			return self.value.value.extension
-		elif isinstance(self.value, _ZipFormat):
+		elif isinstance(self.value, ZipFormat):
 			return self.value.extension
 		else:
 			raise ValueError(self.value)

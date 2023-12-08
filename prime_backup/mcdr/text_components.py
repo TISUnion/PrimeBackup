@@ -30,6 +30,25 @@ class TextComponents:
 		return tr('text_components.' + key, *args, **kwargs)
 
 	@classmethod
+	def auto(cls, value: Any) -> RTextBase:
+		if isinstance(value, bool):
+			return cls.boolean(value)
+		elif isinstance(value, (int, float)):
+			return cls.number(value)
+		elif isinstance(value, Duration):
+			return cls.duration(value)
+		elif isinstance(value, Operator):
+			return cls.operator(value)
+		elif isinstance(value, ByteCount):
+			return cls.file_size(value)
+		elif isinstance(value, Path):
+			return cls.file_path(value)
+		elif isinstance(value, datetime.datetime):
+			return cls.date(value)
+		else:
+			return RTextBase.from_any(value)
+
+	@classmethod
 	def backup_brief(cls, backup: BackupInfo, *, backup_id_fancy: bool = True) -> RTextBase:
 		# "backup #1: foobar"
 		return RTextList(cls.tr(
@@ -211,20 +230,3 @@ class TextComponents:
 	@classmethod
 	def title(cls, text: Any):
 		return RTextList(RText('======== ', RColor.gray), text, RText(' ========', RColor.gray))
-
-	@classmethod
-	def auto(cls, value: Any) -> RTextBase:
-		if isinstance(value, bool):
-			return cls.boolean(value)
-		elif isinstance(value, (int, float, Duration)):
-			return cls.number(value)
-		elif isinstance(value, Operator):
-			return cls.operator(value)
-		elif isinstance(value, ByteCount):
-			return cls.file_size(value)
-		elif isinstance(value, Path):
-			return cls.file_path(value)
-		elif isinstance(value, datetime.datetime):
-			return cls.date(value)
-		else:
-			return RTextBase.from_any(value)

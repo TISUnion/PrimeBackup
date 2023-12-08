@@ -102,7 +102,7 @@ class ThreadedWorker:
 		else:
 			source.reply('worker thread is dead, please check logs to see what had happened')
 			if callback is not None:
-				callback(RuntimeError('worker dead'))
+				callback(None, RuntimeError('worker dead'))
 
 	def send_event_to_current_task(self, event: TaskEvent) -> bool:
 		current_task = self.task_queue.current_item
@@ -123,7 +123,7 @@ class TaskManager:
 	def __init__(self):
 		self.logger = logger.get()
 		self.worker_operator = ThreadedWorker('operator', 1)
-		self.worker_reader = ThreadedWorker('reader',3)
+		self.worker_reader = ThreadedWorker('reader', 3)
 
 	def start(self):
 		self.worker_operator.start()

@@ -156,6 +156,7 @@ class ZstdCompressor(_GzipLikeCompressorBase):
 class Lz4Compressor(_GzipLikeCompressorBase):
 	@classmethod
 	def _lib(cls):
+		# noinspection PyPackageRequirements
 		import lz4.frame
 		return lz4.frame
 

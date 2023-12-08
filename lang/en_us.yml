@@ -220,8 +220,8 @@ prime_backup:
           Operate the core SQLite database of {name}
           §d[Usages]§r
           §7{prefix} database overview§r: Report an overview of the database
-          §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database
-          §7{prefix} database vacuum§r: prune database manually, to reduce the size of the database file
+          §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database. Might take a long time
+          §7{prefix} database vacuum§r: Compact the SQLite database manually, to reduce the size of the database file
           {scheduled_compact_notes}
           §d[Arguments]§r
           §a<part>§r: 

@@ -26,7 +26,7 @@ class PruneSetting(Serializable):
 
 class PruneConfig(Serializable):
 	interval: Duration = Duration('3h')
-	jitter: Duration = Duration('10s')
+	jitter: Duration = Duration('20s')
 	timezone_override: Optional[str] = None
 	regular_backup: PruneSetting = PruneSetting()
 	pre_restore_backup: PruneSetting = PruneSetting(

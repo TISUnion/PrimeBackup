@@ -6,7 +6,7 @@ from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ListCrontabJobTask(ImmediateTask):
+class ListCrontabJobTask(ImmediateTask[None]):
 	def __init__(self, source: CommandSource, crontab_manager: CrontabManager):
 		super().__init__(source)
 		self.crontab_manager = crontab_manager

@@ -14,7 +14,7 @@ class FileSizeDiff(NamedTuple):
 		return self.after - self.before
 
 
-class VacuumSqliteAction(Action):
+class VacuumSqliteAction(Action[FileSizeDiff]):
 	def __init__(self, target_path: Optional[Path] = None):
 		super().__init__()
 		self.target_path = target_path

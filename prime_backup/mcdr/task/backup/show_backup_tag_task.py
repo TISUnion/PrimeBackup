@@ -10,7 +10,7 @@ from prime_backup.types.backup_tags import BackupTagName, BackupTags
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ShowBackupSingleTagTask(ReaderTask):
+class ShowBackupSingleTagTask(ReaderTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int, tag_name: BackupTagName):
 		super().__init__(source)
 		self.backup_id = backup_id
@@ -29,7 +29,7 @@ class ShowBackupSingleTagTask(ReaderTask):
 			self.reply(self.tr('not_exists', TextComponents.backup_id(backup.id), TextComponents.tag_name(self.tag_name)))
 
 
-class ShowBackupTagTask(ReaderTask):
+class ShowBackupTagTask(ReaderTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int):
 		super().__init__(source)
 		self.backup_id = backup_id

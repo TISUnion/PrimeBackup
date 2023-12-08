@@ -12,7 +12,7 @@ from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobListSummary
 
 
-class DeleteBackupRangeTask(OperationTask):
+class DeleteBackupRangeTask(OperationTask[None]):
 	def __init__(self, source: CommandSource, id_start: Optional[int], id_end: Optional[int]):
 		super().__init__(source)
 		self.id_start = id_start

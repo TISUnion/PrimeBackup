@@ -15,7 +15,7 @@ from prime_backup.utils import conversion_utils
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ListBackupTask(ReaderTask):
+class ListBackupTask(ReaderTask[None]):
 	def __init__(self, source: CommandSource, per_page: int, page: int, backup_filter: BackupFilter, show_all: bool, show_flags: bool, show_size: bool):
 		super().__init__(source)
 		self.source = source

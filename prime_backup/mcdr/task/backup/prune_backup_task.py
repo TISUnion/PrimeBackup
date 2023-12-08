@@ -1,8 +1,9 @@
 import collections
+import dataclasses
 import datetime
 import functools
 import time
-from typing import List, NamedTuple, Dict, Union, Optional, Callable, Tuple
+from typing import List, NamedTuple, Dict, Union, Optional, Callable
 
 import pytz
 from mcdreforged.api.all import *
@@ -11,7 +12,6 @@ from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.config.prune_config import PruneSetting
 from prime_backup.exceptions import BackupNotFound
-from prime_backup.mcdr.task import TaskEvent
 from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
@@ -41,12 +41,12 @@ class PruneMark(NamedTuple):
 		return PruneMark(False, reason)
 
 
-class PruneResultItem(NamedTuple):
+class PrunePlanItem(NamedTuple):
 	backup: BackupInfo
 	mark: PruneMark
 
 
-class PruneResult(List[PruneResultItem]):
+class PrunePlan(List[PrunePlanItem]):
 	def get_keep_reason(self, backup_or_id: Union[int, BackupInfo]) -> Optional[str]:
 		if isinstance(backup_or_id, BackupInfo):
 			backup_or_id = backup_or_id.id
@@ -60,7 +60,21 @@ class PruneResult(List[PruneResultItem]):
 		return {pri.backup.id: pri.mark for pri in self}
 
 
-class PruneBackupTask(OperationTask):
+@dataclasses.dataclass
+class PruneBackupResult:
+	plan: PrunePlan
+	deleted_backup_count: int = 0
+	deleted_blobs: BlobListSummary = BlobListSummary.zero()
+
+
+@dataclasses.dataclass
+class PruneAllBackupResult:
+	sub_plans: List[PrunePlan] = dataclasses.field(default_factory=list)
+	deleted_backup_count: int = 0
+	deleted_blobs: BlobListSummary = BlobListSummary.zero()
+
+
+class PruneBackupTask(OperationTask[PruneBackupResult]):
 	def __init__(self, source: CommandSource, backup_filter: BackupFilter, setting: PruneSetting, *, what_to_prune: Optional[RTextBase] = None):
 		super().__init__(source)
 		self.backup_filter = backup_filter
@@ -77,7 +91,7 @@ class PruneBackupTask(OperationTask):
 		return True
 
 	@classmethod
-	def calc_prune_backups(cls, backups: List[BackupInfo], settings: PruneSetting, *, timezone: Optional[datetime.tzinfo] = None) -> PruneResult:
+	def calc_prune_backups(cls, backups: List[BackupInfo], settings: PruneSetting, *, timezone: Optional[datetime.tzinfo] = None) -> PrunePlan:
 		marks: Dict[int, PruneMark] = {}
 		fallback_marks: Dict[int, PruneMark] = {}
 		backups = list(sorted(backups, key=lambda b: b.timestamp_ns, reverse=True))  # new -> old
@@ -137,14 +151,14 @@ class PruneBackupTask(OperationTask):
 		if settings.year != 0:
 			mark_selections(settings.year, 'year', create_time_str_func('%Y'))
 
-		result = PruneResult()
+		plan_list = PrunePlan()
 		now = time.time_ns()
 		regular_keep_count = 0
 		all_marks = collections.ChainMap(marks, fallback_marks)
 		default_mark = PruneMark.create_remove('unmarked')
 		for backup_info in backups:
 			if backup_info.tags.is_protected():
-				result.append(PruneResultItem(backup_info, PruneMark.create_protected()))
+				plan_list.append(PrunePlanItem(backup_info, PruneMark.create_protected()))
 			else:
 				mark = all_marks.get(backup_info.id, default_mark)
 				if mark.keep:
@@ -153,10 +167,10 @@ class PruneBackupTask(OperationTask):
 					elif 0 < settings.max_lifetime.value_nano < (now - backup_info.timestamp_ns):
 						mark = PruneMark.create_remove('max_lifetime exceeded')
 
-				result.append(PruneResultItem(backup_info, mark))
+				plan_list.append(PrunePlanItem(backup_info, mark))
 				if mark.keep:
 					regular_keep_count += 1
-		return result
+		return plan_list
 
 	def __msg_header(self) -> RTextBase:
 		return RTextList('(', self.what_to_prune, ') ').set_color(RColor.gray)
@@ -166,7 +180,7 @@ class PruneBackupTask(OperationTask):
 			msg = self.__msg_header() + msg
 		super().reply(msg, with_prefix=with_prefix)
 
-	def run(self) -> Tuple[int, BlobListSummary]:  # backup count, bls sum
+	def run(self) -> PruneBackupResult:
 		backups = ListBackupAction(backup_filter=self.backup_filter, calc_size=False).run()
 		backup_ids = {backup.id for backup in backups}
 
@@ -179,23 +193,22 @@ class PruneBackupTask(OperationTask):
 			else:
 				timezone = None
 
-		result = self.calc_prune_backups(backups, self.setting, timezone=timezone)
-		for pri in result:
-			misc_utils.assert_true(pri.backup.id in backup_ids, lambda: 'unexpected backup id {}, {}'.format(pri.backup.id, backup_ids))
+		plan_list = self.calc_prune_backups(backups, self.setting, timezone=timezone)
+		for pl in plan_list:
+			misc_utils.assert_true(pl.backup.id in backup_ids, lambda: 'unexpected backup id {}, {}'.format(pl.backup.id, backup_ids))
 
-		bls = BlobListSummary.zero()
-		cnt = 0
+		result = PruneBackupResult(plan_list)
 		with log_utils.open_file_logger('prune') as prune_logger:
 			prune_logger.info('Prune started')
-			to_deleted_ids = [pri.backup.id for pri in result if not pri.mark.keep]
+			to_deleted_ids = [pl.backup.id for pl in plan_list if not pl.mark.keep]
 			if len(to_deleted_ids) == 0:
 				self.reply(self.tr('nothing_to_prune'))
 				prune_logger.info('Nothing to prune')
-				return cnt, bls
+				return result
 
 			prune_logger.info('============== Prune calculate result start ==============')
-			for pri in result:
-				prune_logger.info('Backup #{} at {}: keep={} reason={}'.format(pri.backup.id, pri.backup.date_str, pri.mark.keep, pri.mark.reason))
+			for pl in plan_list:
+				prune_logger.info('Backup #{} at {}: keep={} reason={}'.format(pl.backup.id, pl.backup.date_str, pl.mark.keep, pl.mark.reason))
 			prune_logger.info('============== Prune calculate result end ==============')
 
 			self.reply(self.tr(
@@ -208,12 +221,12 @@ class PruneBackupTask(OperationTask):
 				),
 			))
 
-			for pri in result:
-				bid = pri.backup.id
+			for pl in plan_list:
+				bid = pl.backup.id
 				if self.aborted_event.is_set():
 					self.reply(self.tr('aborted'))
 					break
-				if not pri.mark.keep:
+				if not pl.mark.keep:
 					self.reply(self.tr('prune', TextComponents.backup_id(bid, hover=False, click=False)))
 					try:
 						dr = DeleteBackupAction(bid).run()
@@ -225,22 +238,24 @@ class PruneBackupTask(OperationTask):
 							raise
 					else:
 						prune_logger.info('Delete backup #%s done', bid)
-						bls = bls + dr.bls
-						cnt += 1
+						result.deleted_blobs = result.deleted_blobs + dr.bls
+						result.deleted_backup_count += 1
 			for logger in [self.logger, prune_logger]:
-				logger.info('Pruned backup done, deleted {} backups, freed {}'.format(
-					bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str()
+				logger.info('Pruned backup done, deleted {} backups, freed {} blobs ({} / {})'.format(
+					result.deleted_backup_count, result.deleted_blobs.count,
+					ByteCount(result.deleted_blobs.stored_size).auto_str(), ByteCount(result.deleted_blobs.raw_size).auto_str(),
 				))
 
-		self.reply(self.tr('done',  TextComponents.number(cnt), TextComponents.number(bls.count), TextComponents.blob_list_summary_store_size(bls)))
-		return cnt, bls
+		self.reply(self.tr(
+			'done',
+			TextComponents.number(result.deleted_backup_count),
+			TextComponents.number(result.deleted_blobs.count),
+			TextComponents.blob_list_summary_store_size(result.deleted_blobs),
+		))
+		return result
 
 
-class PruneAllBackupTask(OperationTask):
-	def __init__(self, source: CommandSource):
-		super().__init__(source)
-		self.__current_task: Optional[PruneBackupTask] = None
-
+class PruneAllBackupTask(OperationTask[PruneAllBackupResult]):
 	@property
 	def id(self) -> str:
 		return 'backup_prune_all'
@@ -248,12 +263,12 @@ class PruneAllBackupTask(OperationTask):
 	def is_abort_able(self) -> bool:
 		return True
 
-	def run(self) -> Tuple[int, BlobListSummary]:
+	def run(self) -> PruneAllBackupResult:
 		config = self.config.prune
-		cnt_sum, bls_sum = 0, BlobListSummary.zero()
+		result = PruneAllBackupResult()
 		if not config.regular_backup.enabled and not config.pre_restore_backup.enabled:
 			self.reply(self.tr('nothing_to_do'))
-			return cnt_sum, bls_sum
+			return result
 
 		def prune_backups(what: str, backup_filter: BackupFilter, setting: PruneSetting):
 			if not setting.enabled or self.aborted_event.is_set():
@@ -261,25 +276,22 @@ class PruneAllBackupTask(OperationTask):
 
 			self.reply(self.tr('start', self.tr(f'what.{what}')))
 
-			self.__current_task = PruneBackupTask(self.source, backup_filter, setting, what_to_prune=self.tr(f'what.{what}'))
-			cnt, bls = self.__current_task.run()
-			self.__current_task = None
-
-			nonlocal cnt_sum, bls_sum
-			cnt_sum += cnt
-			bls_sum = bls_sum + bls
+			sub_result = self.run_subtask(PruneBackupTask(self.source, backup_filter, setting, what_to_prune=self.tr(f'what.{what}')))
+			result.sub_plans.append(sub_result.plan)
+			result.deleted_backup_count += sub_result.deleted_backup_count
+			result.deleted_blobs = result.deleted_blobs + sub_result.deleted_blobs
 
 		prune_backups('regular', BackupFilter().filter_non_pre_restore_backup(), config.regular_backup)
 		if not self.aborted_event.is_set():
 			prune_backups('pre_restore', BackupFilter().filter_pre_restore_backup(), config.pre_restore_backup)
 
-		self.reply(self.tr('done', cnt_sum, TextComponents.number(bls_sum.count), TextComponents.blob_list_summary_store_size(bls_sum)))
-		return cnt_sum, bls_sum
-
-	def on_event(self, event: TaskEvent):
-		super().on_event(event)
-		if (task := self.__current_task) is not None:
-			task.on_event(event)
+		self.reply(self.tr(
+			'done',
+			TextComponents.number(result.deleted_backup_count),
+			TextComponents.number(result.deleted_blobs.count),
+			TextComponents.blob_list_summary_store_size(result.deleted_blobs),
+		))
+		return result
 
 
 def __main():

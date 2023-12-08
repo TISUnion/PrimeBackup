@@ -10,7 +10,7 @@ from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ShowHelpTask(ImmediateTask):
+class ShowHelpTask(ImmediateTask[None]):
 	COMMANDS_WITH_DETAILED_HELP = [
 		'crontab',
 		'database',

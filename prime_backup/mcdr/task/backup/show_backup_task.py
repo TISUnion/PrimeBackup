@@ -8,7 +8,7 @@ from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ShowBackupTask(ReaderTask):
+class ShowBackupTask(ReaderTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int):
 		super().__init__(source)
 		self.backup_id = backup_id

@@ -7,7 +7,7 @@ from typing import Union, Tuple, NamedTuple, Generic, Dict, TypeVar
 
 from prime_backup.utils import misc_utils
 
-_T = TypeVar('_T')
+T = TypeVar('T')
 
 
 def _parse_number(s: str) -> Union[int, float]:
@@ -41,32 +41,32 @@ class UnitValuePair(NamedTuple):
 			return f'{self.value}{self.unit}'
 
 
-class _UnitValueBase(Generic[_T], str, ABC):
-	_value: _T
+class _UnitValueBase(Generic[T], str, ABC):
+	_value: T
 
 	@classmethod
 	@abstractmethod
-	def _get_unit_map(cls) -> Dict[str, _T]:
+	def _get_unit_map(cls) -> Dict[str, T]:
 		...
 
 	@classmethod
-	def _get_formatting_unit_map(cls) -> Dict[str, _T]:
+	def _get_formatting_unit_map(cls) -> Dict[str, T]:
 		return cls._get_unit_map()
 
 	@classmethod
 	@functools.lru_cache
-	def __get_unit_map_lowered(cls) -> Dict[str, _T]:
+	def __get_unit_map_lowered(cls) -> Dict[str, T]:
 		return {k.lower(): v for k, v in cls._get_unit_map().items()}
 
 	@classmethod
-	def parse_unit(cls, unit: str) -> _T:
+	def parse_unit(cls, unit: str) -> T:
 		ret = cls.__get_unit_map_lowered().get(unit.lower())
 		if ret is None:
 			raise ValueError('unknown unit {!r}'.format(unit))
 		return ret
 
 	@property
-	def value(self) -> _T:
+	def value(self) -> T:
 		return self._value
 
 	@staticmethod
@@ -76,7 +76,7 @@ class _UnitValueBase(Generic[_T], str, ABC):
 		return a / b
 
 	@classmethod
-	def _auto_format(cls, val: _T) -> UnitValuePair:
+	def _auto_format(cls, val: T) -> UnitValuePair:
 		if val < 0:
 			uvp = cls._auto_format(-val)
 			return UnitValuePair(-uvp.value, uvp.unit)
@@ -94,7 +94,7 @@ class _UnitValueBase(Generic[_T], str, ABC):
 		return ret
 
 	@classmethod
-	def _precise_format(cls, val: _T) -> UnitValuePair:
+	def _precise_format(cls, val: T) -> UnitValuePair:
 		if val < 0:
 			uvp = cls._auto_format(-val)
 			return UnitValuePair(-uvp.value, uvp.unit)

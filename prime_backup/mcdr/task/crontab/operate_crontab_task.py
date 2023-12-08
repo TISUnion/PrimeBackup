@@ -7,7 +7,7 @@ from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.crontab import CrontabTaskBase
 
 
-class OperateCrontabJobTask(CrontabTaskBase):
+class OperateCrontabJobTask(CrontabTaskBase[None]):
 	class Operation(enum.Enum):
 		pause = enum.auto()
 		resume = enum.auto()

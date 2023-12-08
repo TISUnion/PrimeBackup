@@ -56,7 +56,7 @@ prime_backup:
       list_to_be_pruned: '将要裁剪的备份 (共{}个): {}'
       prune: 正在删除{}
       aborted: 裁剪任务中止
-      done: 裁剪完成, 共删除{}个备份、{}个对象, 共释放{}
+      done: 裁剪完成, 共删除{}个备份、{}个数据对象, 共释放{}
     backup_prune_all:
       name: 全范围裁剪备份
       nothing_to_do: 没有生效的裁剪子任务, 裁剪中止
@@ -220,11 +220,11 @@ prime_backup:
           操作{name}的核心SQLite数据库
           §d【指令帮助】§r
           §7{prefix} database overview§r: 查看数据库信息概览
-          §7{prefix} database validate §a<验证组件>§r: 验证数据库内容的正确性
-          §7{prefix} database vacuum§r: 手动执行数据库精简操作，减少数据库文件的体积
+          §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
+          §7{prefix} database vacuum§r: 手动执行SQLite数据库的精简操作，减少数据库文件的体积
           {scheduled_compact_notes}
           §d【参数帮助】§r
-          §a<验证组件>§r: 
+          §a<组件>§r: 
           - §ablobs§r: 验证数据对象的正确性，如数据大小、哈希值
           - §afiles§r: 验证文件对象的正确性，如文件与数据的关联
           - §aall§r: 验证上述全部

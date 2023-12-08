@@ -1,14 +1,14 @@
 import threading
 from typing import TypeVar, Generic, Union
 
-_T = TypeVar('_T')
+T = TypeVar('T')
 
 
 class _Empty:
 	pass
 
 
-class WaitableValue(Generic[_T]):
+class WaitableValue(Generic[T]):
 	"""
 	A simple version of "Future"
 	"""
@@ -20,13 +20,13 @@ class WaitableValue(Generic[_T]):
 		self.__event = threading.Event()
 		self.__value = self.EMPTY
 
-	def get(self) -> _T:
+	def get(self) -> T:
 		with self.__lock:
 			if not self.__event.is_set():
 				raise ValueError('value is unset')
 			return self.__value
 
-	def set(self, value: _T):
+	def set(self, value: T):
 		with self.__lock:
 			self.__value = value
 			self.__event.set()
@@ -34,7 +34,7 @@ class WaitableValue(Generic[_T]):
 	def is_set(self) -> bool:
 		return self.__event.is_set()
 
-	def wait(self, timeout: float = None) -> Union[_T, _Empty]:
+	def wait(self, timeout: float = None) -> Union[T, _Empty]:
 		if self.__event.wait(timeout):
 			return self.get()
 		else:

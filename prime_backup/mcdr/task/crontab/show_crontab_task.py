@@ -7,7 +7,7 @@ from prime_backup.utils import misc_utils
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ShowCrontabJobTask(CrontabTaskBase):
+class ShowCrontabJobTask(CrontabTaskBase[None]):
 	@property
 	def id(self) -> str:
 		return 'crontab_show'

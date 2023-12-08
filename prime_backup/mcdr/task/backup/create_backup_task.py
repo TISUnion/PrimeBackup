@@ -11,7 +11,7 @@ from prime_backup.types.operator import Operator
 from prime_backup.utils.timer import Timer
 
 
-class CreateBackupTask(OperationTask):
+class CreateBackupTask(OperationTask[None]):
 	def __init__(self, source: CommandSource, comment: str, operator: Optional[Operator] = None):
 		super().__init__(source)
 		self.comment = comment

@@ -5,7 +5,7 @@ from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_filter import BackupFilter
 
 
-class CountBackupAction(Action):
+class CountBackupAction(Action[int]):
 	def __init__(self, backup_filter: Optional[BackupFilter] = None):
 		super().__init__()
 		self.backup_filter = backup_filter

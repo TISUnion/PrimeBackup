@@ -5,7 +5,7 @@ from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 
 
-class RenameBackupTask(OperationTask):
+class RenameBackupTask(OperationTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int, comment: str):
 		super().__init__(source)
 		self.backup_id = backup_id

@@ -18,7 +18,7 @@ def _sanitize_file_name(s: str, max_length: int = 64):
 	return s[:max_length]
 
 
-class ExportBackupTask(OperationTask):
+class ExportBackupTask(OperationTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int, export_format: StandaloneBackupFormat):
 		super().__init__(source)
 		self.backup_id = backup_id

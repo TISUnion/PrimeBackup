@@ -1,18 +1,22 @@
 import threading
 from abc import ABC
-from typing import Union, Optional
+from typing import Union, Optional, TypeVar
 
 from mcdreforged.api.all import *
 from typing_extensions import final
 
+from prime_backup.action import Action
 from prime_backup.mcdr.task import Task, TaskEvent
 from prime_backup.mcdr.task.task_utils import ConfirmHelper, ConfirmResult
 from prime_backup.types.units import Duration
 from prime_backup.utils import mcdr_utils
 from prime_backup.utils.waitable_value import WaitableValue
 
+T = TypeVar('T')
+_T = TypeVar('_T')
 
-class _BasicTask(Task, ABC):
+
+class _BasicTask(Task[_T], ABC):
 	def __init__(self, source: CommandSource):
 		super().__init__(source)
 
@@ -27,10 +31,17 @@ class _BasicTask(Task, ABC):
 		self._confirm_helper = ConfirmHelper()
 		self._quiet = False
 
+		self.__running_action: Optional[Action] = None
+		self.__running_subtask: Optional[Task] = None
+
 	# ================================== Overrides ==================================
 
 	def is_abort_able(self) -> bool:
-		return self.is_waiting_confirm
+		return (
+				self.is_waiting_confirm
+				or ((task := self.__running_subtask) is not None and task.is_abort_able())
+				or ((action := self.__running_action) is not None and action.is_interruptable())
+		)
 
 	def on_event(self, event: TaskEvent):
 		self._confirm_helper.on_event(event)
@@ -38,6 +49,10 @@ class _BasicTask(Task, ABC):
 			if event == TaskEvent.plugin_unload:
 				self.plugin_unloaded_event.set()
 			self.aborted_event.set()
+		if (action := self.__running_action) is not None:
+			action.interrupt()
+		if (task := self.__running_subtask) is not None:
+			task.on_event(event)
 
 	# ==================================== Utils ====================================
 
@@ -51,6 +66,22 @@ class _BasicTask(Task, ABC):
 		finally:
 			self.is_waiting_confirm = False
 
+	def run_action(self, action: Action[T], auto_interrupt: bool = True) -> T:
+		self.__running_action = action
+		if auto_interrupt and self.aborted_event.is_set():
+			action.interrupt()
+		try:
+			return action.run()
+		finally:
+			self.__running_action = None
+
+	def run_subtask(self, task: Task[T]) -> T:
+		self.__running_subtask = task
+		try:
+			return task.run()
+		finally:
+			self.__running_subtask = None
+
 	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = True):
 		if self._quiet:
 			return
@@ -62,15 +93,15 @@ class _BasicTask(Task, ABC):
 		mcdr_utils.broadcast_message(msg, with_prefix=with_prefix)
 
 
-class OperationTask(_BasicTask, ABC):
+class OperationTask(_BasicTask[_T], ABC):
 	pass
 
 
-class ReaderTask(_BasicTask, ABC):
+class ReaderTask(_BasicTask[_T], ABC):
 	pass
 
 
-class ImmediateTask(_BasicTask, ABC):
+class ImmediateTask(_BasicTask[_T], ABC):
 	@final
 	def is_abort_able(self) -> bool:
 		return super().is_abort_able()

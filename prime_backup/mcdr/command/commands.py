@@ -212,10 +212,10 @@ class CommandManager:
 
 		# db
 		builder.command('database overview', self.cmd_db_overview)
-		builder.command('database vacuum', self.cmd_db_vacuum)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidateParts.all()))
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidateParts.blobs))
 		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidateParts.files))
+		builder.command('database vacuum', self.cmd_db_vacuum)
 
 		# operations
 		builder.command('confirm', self.cmd_confirm)

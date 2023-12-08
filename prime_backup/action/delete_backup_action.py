@@ -20,7 +20,7 @@ class BlobTrashBin(List[BlobInfo]):
 			trash.blob_path.unlink()
 
 
-class DeleteOrphanBlobsAction(Action):
+class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 	def __init__(self, blob_hash_to_check: Optional[List[str]], quiet: bool = False):
 		super().__init__()
 		self.blob_hash_to_check = blob_hash_to_check
@@ -55,16 +55,17 @@ class DeleteOrphanBlobsAction(Action):
 		return s
 
 
-class DeleteBackupAction(Action):
-	class DeleteResult(NamedTuple):
-		backup: BackupInfo
-		bls: BlobListSummary
+class DeleteBackupResult(NamedTuple):
+	backup: BackupInfo
+	bls: BlobListSummary
 
+
+class DeleteBackupAction(Action[DeleteBackupResult]):
 	def __init__(self, backup_id: int):
 		super().__init__()
 		self.backup_id = misc_utils.ensure_type(backup_id, int)
 
-	def run(self) -> DeleteResult:
+	def run(self) -> DeleteBackupResult:
 		self.logger.info('Deleting backup #{}'.format(self.backup_id))
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
@@ -83,4 +84,4 @@ class DeleteBackupAction(Action):
 		self.logger.info('Deleted backup #{} done, -{} blobs (size {} / {})'.format(
 			info.id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
 		))
-		return self.DeleteResult(info, bls)
+		return DeleteBackupResult(info, bls)

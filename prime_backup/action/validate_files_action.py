@@ -23,7 +23,10 @@ class ValidateFilesResult:
 	file_blob_mismatched: List[BadFileItem] = dataclasses.field(default_factory=list)
 
 
-class ValidateFilesAction(Action):
+class ValidateFilesAction(Action[ValidateFilesResult]):
+	def is_interruptable(self) -> bool:
+		return True
+
 	def __validate(self, session: DbSession, result: ValidateFilesResult, files: List[FileInfo]):
 		hash_to_file: Dict[str, List[FileInfo]] = collections.defaultdict(list)
 		for file in files:

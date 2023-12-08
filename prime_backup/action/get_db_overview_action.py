@@ -5,23 +5,24 @@ from prime_backup.action.get_db_meta_action import GetDbMetaAction
 from prime_backup.db.access import DbAccess
 
 
-class GetDbOverviewAction(Action):
-	class Result(NamedTuple):
-		db_version: int
-		hash_method: str
+class DbOverviewResult(NamedTuple):
+	db_version: int
+	hash_method: str
 
-		blob_cnt: int
-		file_cnt: int
-		backup_cnt: int
+	blob_cnt: int
+	file_cnt: int
+	backup_cnt: int
 
-		blob_stored_size_sum: int
-		blob_raw_size_sum: int
-		file_raw_size_sum: int
+	blob_stored_size_sum: int
+	blob_raw_size_sum: int
+	file_raw_size_sum: int
 
-	def run(self) -> Result:
+
+class GetDbOverviewAction(Action[DbOverviewResult]):
+	def run(self) -> DbOverviewResult:
 		meta = GetDbMetaAction().run()
 		with DbAccess.open_session() as session:
-			return self.Result(
+			return DbOverviewResult(
 				db_version=meta.version,
 				hash_method=meta.hash_method,
 

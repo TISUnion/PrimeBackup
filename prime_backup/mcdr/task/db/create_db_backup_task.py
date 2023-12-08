@@ -11,7 +11,7 @@ from prime_backup.types.units import ByteCount
 from prime_backup.utils import misc_utils
 
 
-class CreateDbBackupTask(OperationTask):
+class CreateDbBackupTask(OperationTask[None]):
 	__task_sem = threading.Semaphore(1)
 
 	@property

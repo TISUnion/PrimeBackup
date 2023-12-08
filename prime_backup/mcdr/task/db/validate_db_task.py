@@ -1,15 +1,14 @@
-import contextlib
+import enum
 import enum
 import logging
 import time
-from typing import List, Optional, ContextManager, TypeVar
+from typing import List, Optional, TypeVar
 
 from mcdreforged.api.all import *
 
 from prime_backup.action import Action
 from prime_backup.action.validate_blobs_action import ValidateBlobsAction, BadBlobItem
 from prime_backup.action.validate_files_action import ValidateFilesAction, BadFileItem
-from prime_backup.mcdr.task import TaskEvent
 from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.utils import log_utils
@@ -30,7 +29,7 @@ class ValidateParts(enum.Flag):
 _Action = TypeVar('_Action', bound=Action)
 
 
-class ValidateDbTask(OperationTask):
+class ValidateDbTask(OperationTask[None]):
 	def __init__(self, source: CommandSource, parts: ValidateParts):
 		super().__init__(source)
 		self.parts = parts
@@ -43,19 +42,8 @@ class ValidateDbTask(OperationTask):
 	def is_abort_able(self) -> bool:
 		return True
 
-	@contextlib.contextmanager
-	def __with_action(self, action: _Action) -> ContextManager[_Action]:
-		self.__current_action = action
-		if self.aborted_event.is_set():
-			action.interrupt()
-		try:
-			yield action
-		finally:
-			self.__current_action = None
-
 	def __validate_blobs(self, vlogger: logging.Logger):
-		with self.__with_action(ValidateBlobsAction()) as action:
-			result = action.run()
+		result = self.run_action(ValidateBlobsAction())
 
 		vlogger.info('Validate blobs result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
 		self.reply(self.tr('validate_blobs.done', TextComponents.number(result.validated), TextComponents.number(result.total)))
@@ -81,8 +69,7 @@ class ValidateDbTask(OperationTask):
 		show('orphan', result.orphan)
 
 	def __validate_files(self, vlogger: logging.Logger):
-		with self.__with_action(ValidateFilesAction()) as action:
-			result = action.run()
+		result = self.run_action(ValidateFilesAction())
 
 		vlogger.info('Validate files result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
 		self.reply(self.tr('validate_files.done', TextComponents.number(result.validated), TextComponents.number(result.total)))
@@ -124,8 +111,3 @@ class ValidateDbTask(OperationTask):
 
 		cost = time.time() - t
 		self.reply(self.tr('done', TextComponents.number(f'{cost:.2f}s')))
-
-	def on_event(self, event: TaskEvent):
-		super().on_event(event)
-		if (act := self.__current_action) is not None:
-			act.interrupt()

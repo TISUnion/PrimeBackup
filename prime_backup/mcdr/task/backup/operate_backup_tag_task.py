@@ -9,7 +9,7 @@ from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_tags import BackupTagName
 
 
-class _OperateBackupTagTaskBase(OperationTask, ABC):
+class _OperateBackupTagTaskBase(OperationTask[None], ABC):
 	def __init__(self, source: CommandSource, backup_id: int, tag_name: BackupTagName):
 		super().__init__(source)
 		self.backup_id = backup_id

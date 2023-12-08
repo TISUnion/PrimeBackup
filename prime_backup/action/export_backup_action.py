@@ -42,13 +42,13 @@ class ExportBackupActions:
 		return ExportBackupToZipAction(backup_id, output_path)
 
 
-class ExportBackupActionBase(Action, ABC):
+class ExportBackupActionBase(Action[None], ABC):
 	def __init__(self, backup_id: int, output_path: Path):
 		super().__init__()
 		self.backup_id = misc_utils.ensure_type(backup_id, int)
 		self.output_path = output_path
 
-	def run(self):
+	def run(self) -> None:
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
 			self._export_backup(session, backup)

@@ -6,7 +6,7 @@ from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 
 
-class DeleteBackupTask(OperationTask):
+class DeleteBackupTask(OperationTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int):
 		super().__init__(source)
 		self.backup_id = backup_id

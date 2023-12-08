@@ -1,9 +1,12 @@
 import enum
 from abc import ABC, abstractmethod
+from typing import Generic, TypeVar
 
 from mcdreforged.api.all import *
 
 from prime_backup.utils import mcdr_utils
+
+T = TypeVar('T')
 
 
 class TaskEvent(enum.Enum):
@@ -13,7 +16,7 @@ class TaskEvent(enum.Enum):
 	operation_aborted = enum.auto()
 
 
-class Task(mcdr_utils.TranslationContext, ABC):
+class Task(Generic[T], mcdr_utils.TranslationContext, ABC):
 	def __init__(self, source: CommandSource):
 		super().__init__(f'task.{self.id}')
 		self.source = source
@@ -31,7 +34,7 @@ class Task(mcdr_utils.TranslationContext, ABC):
 		...
 
 	@abstractmethod
-	def run(self) -> None:
+	def run(self) -> T:
 		...
 
 	def on_event(self, event: TaskEvent):

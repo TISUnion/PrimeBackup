@@ -1,13 +1,15 @@
 from abc import ABC
-from typing import Optional, List
+from typing import Optional, List, TypeVar
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 
+T = TypeVar('T')
 
-class _ListBackupActionBase(Action, ABC):
+
+class _ListBackupActionBase(Action[T], ABC):
 	def __init__(self, *, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None):
 		super().__init__()
 		self.backup_filter = backup_filter
@@ -15,7 +17,7 @@ class _ListBackupActionBase(Action, ABC):
 		self.offset = offset
 
 
-class ListBackupAction(_ListBackupActionBase):
+class ListBackupAction(_ListBackupActionBase[List[BackupInfo]]):
 	def __init__(self, *, calc_size: bool = False, **kwargs):
 		super().__init__(**kwargs)
 		self.calc_size = calc_size
@@ -26,7 +28,7 @@ class ListBackupAction(_ListBackupActionBase):
 			return [BackupInfo.of(backup, calc_size=self.calc_size) for backup in backups]
 
 
-class ListBackupIdAction(_ListBackupActionBase):
+class ListBackupIdAction(_ListBackupActionBase[List[int]]):
 	def run(self) -> List[int]:
 		with DbAccess.open_session() as session:
 			backups = session.list_backup(backup_filter=self.backup_filter, limit=self.limit, offset=self.offset)

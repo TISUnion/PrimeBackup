@@ -6,7 +6,7 @@ from prime_backup.types.common import PathLike
 from prime_backup.types.file_info import FileInfo
 
 
-class GetFileAction(Action):
+class GetFileAction(Action[FileInfo]):
 	def __init__(self, backup_id: int, file_path: PathLike):
 		super().__init__()
 		self.backup_id = backup_id

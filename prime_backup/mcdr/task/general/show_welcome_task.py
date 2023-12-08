@@ -12,7 +12,7 @@ from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ShowWelcomeTask(ReaderTask):
+class ShowWelcomeTask(ReaderTask[None]):
 	BACKUP_NUMBER_TO_SHOW = 3
 	COMMON_COMMANDS = ['', 'help', 'make', 'back', 'list', 'show', 'rename', 'delete', 'confirm', 'abort']
 

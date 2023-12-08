@@ -3,10 +3,12 @@ Actions for all kinds of DB accesses
 """
 import threading
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TypeVar, Generic
+
+T = TypeVar('T')
 
 
-class Action(ABC):
+class Action(Generic[T], ABC):
 	def __init__(self):
 		self.is_interrupted = threading.Event()
 
@@ -16,8 +18,11 @@ class Action(ABC):
 		self.config = Config.get()
 
 	@abstractmethod
-	def run(self) -> Any:
+	def run(self) -> T:
 		...
+
+	def is_interruptable(self) -> bool:
+		return False
 
 	def interrupt(self):
 		self.is_interrupted.set()

@@ -9,7 +9,7 @@ from prime_backup.mcdr.task.basic_task import OperationTask
 from prime_backup.mcdr.text_components import TextComponents
 
 
-class VacuumSqliteTask(OperationTask):
+class VacuumSqliteTask(OperationTask[None]):
 	def __init__(self, source: CommandSource, target_path: Optional[Path] = None):
 		super().__init__(source)
 		self.target_path = target_path

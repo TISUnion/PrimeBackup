@@ -16,7 +16,7 @@ from prime_backup.utils.mcdr_utils import click_and_run, mkcmd
 from prime_backup.utils.timer import Timer
 
 
-class RestoreBackupTask(OperationTask):
+class RestoreBackupTask(OperationTask[None]):
 	def __init__(self, source: CommandSource, backup_id: Optional[int] = None, needs_confirm: bool = True):
 		super().__init__(source)
 		self.backup_id = backup_id

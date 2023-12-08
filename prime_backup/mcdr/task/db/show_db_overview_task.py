@@ -4,7 +4,7 @@ from prime_backup.mcdr.task.basic_task import ReaderTask
 from prime_backup.mcdr.text_components import TextComponents
 
 
-class ShowDbOverviewTask(ReaderTask):
+class ShowDbOverviewTask(ReaderTask[None]):
 	@property
 	def id(self) -> str:
 		return 'db_overview'

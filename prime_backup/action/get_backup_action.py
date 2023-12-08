@@ -4,7 +4,7 @@ from prime_backup.types.backup_info import BackupInfo
 from prime_backup.utils import misc_utils
 
 
-class GetBackupAction(Action):
+class GetBackupAction(Action[BackupInfo]):
 	def __init__(self, backup_id: int, calc_size: bool = True):
 		super().__init__()
 		self.calc_size = calc_size

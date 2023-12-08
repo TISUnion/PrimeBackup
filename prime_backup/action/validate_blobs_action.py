@@ -26,7 +26,10 @@ class ValidateBlobsResult:
 	orphan: List[BadBlobItem] = dataclasses.field(default_factory=list)  # orphan blobs
 
 
-class ValidateBlobsAction(Action):
+class ValidateBlobsAction(Action[ValidateBlobsResult]):
+	def is_interruptable(self) -> bool:
+		return True
+
 	def __validate(self, session: DbSession, result: ValidateBlobsResult, blobs: List[BlobInfo]):
 		hash_to_blobs: Dict[str, BlobInfo] = {}  # store "good" blobs only
 		for blob in blobs:

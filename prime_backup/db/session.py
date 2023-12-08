@@ -11,11 +11,11 @@ from prime_backup.exceptions import BackupNotFound, BackupFileNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.utils import collection_utils
 
-_T = TypeVar('_T')
+T = TypeVar('T')
 
 
 # make type checker happy
-def _list_it(seq: Sequence[_T]) -> List[_T]:
+def _list_it(seq: Sequence[T]) -> List[T]:
 	if not isinstance(seq, list):
 		seq = list(seq)
 	return seq
@@ -199,7 +199,7 @@ class DbSession:
 		return backup
 
 	@staticmethod
-	def __apply_backup_filter(s: Select[_T], backup_filter: BackupFilter) -> Select[_T]:
+	def __apply_backup_filter(s: Select[T], backup_filter: BackupFilter) -> Select[T]:
 		if backup_filter.id_start is not None:
 			s = s.where(schema.Backup.id >= backup_filter.id_start)
 		if backup_filter.id_end is not None:

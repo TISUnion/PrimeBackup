@@ -6,10 +6,11 @@ from typing import List, Callable, Optional
 from prime_backup.action import Action
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
+from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobInfo, BlobListSummary
 
 
-class CreateBackupActionBase(Action, ABC):
+class CreateBackupActionBase(Action[BackupInfo], ABC):
 	def __init__(self):
 		super().__init__()
 		self.__new_blobs: List[BlobInfo] = []

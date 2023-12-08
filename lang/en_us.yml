@@ -162,6 +162,7 @@ prime_backup:
         missing: 'Missing blob amount: {}'
         corrupted: 'Corrupted blob amount: {}'
         mismatched: 'Mismatched blob amount: {}'
+        orphan: 'Orphan blob amount: {}'
       validate_files:
         .: Start validating files (including file, directory and symlink), please wait...
         done: Validated {} / {} files

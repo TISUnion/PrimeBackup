@@ -2,8 +2,6 @@ import functools
 import logging
 import sys
 
-from mcdreforged.api.all import ServerInterface
-
 from prime_backup import constants
 
 
@@ -18,8 +16,8 @@ def __create_logger() -> logging.Logger:
 
 @functools.lru_cache
 def get() -> logging.Logger:
-	psi = ServerInterface.psi_opt()
-	if psi is not None:
+	from mcdreforged.api.all import ServerInterface
+	if (psi := ServerInterface.psi_opt()) is not None:
 		return psi.logger
 	else:
 		return __create_logger()

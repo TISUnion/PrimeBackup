@@ -44,7 +44,7 @@ class ValidateDbTask(OperationTask):
 		return True
 
 	@contextlib.contextmanager
-	def __set_action(self, action: _Action) -> ContextManager[_Action]:
+	def __with_action(self, action: _Action) -> ContextManager[_Action]:
 		self.__current_action = action
 		if self.aborted_event.is_set():
 			action.interrupt()
@@ -54,7 +54,7 @@ class ValidateDbTask(OperationTask):
 			self.__current_action = None
 
 	def __validate_blobs(self, vlogger: logging.Logger):
-		with self.__set_action(ValidateBlobsAction()) as action:
+		with self.__with_action(ValidateBlobsAction()) as action:
 			result = action.run()
 
 		vlogger.info('Validate blobs result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
@@ -78,9 +78,10 @@ class ValidateDbTask(OperationTask):
 		show('missing', result.missing)
 		show('corrupted', result.corrupted)
 		show('mismatched', result.mismatched)
+		show('orphan', result.orphan)
 
 	def __validate_files(self, vlogger: logging.Logger):
-		with self.__set_action(ValidateFilesAction()) as action:
+		with self.__with_action(ValidateFilesAction()) as action:
 			result = action.run()
 
 		vlogger.info('Validate files result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))

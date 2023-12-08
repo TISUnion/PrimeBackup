@@ -1,9 +1,10 @@
 import dataclasses
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Dict
 
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor
 from prime_backup.db.access import DbAccess
+from prime_backup.db.session import DbSession
 from prime_backup.types.blob_info import BlobInfo
 from prime_backup.utils import blob_utils, hash_utils
 
@@ -22,10 +23,12 @@ class ValidateBlobsResult:
 	missing: List[BadBlobItem] = dataclasses.field(default_factory=list)  # the file of the blob is missing
 	corrupted: List[BadBlobItem] = dataclasses.field(default_factory=list)  # decompress failed
 	mismatched: List[BadBlobItem] = dataclasses.field(default_factory=list)  # hash mismatch
+	orphan: List[BadBlobItem] = dataclasses.field(default_factory=list)  # orphan blobs
 
 
 class ValidateBlobsAction(Action):
-	def __validate(self, result: ValidateBlobsResult, blobs: List[BlobInfo]):
+	def __validate(self, session: DbSession, result: ValidateBlobsResult, blobs: List[BlobInfo]):
+		hash_to_blobs: Dict[str, BlobInfo] = {}  # store "good" blobs only
 		for blob in blobs:
 			if self.is_interrupted.is_set():
 				break
@@ -61,7 +64,14 @@ class ValidateBlobsAction(Action):
 				result.corrupted.append(BadBlobItem(blob, f'raw size mismatch, expect {blob.raw_size}, found {sah.size}'))
 				continue
 
-			result.ok += 1
+			hash_to_blobs[blob.hash] = blob
+
+		orphan_hashes = set(session.filtered_orphan_blob_hashes(list(hash_to_blobs.keys())))
+		for h, blob in hash_to_blobs.items():
+			if h in orphan_hashes:
+				result.orphan.append(BadBlobItem(blob, f'orphan blob with 0 associated file, hash {h}'))
+			else:
+				result.ok += 1
 
 	def run(self) -> ValidateBlobsResult:
 		result = ValidateBlobsResult()
@@ -72,6 +82,6 @@ class ValidateBlobsAction(Action):
 				blobs = session.list_blobs(limit=limit, offset=offset)
 				if len(blobs) == 0:
 					break
-				self.__validate(result, list(map(BlobInfo.of, blobs)))
+				self.__validate(session, result, list(map(BlobInfo.of, blobs)))
 				offset += limit
 		return result

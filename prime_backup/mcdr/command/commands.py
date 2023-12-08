@@ -212,6 +212,7 @@ class CommandManager:
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
+		builder.command('delete_range <backup_id_range>', self.cmd_delete_range)
 		builder.command('prune', self.cmd_prune)
 
 		# crontab

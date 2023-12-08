@@ -73,7 +73,6 @@ class ExportBackupTask(OperationTask[None]):
 					'{} mode={}: ({}) {}',
 					RText(failure.file.path, TextColors.file),
 					oct(failure.file.mode),
-					RText(failure.file.path, TextColors.file),
 					type(failure.error).__name__,
 					str(failure.error),
 				))

@@ -64,7 +64,7 @@ class TextComponents:
 				return cls.tr(f'backup_comment.{key}')
 			return RText(comment)
 		else:
-			cls.tr('backup_comment.none').set_color(RColor.gray).set_styles(RStyle.italic)
+			return cls.tr('backup_comment.none').set_color(RColor.gray).set_styles(RStyle.italic)
 
 	@classmethod
 	def backup_date(cls, backup: BackupInfo):

@@ -263,7 +263,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 				# Exception raised in TarFile.addfile might nuke the whole remaining tar file, which is bad
 				# We read a few bytes from the stream, to *hopefully* trigger potential decompress exception in advanced,
 				# make it fail before affecting the actual tar file
-				peek_reader = PeekReader(stream, 4096)
+				peek_reader = PeekReader(stream, 32 * 1024)
 				peek_reader.peek()
 
 				if self.verify_blob:

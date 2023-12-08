@@ -5,6 +5,7 @@ from typing import List, Callable, Optional, Type
 from mcdreforged.api.all import *
 
 from prime_backup.config.config import Config
+from prime_backup.mcdr.command.backup_id_suggestor import BackupIdSuggestor
 from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, MultiIntegerNode
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_manager import CrontabManager
@@ -34,6 +35,7 @@ from prime_backup.types.operator import Operator
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.utils import misc_utils
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
+from prime_backup.utils.waitable_value import WaitableValue
 
 
 class CommandManager:
@@ -41,6 +43,7 @@ class CommandManager:
 		self.server = server
 		self.task_manager = task_manager
 		self.crontab_manager = crontab_manager
+		self.backup_id_suggestor = BackupIdSuggestor(task_manager)
 		self.config = Config.get()
 		self.plugin_disabled = False
 
@@ -49,7 +52,7 @@ class CommandManager:
 
 	# =============================== Command Callback ===============================
 
-	def cmd_welcome(self, source: CommandSource, context: CommandContext):
+	def cmd_welcome(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(ShowWelcomeTask(source))
 
 	def cmd_help(self, source: CommandSource, context: CommandContext):
@@ -60,13 +63,13 @@ class CommandManager:
 
 		self.task_manager.add_task(ShowHelpTask(source, what))
 
-	def cmd_db_overview(self, source: CommandSource, context: CommandContext):
+	def cmd_db_overview(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(ShowDbOverviewTask(source))
 
-	def cmd_db_validate(self, source: CommandSource, context: CommandContext, parts: ValidateParts):
+	def cmd_db_validate(self, source: CommandSource, _: CommandContext, parts: ValidateParts):
 		self.task_manager.add_task(ValidateDbTask(source, parts))
 
-	def cmd_db_vacuum(self, source: CommandSource, context: CommandContext):
+	def cmd_db_vacuum(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(VacuumSqliteTask(source))
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
@@ -149,14 +152,14 @@ class CommandManager:
 		job_id = context.get('job_id', CrontabJobId.schedule_backup)
 		self.task_manager.add_task(OperateCrontabJobTask(source, self.crontab_manager, job_id, OperateCrontabJobTask.Operation.resume))
 
-	def cmd_prune(self, source: CommandSource, context: CommandContext):
+	def cmd_prune(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(PruneAllBackupTask(source))
 
-	def cmd_confirm(self, source: CommandSource, context: CommandContext):
+	def cmd_confirm(self, source: CommandSource, _: CommandContext):
 		if not self.task_manager.do_confirm():
 			reply_message(source, tr('command.confirm.noop'))
 
-	def cmd_abort(self, source: CommandSource, context: CommandContext):
+	def cmd_abort(self, source: CommandSource, _: CommandContext):
 		if not self.task_manager.do_abort():
 			reply_message(source, tr('command.abort.noop'))
 
@@ -179,8 +182,11 @@ class CommandManager:
 
 	# ============================ Command Callback ends ============================
 
-	def suggest_backup_id(self) -> List[str]:
-		return []  # TODO
+	def suggest_backup_id(self, source: CommandSource) -> List[str]:
+		wv = self.backup_id_suggestor.request(source)
+		if wv.wait(0.2) == WaitableValue.EMPTY:
+			return []
+		return list(map(str, wv.get()))
 
 	def register_commands(self):
 		# --------------- common utils ---------------
@@ -211,6 +217,7 @@ class CommandManager:
 		# backup
 		builder.command('make', self.cmd_make)
 		builder.command('make <comment>', self.cmd_make)
+		builder.command('show <backup_id>', self.cmd_show)
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
 		builder.command('delete_range <backup_id_range>', self.cmd_delete_range)
 		builder.command('prune', self.cmd_prune)

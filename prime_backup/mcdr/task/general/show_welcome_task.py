@@ -62,7 +62,7 @@ class ShowWelcomeTask(ReaderTask[None]):
 			buttons = [
 				RTextList('[', self.tr('quick_actions.create'), ']').
 				set_color(RColor.green).
-				h(TextComponents.command('make ')).
+				h(TextComponents.command('make')).
 				c(RAction.suggest_command, mkcmd('make ' + self.tr('quick_actions.create.comment').to_plain_text()))
 			]
 		if len(backups) > 0:

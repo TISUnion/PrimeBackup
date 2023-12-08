@@ -191,7 +191,7 @@ prime_backup:
           §7{prefix} delete_range §6<备份ID范围>§r: 删除给定ID范围的备份
           §7{prefix} export §6<备份ID> §7[...]§r: 给导出给定备份到文件。详见§7{prefix} help export§r
           §7{prefix} prune §6<备份ID>§r: 手动触发一次备份裁剪
-          §7{prefix} crontab §5<任务ID> §7[...]§r: 操作定时任务。详见§7{prefix} help crontab§r
+          §7{prefix} crontab §a<任务ID> §7[...]§r: 操作定时任务。详见§7{prefix} help crontab§r
           §7{prefix} tag §6<备份ID> §7[...]§r: 操作给定备份的标签。详见§7{prefix} help tag§r
           §7{prefix} database [...]§r: 操作数据库。详见§7{prefix} help database§r
           §7{prefix} confirm§r: 确认当前的任务操作。需确认的任务: 回档、范围删除
@@ -222,11 +222,11 @@ prime_backup:
           操作定时任务
           §d【指令帮助】§r
           §7{prefix}§r: 查看当前启用的所有定时任务
-          §7{prefix} §5<任务ID>§r: 查看给定任务的状态
-          §7{prefix} §5<任务ID> §7pause§r: 临时暂停给定任务。下次插件重载时，该任务将继续运行
-          §7{prefix} §5<任务ID> §7resume§r: 取消给定任务的暂停状态，继续运行
+          §7{prefix} §a<任务ID>§r: 查看给定任务的状态
+          §7{prefix} §a<任务ID> §7pause§r: 临时暂停给定任务。下次插件重载时，该任务将继续运行
+          §7{prefix} §a<任务ID> §7resume§r: 取消给定任务的暂停状态，继续运行
           §d【参数帮助】§r
-          §5<任务ID>§r: 可用选项: {job_ids}
+          §a<任务ID>§r: 可用选项: {job_ids}
         database: |-
           §d【database指令帮助】§r
           操作{name}的核心SQLite数据库
@@ -250,7 +250,7 @@ prime_backup:
           §3<导出格式>§r: 可用选项: {export_formats}。若未指定，则使用§3tar§r格式
           §d【可选参数】§r
           §7--overwrite§r: 覆盖已存在的备份导出文件。默认情况下，若输出文件已存在则不导出
-          §7--fail-soft§r: 在导出过程中跳过导出失败的文件，因此单个文件的失败不会导致整个导出的失败
+          §7--fail-soft§r: 在导出过程中跳过导出失败的文件，因此单个文件的失败不会导致整个导出的失败。注意: 损坏的文件可能会破坏tar一类的导出文件
           §7--no-verify§r: 不校验导出文件的内容
           §d【例子】§r
           §7{prefix} export 12§r: 使用默认的§3tar§r格式导出备份§612§r

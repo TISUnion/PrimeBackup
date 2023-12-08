@@ -81,7 +81,7 @@ class ShowHelpTask(ImmediateTask[None]):
 				kwargs = {'prefix': self.__cmd_prefix}
 				if self.what == 'crontab':
 					from prime_backup.mcdr.crontab_job import CrontabJobId
-					kwargs['job_ids'] = ', '.join([f'§5{jid.name}§r' for jid in CrontabJobId])
+					kwargs['job_ids'] = ', '.join([f'{TextColors.job_id.mc_code}{jid.name}§r' for jid in CrontabJobId])
 				elif self.what == 'database':
 					name = mcdr_globals.metadata.name
 					kwargs['name'] = name

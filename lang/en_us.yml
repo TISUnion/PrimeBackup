@@ -191,7 +191,7 @@ prime_backup:
           §7{prefix} delete_range §6<backup_id_range>§r: Delete backups inside the given ID range
           §7{prefix} export §6<backup_id> §7[...]§r: Export the given backup. See §7{prefix} help export§r for detailed help
           §7{prefix} prune §6<backup_id>§r: Manually trigger a backup prune
-          §7{prefix} crontab §5<job_id> §7[...]§r: Crontab job operations. See §7{prefix} help crontab§r for help
+          §7{prefix} crontab §a<job_id> §7[...]§r: Crontab job operations. See §7{prefix} help crontab§r for help
           §7{prefix} tag §6<backup_id> §7[...]§r: Tag operation on the given backup
           §7{prefix} database [...]§r: Database operations. See §7{prefix} help database§r for help
           §7{prefix} confirm§r: Confirm the current task execution
@@ -222,11 +222,11 @@ prime_backup:
           Operate crontab jobs
           §d[Usages]§r
           §7{prefix}§r: Show all currently enabled crontab jobs
-          §7{prefix} §5<job_id>§r: Show status of the given crontab job
-          §7{prefix} §5<job_id> §7pause§r: Temporarily pause the given job. The job will still start on next plugin load
-          §7{prefix} §5<job_id> §7resume§r: Cancel the pause state of the given job, resume its run
+          §7{prefix} §a<job_id>§r: Show status of the given crontab job
+          §7{prefix} §a<job_id> §7pause§r: Temporarily pause the given job. The job will still start on next plugin load
+          §7{prefix} §a<job_id> §7resume§r: Cancel the pause state of the given job, resume its run
           §d[Arguments]§r
-          §5<job_id>§r: Available options: {job_ids}
+          §a<job_id>§r: Available options: {job_ids}
         database: |-
           §d[database Command Usage]§r
           Operate the core SQLite database of {name}
@@ -250,7 +250,7 @@ prime_backup:
           §3<export_format>§r: Available options: {export_formats}. Use §3tar§r format if not specified
           §d[Optional flags]§r
           §7--overwrite§r: Overwrites existing exported backup. By default, no export will be made if the output file exists
-          §7--fail-soft§r: Skip files with export failure in the backup, so a single failure will not abort the export
+          §7--fail-soft§r: Skip files with export failure in the backup, so a single failure will not abort the export. Notes: a corrupted file might damaged the tar-based file 
           §7--no-verify§r: Do not verify the exported file contents
           §d[Examples]§r
           §7{prefix} export 12§r: Use the default §3tar§r format to export backup §612§r

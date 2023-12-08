@@ -20,6 +20,7 @@ class TextColors:
 	date = RColor.aqua
 	file = RColor.dark_aqua
 	help_title = RColor.light_purple
+	job_id = RColor.green
 	number = RColor.yellow
 
 

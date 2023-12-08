@@ -19,11 +19,11 @@ class ListCrontabJobTask(ImmediateTask[None]):
 		self.reply(TextComponents.title(self.tr('title')))
 		for job in self.crontab_manager.list_jobs():
 			if job.is_enabled():
-				t_enabled = RText('E', RColor.green).h(self.tr('enabled'))
+				t_enabled = RText('E', RColor.dark_green).h(self.tr('enabled'))
 			else:
-				t_enabled = RText('D', RColor.red).h(self.tr('disabled'))
+				t_enabled = RText('D', RColor.dark_red).h(self.tr('disabled'))
 			if job.is_running():
-				t_running = RText('R', RColor.green).h(self.tr('running'))
+				t_running = RText('R', RColor.dark_green).h(self.tr('running'))
 			else:
 				t_running = RText('P', RColor.yellow).h(self.tr('paused'))
 			t_flags = RTextList(

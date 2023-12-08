@@ -14,7 +14,7 @@ from prime_backup.config.config import Config
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobEvent
 from prime_backup.mcdr.task import Task
 from prime_backup.mcdr.task_queue import TaskQueue
-from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.units import Duration
 from prime_backup.utils import misc_utils
 from prime_backup.utils.mcdr_utils import broadcast_message, TranslationContext
@@ -94,10 +94,10 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			return self.__base_tr('next_run_date_paused').set_color(RColor.gray)
 
 	def get_name_text(self) -> RTextBase:
-		return self.tr('name').set_color(RColor.aqua).h(self.id.name)
+		return self.tr('name').set_color(TextColors.job_id).h(self.id.name)
 
 	def get_name_text_titled(self) -> RTextBase:
-		return self.tr('name_titled').set_color(RColor.aqua).h(self.id.name)
+		return self.tr('name_titled').set_color(TextColors.job_id).h(self.id.name)
 
 	def on_event(self, event: CrontabJobEvent):
 		if event == CrontabJobEvent.plugin_unload:

@@ -1,6 +1,7 @@
 import tarfile
 import threading
 import time
+from pathlib import Path
 from typing import Optional
 
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
@@ -14,7 +15,7 @@ class CreateDbBackupTask(OperationTask):
 	__task_sem = threading.Semaphore(1)
 
 	@property
-	def name(self) -> str:
+	def id(self) -> str:
 		return 'db_backup'
 
 	def run(self) -> Optional[threading.Thread]:
@@ -23,7 +24,7 @@ class CreateDbBackupTask(OperationTask):
 			return None
 
 		try:
-			db_backup_root = self.config.storage_path / 'db_backup'
+			db_backup_root: Path = self.config.storage_path / 'db_backup'
 			temp_db_path = db_backup_root / 'temp.db'
 
 			self.logger.info('db backup: Vacuum database to {}'.format(temp_db_path.as_posix()))

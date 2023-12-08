@@ -1,7 +1,6 @@
 import contextlib
 import copy
 import json
-import threading
 
 from mcdreforged.api.all import *
 
@@ -9,7 +8,6 @@ from prime_backup.action.count_backup_action import CountBackupAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupIdAction
 from prime_backup.exceptions import BackupNotFound
-from prime_backup.mcdr.task import TaskEvent
 from prime_backup.mcdr.task.basic_task import ReaderTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
@@ -27,15 +25,14 @@ class ListBackupTask(ReaderTask):
 		self.show_all = show_all
 		self.show_flags = show_flags
 		self.show_size = show_size
-		self.is_aborted = threading.Event()
 
 		if not self.show_all:
 			self.backup_filter.filter_non_pre_restore_backup()
 			self.backup_filter.filter_non_hidden_backup()
 
 	@property
-	def name(self) -> str:
-		return 'list'
+	def id(self) -> str:
+		return 'backup_list'
 
 	def is_abort_able(self) -> bool:
 		return True
@@ -67,7 +64,7 @@ class ListBackupTask(ReaderTask):
 		self.reply(TextComponents.title(self.tr('title')))
 		self.reply(self.tr('backup_count', TextComponents.number(total_count)))
 		for backup_id in backup_ids:
-			if self.is_aborted.is_set():
+			if self.aborted_event.is_set():
 				self.reply(self.tr('aborted'))
 				return
 			with contextlib.suppress(BackupNotFound):
@@ -86,8 +83,3 @@ class ListBackupTask(ReaderTask):
 		else:
 			t_next.set_color(RColor.dark_gray)
 		self.reply(RTextList(t_prev, ' ', TextComponents.number(self.page), '/', TextComponents.number(max_page), ' ', t_next))
-
-	def on_event(self, event: TaskEvent):
-		super().on_event(event)
-		if event in [TaskEvent.plugin_unload, TaskEvent.operation_aborted]:
-			self.is_aborted.set()

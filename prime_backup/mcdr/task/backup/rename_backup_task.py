@@ -12,8 +12,8 @@ class RenameBackupTask(OperationTask):
 		self.comment = comment
 
 	@property
-	def name(self) -> str:
-		return 'rename'
+	def id(self) -> str:
+		return 'backup_rename'
 
 	def run(self) -> None:
 		RenameBackupAction(self.backup_id, self.comment).run()

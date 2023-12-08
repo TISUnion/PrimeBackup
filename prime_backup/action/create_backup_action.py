@@ -212,7 +212,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				yield temp_file_path
 
 		def attempt_once(last_chance: bool = False) -> Generator[Any, Any, schema.Blob]:
-			compress_method = self.config.backup.get_compress_method_from_size(st.st_size)
+			compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(st.st_size)
 			can_copy_on_write = (
 					file_utils.HAS_COPY_FILE_RANGE and
 					compress_method == CompressMethod.plain and

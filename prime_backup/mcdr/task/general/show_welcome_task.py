@@ -17,7 +17,7 @@ class ShowWelcomeTask(ReaderTask):
 	COMMON_COMMANDS = ['', 'help', 'make', 'back', 'list', 'show', 'rename', 'delete', 'confirm', 'abort']
 
 	@property
-	def name(self) -> str:
+	def id(self) -> str:
 		return 'welcome'
 
 	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = False):

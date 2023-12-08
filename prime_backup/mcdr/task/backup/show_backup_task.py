@@ -14,8 +14,8 @@ class ShowBackupTask(ReaderTask):
 		self.backup_id = backup_id
 
 	@property
-	def name(self) -> str:
-		return 'show'
+	def id(self) -> str:
+		return 'backup_show'
 
 	def run(self):
 		backup = GetBackupAction(self.backup_id).run()

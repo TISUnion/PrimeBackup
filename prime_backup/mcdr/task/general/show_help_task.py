@@ -23,7 +23,7 @@ class ShowHelpTask(ImmediateTask):
 		self.what = what
 
 	@property
-	def name(self) -> str:
+	def id(self) -> str:
 		return 'help'
 
 	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = False):

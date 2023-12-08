@@ -15,7 +15,7 @@ class TaskEvent(enum.Enum):
 
 class Task(mcdr_utils.TranslationContext, ABC):
 	def __init__(self, source: CommandSource):
-		super().__init__(f'task.{self.name}')
+		super().__init__(f'task.{self.id}')
 		self.source = source
 		self.server = source.get_server()
 
@@ -27,7 +27,7 @@ class Task(mcdr_utils.TranslationContext, ABC):
 
 	@property
 	@abstractmethod
-	def name(self) -> str:
+	def id(self) -> str:
 		...
 
 	@abstractmethod

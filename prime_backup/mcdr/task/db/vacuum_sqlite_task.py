@@ -15,7 +15,7 @@ class VacuumSqliteTask(OperationTask):
 		self.target_path = target_path
 
 	@property
-	def name(self) -> str:
+	def id(self) -> str:
 		return 'db_vacuum'
 
 	def run(self) -> None:

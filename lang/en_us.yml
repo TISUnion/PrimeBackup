@@ -8,11 +8,11 @@ prime_backup:
       noop: Nothing to abort
 
   task:
-    clear_tag:
+    backup_clear_tag:
       name: set backup tag
       cleared: Cleared tag {1} of backup {0}
       not_exists: Backup {0} does not have tag {1}
-    create:
+    backup_create:
       name: create backup
       start: Creating backup, please wait
       abort.save_wait_time_out: Waiting for the world to save timed out, aborting backup task
@@ -21,6 +21,91 @@ prime_backup:
       cost.hover: |-
         save wait: {}
         create backup: {}
+    backup_delete:
+      name: delete backup
+      protected: Backup {} is protected and cannot be deleted
+      deleting: Deleting {}
+      deleted: Deleted backup {}, freed {}
+    backup_delete_range:
+      name: delete backup range
+      no_backup: No available backup to delete
+      to_delete_count: 'Found {} backups to be deleted:'
+      ellipsis.hover: Omitted {} backups
+      confirm_target: delete
+      no_confirm: No choice has been made, delete task aborted
+      aborted: Delete task aborted
+      deleted: Deleted {}
+      deleted.skipped: Skipped {} (missed)
+      done: Done, {} backups deleted, freed {}
+    backup_export:
+      name: export backup
+      already_exists: File {} already exists
+      exporting: Exporting backup {}
+      exported: Exported backup {} to {}, cost {}, size {}
+    backup_list:
+      name: list backup
+      title: Backup list
+      backup_count: 'There are {} backups:'
+      size: Size
+      next: Next Page
+      prev: Previous Page
+      aborted: List task aborted
+    backup_prune:
+      name: prune backups
+      nothing_to_prune: No available backup to prune
+      list_to_be_pruned: 'Backups to be pruned (amount={}): {}'
+      prune: Deleting backup {}
+      aborted: Prune task aborted
+      done: Finished pruning, removed {} backups, {} blobs, freed {}
+    backup_prune_all:
+      name: prune all backups
+      nothing_to_do: No enabled prune job, no thing to do
+      what:
+        regular: regular backups
+        pre_restore: pre-restore backups
+      start: Start pruning {}
+      done: Finished all prune jobs, removed {} backups, {} blobs, freed {}
+    backup_rename:
+      name: rename backup
+      modified: Modified the comment of backup {} to {}
+    backup_restore:
+      name: restore backup
+      no_backup: No available backup to restore
+      show_backup: Gonna restore the world to {}
+      confirm_target: restore
+      countdown: '{} second later, the world will §cbe restored§r to {}'
+      countdown.hover: Click me or enter command {} to abort restore
+      no_confirm: No choice has been made, restore task aborted
+      pre_restore_comment: 'Automatic backup before restoring to #{}'
+      aborted: Restore task aborted
+    backup_set_tag:
+      name: set backup tag
+      set: Set tag {1} of backup {0} to {2}
+    backup_show:
+      name: show backup
+      title: 'Backup {}'
+      date: 'Creation date: {}'
+      comment: 'Comment: {}'
+      stored_size: 'Size (stored): {} ({})'
+      raw_size: 'Size (raw): {}'
+      author: 'Author: {}'
+      author.hover: 'Click to list backups created by {}'
+      tag.title: 'Tags (size={}):'
+      tag.empty_title: 'Tags: {}'
+      tag.empty: empty
+    backup_show_tag:
+      name: show backup tags
+      title: Tags of backup {}
+      amount: 'Tag amount: {}'
+      value_type: 'Value type: {}'
+      create: Click to create tag {}
+      edit: Click to edit tag {}
+      clear: Click to clear tag {}
+      not_exists: not exists
+    backup_show_tag_single:
+      name: show backup single tag
+      value: Tag {1} of backup {0} is {2}
+      not_exists: Backup {0} does not have tag {1}
     crontab_list_job:
       name: list crontab
       title: Crontab job list
@@ -86,27 +171,6 @@ prime_backup:
         bad_blob_relation: 'Bad blob relationship: {}'
         file_blob_mismatched: 'File-blob mismatch: {}'
       done: Validation done, cost {}
-    delete:
-      name: delete backup
-      protected: Backup {} is protected and cannot be deleted
-      deleting: Deleting {}
-      deleted: Deleted backup {}, freed {}
-    delete_range:
-      name: delete backup range
-      no_backup: No available backup to delete
-      to_delete_count: 'Found {} backups to be deleted:'
-      ellipsis.hover: Omitted {} backups
-      confirm_target: delete
-      no_confirm: No choice has been made, delete task aborted
-      aborted: Delete task aborted
-      deleted: Deleted {}
-      deleted.skipped: Skipped {} (missed)
-      done: Done, {} backups deleted, freed {}
-    export:
-      name: export backup
-      already_exists: File {} already exists
-      exporting: Exporting backup {}
-      exported: Exported backup {} to {}, cost {}, size {}
     help:
       name: show help
       commands:
@@ -190,70 +254,6 @@ prime_backup:
           §7{prefix} tag §6<backup_id> §b<tag_name> §7set §e<tag_value>§r: Set the value of the given tag for the backup
           §7{prefix} tag §6<backup_id> §b<tag_name> §7clear§r: Clear the given tag of the backup
       permission_denied: You don't have the permission to see help message of subcommand {}
-    list:
-      name: list backup
-      title: Backup list
-      backup_count: 'There are {} backups:'
-      size: Size
-      next: Next Page
-      prev: Previous Page
-      aborted: List task aborted
-    prune:
-      name: prune backups
-      nothing_to_prune: No available backup to prune
-      list_to_be_pruned: 'Backups to be pruned (amount={}): {}'
-      prune: Deleting backup {}
-      aborted: Prune task aborted
-      done: Finished pruning, removed {} backups, {} blobs, freed {}
-    prune_all:
-      name: prune all backups
-      nothing_to_do: No enabled prune job, no thing to do
-      what:
-        regular: regular backups
-        pre_restore: pre-restore backups
-      start: Start pruning {}
-      done: Finished all prune jobs, removed {} backups, {} blobs, freed {}
-    rename:
-      name: rename backup
-      modified: Modified the comment of backup {} to {}
-    restore:
-      name: restore backup
-      no_backup: No available backup to restore
-      show_backup: Gonna restore the world to {}
-      confirm_target: restore
-      countdown: '{} second later, the world will §cbe restored§r to {}'
-      countdown.hover: Click me or enter command {} to abort restore
-      no_confirm: No choice has been made, restore task aborted
-      pre_restore_comment: 'Automatic backup before restoring to #{}'
-      aborted: Restore task aborted
-    set_tag:
-      name: set backup tag
-      set: Set tag {1} of backup {0} to {2}
-    show:
-      name: show backup
-      title: 'Backup {}'
-      date: 'Creation date: {}'
-      comment: 'Comment: {}'
-      stored_size: 'Size (stored): {} ({})'
-      raw_size: 'Size (raw): {}'
-      author: 'Author: {}'
-      author.hover: 'Click to list backups created by {}'
-      tag.title: 'Tags (size={}):'
-      tag.empty_title: 'Tags: {}'
-      tag.empty: empty
-    show_tag:
-      name: show backup tags
-      title: Tags of backup {}
-      amount: 'Tag amount: {}'
-      value_type: 'Value type: {}'
-      create: Click to create tag {}
-      edit: Click to edit tag {}
-      clear: Click to clear tag {}
-      not_exists: not exists
-    show_tag_single:
-      name: show backup single tag
-      value: Tag {1} of backup {0} is {2}
-      not_exists: Backup {0} does not have tag {1}
     welcome:
       title: '{name} {version}'
       common_commands: '[Common Commands]'

@@ -22,8 +22,8 @@ class SetBackupTagTask(_OperateBackupTagTaskBase):
 		self.value = value
 
 	@property
-	def name(self) -> str:
-		return 'set_tag'
+	def id(self) -> str:
+		return 'backup_set_tag'
 
 	def run(self) -> None:
 		SetBackupTagAction(self.backup_id, self.tag_name, self.value).run()
@@ -32,8 +32,8 @@ class SetBackupTagTask(_OperateBackupTagTaskBase):
 
 class ClearBackupTagTask(_OperateBackupTagTaskBase):
 	@property
-	def name(self) -> str:
-		return 'clear_tag'
+	def id(self) -> str:
+		return 'backup_clear_tag'
 
 	def run(self) -> None:
 		ok = ClearBackupTagAction(self.backup_id, self.tag_name).run()

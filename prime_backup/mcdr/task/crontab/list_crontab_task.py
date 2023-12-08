@@ -12,7 +12,7 @@ class ListCrontabJobTask(ImmediateTask):
 		self.crontab_manager = crontab_manager
 
 	@property
-	def name(self) -> str:
+	def id(self) -> str:
 		return 'crontab_list_job'
 
 	def run(self) -> None:

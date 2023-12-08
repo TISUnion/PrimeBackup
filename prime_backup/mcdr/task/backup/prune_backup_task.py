@@ -57,7 +57,7 @@ class PruneResult(List[PruneResultItem]):
 
 	@functools.cached_property
 	def id_to_mark(self) -> Dict[int, PruneMark]:
-		return {backup.id: mark for backup, mark in self}
+		return {pri.backup.id: pri.mark for pri in self}
 
 
 class PruneBackupTask(OperationTask):
@@ -70,8 +70,8 @@ class PruneBackupTask(OperationTask):
 		self.what_to_prune = what_to_prune
 
 	@property
-	def name(self) -> str:
-		return 'prune'
+	def id(self) -> str:
+		return 'backup_prune'
 
 	def is_abort_able(self) -> bool:
 		return True
@@ -116,14 +116,16 @@ class PruneBackupTask(OperationTask):
 					marks[backup.id] = PruneMark.create_keep(f'keep {policy} {len(handled_buckets)}')
 
 		def create_time_str_func(fmt: str):
-			def func(backup: BackupInfo):
+			def func(backup: BackupInfo) -> str:
 				timestamp = backup.timestamp_ns / 1e9
 				dt = datetime.datetime.fromtimestamp(timestamp, tz=timezone)
 				return dt.strftime(fmt)
 			return func
 
 		if settings.last != 0:
-			mark_selections(settings.last, 'last', lambda b: str(b.id))
+			def __backup_to_id(b: BackupInfo) -> str:
+				return str(b.id)
+			mark_selections(settings.last, 'last', __backup_to_id)
 		if settings.hour != 0:
 			mark_selections(settings.hour, 'hour', create_time_str_func('%Y/%m/%d/%H'))
 		if settings.day != 0:
@@ -240,8 +242,8 @@ class PruneAllBackupTask(OperationTask):
 		self.__current_task: Optional[PruneBackupTask] = None
 
 	@property
-	def name(self) -> str:
-		return 'prune_all'
+	def id(self) -> str:
+		return 'backup_prune_all'
 
 	def is_abort_able(self) -> bool:
 		return True

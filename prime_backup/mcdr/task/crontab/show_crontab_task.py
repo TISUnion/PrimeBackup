@@ -9,7 +9,7 @@ from prime_backup.utils.mcdr_utils import mkcmd
 
 class ShowCrontabJobTask(CrontabTaskBase):
 	@property
-	def name(self) -> str:
+	def id(self) -> str:
 		return 'crontab_show'
 
 	def run(self) -> None:

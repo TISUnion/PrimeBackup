@@ -37,7 +37,7 @@ class ValidateDbTask(OperationTask):
 		self.__current_action: Optional[Action] = None
 
 	@property
-	def name(self) -> str:
+	def id(self) -> str:
 		return 'db_validate'
 
 	def is_abort_able(self) -> bool:

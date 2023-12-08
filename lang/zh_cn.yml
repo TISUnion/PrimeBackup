@@ -8,11 +8,11 @@ prime_backup:
       noop: 没有什么是需要终止的
 
   task:
-    clear_tag:
+    backup_clear_tag:
       name: 清除备份标签
       cleared: 已清理备份{0}的标签{1}
       not_exists: 备份{0}不存在标签{1}
-    create:
+    backup_create:
       name: 创建备份
       start: 创建备份中...请稍等
       abort.save_wait_time_out: 等待世界保存超时, 备份任务中止
@@ -21,6 +21,91 @@ prime_backup:
       cost.hover: |-
         等待世界保存: {}
         创建备份: {}
+    backup_delete:
+      name: 删除备份
+      protected: 备份{}受到保护, 无法删除
+      deleting: 正在删除{}
+      deleted: 已删除备份{}, 释放{}
+    backup_delete_range:
+      name: 范围删除备份
+      no_backup: 未找到可删除的备份
+      to_delete_count: '将要删除以下{}个备份: '
+      ellipsis.hover: 省略{}个备份
+      confirm_target: 删除
+      no_confirm: 未做出选择, 范围删除备份任务中止
+      aborted: 范围删除备份任务中止
+      deleted: 已删除{}
+      deleted.skipped: 已跳过{} (备份不存在)
+      done: 任务完成, 共删除{}个备份, 共释放{}
+    backup_export:
+      name: 导出备份
+      already_exists: 文件{}已存在
+      exporting: 正在导出备份{}
+      exported: 已将备份{}导出至{}, 耗时{}, 文件大小{}
+    backup_list:
+      name: 列出备份
+      title: 备份列表
+      backup_count: '共有{}个备份:'
+      size: 体积
+      next: 下一页
+      prev: 上一页
+      aborted: 列出备份任务终止
+    backup_prune:
+      name: 裁剪备份
+      nothing_to_prune: 未找到需要被裁剪的备份
+      list_to_be_pruned: '将要裁剪的备份 (共{}个): {}'
+      prune: 正在删除{}
+      aborted: 裁剪任务中止
+      done: 裁剪完成, 共删除{}个备份、{}个对象, 共释放{}
+    backup_prune_all:
+      name: 全范围裁剪备份
+      nothing_to_do: 没有生效的裁剪子任务, 裁剪中止
+      what:
+        regular: 普通备份
+        pre_restore: 回档前备份
+      start: 开始裁剪{}
+      done: 已完成所有裁剪子任务, 共删除{}个备份、{}个数据对象, 共释放{}
+    backup_rename:
+      name: 重命名备份
+      modified: 已将备份{}的注释修改为{}
+    backup_restore:
+      name: 回档
+      no_backup: 未找到可用于回档的备份
+      show_backup: 将要回档至{}
+      confirm_target: 回档
+      countdown: '{}秒后将§c回档§r至{}'
+      countdown.hover: 点我或输入{}以终止回档
+      no_confirm: 未做出选择, 回档任务中止
+      pre_restore_comment: '回档至#{}前的自动备份'
+      aborted: 回档任务中止
+    backup_set_tag:
+      name: 设置备份标签
+      set: 已将备份{0}的标签{1}设置为{2}
+    backup_show:
+      name: 展示备份
+      title: '备份{}'
+      date: '创建日期: {}'
+      comment: '注释: {}'
+      stored_size: '存储大小: {} ({})'
+      raw_size: '原始大小: {}'
+      author: '作者: {}'
+      author.hover: '点击以列出作者{}创建的所有备份'
+      tag.title: '标签(共{}条):'
+      tag.empty_title: '标签: {}'
+      tag.empty: 空
+    backup_show_tag:
+      name: 展示备份标签
+      title: 备份{}的标签
+      amount: '标签数量: {}'
+      value_type: '值类型: {}'
+      create: 点我创建标签{}
+      edit: 点我编辑标签{}
+      clear: 点我清除标签{}
+      not_exists: 不存在
+    backup_show_tag_single:
+      name: 展示备份的单个标签
+      value: 备份{0}的标签{1}是{2}
+      not_exists: 备份{0}不存在标签{1}
     crontab_list_job:
       name: 列出定时任务
       title: 定时任务列表
@@ -86,27 +171,6 @@ prime_backup:
         bad_blob_relation: '与数据对象错误关联: {}个'
         file_blob_mismatched: '文件与数据对象间信息不匹配: {}个'
       done: 验证完成, 耗时{}
-    delete:
-      name: 删除备份
-      protected: 备份{}受到保护, 无法删除
-      deleting: 正在删除{}
-      deleted: 已删除备份{}, 释放{}
-    delete_range:
-      name: 范围删除备份
-      no_backup: 未找到可删除的备份
-      to_delete_count: '将要删除以下{}个备份: '
-      ellipsis.hover: 省略{}个备份
-      confirm_target: 删除
-      no_confirm: 未做出选择, 范围删除备份任务中止
-      aborted: 范围删除备份任务中止
-      deleted: 已删除{}
-      deleted.skipped: 已跳过{} (备份不存在)
-      done: 任务完成, 共删除{}个备份, 共释放{}
-    export:
-      name: 导出备份
-      already_exists: 文件{}已存在
-      exporting: 正在导出备份{}
-      exported: 已将备份{}导出至{}, 耗时{}, 文件大小{}
     help:
       name: 展示帮助
       commands:
@@ -190,70 +254,6 @@ prime_backup:
           §7{prefix} tag §6<备份ID> §b<标签名> §7set §e<标签值>§r: 设置备份给定标签的值
           §7{prefix} tag §6<备份ID> §b<标签名> §7clear§r: 清空备份的给定标签
       permission_denied: 你没有权限查看子命令{}的帮助信息
-    list:
-      name: 列出备份
-      title: 备份列表
-      backup_count: '共有{}个备份:'
-      size: 体积
-      next: 下一页
-      prev: 上一页
-      aborted: 列出备份任务终止
-    prune:
-      name: 裁剪备份
-      nothing_to_prune: 未找到需要被裁剪的备份
-      list_to_be_pruned: '将要裁剪的备份 (共{}个): {}'
-      prune: 正在删除{}
-      aborted: 裁剪任务中止
-      done: 裁剪完成, 共删除{}个备份、{}个对象, 共释放{}
-    prune_all:
-      name: 全范围裁剪备份
-      nothing_to_do: 没有生效的裁剪子任务, 裁剪中止
-      what:
-        regular: 普通备份
-        pre_restore: 回档前备份
-      start: 开始裁剪{}
-      done: 已完成所有裁剪子任务, 共删除{}个备份、{}个数据对象, 共释放{}
-    rename:
-      name: 重命名备份
-      modified: 已将备份{}的注释修改为{}
-    restore:
-      name: 回档
-      no_backup: 未找到可用于回档的备份
-      show_backup: 将要回档至{}
-      confirm_target: 回档
-      countdown: '{}秒后将§c回档§r至{}'
-      countdown.hover: 点我或输入{}以终止回档
-      no_confirm: 未做出选择, 回档任务中止
-      pre_restore_comment: '回档至#{}前的自动备份'
-      aborted: 回档任务中止
-    set_tag:
-      name: 设置备份标签
-      set: 已将备份{0}的标签{1}设置为{2}
-    show:
-      name: 展示备份
-      title: '备份{}'
-      date: '创建日期: {}'
-      comment: '注释: {}'
-      stored_size: '存储大小: {} ({})'
-      raw_size: '原始大小: {}'
-      author: '作者: {}'
-      author.hover: '点击以列出作者{}创建的所有备份'
-      tag.title: '标签(共{}条):'
-      tag.empty_title: '标签: {}'
-      tag.empty: 空
-    show_tag:
-      name: 展示备份标签
-      title: 备份{}的标签
-      amount: '标签数量: {}'
-      value_type: '值类型: {}'
-      create: 点我创建标签{}
-      edit: 点我编辑标签{}
-      clear: 点我清除标签{}
-      not_exists: 不存在
-    show_tag_single:
-      name: 展示备份的单个标签
-      value: 备份{0}的标签{1}是{2}
-      not_exists: 备份{0}不存在标签{1}
     welcome:
       title: '{name} {version}'
       common_commands: '【常用指令】'

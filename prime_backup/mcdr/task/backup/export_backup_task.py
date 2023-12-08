@@ -25,8 +25,8 @@ class ExportBackupTask(OperationTask):
 		self.export_format = export_format
 
 	@property
-	def name(self) -> str:
-		return 'export'
+	def id(self) -> str:
+		return 'backup_export'
 
 	def run(self) -> None:
 		backup = GetBackupAction(self.backup_id).run()

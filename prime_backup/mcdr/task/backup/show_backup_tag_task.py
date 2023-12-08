@@ -17,8 +17,8 @@ class ShowBackupSingleTagTask(ReaderTask):
 		self.tag_name = tag_name
 
 	@property
-	def name(self) -> str:
-		return 'show_tag_single'
+	def id(self) -> str:
+		return 'backup_show_tag_single'
 
 	def run(self) -> None:
 		backup = GetBackupAction(self.backup_id).run()
@@ -35,8 +35,8 @@ class ShowBackupTagTask(ReaderTask):
 		self.backup_id = backup_id
 
 	@property
-	def name(self) -> str:
-		return 'show_tag'
+	def id(self) -> str:
+		return 'backup_show_tag'
 
 	def __show_tag(self, backup: BackupInfo, key: str, value: Any):
 		try:

@@ -21,8 +21,8 @@ class CreateBackupTask(OperationTask):
 		self.world_saved_done = threading.Event()
 
 	@property
-	def name(self) -> str:
-		return 'create'
+	def id(self) -> str:
+		return 'backup_create'
 
 	def run(self):
 		self.broadcast(self.tr('start'))

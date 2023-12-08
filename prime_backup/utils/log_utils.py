@@ -19,7 +19,6 @@ def __get_log_file_path(file_name: str) -> Path:
 
 
 def create_file_logger(name: str) -> logging.Logger:
-	# TODO: concurrency write proof. is that possible?
 	logger = logging.Logger(f'{constants.PLUGIN_ID}-{name}', __get_log_mode())
 	handler = logging.FileHandler(__get_log_file_path(f'{name}.log'))
 	handler.setFormatter(LOG_FORMATTER)

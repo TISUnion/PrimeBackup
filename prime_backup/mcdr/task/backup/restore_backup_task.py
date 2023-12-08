@@ -23,8 +23,8 @@ class RestoreBackupTask(OperationTask):
 		self.needs_confirm = needs_confirm
 
 	@property
-	def name(self) -> str:
-		return 'restore'
+	def id(self) -> str:
+		return 'backup_restore'
 
 	def __countdown_and_stop_server(self, backup: BackupInfo) -> bool:
 		for countdown in range(max(0, self.config.command.restore_countdown_sec), 0, -1):

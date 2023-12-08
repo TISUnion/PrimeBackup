@@ -12,8 +12,8 @@ class DeleteBackupTask(OperationTask):
 		self.backup_id = backup_id
 
 	@property
-	def name(self) -> str:
-		return 'delete'
+	def id(self) -> str:
+		return 'backup_delete'
 
 	def run(self):
 		backup = GetBackupAction(self.backup_id).run()

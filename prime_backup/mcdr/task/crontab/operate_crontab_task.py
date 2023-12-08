@@ -17,7 +17,7 @@ class OperateCrontabJobTask(CrontabTaskBase):
 		self.operation = operation
 
 	@property
-	def name(self) -> str:
+	def id(self) -> str:
 		return 'crontab_operate'
 
 	def run(self) -> None:

@@ -6,7 +6,7 @@ from prime_backup.mcdr.text_components import TextComponents
 
 class ShowDbOverviewTask(ReaderTask):
 	@property
-	def name(self) -> str:
+	def id(self) -> str:
 		return 'db_overview'
 
 	def run(self) -> None:

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import ContextManager, IO, Optional, NamedTuple, List, Dict
 
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
-from prime_backup.compressors import Compressor
+from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
@@ -258,7 +258,7 @@ class ImportBackupAction(CreateBackupActionBase):
 		blob_path = blob_utils.get_blob_path(sah.hash)
 		self._add_remove_file_rollbacker(blob_path)
 
-		compress_method = self.config.backup.get_compress_method_from_size(sah.size)
+		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(sah.size)
 		compressor = Compressor.create(compress_method)
 		with compressor.open_compressed_bypassed(blob_path) as (writer, f):
 			shutil.copyfileobj(file_reader, f)

@@ -19,8 +19,8 @@ class DeleteBackupRangeTask(OperationTask):
 		self.id_end = id_end
 
 	@property
-	def name(self) -> str:
-		return 'delete_range'
+	def id(self) -> str:
+		return 'backup_delete_range'
 
 	def is_abort_able(self) -> bool:
 		return True

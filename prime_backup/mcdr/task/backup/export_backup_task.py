@@ -35,7 +35,8 @@ class ExportBackupTask(OperationTask[None]):
 		def make_output(extension: str) -> Path:
 			name = f'backup_{backup.id}'
 			if len(backup.comment) > 0:
-				name += '_' + _sanitize_file_name(backup.comment)
+				comment = TextComponents.backup_comment(backup.comment).to_plain_text()  # use MCDR's language
+				name += '_' + _sanitize_file_name(comment)
 			name += extension
 			return self.config.storage_path / 'export' / name
 

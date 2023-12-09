@@ -30,4 +30,4 @@ Python package requirements: See [requirements.txt](requirements.txt)
 - [x] Translation
 - [ ] Code clean up
 - [ ] Regression Testing
-- [ ] Document
+- [x] Document

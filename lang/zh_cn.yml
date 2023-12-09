@@ -90,8 +90,8 @@ prime_backup:
       comment: '注释: {}'
       stored_size: '存储大小: {} ({})'
       raw_size: '原始大小: {}'
-      author: '作者: {}'
-      author.hover: '点击以列出作者{}创建的所有备份'
+      creator: '创建者: {}'
+      creator.hover: '点击以列出{}创建的所有备份'
       tag.title: '标签(共{}条):'
       tag.empty_title: '标签: {}'
       tag.empty: 空
@@ -263,7 +263,7 @@ prime_backup:
           §7{prefix} list [<页数>] [--参数 <值>]§r
           §d【可选参数】§r
           §7--per-page §e<每页行数>§r: 设置每页展示的备份数量。默认: §e10§r
-          §7--author §e<作者>§r: 仅列出给定作者的备份
+          §7--creator §e<创建者>§r: 仅列出给定创建者的备份
           §7--start §b<起始日期>§r: 仅列出给定日期之后的备份
           §7--end §b<结束日期>§r: 仅列出给定日期之前的备份
           §7--all§r: 展示所有的备份。默认情况下, 隐藏备份、回档前备份不会被展示
@@ -338,7 +338,7 @@ prime_backup:
       none: 空
       scheduled_backup: 定时备份
     backup_full:
-      author: '作者: {}'
+      creator: '创建者: {}'
       restore: 回档至备份{}
       delete: 删除备份{}
       protected: 备份{}受保护

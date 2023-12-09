@@ -302,7 +302,7 @@ def __main():
 		from prime_backup.types.operator import Operator
 		backups.append(BackupInfo(
 			id=id_counter, timestamp_ns=int(dt.timestamp() * 1e9),
-			author=Operator.pb('test'), comment='', tags=BackupTags(), raw_size=0, stored_size=0,
+			creator=Operator.pb('test'), comment='', tags=BackupTags(), raw_size=0, stored_size=0,
 		))
 
 	date = datetime.datetime.now().replace(hour=0, minute=10, second=0, microsecond=0) - datetime.timedelta(hours=1)

@@ -74,7 +74,7 @@ class Backup(Base):
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
 	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in nanosecond
-	author: Mapped[str] = mapped_column(String)
+	creator: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)
 	targets: Mapped[List[str]] = mapped_column(JSON)
 	tags: Mapped[BackupTagDict] = mapped_column(JSON)

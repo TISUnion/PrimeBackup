@@ -27,15 +27,15 @@ class ShowBackupTask(ReaderTask[None]):
 		self.reply(self.tr('stored_size', TextComponents.file_size(backup.stored_size), TextComponents.percent(backup.stored_size, backup.raw_size)))
 		self.reply(self.tr('raw_size', TextComponents.file_size(backup.raw_size)))
 
-		t_author = TextComponents.operator(backup.author)
-		cmd_author = f'list --author {backup.author.name if backup.author.is_player() else str(backup.author)}'
-		if backup.author == Operator.pb(PrimeBackupOperatorNames.pre_restore):
-			cmd_author += ' --all'  # pre restore backups are hidden by default
+		t_creator = TextComponents.operator(backup.creator)
+		cmd_creator = f'list --creator {backup.creator.name if backup.creator.is_player() else str(backup.creator)}'
+		if backup.creator == Operator.pb(PrimeBackupOperatorNames.pre_restore):
+			cmd_creator += ' --all'  # pre restore backups are hidden by default
 		self.reply(self.tr(
-			'author',
-			t_author.copy().
-			h(self.tr('author.hover', t_author.copy())).
-			c(RAction.suggest_command, mkcmd(cmd_author))
+			'creator',
+			t_creator.copy().
+			h(self.tr('creator.hover', t_creator.copy())).
+			c(RAction.suggest_command, mkcmd(cmd_creator))
 		))
 
 		if len(backup.tags) > 0:

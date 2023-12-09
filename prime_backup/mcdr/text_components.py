@@ -98,7 +98,7 @@ class TextComponents:
 		rtl.append(
 			cls.backup_size(backup), ' ',
 			cls.backup_date(backup), RText(': ', RColor.gray),
-			cls.backup_comment(backup.comment).h(cls.tr('backup_full.author', cls.operator(backup.author))),
+			cls.backup_comment(backup.comment).h(cls.tr('backup_full.creator', cls.operator(backup.creator))),
 		)
 		return rtl
 

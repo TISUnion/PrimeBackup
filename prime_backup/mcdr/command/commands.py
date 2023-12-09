@@ -96,12 +96,12 @@ class CommandManager:
 			backup_filter.timestamp_start = int(start_date)
 		if (end_date := context.get('end_date')) is not None:
 			backup_filter.timestamp_end = int(end_date)
-		if (author_str := context.get('author')) is not None:
-			if ':' in author_str:
-				author = Operator.of(author_str)
+		if (creator_str := context.get('creator')) is not None:
+			if ':' in creator_str:
+				creator = Operator.of(creator_str)
 			else:
-				author = Operator.player(author_str)
-			backup_filter.author = author
+				creator = Operator.player(creator_str)
+			backup_filter.creator = creator
 		show_all = context.get('all', 0) > 0
 		show_flags = context.get('flags', 0) > 0
 
@@ -306,7 +306,7 @@ class CommandManager:
 			node.runs(self.cmd_list)
 			node.then(Integer('page').at_min(1).redirects(node))
 			node.then(Literal('--per-page').then(Integer('per_page').in_range(1, 20).redirects(node)))
-			node.then(Literal('--author').then(QuotableText('author').redirects(node)))
+			node.then(Literal('--creator').then(QuotableText('creator').redirects(node)))
 			node.then(Literal('--start').then(DateNode('start_date').redirects(node)))
 			node.then(Literal('--end').then(DateNode('end_date').redirects(node)))
 			node.then(CountingLiteral('--all', 'all').redirects(node))

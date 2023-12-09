@@ -95,7 +95,7 @@ class CliHandler:
 		logger.info('%s', f'Comment: {backup.comment}')
 		logger.info('%s', f'Size (stored): {ByteCount(ss).auto_str()} ({ss}) ({100 * ss / rs:.2f}%)')
 		logger.info('%s', f'Size (raw): {ByteCount(rs).auto_str()} ({rs})')
-		logger.info('%s', f'Author: type={backup.author.type} name={backup.author.name}')
+		logger.info('%s', f'Creator: type={backup.creator.type} name={backup.creator.name}')
 		logger.info('%s', f'Tags (size={len(backup.tags)}){":" if len(backup.tags) > 0 else ""}')
 		for k, v in backup.tags.items():
 			logger.info('%s', f'  {k}: {v}')
@@ -115,7 +115,7 @@ class CliHandler:
 				'date': repr(backup.date_str),
 				'stored_size': ByteCount(backup.stored_size).auto_str() if self.args.human else backup.stored_size,
 				'raw_size': ByteCount(backup.raw_size).auto_str() if self.args.human else backup.raw_size,
-				'author': repr(str(backup.author)),
+				'creator': repr(str(backup.creator)),
 				'comment': repr(backup.comment)
 			}
 			logger.info('%s', ' '.join([f'{k}={v}' for k, v in values.items()]))

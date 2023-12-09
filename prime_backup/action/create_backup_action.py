@@ -164,12 +164,12 @@ class BatchQueryManager:
 
 
 class CreateBackupAction(CreateBackupActionBase):
-	def __init__(self, author: Operator, comment: str, *, tags: Optional[BackupTags] = None, expire_timestamp_ns: Optional[int] = None):
+	def __init__(self, creator: Operator, comment: str, *, tags: Optional[BackupTags] = None, expire_timestamp_ns: Optional[int] = None):
 		super().__init__()
 		if tags is None:
 			tags = BackupTags()
 
-		self.author = author
+		self.creator = creator
 		self.comment = comment
 		self.tags = tags
 		self.expire_timestamp_ns = expire_timestamp_ns
@@ -413,7 +413,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache)
 
 				backup = session.create_backup(
-					author=str(self.author),
+					creator=str(self.creator),
 					comment=self.comment,
 					targets=[Path(t).as_posix() for t in self.config.backup.targets],
 					tags=self.tags.to_dict(),

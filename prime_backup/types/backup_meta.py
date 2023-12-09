@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class BackupMeta(Serializable):
-	author: str = str(Operator.pb('import'))
+	creator: str = str(Operator.pb('import'))
 	comment: str = ''
 	timestamp_ns: int
 	targets: List[str] = []
@@ -38,7 +38,7 @@ class BackupMeta(Serializable):
 	@classmethod
 	def from_backup(cls, backup: 'schema.Backup') -> 'BackupMeta':
 		return cls(
-			author=backup.author,
+			creator=backup.creator,
 			comment=backup.comment,
 			timestamp_ns=backup.timestamp,
 			targets=list(backup.targets),
@@ -47,7 +47,7 @@ class BackupMeta(Serializable):
 
 	def to_backup_kwargs(self) -> dict:
 		return dict(
-			author=self.author,
+			creator=self.creator,
 			comment=self.comment,
 			timestamp=self.timestamp_ns,
 			targets=[t.rstrip('/') for t in self.targets],

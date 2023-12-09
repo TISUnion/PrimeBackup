@@ -226,8 +226,8 @@ class DbSession:
 			s = s.where(schema.Backup.id >= backup_filter.id_start)
 		if backup_filter.id_end is not None:
 			s = s.where(schema.Backup.id <= backup_filter.id_end)
-		if backup_filter.author is not None:
-			s = s.filter_by(author=str(backup_filter.author))
+		if backup_filter.creator is not None:
+			s = s.filter_by(creator=str(backup_filter.creator))
 		if backup_filter.timestamp_start is not None:
 			s = s.where(schema.Backup.timestamp >= backup_filter.timestamp_start)
 		if backup_filter.timestamp_end is not None:

@@ -1,5 +1,4 @@
 import copy
-import copy
 import json
 
 from mcdreforged.api.all import *
@@ -39,8 +38,8 @@ class ListBackupTask(ReaderTask[None]):
 			return json.dumps(conversion_utils.timestamp_to_local_date_str(ts_ns, decimal=ts_ns % 1000 != 0), ensure_ascii=False)
 
 		cmd = mkcmd(f'list {page} --per-page {self.per_page}')
-		if self.backup_filter.author is not None:
-			cmd += f' --author {self.backup_filter.author}'
+		if self.backup_filter.creator is not None:
+			cmd += f' --creator {self.backup_filter.creator}'
 		if self.backup_filter.timestamp_start is not None:
 			cmd += f' --start {date_str(self.backup_filter.timestamp_start)}'
 		if self.backup_filter.timestamp_end is not None:

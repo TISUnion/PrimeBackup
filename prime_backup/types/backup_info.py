@@ -13,7 +13,7 @@ from prime_backup.utils import conversion_utils
 class BackupInfo:
 	id: int
 	timestamp_ns: int
-	author: Operator
+	creator: Operator
 	comment: str
 	tags: BackupTags
 
@@ -36,7 +36,7 @@ class BackupInfo:
 		return BackupInfo(
 			id=backup.id,
 			timestamp_ns=backup.timestamp,
-			author=Operator.of(backup.author),
+			creator=Operator.of(backup.creator),
 			comment=backup.comment,
 			tags=BackupTags(backup.tags),
 			raw_size=backup.file_raw_size_sum or 0,

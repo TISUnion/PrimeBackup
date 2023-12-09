@@ -3,7 +3,6 @@ from mcdreforged.api.all import *
 from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
 from prime_backup.mcdr.task.crontab import CrontabTaskBase
 from prime_backup.mcdr.text_components import TextComponents
-from prime_backup.utils import misc_utils
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
@@ -13,13 +12,19 @@ class ShowCrontabJobTask(CrontabTaskBase[None]):
 		return 'crontab_show'
 
 	def run(self) -> None:
-		job = misc_utils.ensure_type(self.get_job(), BasicCrontabJob)
+		job = self.get_job()
 
 		self.reply(TextComponents.title(self.tr('title', job.get_name_text())))
 		self.reply(self.tr('enabled', TextComponents.boolean(self.config.scheduled_backup.enabled)))
 		self.reply(self.tr('running', TextComponents.boolean(not job.is_pause())))
-		self.reply(self.tr('interval', TextComponents.duration(job.interval)))
-		self.reply(self.tr('jitter', TextComponents.duration(job.jitter)))
+		if isinstance(job, BasicCrontabJob):
+			if job.interval is not None:
+				self.reply(self.tr('interval', TextComponents.duration(job.interval)))
+			elif job.crontab is not None:
+				self.reply(self.tr('crontab', TextComponents.crontab(job.crontab)))
+			else:
+				self.reply(RText('ERROR: no valid trigger', RColor.red))
+			self.reply(self.tr('jitter', TextComponents.duration(job.jitter)))
 		self.reply(self.tr('next_run_date', job.get_next_run_date()))
 
 		def make(op: str, color: RColor) -> RTextBase:

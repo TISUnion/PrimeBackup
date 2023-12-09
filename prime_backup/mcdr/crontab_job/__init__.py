@@ -56,7 +56,7 @@ class CrontabJob(ABC):
 		...
 
 	@abstractmethod
-	def get_duration_until_next_run(self) -> RTextBase:
+	def get_duration_until_next_run_text(self) -> RTextBase:
 		...
 
 	@abstractmethod

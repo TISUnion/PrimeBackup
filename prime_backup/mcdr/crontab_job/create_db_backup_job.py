@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
 
+from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.config.database_config import BackUpDatabaseConfig
 from prime_backup.mcdr.crontab_job import CrontabJobId
 from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
 from prime_backup.mcdr.task.db.create_db_backup_task import CreateDbBackupTask
-from prime_backup.types.units import Duration
 from prime_backup.utils import misc_utils
 
 if TYPE_CHECKING:
@@ -19,20 +19,13 @@ class CreateDbBackupJob(BasicCrontabJob):
 		super().__init__(scheduler, task_manager)
 		self.config: BackUpDatabaseConfig = self._root_config.database.backup
 
-	def is_enabled(self) -> bool:
-		return self.config.enabled
-
 	@property
 	def id(self) -> CrontabJobId:
 		return CrontabJobId.create_db_backup
 
 	@property
-	def interval(self) -> Duration:
-		return self.config.interval
-
-	@property
-	def jitter(self) -> Duration:
-		return self.config.jitter
+	def job_config(self) -> CrontabJobSetting:
+		return self.config
 
 	def run(self):
 		result = self.run_task_with_retry(CreateDbBackupTask(self.get_command_source()), True)

@@ -4,6 +4,7 @@ from mcdreforged.api.all import *
 
 from prime_backup import constants
 from prime_backup.mcdr import mcdr_globals
+from prime_backup.mcdr.crontab_job import CrontabJobId
 from prime_backup.mcdr.task.basic_task import ImmediateTask
 from prime_backup.mcdr.task.general import help_message_utils
 from prime_backup.mcdr.text_components import TextComponents, TextColors
@@ -68,9 +69,8 @@ class ShowHelpTask(ImmediateTask[None]):
 				))
 				self.reply(self.tr(
 					'other.docs',
-					RText(constants.DOCUMENTATION_URL, RColor.blue, RStyle.underlined).
-					h(self.tr('other.docs.hover')).
-					c(RAction.open_url, constants.DOCUMENTATION_URL)
+					TextComponents.url(constants.DOCUMENTATION_URL, click=True).
+					h(self.tr('other.docs.hover'))
 				))
 
 			elif self.what in self.COMMANDS_WITH_DETAILED_HELP:
@@ -80,7 +80,6 @@ class ShowHelpTask(ImmediateTask[None]):
 
 				kwargs = {'prefix': self.__cmd_prefix}
 				if self.what == 'crontab':
-					from prime_backup.mcdr.crontab_job import CrontabJobId
 					kwargs['job_ids'] = ', '.join([f'{TextColors.job_id.mc_code}{jid.name}§r' for jid in CrontabJobId])
 				elif self.what == 'database':
 					name = mcdr_globals.metadata.name
@@ -89,7 +88,7 @@ class ShowHelpTask(ImmediateTask[None]):
 						kwargs['scheduled_compact_notes'] = self.tr(
 							f'node_help.{self.what}.scheduled_compact.on',
 							name=name,
-							interval=TextComponents.duration(self.config.database.compact.interval),
+							cmd=f"§7{mkcmd(f'crontab {CrontabJobId.vacuum_sqlite.name}')}§r",
 						)
 					else:
 						kwargs['scheduled_compact_notes'] = self.tr(f'node_help.{self.what}.scheduled_compact.off')

@@ -26,25 +26,27 @@ def parse_help_message(msg: RTextBase) -> List[HelpMessageLine]:
 	prefix = config.command.prefix
 	result = []
 	for line in msg.to_plain_text().splitlines():
-		match = re.match(r'(§7){} (\w+)([§ ])'.format(prefix), line)
-		if match is not None:
-			literal = match.group(2)
+		suggest_match = re.search(r'(?<=§7){}[-\w ]*(?=[§\[<])'.format(prefix), line)
+		suggest = suggest_match.group() if suggest_match is not None else None
+
+		text = RText(line)
+		if suggest is not None:
+			text.c(RAction.suggest_command, suggest)
+
+		cmd_match = re.match(r'(§7){} (\w+)([§ ])'.format(prefix), line)
+		if cmd_match is not None:
+			literal = cmd_match.group(2)
 			permission = config.command.permission.get(literal)
 		elif line.startswith(f'§7{prefix}§r'):  # root node
 			literal = ''
 			permission = 0
 		else:
-			result.append(HelpMessageLine(line, RText(line), None, None, None))
+			result.append(HelpMessageLine(line, text, None, None, suggest))
 			continue
-
-		suggest_match = re.search(r'(?<=§7){}[-\w ]*(?=[§\[<])'.format(prefix), line)
-		if suggest_match is None:
-			raise ValueError(line)
-		suggest = suggest_match.group()
 
 		result.append(HelpMessageLine(
 			line=line,
-			text=RText(line).c(RAction.suggest_command, suggest),
+			text=text,
 			literal=literal,
 			permission=permission,
 			suggest=suggest,

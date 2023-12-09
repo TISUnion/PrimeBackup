@@ -3,6 +3,7 @@ from typing import Optional, Any
 import pytz
 from mcdreforged.api.utils import Serializable
 
+from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.types.units import Duration
 
 
@@ -24,9 +25,12 @@ class PruneSetting(Serializable):
 	year: int = 0
 
 
-class PruneConfig(Serializable):
-	interval: Duration = Duration('3h')
+class PruneConfig(CrontabJobSetting):
+	enabled: bool = True
+	interval: Optional[Duration] = Duration('3h')
+	crontab: Optional[str] = None
 	jitter: Duration = Duration('20s')
+
 	timezone_override: Optional[str] = None
 	regular_backup: PruneSetting = PruneSetting()
 	pre_restore_backup: PruneSetting = PruneSetting(
@@ -36,6 +40,7 @@ class PruneConfig(Serializable):
 	)
 
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
+		super().validate_attribute(attr_name, attr_value, **kwargs)
 		if attr_name == 'timezone_override' and attr_value is not None:
 			try:
 				pytz.timezone(attr_value)

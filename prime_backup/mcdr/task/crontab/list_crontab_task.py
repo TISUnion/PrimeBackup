@@ -34,6 +34,6 @@ class ListCrontabJobTask(ImmediateTask[None]):
 
 			nt = job.get_name_text().c(RAction.suggest_command, mkcmd(f'crontab {job.id.name} '))
 			if job.is_running():
-				self.reply(self.tr('line.running', nt, t_flags, job.get_duration_until_next_run(), job.get_next_run_date()))
+				self.reply(self.tr('line.running', nt, t_flags, job.get_duration_until_next_run_text(), job.get_next_run_date()))
 			else:
 				self.reply(self.tr('line.paused', nt, t_flags))

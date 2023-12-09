@@ -1,4 +1,5 @@
 import dataclasses
+import datetime
 import threading
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List, Optional, Any
@@ -6,11 +7,14 @@ from typing import TYPE_CHECKING, List, Optional, Any
 from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.triggers.base import BaseTrigger
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from mcdreforged.api.all import *
+from typing_extensions import final
 
 from prime_backup import logger
 from prime_backup.config.config import Config
+from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobEvent
 from prime_backup.mcdr.task import Task
 from prime_backup.mcdr.task_queue import TaskQueue
@@ -47,17 +51,38 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			raise RuntimeError('job is not running')
 
 	def _create_trigger(self) -> BaseTrigger:
-		return IntervalTrigger(seconds=self.interval.value, jitter=self.jitter.value)
+		if self.interval is not None:
+			return IntervalTrigger(seconds=self.interval.value, jitter=self.jitter.value)
+		elif self.crontab is not None:
+			trigger = CronTrigger.from_crontab(self.crontab)
+			trigger.jitter = self.jitter.value
+			return trigger
+		else:
+			raise ValueError('no valid trigger for the job. is the config correct? config: {}'.format(self.job_config))
 
 	@property
 	@abstractmethod
-	def interval(self) -> Duration:
+	def job_config(self) -> CrontabJobSetting:
 		...
 
+	@final
+	def is_enabled(self) -> bool:
+		return self.job_config.enabled
+
+	@final
 	@property
-	@abstractmethod
+	def interval(self) -> Optional[Duration]:
+		return self.job_config.interval
+
+	@final
+	@property
+	def crontab(self) -> Optional[str]:
+		return self.job_config.crontab
+
+	@final
+	@property
 	def jitter(self) -> Duration:
-		...
+		return self.job_config.jitter
 
 	# ================================== Overrides ===================================
 
@@ -76,13 +101,24 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 		self.__ensure_aps_job()
 		self.aps_job.resume()
 
+	def reschedule(self) -> bool:
+		if self.aps_job is not None:
+			self.aps_job.reschedule(self._create_trigger())
+			return True
+		return False
+
 	def is_running(self) -> bool:
 		return self.aps_job is not None and self.aps_job.next_run_time is not None
 
 	def is_pause(self) -> bool:
 		return not self.is_running()
 
-	def get_duration_until_next_run(self) -> RTextBase:
+	def get_seconds_until_next_run(self) -> float:
+		self.__ensure_running()
+		nrt = self.aps_job.next_run_time
+		return (nrt - datetime.datetime.now(nrt.tzinfo)).total_seconds()
+
+	def get_duration_until_next_run_text(self) -> RTextBase:
 		self.__ensure_running()
 		return TextComponents.date_diff(self.aps_job.next_run_time)
 
@@ -107,7 +143,7 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 	def __create_run_tasks_delays(self) -> List[int]:
 		delays = [0]
-		wait_max = (self.interval.value - self.jitter.value) * 0.2  # 20% of the minimum next run wait
+		wait_max = self.get_seconds_until_next_run() * 0.2  # 20% of the minimum next run wait
 		wait_sum = 0
 		for d in [Duration('10s'), Duration('1m'), Duration('5m')]:
 			wait_sum += d.value

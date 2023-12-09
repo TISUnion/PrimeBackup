@@ -160,6 +160,11 @@ class TextComponents:
 		)
 
 	@classmethod
+	def crontab(cls, crontab_str: str) -> RTextBase:
+		url = 'https://crontab.guru/#' + crontab_str.replace(' ', '_')
+		return RText(crontab_str, TextColors.date).h(cls.tr('crontab.help_url', cls.url(url, click=False))).c(RAction.open_url, url)
+
+	@classmethod
 	def date_diff(cls, date: datetime.datetime) -> RTextBase:
 		now = datetime.datetime.now(date.tzinfo)
 		diff = (date - now).total_seconds()
@@ -245,5 +250,12 @@ class TextComponents:
 		return RText(tag_name.name, RColor.aqua).h(tag_name.value.text)
 
 	@classmethod
-	def title(cls, text: Any):
+	def title(cls, text: Any) -> RTextBase:
 		return RTextList(RText('======== ', RColor.gray), text, RText(' ========', RColor.gray))
+
+	@classmethod
+	def url(cls, url: str, *, click: bool = True) -> RTextBase:
+		text = RText(url, RColor.blue, RStyle.underlined)
+		if click:
+			text.c(RAction.open_url, url)
+		return text

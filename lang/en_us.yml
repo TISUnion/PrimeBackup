@@ -130,6 +130,7 @@ prime_backup:
       enabled: 'Enabled: {}'
       running: 'Running: {}'
       interval: 'Interval: {}'
+      crontab: 'Crontab: {}'
       jitter: 'Jitter: {}'
       next_run_date: 'Next at: {}'
       quick_actions: 'Quick actions: {} {}'
@@ -240,7 +241,7 @@ prime_backup:
           - §ablobs§r: Validate the correctness of blobs, e.g. data size, hash value
           - §afiles§r: Validate the correctness of file objects, e.g. the association between files and blobs
           - §aall§r: Validate all of the above
-        database.scheduled_compact.on: 'Notes: With the current config, {name} will automatically prune the database every {interval}'
+        database.scheduled_compact.on: 'Notes: With the current config, {name} will automatically prune the database. See {cmd}'
         database.scheduled_compact.off: 'Notes: With the current config, scheduled database prune is disabled'
         export: |-
           §d[export Command Usage]§r
@@ -354,6 +355,8 @@ prime_backup:
       confirm.hover: Click me or enter command {} to confirm {}
       abort: Abort {}
       abort.hover: Click me or enter command {} to abort {}
+    crontab:
+      help_url: 'Crontab string explanation at: {}'
     date_diff:
       ago: '{} ago'
       later: '{} later'

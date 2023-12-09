@@ -109,8 +109,8 @@ prime_backup:
       value: 备份{0}的标签{1}是{2}
       not_exists: 备份{0}不存在标签{1}
     crontab_list_job:
-      name: 列出定时任务
-      title: 定时任务列表
+      name: 列出定时作业
+      title: 定时作业列表
       enabled: 已启用
       disabled: 已禁用
       running: 正在运行
@@ -118,25 +118,26 @@ prime_backup:
       line.running: '{} {}, 下次运行: {} ({})'
       line.paused: '{} {}'
     crontab_operate:
-      name: 操控定时任务
-      pause.already: 定时任务"{}"已处于暂停状态
-      pause.done: 定时任务"{}"已暂停至本插件卸载
-      pause.done.notes: 如果你想要永久禁用这个任务, 你需要修改配置文件中的相关项
-      resume.already: '定时任务"{}"已处于运行状态, 下次运行: {}'
-      resume.done: '定时任务"{}"已继续, 下次运行: {}'
+      name: 操控定时作业
+      pause.already: 定时作业"{}"已处于暂停状态
+      pause.done: 定时作业"{}"已暂停至本插件卸载
+      pause.done.notes: 如果你想要永久禁用这个作业, 你需要修改配置文件中的相关项
+      resume.already: '定时作业"{}"已处于运行状态, 下次运行: {}'
+      resume.done: '定时作业"{}"已继续, 下次运行: {}'
     crontab_show:
-      name: 展示定时任务状态
-      title: 定时任务"{}"
+      name: 展示定时作业状态
+      title: 定时作业"{}"
       enabled: '已启用: {}'
       running: '运行中: {}'
       interval: '间隔: {}'
+      crontab: '定时: {}'
       jitter: '抖动: {}'
       next_run_date: '下次运行: {}'
       quick_actions: '快捷操作: {}'
       pause: 暂停
-      pause.hover: 点击以暂停运行任务"{}"
+      pause.hover: 点击以暂停运行作业"{}"
       resume: 继续
-      resume.hover: 点击以继续运行任务"{}"
+      resume.hover: 点击以继续运行作业"{}"
     db_overview:
       name: 概览数据库
       title: 数据库概览
@@ -191,7 +192,7 @@ prime_backup:
           §7{prefix} delete_range §6<备份ID范围>§r: 删除给定ID范围的备份
           §7{prefix} export §6<备份ID> §7[...]§r: 给导出给定备份到文件。详见§7{prefix} help export§r
           §7{prefix} prune §6<备份ID>§r: 手动触发一次备份裁剪
-          §7{prefix} crontab §a<任务ID> §7[...]§r: 操作定时任务。详见§7{prefix} help crontab§r
+          §7{prefix} crontab §a<作业ID> §7[...]§r: 操作定时作业。详见§7{prefix} help crontab§r
           §7{prefix} tag §6<备份ID> §7[...]§r: 操作给定备份的标签。详见§7{prefix} help tag§r
           §7{prefix} database [...]§r: 操作数据库。详见§7{prefix} help database§r
           §7{prefix} confirm§r: 确认当前的任务操作。需确认的任务: 回档、范围删除
@@ -219,14 +220,14 @@ prime_backup:
           §7--no-verify§r: 不校验导出文件的内容
         crontab: |-
           §d【crontab指令帮助】§r
-          操作定时任务
+          操作定时作业
           §d【指令帮助】§r
-          §7{prefix}§r: 查看当前启用的所有定时任务
-          §7{prefix} §a<任务ID>§r: 查看给定任务的状态
-          §7{prefix} §a<任务ID> §7pause§r: 临时暂停给定任务。下次插件重载时，该任务将继续运行
-          §7{prefix} §a<任务ID> §7resume§r: 取消给定任务的暂停状态，继续运行
+          §7{prefix}§r: 查看当前启用的所有定时作业
+          §7{prefix} §a<作业ID>§r: 查看给定作业的状态
+          §7{prefix} §a<作业ID> §7pause§r: 临时暂停给定作业。下次插件重载时，该作业将继续运行
+          §7{prefix} §a<作业ID> §7resume§r: 取消给定作业的暂停状态，继续运行
           §d【参数帮助】§r
-          §a<任务ID>§r: 可用选项: {job_ids}
+          §a<作业ID>§r: 可用选项: {job_ids}
         database: |-
           §d【database指令帮助】§r
           操作{name}的核心SQLite数据库
@@ -240,7 +241,7 @@ prime_backup:
           - §ablobs§r: 验证数据对象的正确性，如数据大小、哈希值
           - §afiles§r: 验证文件对象的正确性，如文件与数据的关联
           - §aall§r: 验证上述全部
-        database.scheduled_compact.on: '注意: 在当前配置下，{name}每{interval}会自动执行一次数据库精简操作'
+        database.scheduled_compact.on: '注意: 在当前配置下，{name}会定期执行数据库精简操作。详见{cmd}'
         database.scheduled_compact.off: '注意: 在当前配置下，定时数据库精简操作已被禁用'
         export: |-
           §d【export指令帮助】§r
@@ -296,8 +297,8 @@ prime_backup:
     base:
       found_ongoing:
         unknown_task: 未知
-        skip: '发现正在进行的任务"{}", 跳过本次{}任务执行'
-        wait_retry: '发现正在进行的任务"{}", {}任务将在{}后重试'
+        skip: '发现正在进行的任务"{}", 跳过本次{}作业执行'
+        wait_retry: '发现正在进行的任务"{}", {}作业将在{}后重试'
       completed: '{}完成, 下次执行: {}'
       completed_with_error: '{}失败, 下次执行: {}'
       next_run_date_paused: 已暂停
@@ -354,6 +355,8 @@ prime_backup:
       confirm.hover: 点我或输入指令{}以确认{}
       abort: 终止{}
       abort.hover: 点我或输入指令{}以终止{}
+    crontab:
+      help_url: 'Crontab字符串解释网址: {}'
     date_diff:
       ago: '{}前'
       later: '{}后'

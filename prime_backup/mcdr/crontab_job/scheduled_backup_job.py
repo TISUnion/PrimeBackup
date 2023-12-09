@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
 
+from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.config.scheduled_backup import ScheduledBackupConfig
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
@@ -11,7 +12,6 @@ from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
-from prime_backup.types.units import Duration
 from prime_backup.utils import backup_utils
 from prime_backup.utils.mcdr_utils import broadcast_message
 
@@ -31,15 +31,8 @@ class ScheduledBackupJob(BasicCrontabJob):
 		return CrontabJobId.schedule_backup
 
 	@property
-	def interval(self) -> Duration:
-		return self.config.interval
-
-	@property
-	def jitter(self) -> Duration:
-		return self.config.jitter
-
-	def is_enabled(self) -> bool:
-		return self.config.enabled
+	def job_config(self) -> CrontabJobSetting:
+		return self.config
 
 	def run(self):
 		if not self.config.enabled:
@@ -67,5 +60,5 @@ class ScheduledBackupJob(BasicCrontabJob):
 
 		if event == CrontabJobEvent.manual_backup_created:
 			if not self.is_executing.is_set() and self.config.reset_timer_on_backup:
-				self.aps_job.reschedule(self._create_trigger())
-				broadcast_message(self.tr('reset_on_backup', self.get_next_run_date()))
+				if self.reschedule():
+					broadcast_message(self.tr('reset_on_backup', self.get_next_run_date()))

@@ -25,6 +25,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 		self.config: ScheduledBackupConfig = self._root_config.scheduled_backup
 		self.is_executing = threading.Event()
 		self.is_aborted = threading.Event()
+		self.found_created_backup = threading.Event()
 
 	@property
 	def id(self) -> CrontabJobId:
@@ -50,7 +51,8 @@ class ScheduledBackupJob(BasicCrontabJob):
 			operator = Operator.pb(PrimeBackupOperatorNames.scheduled_backup)
 			task = CreateBackupTask(self.get_command_source(), comment, operator=operator)
 
-			self.run_task_with_retry(task, True, broadcast=True).report()
+			self.found_created_backup.clear()
+			self.run_task_with_retry(task, True, requirement=lambda: not self.found_created_backup.is_set(), broadcast=True).report()
 
 	def on_event(self, event: CrontabJobEvent):
 		super().on_event(event)
@@ -59,6 +61,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 			return
 
 		if event == CrontabJobEvent.manual_backup_created:
+			self.found_created_backup.set()
 			if not self.is_executing.is_set() and self.config.reset_timer_on_backup:
 				if self.reschedule():
 					broadcast_message(self.tr('reset_on_backup', self.get_next_run_date()))

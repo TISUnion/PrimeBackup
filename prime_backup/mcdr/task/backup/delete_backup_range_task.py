@@ -38,6 +38,7 @@ class DeleteBackupRangeTask(OperationTask[None]):
 		backups = [backup for backup in backups if not backup.tags.is_protected()]  # double check
 		if len(backups) == 0:
 			self.reply(self.tr('no_backup'))
+			return
 
 		self.reply(self.tr('to_delete_count', TextComponents.number(len(backups))))
 		n = 10

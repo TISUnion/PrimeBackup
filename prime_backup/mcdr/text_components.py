@@ -16,6 +16,7 @@ from prime_backup.utils.mcdr_utils import mkcmd, click_and_run
 
 class TextColors:
 	backup_id = RColor.gold
+	backup_tag = RColor.aqua
 	byte_count = RColor.green
 	date = RColor.aqua
 	file = RColor.dark_aqua
@@ -247,7 +248,7 @@ class TextComponents:
 
 	@classmethod
 	def tag_name(cls, tag_name: BackupTagName) -> RTextBase:
-		return RText(tag_name.name, RColor.aqua).h(tag_name.value.text)
+		return RText(tag_name.name, TextColors.backup_tag).h(tag_name.value.text)
 
 	@classmethod
 	def title(cls, text: Any) -> RTextBase:

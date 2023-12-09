@@ -2,7 +2,7 @@ import dataclasses
 import datetime
 import threading
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Any
+from typing import TYPE_CHECKING, List, Optional, Any, Callable
 
 from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
@@ -167,7 +167,12 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			"""
 			...
 
-	def run_task_with_retry(self, task: Task, can_retry: bool, delays: Optional[List[float]] = None, broadcast: bool = False) -> RunTaskWithRetryResult:
+	def run_task_with_retry(
+			self, task: Task, can_retry: bool, *,
+			requirement: Callable[[], bool] = None,
+			delays: Optional[List[float]] = None,
+			broadcast: bool = False
+	) -> RunTaskWithRetryResult:
 		if delays is None:
 			delays = self.__create_run_tasks_delays()
 		misc_utils.assert_true(len(delays) > 0, 'delay should not be empty')
@@ -196,9 +201,11 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 				else:
 					log_info(base_tr('found_ongoing.skip', current_task, this.get_name_text()))
 
-		for delay in delays:
+		for i, delay in enumerate(delays):
 			self.abort_event.wait(delay)
 			if self.abort_event.is_set():
+				break
+			if requirement is not None and not requirement():
 				break
 			try:
 				def callback(*args):
@@ -207,10 +214,12 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 				self.task_manager.add_task(task, callback, handle_tmo_err=False)
 			except TaskQueue.TooManyOngoingTask as e:
 				current_task = e.current_item.task_name() if e.current_item is not None else self.tr('found_ongoing.unknown').set_color(RColor.gray)
-				if delay is None or not can_retry:  # <= 5min, no need to retry
-					break
+				is_not_last = i < len(delays) - 1
+				if is_not_last and can_retry:
+					next_wait = delays[i + 1]
+					log_info(self.__base_tr('found_ongoing.wait_retry', current_task, self.get_name_text(), TextComponents.number(f'{next_wait}s')))
 				else:
-					log_info(self.__base_tr('found_ongoing.wait_retry', current_task, self.get_name_text(), TextComponents.number(f'{delay}s')))
+					break
 			else:
 				ret, err = wv.wait()
 				return RunTaskWithRetryResultImpl(True, ret, err)

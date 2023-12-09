@@ -133,7 +133,7 @@ prime_backup:
       crontab: 'Crontab: {}'
       jitter: 'Jitter: {}'
       next_run_date: 'Next at: {}'
-      quick_actions: 'Quick actions: {} {}'
+      quick_actions: 'Quick actions: {}'
       pause: pause
       pause.hover: Click to pause job "{}"
       resume: resume

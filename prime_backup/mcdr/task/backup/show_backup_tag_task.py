@@ -4,7 +4,7 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_task import ReaderTask
-from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName, BackupTags
 from prime_backup.utils.mcdr_utils import mkcmd
@@ -46,18 +46,18 @@ class ShowBackupTagTask(ReaderTask[None]):
 			t_key = RText(key).h(t_value_type)
 		else:
 			t_value_type = self.tr('value_type', tag_name.value.type.__name__)
-			t_key = TextComponents.tag_name(tag_name).h(RTextList(tag_name.value.text, '\n', t_value_type))
+			t_key = TextComponents.tag_name(tag_name).h(RTextList(tag_name.value.text.copy().set_color(TextColors.backup_tag), '\n', t_value_type))
 
 		if value is not BackupTags.NONE:
 			t_value = TextComponents.auto(value)
 			buttons = [
 				RText('[_]', RColor.yellow).h(self.tr('edit', t_key)).c(RAction.suggest_command, mkcmd(f'tag {backup.id} {key} set ')),
-				RText('[x]', RColor.gold).h(self.tr('clear', t_key)).c(RAction.suggest_command, mkcmd(f'tag {backup.id} {key} clear')),
+				RText('[x]', RColor.red).h(self.tr('clear', t_key)).c(RAction.suggest_command, mkcmd(f'tag {backup.id} {key} clear')),
 			]
 		else:
 			t_value = self.tr('not_exists').set_color(RColor.gray)
 			buttons = [
-				RText('[+]', RColor.yellow).h(self.tr('create', t_key)).c(RAction.suggest_command, mkcmd(f'tag {backup.id} {key} set ')),
+				RText('[+]', RColor.dark_green).h(self.tr('create', t_key)).c(RAction.suggest_command, mkcmd(f'tag {backup.id} {key} set ')),
 			]
 
 		self.reply(RTextBase.format('{} {}: {}', RTextBase.join(' ', buttons), t_key, t_value))

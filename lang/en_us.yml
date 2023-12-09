@@ -144,10 +144,10 @@ prime_backup:
       title: Database overview
       db_version: 'Database version: {}'
       hash_method: 'Hash method: {}'
-      backup_cnt: 'Backup count: {}'
-      file_cnt: 'File count: {}'
+      backup_count: 'Backup count: {}'
+      file_count: 'File count: {}'
       file_raw_size: 'File raw size sum: {}'
-      blob_cnt: 'Blob count: {}'
+      blob_count: 'Blob count: {}'
       blob_stored_size: 'Blob stored size sum: {} ({})'
       blob_raw_size: 'Blob raw size sum: {}'
     db_vacuum:
@@ -167,7 +167,7 @@ prime_backup:
         corrupted: 'Corrupted blob amount: {}'
         mismatched: 'Mismatched blob amount: {}'
         orphan: 'Orphan blob amount: {}'
-        affected: 'Affected range: {} files, {} backups'
+        affected: 'Affected range: {} / {} files, {} / {} backups'
       validate_files:
         .: Start validating files (including file, directory and symlink), please wait...
         done: Validated {} / {} files

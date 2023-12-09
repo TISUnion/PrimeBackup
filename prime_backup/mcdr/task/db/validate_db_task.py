@@ -6,6 +6,7 @@ from typing import List, Optional, TypeVar
 from mcdreforged.api.all import *
 
 from prime_backup.action import Action
+from prime_backup.action.get_object_counts_action import GetObjectCountsAction
 from prime_backup.action.validate_blobs_action import ValidateBlobsAction, BadBlobItem
 from prime_backup.action.validate_files_action import ValidateFilesAction, BadFileItem
 from prime_backup.mcdr.task.basic_task import HeavyTask
@@ -67,15 +68,19 @@ class ValidateDbTask(HeavyTask[None]):
 		show('mismatched', result.mismatched)
 		show('orphan', result.orphan)
 
-		vlogger.info('Affected file amount: {}'.format(result.affected_file_count))
-		vlogger.info('Affected backup amount: {}'.format(len(result.affected_backup_ids)))
+		counts = GetObjectCountsAction().run()
+
+		vlogger.info('Affected file amount: {} / {}'.format(result.affected_file_count, counts.file_count))
+		vlogger.info('Affected backup amount: {} / {}'.format(len(result.affected_backup_ids), counts.backup_count))
 		vlogger.info('Affected backups: {}'.format(result.affected_backup_ids))
 		self.reply(self.tr(
 			'validate_blobs.affected',
 			TextComponents.number(result.affected_file_count),
+			TextComponents.number(counts.file_count),
 			TextComponents.number(len(result.affected_backup_ids)).
 			h(TextComponents.backup_id_list(result.affected_backup_ids)).
 			c(RAction.copy_to_clipboard, ', '.join(map(str, result.affected_backup_ids))),
+			TextComponents.number(counts.backup_count),
 		))
 
 	def __validate_files(self, vlogger: logging.Logger):

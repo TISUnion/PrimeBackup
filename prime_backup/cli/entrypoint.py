@@ -77,11 +77,11 @@ class CliHandler:
 		result = GetDbOverviewAction().run()
 		logger.info('DB version: %s', result.db_version)
 		logger.info('Hash method: %s', result.hash_method)
-		logger.info('Backup count: %s', result.backup_cnt)
-		logger.info('Blob count: %s', result.blob_cnt)
+		logger.info('Backup count: %s', result.backup_count)
+		logger.info('Blob count: %s', result.blob_count)
 		logger.info('Blob stored size sum: %s (%s)', result.blob_stored_size_sum, ByteCount(result.blob_stored_size_sum).auto_str())
 		logger.info('Blob raw size sum: %s (%s)', result.blob_raw_size_sum, ByteCount(result.blob_raw_size_sum).auto_str())
-		logger.info('File count: %s', result.file_cnt)
+		logger.info('File count: %s', result.file_count)
 		logger.info('File raw size sum: %s (%s)', result.file_raw_size_sum, ByteCount(result.file_raw_size_sum).auto_str())
 
 	def cmd_show(self):

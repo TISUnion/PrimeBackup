@@ -9,9 +9,9 @@ class DbOverviewResult(NamedTuple):
 	db_version: int
 	hash_method: str
 
-	blob_cnt: int
-	file_cnt: int
-	backup_cnt: int
+	blob_count: int
+	file_count: int
+	backup_count: int
 
 	blob_stored_size_sum: int
 	blob_raw_size_sum: int
@@ -26,9 +26,9 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 				db_version=meta.version,
 				hash_method=meta.hash_method,
 
-				blob_cnt=session.get_blob_count(),
-				file_cnt=session.get_file_count(),
-				backup_cnt=session.get_backup_count(),
+				blob_count=session.get_blob_count(),
+				file_count=session.get_file_count(),
+				backup_count=session.get_backup_count(),
 
 				blob_stored_size_sum=session.get_blob_stored_size_sum(),
 				blob_raw_size_sum=session.get_blob_raw_size_sum(),

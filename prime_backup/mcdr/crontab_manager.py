@@ -18,12 +18,12 @@ class CrontabManager:
 	def __init__(self, task_manager: TaskManager):
 		self.task_manager = task_manager
 		self.logger = logger.get()
-		self.thread = threading.Thread(target=self.__crontab_loop, name=misc_utils.make_thread_name('crontab'), daemon=True)
+		self.thread = threading.Thread(target=self.__crontab_loop, name=misc_utils.make_thread_name('crontab-scheduler'), daemon=True)
 		self.scheduler = BlockingScheduler(
 			logger=self.logger,
 			executors={
 				'default': ThreadPoolExecutor(
-					pool_kwargs=dict(thread_name_prefix=misc_utils.make_thread_name('crontab-worker')),
+					pool_kwargs=dict(thread_name_prefix=misc_utils.make_thread_name('crontab')),
 				)
 			},
 		)

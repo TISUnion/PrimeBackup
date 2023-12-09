@@ -8,7 +8,7 @@ from mcdreforged.api.all import *
 from prime_backup.action import Action
 from prime_backup.action.validate_blobs_action import ValidateBlobsAction, BadBlobItem
 from prime_backup.action.validate_files_action import ValidateFilesAction, BadFileItem
-from prime_backup.mcdr.task.basic_task import OperationTask
+from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.utils import log_utils
 
@@ -28,7 +28,7 @@ class ValidateParts(enum.Flag):
 _Action = TypeVar('_Action', bound=Action)
 
 
-class ValidateDbTask(OperationTask[None]):
+class ValidateDbTask(HeavyTask[None]):
 	def __init__(self, source: CommandSource, parts: ValidateParts):
 		super().__init__(source)
 		self.parts = parts

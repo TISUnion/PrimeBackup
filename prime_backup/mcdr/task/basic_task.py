@@ -93,15 +93,26 @@ class _BasicTask(Task[_T], ABC):
 		mcdr_utils.broadcast_message(msg, with_prefix=with_prefix)
 
 
-class OperationTask(_BasicTask[_T], ABC):
-	pass
+class HeavyTask(_BasicTask[_T], ABC):
+	"""
+	For tasks that require DB access and does some operations on blobs / database
+	"""
+	MAX_ONGOING_TASK = 1
 
 
-class ReaderTask(_BasicTask[_T], ABC):
-	pass
+class LightTask(_BasicTask[_T], ABC):
+	"""
+	For tasks that require DB access and runs fast
+	"""
+	MAX_ONGOING_TASK = 3
 
 
 class ImmediateTask(_BasicTask[_T], ABC):
+	"""
+	For tasks that do not require DB access
+
+	Executes immediately
+	"""
 	@final
 	def is_abort_able(self) -> bool:
 		return super().is_abort_able()

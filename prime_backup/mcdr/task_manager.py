@@ -9,7 +9,7 @@ from sqlalchemy.exc import OperationalError
 from prime_backup import logger
 from prime_backup.exceptions import BackupNotFound
 from prime_backup.mcdr.task import TaskEvent, Task
-from prime_backup.mcdr.task.basic_task import OperationTask, ReaderTask, ImmediateTask
+from prime_backup.mcdr.task.basic_task import HeavyTask, LightTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
 from prime_backup.types.units import Duration
 from prime_backup.utils import misc_utils
@@ -122,37 +122,37 @@ class ThreadedWorker:
 class TaskManager:
 	def __init__(self):
 		self.logger = logger.get()
-		self.worker_operator = ThreadedWorker('operator', 1)
-		self.worker_reader = ThreadedWorker('reader', 3)
+		self.worker_heavy = ThreadedWorker('heavy', HeavyTask.MAX_ONGOING_TASK)
+		self.worker_light = ThreadedWorker('light', LightTask.MAX_ONGOING_TASK)
 
 	def start(self):
-		self.worker_operator.start()
-		self.worker_reader.start()
+		self.worker_heavy.start()
+		self.worker_light.start()
 
 	def shutdown(self):
-		self.worker_operator.shutdown()
-		self.worker_reader.shutdown()
+		self.worker_heavy.shutdown()
+		self.worker_light.shutdown()
 
 	# ================================== Interfaces ==================================
 
 	def add_task(self, task: Task, callback: Optional[TaskCallback] = None, *, handle_tmo_err: bool = True):
 		source = task.source
 		holder = TaskHolder(task, source, callback)
-		if isinstance(task, OperationTask):
-			self.worker_operator.submit(holder, handle_tmo_err=handle_tmo_err)
-		elif isinstance(task, ReaderTask):
-			self.worker_reader.submit(holder, handle_tmo_err=handle_tmo_err)
+		if isinstance(task, HeavyTask):
+			self.worker_heavy.submit(holder, handle_tmo_err=handle_tmo_err)
+		elif isinstance(task, LightTask):
+			self.worker_light.submit(holder, handle_tmo_err=handle_tmo_err)
 		elif isinstance(task, ImmediateTask):
 			ThreadedWorker.run_task(holder)
 		else:
 			raise TypeError(type(task))
 
 	def do_confirm(self) -> bool:
-		return self.worker_operator.send_event_to_current_task(TaskEvent.operation_confirmed)
+		return self.worker_heavy.send_event_to_current_task(TaskEvent.operation_confirmed)
 
 	def do_abort(self) -> bool:
-		return self.worker_operator.send_event_to_current_task(TaskEvent.operation_aborted)
+		return self.worker_heavy.send_event_to_current_task(TaskEvent.operation_aborted)
 
 	def on_world_saved(self):
-		self.worker_operator.send_event_to_current_task(TaskEvent.world_save_done)
+		self.worker_heavy.send_event_to_current_task(TaskEvent.world_save_done)
 

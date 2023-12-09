@@ -6,7 +6,7 @@ from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
-from prime_backup.mcdr.task.basic_task import OperationTask
+from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
@@ -16,7 +16,7 @@ from prime_backup.utils.mcdr_utils import click_and_run, mkcmd
 from prime_backup.utils.timer import Timer
 
 
-class RestoreBackupTask(OperationTask[None]):
+class RestoreBackupTask(HeavyTask[None]):
 	def __init__(self, source: CommandSource, backup_id: Optional[int] = None, needs_confirm: bool = True, fail_soft: bool = False, verify_blob: bool = True):
 		super().__init__(source)
 		self.backup_id = backup_id

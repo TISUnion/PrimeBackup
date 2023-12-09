@@ -4,12 +4,12 @@ from typing import Any
 from mcdreforged.api.all import *
 
 from prime_backup.action.operate_backup_tag_action import SetBackupTagAction, ClearBackupTagAction
-from prime_backup.mcdr.task.basic_task import OperationTask
+from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_tags import BackupTagName
 
 
-class _OperateBackupTagTaskBase(OperationTask[None], ABC):
+class _OperateBackupTagTaskBase(LightTask[None], ABC):
 	def __init__(self, source: CommandSource, backup_id: int, tag_name: BackupTagName):
 		super().__init__(source)
 		self.backup_id = backup_id

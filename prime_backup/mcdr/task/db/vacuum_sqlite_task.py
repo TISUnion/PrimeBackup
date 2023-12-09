@@ -5,11 +5,11 @@ from typing import Optional
 from mcdreforged.api.all import *
 
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
-from prime_backup.mcdr.task.basic_task import OperationTask
+from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 
 
-class VacuumSqliteTask(OperationTask[None]):
+class VacuumSqliteTask(HeavyTask[None]):
 	def __init__(self, source: CommandSource, target_path: Optional[Path] = None):
 		super().__init__(source)
 		self.target_path = target_path

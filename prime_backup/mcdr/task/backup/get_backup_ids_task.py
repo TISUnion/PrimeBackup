@@ -1,10 +1,10 @@
 from typing import List
 
 from prime_backup.action.list_backup_action import ListBackupIdAction
-from prime_backup.mcdr.task.basic_task import ReaderTask
+from prime_backup.mcdr.task.basic_task import LightTask
 
 
-class GetBackupIdsTask(ReaderTask[List[int]]):
+class GetBackupIdsTask(LightTask[List[int]]):
 	@property
 	def id(self) -> str:
 		return 'backup_get_ids'

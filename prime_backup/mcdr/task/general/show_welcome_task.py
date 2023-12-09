@@ -4,7 +4,7 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.mcdr import mcdr_globals
-from prime_backup.mcdr.task.basic_task import ReaderTask
+from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.task.general import help_message_utils
 from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
@@ -12,7 +12,7 @@ from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ShowWelcomeTask(ReaderTask[None]):
+class ShowWelcomeTask(LightTask[None]):
 	BACKUP_NUMBER_TO_SHOW = 3
 	COMMON_COMMANDS = ['', 'help', 'make', 'back', 'list', 'show', 'rename', 'delete', 'confirm', 'abort']
 

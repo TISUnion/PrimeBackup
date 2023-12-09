@@ -6,12 +6,12 @@ from typing import Optional
 
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
 from prime_backup.db import db_constants
-from prime_backup.mcdr.task.basic_task import OperationTask
+from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import misc_utils
 
 
-class CreateDbBackupTask(OperationTask[None]):
+class CreateDbBackupTask(HeavyTask[None]):
 	__task_sem = threading.Semaphore(1)
 
 	@property

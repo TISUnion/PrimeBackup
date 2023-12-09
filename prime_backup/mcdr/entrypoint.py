@@ -89,8 +89,8 @@ def on_unload(server: PluginServerInterface):
 				server.logger.info('crontab_manager is still alive')
 			elif (tm := task_manager) is not None:
 				server.logger.info('task_manager is still alive')
-				server.logger.info('task worker operator: queue size %s current %s', tm.worker_operator.task_queue.qsize(), tm.worker_operator.task_queue.current_item)
-				server.logger.info('task worker reader: queue size %s current %s', tm.worker_reader.task_queue.qsize(), tm.worker_operator.task_queue.current_item)
+				server.logger.info('task worker heavy: queue size %s current %s', tm.worker_heavy.task_queue.qsize(), tm.worker_heavy.task_queue.current_item)
+				server.logger.info('task worker light: queue size %s current %s', tm.worker_light.task_queue.qsize(), tm.worker_heavy.task_queue.current_item)
 
 		shutdown_event.wait(max(0.0, delay - elapsed) if delay is not None else delay)
 		if shutdown_event.is_set():

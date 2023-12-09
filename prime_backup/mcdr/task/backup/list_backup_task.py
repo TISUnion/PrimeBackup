@@ -5,14 +5,14 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.count_backup_action import CountBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
-from prime_backup.mcdr.task.basic_task import ReaderTask
+from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils import conversion_utils
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ListBackupTask(ReaderTask[None]):
+class ListBackupTask(LightTask[None]):
 	def __init__(self, source: CommandSource, per_page: int, page: int, backup_filter: BackupFilter, show_all: bool, show_flags: bool):
 		super().__init__(source)
 		self.source = source
@@ -29,9 +29,6 @@ class ListBackupTask(ReaderTask[None]):
 	@property
 	def id(self) -> str:
 		return 'backup_list'
-
-	def is_abort_able(self) -> bool:
-		return True
 
 	def __make_command(self, page: int) -> str:
 		def date_str(ts_ns: int) -> str:

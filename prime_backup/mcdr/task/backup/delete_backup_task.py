@@ -4,12 +4,12 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.get_backup_action import GetBackupAction
-from prime_backup.mcdr.task.basic_task import OperationTask
+from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.utils import collection_utils
 
 
-class DeleteBackupTask(OperationTask[None]):
+class DeleteBackupTask(HeavyTask[None]):
 	def __init__(self, source: CommandSource, backup_ids: List[int]):
 		super().__init__(source)
 		self.backup_ids = collection_utils.deduplicated_list(backup_ids)

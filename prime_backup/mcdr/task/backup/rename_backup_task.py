@@ -1,11 +1,11 @@
 from mcdreforged.api.all import CommandSource
 
 from prime_backup.action.rename_backup_action import RenameBackupAction
-from prime_backup.mcdr.task.basic_task import OperationTask
+from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents
 
 
-class RenameBackupTask(OperationTask[None]):
+class RenameBackupTask(LightTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int, comment: str):
 		super().__init__(source)
 		self.backup_id = backup_id

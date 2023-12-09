@@ -5,13 +5,13 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.mcdr.task import TaskEvent
-from prime_backup.mcdr.task.basic_task import OperationTask
+from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.operator import Operator
 from prime_backup.utils.timer import Timer
 
 
-class CreateBackupTask(OperationTask[None]):
+class CreateBackupTask(HeavyTask[None]):
 	def __init__(self, source: CommandSource, comment: str, operator: Optional[Operator] = None):
 		super().__init__(source)
 		self.comment = comment

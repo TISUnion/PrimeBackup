@@ -1,10 +1,10 @@
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
-from prime_backup.mcdr.task.basic_task import ReaderTask
+from prime_backup.mcdr.task.basic_task import LightTask
 
 from prime_backup.mcdr.text_components import TextComponents
 
 
-class ShowDbOverviewTask(ReaderTask[None]):
+class ShowDbOverviewTask(LightTask[None]):
 	@property
 	def id(self) -> str:
 		return 'db_overview'

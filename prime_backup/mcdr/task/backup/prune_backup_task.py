@@ -12,7 +12,7 @@ from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.config.prune_config import PruneSetting
 from prime_backup.exceptions import BackupNotFound
-from prime_backup.mcdr.task.basic_task import OperationTask
+from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
@@ -74,7 +74,7 @@ class PruneAllBackupResult:
 	deleted_blobs: BlobListSummary = BlobListSummary.zero()
 
 
-class PruneBackupTask(OperationTask[PruneBackupResult]):
+class PruneBackupTask(HeavyTask[PruneBackupResult]):
 	def __init__(self, source: CommandSource, backup_filter: BackupFilter, setting: PruneSetting, *, what_to_prune: Optional[RTextBase] = None):
 		super().__init__(source)
 		self.backup_filter = backup_filter
@@ -251,7 +251,7 @@ class PruneBackupTask(OperationTask[PruneBackupResult]):
 		return result
 
 
-class PruneAllBackupTask(OperationTask[PruneAllBackupResult]):
+class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 	@property
 	def id(self) -> str:
 		return 'backup_prune_all'

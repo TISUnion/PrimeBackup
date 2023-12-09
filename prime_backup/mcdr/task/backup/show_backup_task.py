@@ -1,14 +1,14 @@
 from mcdreforged.api.all import *
 
 from prime_backup.action.get_backup_action import GetBackupAction
-from prime_backup.mcdr.task.basic_task import ReaderTask
+from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ShowBackupTask(ReaderTask[None]):
+class ShowBackupTask(LightTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int):
 		super().__init__(source)
 		self.backup_id = backup_id

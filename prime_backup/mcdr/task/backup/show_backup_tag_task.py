@@ -3,14 +3,14 @@ from typing import Any
 from mcdreforged.api.all import *
 
 from prime_backup.action.get_backup_action import GetBackupAction
-from prime_backup.mcdr.task.basic_task import ReaderTask
+from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName, BackupTags
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
-class ShowBackupSingleTagTask(ReaderTask[None]):
+class ShowBackupSingleTagTask(LightTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int, tag_name: BackupTagName):
 		super().__init__(source)
 		self.backup_id = backup_id
@@ -29,7 +29,7 @@ class ShowBackupSingleTagTask(ReaderTask[None]):
 			self.reply(self.tr('not_exists', TextComponents.backup_id(backup.id), TextComponents.tag_name(self.tag_name)))
 
 
-class ShowBackupTagTask(ReaderTask[None]):
+class ShowBackupTagTask(LightTask[None]):
 	def __init__(self, source: CommandSource, backup_id: int):
 		super().__init__(source)
 		self.backup_id = backup_id

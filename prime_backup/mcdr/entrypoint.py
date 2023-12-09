@@ -10,6 +10,7 @@ from prime_backup.db.access import DbAccess
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.command.commands import CommandManager
 from prime_backup.mcdr.crontab_manager import CrontabManager
+from prime_backup.mcdr.online_player_counter import OnlinePlayerCounter
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.utils import misc_utils
 
@@ -17,6 +18,7 @@ config: Optional[Config] = None
 task_manager: Optional[TaskManager] = None
 command_manager: Optional[CommandManager] = None
 crontab_manager: Optional[CrontabManager] = None
+online_player_counter: Optional[OnlinePlayerCounter] = None
 mcdr_globals.load()
 init_ok = False
 
@@ -31,7 +33,7 @@ def is_enabled() -> bool:
 
 
 def on_load(server: PluginServerInterface, old):
-	global config, task_manager, command_manager, crontab_manager
+	global config, task_manager, command_manager, crontab_manager, online_player_counter
 	try:
 		config = server.load_config_simple(target_class=Config, failure_policy='raise')
 		set_config_instance(config)
@@ -46,6 +48,8 @@ def on_load(server: PluginServerInterface, old):
 		crontab_manager.start()
 		command_manager = CommandManager(server, task_manager, crontab_manager)
 		command_manager.register_commands()
+		online_player_counter = OnlinePlayerCounter()
+		online_player_counter.on_load(server, getattr(old, 'online_player_counter', None))
 
 		server.register_help_message(config.command.prefix, mcdr_globals.metadata.get_description_rtext())
 	except Exception:
@@ -104,3 +108,18 @@ def on_info(server: PluginServerInterface, info: Info):
 			if pattern.fullmatch(info.content):
 				task_manager.on_world_saved()
 				break
+
+
+def on_server_start(server: PluginServerInterface):
+	if init_ok and online_player_counter is not None:
+		online_player_counter.on_server_start()
+
+
+def on_player_joined(server: PluginServerInterface, player: str, info: Info):
+	if init_ok and online_player_counter is not None:
+		online_player_counter.on_player_joined()
+
+
+def on_player_left(_: PluginServerInterface, info: Info):
+	if init_ok and online_player_counter is not None:
+		online_player_counter.on_player_left()

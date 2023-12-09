@@ -312,7 +312,8 @@ It's for creating a backup periodically and automatically for your server
     "interval": "12h",
     "crontab": null,
     "jitter": "10s",
-    "reset_timer_on_backup": true
+    "reset_timer_on_backup": true,
+    "require_online_players": false
 }
 ```
 
@@ -326,6 +327,20 @@ If the schedule timer should be reset on each manual backup
 
 - Type: `bool`
 - Default: `true`
+
+#### require_online_players
+
+If set to `true`, automated backups will only occur when players are present on the server.
+
+Note: This feature requires the Prime Backup plugin to be loaded before the server starts. 
+If the Prime Backup plugin is loaded while the server is running, 
+the scheduled backup feature will be disabled unless the [MinecraftDataAPI](https://github.com/MCDReforged/MinecraftDataAPI) plugin is present
+
+Since Prime Backup supports file deduplication and highly customizable [prune config](#prune-config),
+having backups even when no player is on the server will not result in excessive space usage
+
+- Type: `bool`
+- Default: `false`
 
 ---
 

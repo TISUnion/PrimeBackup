@@ -10,3 +10,4 @@ class ScheduledBackupConfig(CrontabJobSetting):
 	crontab: Optional[str] = None
 	jitter: Duration = Duration('10s')
 	reset_timer_on_backup: bool = True
+	require_online_players: bool = False

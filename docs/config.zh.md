@@ -312,7 +312,8 @@ Prime Backup 在创建备份时的操作时序如下：
     "interval": "12h",
     "crontab": null,
     "jitter": "10s",
-    "reset_timer_on_backup": true
+    "reset_timer_on_backup": true,
+    "require_online_players": false
 }
 ```
 
@@ -326,6 +327,20 @@ Prime Backup 在创建备份时的操作时序如下：
 
 - 类型：`bool`
 - 默认值：`true`
+
+#### require_online_players
+
+若设为 `true`，则只有在服务器中存在玩家时，才进行定时备份
+
+注意：该功能需要 Prime Backup 插件在服务器启动前就被加载。
+若 Prime Backup 插件在服务器运行过程中被加载，定时备份功能将被禁用，
+除非插件 [MinecraftDataAPI](https://github.com/MCDReforged/MinecraftDataAPI) 存在
+
+由于 Prime Backup 支持文件去重以及高可自定义的 [剪裁配置](#剪裁配置) 功能，
+因此就算服务器里没人也备份，也不会导致备份占用过多空间
+
+- 类型：`bool`
+- 默认值：`false`
 
 ---
 

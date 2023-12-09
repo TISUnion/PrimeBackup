@@ -33,9 +33,9 @@ class DbAccess:
 
 	@classmethod
 	def shutdown(cls):
-		logger = db_logger.get()
-		for hdr in list(logger.handlers):
-			logger.removeHandler(hdr)
+		if (logger := db_logger.get()) is not None:
+			for hdr in list(logger.handlers):
+				logger.removeHandler(hdr)
 
 	@classmethod
 	def get_db_path(cls) -> Path:

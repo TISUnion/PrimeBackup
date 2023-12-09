@@ -29,6 +29,10 @@ class VerificationError(PrimeBackupError):
 	pass
 
 
+class _ExportInterrupted(PrimeBackupError):
+	pass
+
+
 class _ExportBackupActionBase(Action[ExportFailures], ABC):
 	def __init__(
 			self, backup_id: int, output_path: Path, *,
@@ -40,6 +44,9 @@ class _ExportBackupActionBase(Action[ExportFailures], ABC):
 		self.fail_soft = fail_soft
 		self.verify_blob = verify_blob
 		self.create_meta = create_meta
+
+	def is_interruptable(self) -> bool:
+		return True
 
 	def run(self) -> ExportFailures:
 		with DbAccess.open_session() as session:
@@ -179,6 +186,9 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		try:
 			directories: List[Tuple[schema.File, Path]] = []
 			for file in backup.files:
+				if self.is_interrupted.is_set():
+					self.logger.info('Export to directory interrupted')
+					break
 				try:
 					self.__export_file(file, directories)
 				except Exception as e:
@@ -192,7 +202,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 				except Exception as e:
 					failures.add_or_raise(dir_file, e)
 		except Exception:
-			# TODO: rollback
+			# TODO: rollback?
 			raise
 
 		return failures
@@ -306,6 +316,9 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		try:
 			with self.__open_tar() as tar:
 				for file in backup.files:
+					if self.is_interrupted.is_set():
+						self.logger.info('Export to tarfile interrupted')
+						raise _ExportInterrupted()
 					try:
 						self.__export_file(tar, file)
 					except Exception as e:
@@ -317,10 +330,11 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 					info.mtime = int(time.time())
 					info.size = len(meta_buf)
 					tar.addfile(tarinfo=info, fileobj=BytesIO(meta_buf))
-		except Exception:
+		except Exception as e:
 			with contextlib.suppress(OSError):
 				self.output_path.unlink(missing_ok=True)
-			raise
+			if not isinstance(e, _ExportInterrupted):
+				raise
 
 		return failures
 
@@ -377,6 +391,9 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 		try:
 			with zipfile.ZipFile(self.output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
 				for file in backup.files:
+					if self.is_interrupted.is_set():
+						self.logger.info('Export to zipfile interrupted')
+						raise _ExportInterrupted()
 					try:
 						self.__export_file(zipf, file)
 					except Exception as e:
@@ -390,9 +407,10 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 					with zipf.open(info, 'w') as f:
 						f.write(meta_buf)
 
-		except Exception:
+		except Exception as e:
 			with contextlib.suppress(OSError):
 				self.output_path.unlink(missing_ok=True)
-			raise
+			if not isinstance(e, _ExportInterrupted):
+				raise
 
 		return failures

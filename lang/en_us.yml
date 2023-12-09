@@ -42,6 +42,7 @@ prime_backup:
       name: export backup
       already_exists: File {} already exists
       exporting: Exporting backup {}
+      unfinished: Backup export unfinished
       exported: Exported backup {} to {}, cost {}, size {}
       failures: 'Found {} errors during the export:'
     backup_list:

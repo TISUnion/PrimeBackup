@@ -67,10 +67,13 @@ class ExportBackupTask(HeavyTask[None]):
 
 		self.reply(self.tr('exporting', TextComponents.backup_id(backup.id)))
 		timer = Timer()
-		failures = action.run()
+		failures = self.run_action(action)
 		t_cost = RText(f'{round(timer.get_elapsed(), 2)}s', RColor.gold)
 
-		self.reply(self.tr('exported', TextComponents.backup_id(backup.id), TextComponents.file_path(path), t_cost, TextComponents.file_size(path.stat().st_size)))
+		if path.is_file():
+			self.reply(self.tr('exported', TextComponents.backup_id(backup.id), TextComponents.file_path(path), t_cost, TextComponents.file_size(path.stat().st_size)))
+		else:
+			self.reply(self.tr('unfinished'))
 		if len(failures) > 0:
 			self.reply(self.tr('failures', len(failures)))
 			for failure in failures:

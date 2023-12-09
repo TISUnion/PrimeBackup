@@ -42,6 +42,7 @@ prime_backup:
       name: 导出备份
       already_exists: 文件{}已存在
       exporting: 正在导出备份{}
+      unfinished: 备份导出未完成
       exported: 已将备份{}导出至{}, 耗时{}, 文件大小{}
       failures: '在导出过程中发现{}个错误:'
     backup_list:

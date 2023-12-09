@@ -15,6 +15,7 @@ class BackupConfig(Serializable):
 	ignored_files: List[str] = [
 		'session.lock',
 	]
+	follow_target_symlink: bool = True
 	hash_method: HashMethod = HashMethod.xxh128
 	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 64

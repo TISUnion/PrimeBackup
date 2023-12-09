@@ -193,6 +193,7 @@ Prime Backup 在创建备份时的操作时序如下：
     "ignored_files": [
         "session.lock"
     ],
+    "follow_target_symlink": true,
     "hash_method": "xxh128",
     "compress_method": "zstd",
     "compress_threshold": 64
@@ -239,6 +240,25 @@ Prime Backup 在创建备份时的操作时序如下：
 如 `temp*` 表示忽略所有以 `temp` 开头的文件，如 `tempfile`
 
 - 类型：`List[str]`
+
+#### follow_target_symlink
+
+在设为 `true` 时，对于类型为符号链接的 [备份目标](#targets)，
+Prime Backup 除了会创建它们的备份外，
+还会把符号链接的实际目标包括在备份目标中
+
+例如，对于以下符号链接关系图：
+
+```
+world --> foo --> bar
+^
+备份目标
+```
+
+Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 符号链接，和最终的的 `bar` 文件夹
+
+- 类型：`bool`
+- 默认值：`true`
 
 #### hash_method
 

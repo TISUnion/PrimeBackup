@@ -16,7 +16,7 @@ from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.exceptions import PrimeBackupError
+from prime_backup.exceptions import PrimeBackupError, UnsupportedFileFormat
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
@@ -163,6 +163,11 @@ class BatchQueryManager:
 		self.fetcher_hash.flush()
 
 
+class _ScanResult(NamedTuple):
+	all_file_paths: List[Path]
+	root_targets: List[str]  # list of posix path, related to the source_path
+
+
 class CreateBackupAction(CreateBackupActionBase):
 	def __init__(self, creator: Operator, comment: str, *, tags: Optional[BackupTags] = None, expire_timestamp_ns: Optional[int] = None):
 		super().__init__()
@@ -181,22 +186,43 @@ class CreateBackupAction(CreateBackupActionBase):
 		self.__blob_by_size_cache: Dict[int, bool] = {}
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
 
-	def scan_files(self) -> List[Path]:
+	def __scan_files(self) -> _ScanResult:
 		collected = []
 
-		for target in self.config.backup.targets:
-			target_path = self.config.source_path / target
+		source_path = self.config.source_path
+		scanned_targets: Dict[str, bool] = {}  # use as an ordered set
+		scan_queue: Deque[Path] = collections.deque()  # a queue of paths related to the source_path
+		for scan_target in self.config.backup.targets:
+			scan_queue.append(Path(scan_target))
+
+		while len(scan_queue) > 0:
+			scan_target = scan_queue.popleft()
+			if (target_posix := scan_target.as_posix()) in scanned_targets:
+				continue
+			scanned_targets[target_posix] = True
+
+			target_path = source_path / scan_target
 			if not target_path.exists():
-				self.logger.info('skipping not-exist backup target {}'.format(target_path))
+				self.logger.info('Skipping not-exist backup target {}'.format(target_path))
+				continue
+			if not target_path.is_relative_to(source_path):
+				self.logger.warning("Skipping backup target {} cuz it's not inside the source path {}".format(target_path, source_path))
 				continue
 
 			collected.append(target_path)
+
+			if target_path.is_symlink() and self.config.backup.follow_target_symlink:
+				scan_queue.append(target_path.readlink())
+				continue
+
 			if target_path.is_dir():
 				for dir_path, dir_names, file_names in os.walk(target_path):
 					for name in file_names + dir_names:
-						collected.append(Path(dir_path) / name)
+						file_path = Path(dir_path) / name
+						if not self.config.backup.is_file_ignore(file_path):
+							collected.append(file_path)
 
-		return [p for p in collected if not self.config.backup.is_file_ignore(p)]
+		return _ScanResult(all_file_paths=collected, root_targets=list(scanned_targets.keys()))
 
 	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Generator[Any, Any, Tuple[schema.Blob, os.stat_result]]:
 		src_path_str = repr(src_path.as_posix())
@@ -360,14 +386,14 @@ class CreateBackupAction(CreateBackupActionBase):
 				return blob, st
 			except _BlobFileChanged:
 				self.logger.warning('Blob {} stat has changed, {}'.format(src_path_str, 'no more retry' if last_attempt else 'retrying'))
-				st = src_path.stat()
+				st = src_path.lstat()
 
 		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(src_path_str))
 		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path_str))
 
 	def __create_file(self, session: DbSession, path: Path) -> Generator[Any, Any, schema.File]:
 		related_path = path.relative_to(self.config.source_path)
-		st = path.stat()
+		st = path.lstat()
 
 		blob: Optional[schema.Blob] = None
 		content: Optional[bytes] = None
@@ -386,7 +412,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		elif stat.S_ISLNK(st.st_mode):
 			content = path.readlink().as_posix().encode('utf8')
 		else:
-			raise NotImplementedError('unsupported yet')
+			raise UnsupportedFileFormat(st.st_mode)
 
 		return session.create_file(
 			path=related_path.as_posix(),
@@ -412,13 +438,14 @@ class CreateBackupAction(CreateBackupActionBase):
 			with DbAccess.open_session() as session:
 				self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache)
 
+				scan_result = self.__scan_files()
 				backup = session.create_backup(
 					creator=str(self.creator),
 					comment=self.comment,
-					targets=[Path(t).as_posix() for t in self.config.backup.targets],
+					targets=scan_result.root_targets,
 					tags=self.tags.to_dict(),
 				)
-				self.logger.info('Creating backup {}'.format(backup))
+				self.logger.info('Creating backup {} on {}'.format(backup, scan_result.root_targets))
 
 				blob_utils.prepare_blob_directories()
 				bs_path = blob_utils.get_blob_store()
@@ -427,7 +454,7 @@ class CreateBackupAction(CreateBackupActionBase):
 
 				files = []
 				schedule_queue: Deque[Tuple[Generator, Any]] = collections.deque()
-				for file_path in self.scan_files():
+				for file_path in scan_result.all_file_paths:
 					schedule_queue.append((self.__create_file(session, file_path), None))
 				while len(schedule_queue) > 0:
 					gen, value = schedule_queue.popleft()

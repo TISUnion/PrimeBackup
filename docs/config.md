@@ -193,6 +193,7 @@ Configs on how the backup is made
     "ignored_files": [
         "session.lock"
     ],
+    "follow_target_symlink": true,
     "hash_method": "xxh128",
     "compress_method": "zstd",
     "compress_threshold": 64
@@ -239,6 +240,25 @@ If the name string ends with `*`, then it will ignore files with name starting w
 e.g. `temp*`  makes all files starts with `temp` be ignored, like `tempfile`
 
 - Type: `List[str]`
+
+#### follow_target_symlink
+
+When set to `true`, for [backup targets](#targets) that are symbolic links,
+Prime Backup will not only create backups for them,
+but also include the link targets of the symbolic links in the backup targets.
+
+For example, in the following symbolic link graph:
+
+```
+world --> foo --> bar
+^
+backup target
+```
+
+Prime Backup will save not only the `world` symbolic link, but also the `foo` symbolic link and the final `bar` directory
+
+- Type: `bool`
+- Default: `true`
 
 #### hash_method
 

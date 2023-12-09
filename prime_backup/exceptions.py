@@ -15,5 +15,6 @@ class BackupFileNotFound(PrimeBackupError):
 		self.path = path
 
 
-class Timeout(PrimeBackupError):
-	pass
+class UnsupportedFileFormat(PrimeBackupError):
+	def __init__(self, mode: int):
+		self.mode = mode

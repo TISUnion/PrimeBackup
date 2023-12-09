@@ -149,8 +149,8 @@ class CliHandler:
 		failures = act.run()
 		if len(failures) > 0:
 			logger.warning('Found {} failures during the export'.format(len(failures)))
-			for failure in failures:
-				logger.warning('  {} mode={}: {} {}'.format(failure.file.path, oct(failure.file.mode), type(failure.error), str(failure.error)))
+			for line in failures.to_lines():
+				logger.warning('  {}'.format(line.to_plain_text()))
 
 	def cmd_extract(self):
 		file_path = Path(self.args.file)

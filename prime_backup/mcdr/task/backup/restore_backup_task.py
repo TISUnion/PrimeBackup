@@ -85,11 +85,16 @@ class RestoreBackupTask(HeavyTask[None]):
 		cost_backup = timer.get_and_restart()
 
 		self.logger.info('Restoring to backup #{} (fail_soft={}, verify_blob={})'.format(backup.id, self.fail_soft, self.verify_blob))
-		ExportBackupToDirectoryAction(backup.id, self.config.source_path, delete_existing=True, fail_soft=self.fail_soft, verify_blob=self.verify_blob).run()
+		failures = ExportBackupToDirectoryAction(backup.id, self.config.source_path, delete_existing=True, fail_soft=self.fail_soft, verify_blob=self.verify_blob).run()
 		cost_restore = timer.get_and_restart()
 
-		self.logger.info('Restore to backup #{} done, cost {}s (backup {}s, restore {}s), starting the server'.format(
+		if len(failures) > 0:
+			self.logger.error('Found {} failures during backup export'.format(len(failures)))
+			for line in failures.to_lines():
+				self.logger.error(line.to_colored_text())
+		self.logger.info('Restore to backup #{} done, cost {}s (backup {}s, restore {}s){}'.format(
 			backup.id, round(cost_backup + cost_restore, 2), round(cost_backup, 2), round(cost_restore, 2),
+			', starting the server' if server_was_running else ''
 		))
 
 		if server_was_running:

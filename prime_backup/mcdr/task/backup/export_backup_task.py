@@ -5,7 +5,7 @@ from mcdreforged.api.all import *
 from prime_backup.action.export_backup_action import ExportBackupToZipAction, ExportBackupToTarAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_task import HeavyTask
-from prime_backup.mcdr.text_components import TextComponents, TextColors
+from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.standalone_backup_format import ZipFormat, StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils.timer import Timer
@@ -76,11 +76,5 @@ class ExportBackupTask(HeavyTask[None]):
 			self.reply(self.tr('unfinished'))
 		if len(failures) > 0:
 			self.reply(self.tr('failures', len(failures)))
-			for failure in failures:
-				self.reply(RTextBase.format(
-					'{} mode={}: ({}) {}',
-					RText(failure.file.path, TextColors.file),
-					oct(failure.file.mode),
-					type(failure.error).__name__,
-					str(failure.error),
-				))
+			for line in failures.to_lines():
+				self.reply(line)

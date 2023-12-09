@@ -1,11 +1,11 @@
 ---
-title: 'CLI Tool'
+title: '命令行工具'
 ---
 
-# Command Line Interface Tool
+# 命令行工具
 
-The `*.pyz` file of Prime Backup is not only an MCDR plugin, but also a Command-Line Interface (CLI) tool.
-You can run it with a valid Python 3 interpreter, provided all requirements are installed
+Prime Backup 的 `*.pyz` 文件除了是一个 MCDR 插件外，也是一个命令行界面（CLI）工具。
+在安装了所需的 Python 依赖库后，你可以直接用 Python3 解析器来运行它
 
 ```
 $ python3 PrimeBackup.pyz
@@ -32,7 +32,7 @@ Command:
     extract             Extract a single file from a backup
 ```
 
-You can append `--help` to each subcommand to display its help message. For example:
+你可以在每个子命令后添加 `--help` 来显示其帮助信息。例如：
 
 ```
 $ python3 PrimeBackup.pyz export --help
@@ -58,7 +58,7 @@ options:
   --no-verify           Do not verify the exported file contents
 ```
 
-As a demonstration, here's an example usage that shows the overview of the database
+作为演示，下面的这个例子展示了数据库的状况概览：
 
 ```
 $ python3 PrimeBackup.pyz -d run/pb_files overview

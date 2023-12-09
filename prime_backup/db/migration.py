@@ -50,7 +50,7 @@ class DbMigration:
 					dbm.version = target_version
 					self.logger.info('DB migration done')
 		else:
-			self.logger.info('Table {} does not exist, assuming newly create db, create everything'.format(schema.DbMeta.__tablename__))
+			self.logger.info('Table {} does not exist, assuming newly created db, create everything'.format(schema.DbMeta.__tablename__))
 			self.__create_the_world()
 			pass
 

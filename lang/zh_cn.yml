@@ -181,7 +181,7 @@ prime_backup:
       commands:
         title: 【指令帮助】
         content: |-
-          §7{prefix}§r: 展示当前这个欢迎界面
+          §7{prefix}§r: 展示欢迎界面
           §7{prefix} help §e[<指令>]§r: 展示全部指令/给定指令的详细帮助
           §7{prefix} make §e[<注释>]§r: 创建一个备份。§e<注释>§r为可选注释
           §7{prefix} back §6[<备份ID>]§r: 回档至给定备份。详见§7{prefix} help back§r
@@ -190,13 +190,13 @@ prime_backup:
           §7{prefix} rename §6<备份ID>§r §e<新注释>§r: 修改给定备份的注释
           §7{prefix} delete §6<备份ID> [<备份ID>...]§r: 删除给定备份。可输入多个备份ID
           §7{prefix} delete_range §6<备份ID范围>§r: 删除给定ID范围的备份
-          §7{prefix} export §6<备份ID> §7[...]§r: 给导出给定备份到文件。详见§7{prefix} help export§r
+          §7{prefix} export §6<备份ID> §7[...]§r: 导出给定备份到文件。详见§7{prefix} help export§r
           §7{prefix} prune §6<备份ID>§r: 手动触发一次备份裁剪
           §7{prefix} crontab §a<作业ID> §7[...]§r: 操作定时作业。详见§7{prefix} help crontab§r
           §7{prefix} tag §6<备份ID> §7[...]§r: 操作给定备份的标签。详见§7{prefix} help tag§r
           §7{prefix} database [...]§r: 操作数据库。详见§7{prefix} help database§r
-          §7{prefix} confirm§r: 确认当前的任务操作。需确认的任务: 回档、范围删除
-          §7{prefix} abort§r: 终止当前的任务操作。可终止的任务: 回档、列出备份、范围删除、备份裁剪
+          §7{prefix} confirm§r: 确认当前的任务操作
+          §7{prefix} abort§r: 终止当前的任务操作
       arguments:
         title: 【参数帮助】
         content: |-

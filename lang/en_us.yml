@@ -181,7 +181,7 @@ prime_backup:
       commands:
         title: '[Commands Usages]'
         content: |-
-          §7{prefix}§r: Display the current welcome page
+          §7{prefix}§r: Display the welcome page
           §7{prefix} help §e[<what>]§r: Display help message of all / given command
           §7{prefix} make §e[<comment>]§r: Make a backup. §e<comment>§r is an optional comment message
           §7{prefix} back §6[<backup_id>]§r: Restore to the given backup. See §7{prefix} help back§r for detailed help 

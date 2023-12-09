@@ -359,7 +359,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					raise AssertionError()
 
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
-			misc_utils.assert_true(raw_size is not None, 'stored_size is None')
+			misc_utils.assert_true(raw_size is not None, 'raw_size is None')
 			misc_utils.assert_true(stored_size is not None, 'stored_size is None')
 			return self._create_blob(
 				session,

@@ -82,7 +82,7 @@ mcdr_root/
     - [`compress_method`](config.zh.md#compress_method): 备份文件的压缩方式。常用建议：
 
         - `"plain"`: 无压缩。如果你希望获得最快的操作速度，就用这个
-        - [`"zstd"`](https://github.com/facebook/zstd): 快速且高效的压缩算法。如果你想节约一些磁盘空间的画，推荐使用
+        - [`"zstd"`](https://github.com/facebook/zstd): 快速且高效的压缩算法。如果你想节约一些磁盘空间的话，推荐使用
     
     !!! danger
     
@@ -114,4 +114,4 @@ mcdr_root/
 
 在 MCDR 控制台或游戏中输入 `!!pb`，你应该看到如下所示的欢迎页面
 
-![welcome](img/welcome.zh.png)
+![welcome](img/command/welcome.zh.png)

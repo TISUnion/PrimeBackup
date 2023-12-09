@@ -4,11 +4,30 @@ site_url: https://tisunion.github.io/PrimeBackup/
 site_author: Fallen_Breath
 site_description: A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world
 repo_url: https://github.com/TISUnion/PrimeBackup
+repo_name: TISUnion/PrimeBackup
 copyright: Copyright &copy; 2023 Fallen_Breath
 exclude_docs: |-
   /requirements.txt
+
+# https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown-extensions/
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.snippets
+
 theme:
   name: material
+  features:
+    - content.code.copy
+    - navigation.expand
+    - navigation.path
+    - navigation.prune
+    - navigation.top
   # https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/#automatic-light-dark-mode
   palette:
     - media: "(prefers-color-scheme)"
@@ -25,6 +44,7 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
+
 plugins:
   - search
   - i18n:
@@ -32,9 +52,20 @@ plugins:
       docs_structure: suffix
       languages:
         - locale: en
-          default: true
           name: English
           build: true
+          default: true
         - locale: zh
           name: 简体中文
           build: true
+          nav_translations:
+            Reference: 参考
+
+nav:
+  - index.md
+  - quick_start.md
+  - config.md
+  - command.md
+  - cli.md
+  - Reference:
+    - reference/index.md

@@ -52,7 +52,7 @@ class ShowWelcomeTask(ReaderTask[None]):
 
 		backup_filter = BackupFilter()
 		backup_filter.filter_non_pre_restore_backup()
-		backups = ListBackupAction(backup_filter=backup_filter, limit=self.BACKUP_NUMBER_TO_SHOW, calc_size=False).run()
+		backups = ListBackupAction(backup_filter=backup_filter, limit=self.BACKUP_NUMBER_TO_SHOW).run()
 		self.reply(self.tr('recent_backups', len(backups)).set_color(TextColors.help_title))
 		for backup in backups:
 			self.reply(TextComponents.backup_full(backup, operation_buttons=True))

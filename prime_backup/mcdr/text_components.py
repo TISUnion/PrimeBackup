@@ -73,7 +73,7 @@ class TextComponents:
 		return cls.date(backup.date)
 
 	@classmethod
-	def backup_full(cls, backup: BackupInfo, operation_buttons: bool = False, *, show_flags: bool = False, show_size: bool = False) -> RTextBase:
+	def backup_full(cls, backup: BackupInfo, operation_buttons: bool = False, *, show_flags: bool = False) -> RTextBase:
 		# "[#1] [>] [x] H-- 1.2GiB 2023-11-30 09:30:13: foobar"
 		t_bid = cls.backup_id(backup.id)
 
@@ -95,9 +95,8 @@ class TextComponents:
 					rtl.append(RText('-', RColor.dark_gray))
 			rtl.append(' ')
 
-		if show_size:
-			rtl.append(cls.backup_size(backup), ' ')
 		rtl.append(
+			cls.backup_size(backup), ' ',
 			cls.backup_date(backup), RText(': ', RColor.gray),
 			cls.backup_comment(backup.comment).h(cls.tr('backup_full.author', cls.operator(backup.author))),
 		)

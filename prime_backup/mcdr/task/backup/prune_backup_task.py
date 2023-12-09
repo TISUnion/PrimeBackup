@@ -181,7 +181,7 @@ class PruneBackupTask(OperationTask[PruneBackupResult]):
 		super().reply(msg, with_prefix=with_prefix)
 
 	def run(self) -> PruneBackupResult:
-		backups = ListBackupAction(backup_filter=self.backup_filter, calc_size=False).run()
+		backups = ListBackupAction(backup_filter=self.backup_filter).run()
 		backup_ids = {backup.id for backup in backups}
 
 		timezone: Optional[datetime.tzinfo] = None

@@ -18,14 +18,10 @@ class _ListBackupActionBase(Action[T], ABC):
 
 
 class ListBackupAction(_ListBackupActionBase[List[BackupInfo]]):
-	def __init__(self, *, calc_size: bool = False, **kwargs):
-		super().__init__(**kwargs)
-		self.calc_size = calc_size
-
 	def run(self) -> List[BackupInfo]:
 		with DbAccess.open_session() as session:
 			backups = session.list_backup(backup_filter=self.backup_filter, limit=self.limit, offset=self.offset)
-			return [BackupInfo.of(backup, calc_size=self.calc_size) for backup in backups]
+			return [BackupInfo.of(backup) for backup in backups]
 
 
 class ListBackupIdAction(_ListBackupActionBase[List[int]]):

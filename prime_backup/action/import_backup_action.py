@@ -371,11 +371,7 @@ class ImportBackupAction(CreateBackupActionBase):
 		for i, member in enumerate(members):
 			files.append(self.__import_member(session, member, now_ns, sah_dict.get(i)))
 
-		session.flush()  # generate backup id
-		for file in files:
-			file.backup_id = backup.id
-			session.add(file)
-
+		self._finalize_backup_and_files(session, backup, files)
 		return backup
 
 	def run(self) -> BackupInfo:

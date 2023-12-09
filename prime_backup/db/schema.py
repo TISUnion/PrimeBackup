@@ -79,6 +79,10 @@ class Backup(Base):
 	targets: Mapped[List[str]] = mapped_column(JSON)
 	tags: Mapped[BackupTagDict] = mapped_column(JSON)
 
+	# Store common statistics data of backup files
+	file_raw_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
+	file_stored_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
+
 	__fields_end__: bool
 
 	files: Mapped[List['File']] = relationship(back_populates='backup', viewonly=True)

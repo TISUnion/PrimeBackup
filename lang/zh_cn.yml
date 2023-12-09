@@ -267,11 +267,10 @@ prime_backup:
           §7--start §b<起始日期>§r: 仅列出给定日期之后的备份
           §7--end §b<结束日期>§r: 仅列出给定日期之前的备份
           §7--all§r: 展示所有的备份。默认情况下, 隐藏备份、回档前备份不会被展示
-          §7--size§r: 展示备份原始大小。这将增加任务耗时
           §7--flags§r: 展示备份标志位, 这些标志位是基于备份的标签生成的
           §d【例子】§r
           §7{prefix} list --all --flags§r
-          §7{prefix} list --start 20231130 --size§r
+          §7{prefix} list --start 20231130§r
           §7{prefix} list 3 --per-page 20§r
         tag: |-
           §d【tag指令帮助】§r

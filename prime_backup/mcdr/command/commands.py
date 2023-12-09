@@ -104,9 +104,8 @@ class CommandManager:
 			backup_filter.author = author
 		show_all = context.get('all', 0) > 0
 		show_flags = context.get('flags', 0) > 0
-		show_size = context.get('size', 0) > 0
 
-		self.task_manager.add_task(ListBackupTask(source, per_page, page, backup_filter, show_all, show_flags, show_size))
+		self.task_manager.add_task(ListBackupTask(source, per_page, page, backup_filter, show_all, show_flags))
 
 	def cmd_show(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
@@ -311,7 +310,6 @@ class CommandManager:
 			node.then(Literal('--start').then(DateNode('start_date').redirects(node)))
 			node.then(Literal('--end').then(DateNode('end_date').redirects(node)))
 			node.then(CountingLiteral('--all', 'all').redirects(node))
-			node.then(CountingLiteral('--size', 'size').redirects(node))
 			node.then(CountingLiteral('--flag', 'flags').redirects(node))
 			node.then(CountingLiteral('--flags', 'flags').redirects(node))
 			return node

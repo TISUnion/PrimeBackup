@@ -27,14 +27,14 @@ class DeleteBackupRangeTask(OperationTask[None]):
 
 	def __reply_backups(self, backups: Iterable[BackupInfo]):
 		for backup in backups:
-			self.reply(TextComponents.backup_full(backup, operation_buttons=False, show_size=False))
+			self.reply(TextComponents.backup_full(backup, operation_buttons=False))
 
 	def run(self) -> None:
 		backup_filter = BackupFilter()
 		backup_filter.id_start = self.id_start
 		backup_filter.id_end = self.id_end
 		backup_filter.filter_non_protected_backup()
-		backups = ListBackupAction(backup_filter=backup_filter, calc_size=False).run()
+		backups = ListBackupAction(backup_filter=backup_filter).run()
 		backups = [backup for backup in backups if not backup.tags.is_protected()]  # double check
 		if len(backups) == 0:
 			self.reply(self.tr('no_backup'))

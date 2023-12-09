@@ -113,10 +113,8 @@ class CliHandler:
 			values = {
 				'id': backup.id,
 				'date': repr(backup.date_str),
-				**({
-					'stored_size': ByteCount(backup.stored_size).auto_str() if self.args.human else backup.stored_size,
-					'raw_size': ByteCount(backup.raw_size).auto_str() if self.args.human else backup.raw_size,
-				} if self.args.size else {}),
+				'stored_size': ByteCount(backup.stored_size).auto_str() if self.args.human else backup.stored_size,
+				'raw_size': ByteCount(backup.raw_size).auto_str() if self.args.human else backup.raw_size,
 				'author': repr(str(backup.author)),
 				'comment': repr(backup.comment)
 			}
@@ -192,7 +190,6 @@ class CliHandler:
 		desc = 'List backups'
 		parser_list = subparsers.add_parser('list', help=desc, description=desc, add_help=False)
 		parser_list.add_argument('--help', action='store_true', help='show this help message and exit')
-		parser_list.add_argument('-s', '--size', action='store_true', help='Show backup sizes')
 		parser_list.add_argument('-h', '--human', action='store_true', help='Prettify backup sizes, make it human-readable')
 
 		desc = 'Show detailed information of the given backup'

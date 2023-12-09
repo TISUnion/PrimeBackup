@@ -416,7 +416,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					author=str(self.author),
 					comment=self.comment,
 					targets=[Path(t).as_posix() for t in self.config.backup.targets],
-					tags=self.tags.to_dict()
+					tags=self.tags.to_dict(),
 				)
 				self.logger.info('Creating backup {}'.format(backup))
 
@@ -444,11 +444,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					if len(schedule_queue) == 0:
 						self.__batch_query_manager.flush()
 
-				session.flush()  # generate backup id
-				for file in files:
-					file.backup_id = backup.id
-					session.add(file)
-
+				self._finalize_backup_and_files(session, backup, files)
 				info = BackupInfo.of(backup)
 
 			s = self.get_new_blobs_summary()

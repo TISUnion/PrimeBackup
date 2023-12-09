@@ -267,11 +267,10 @@ prime_backup:
           §7--start §b<start_date>§r: Show backup after the given date only
           §7--end §b<end_date>§r: Show backup before the given date only
           §7--all§r: Show all backups. By default, hidden backups and pre-restore backups will not be shown
-          §7--size§r: Show backup sizes
           §7--flags§r: Show backup flags, based on the tags of the backup
           §d[Examples]§r
           §7{prefix} list --all --flags§r
-          §7{prefix} list --start 20231130 --size§r
+          §7{prefix} list --start 20231130§r
           §7{prefix} list 3 --per-page 20§r
         tag: |-
           §d[tag Command Usage]§r

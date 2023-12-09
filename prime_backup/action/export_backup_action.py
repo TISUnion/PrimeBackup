@@ -30,12 +30,16 @@ class VerificationError(PrimeBackupError):
 
 
 class _ExportBackupActionBase(Action[ExportFailures], ABC):
-	def __init__(self, backup_id: int, output_path: Path, *, fail_soft: bool = False, verify_blob: bool = True):
+	def __init__(
+			self, backup_id: int, output_path: Path, *,
+			fail_soft: bool = False, verify_blob: bool = True, create_meta: bool = True,
+	):
 		super().__init__()
 		self.backup_id = misc_utils.ensure_type(backup_id, int)
 		self.output_path = output_path
 		self.fail_soft = fail_soft
 		self.verify_blob = verify_blob
+		self.create_meta = create_meta
 
 	def run(self) -> ExportFailures:
 		with DbAccess.open_session() as session:
@@ -52,8 +56,9 @@ class _ExportBackupActionBase(Action[ExportFailures], ABC):
 	def _export_backup(self, session: DbSession, backup: schema.Backup) -> ExportFailures:
 		...
 
-	@classmethod
-	def _create_meta_buf(cls, backup: schema.Backup) -> bytes:
+	def _create_meta_buf(self, backup: schema.Backup) -> bytes:
+		if not self.create_meta:
+			raise RuntimeError('calling _create_meta_buf() with create_meta set to False')
 		meta = BackupMeta.from_backup(backup)
 		return json.dumps(meta.to_dict(), indent=2, ensure_ascii=False).encode('utf8')
 
@@ -77,11 +82,12 @@ def _i_am_root():
 class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 	def __init__(
 			self, backup_id: int, output_path: Path, *,
-			fail_soft: bool = False, verify_blob: bool = True,
 			delete_existing: bool = True,
-			child_to_export: Optional[Path] = None, recursively_export_child: bool = False,
+			child_to_export: Optional[Path] = None,
+			recursively_export_child: bool = False,
+			**kwargs,
 	):
-		super().__init__(backup_id, output_path, fail_soft=fail_soft, verify_blob=verify_blob)
+		super().__init__(backup_id, output_path, **kwargs)
 		self.delete_existing = delete_existing
 		self.child_to_export = child_to_export
 		self.recursively_export_child = recursively_export_child
@@ -228,11 +234,8 @@ class PeekReader:
 
 
 class ExportBackupToTarAction(_ExportBackupActionBase):
-	def __init__(
-			self, backup_id: int, output_path: Path, tar_format: TarFormat, *,
-			fail_soft: bool = False, verify_blob: bool = True,
-	):
-		super().__init__(backup_id, output_path, fail_soft=fail_soft, verify_blob=verify_blob)
+	def __init__(self, backup_id: int, output_path: Path, tar_format: TarFormat, **kwargs):
+		super().__init__(backup_id, output_path, **kwargs)
 		self.tar_format = tar_format
 
 	@contextlib.contextmanager
@@ -308,11 +311,12 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 					except Exception as e:
 						failures.add_or_raise(file, e)
 
-				meta_buf = self._create_meta_buf(backup)
-				info = tarfile.TarInfo(name=BACKUP_META_FILE_NAME)
-				info.mtime = int(time.time())
-				info.size = len(meta_buf)
-				tar.addfile(tarinfo=info, fileobj=BytesIO(meta_buf))
+				if self.create_meta:
+					meta_buf = self._create_meta_buf(backup)
+					info = tarfile.TarInfo(name=BACKUP_META_FILE_NAME)
+					info.mtime = int(time.time())
+					info.size = len(meta_buf)
+					tar.addfile(tarinfo=info, fileobj=BytesIO(meta_buf))
 		except Exception:
 			with contextlib.suppress(OSError):
 				self.output_path.unlink(missing_ok=True)
@@ -378,12 +382,13 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 					except Exception as e:
 						failures.add_or_raise(file, e)
 
-				meta_buf = self._create_meta_buf(backup)
-				info = zipfile.ZipInfo(BACKUP_META_FILE_NAME, time.localtime()[0:6])
-				info.compress_type = zipf.compression
-				info.file_size = len(meta_buf)
-				with zipf.open(info, 'w') as f:
-					f.write(meta_buf)
+				if self.create_meta:
+					meta_buf = self._create_meta_buf(backup)
+					info = zipfile.ZipInfo(BACKUP_META_FILE_NAME, time.localtime()[0:6])
+					info.compress_type = zipf.compression
+					info.file_size = len(meta_buf)
+					with zipf.open(info, 'w') as f:
+						f.write(meta_buf)
 
 		except Exception:
 			with contextlib.suppress(OSError):

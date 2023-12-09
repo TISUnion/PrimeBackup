@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from typing import Type
 
+from prime_backup import constants
 from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction, ExportBackupToTarAction, \
 	ExportBackupToZipAction
 from prime_backup.action.get_backup_action import GetBackupAction
@@ -25,7 +26,7 @@ from prime_backup.types.units import ByteCount
 from prime_backup.utils import log_utils
 
 logger = get_logger()
-assert len(logger).handlers == 1
+assert len(logger.handlers) == 1
 logger.handlers[0].setFormatter(log_utils.LOG_FORMATTER_NO_FUNC)
 DEFAULT_STORAGE_ROOT = Config.get_default().storage_root
 
@@ -63,7 +64,7 @@ class CliHandler:
 		if self.args.format is None:
 			if (ebf := StandaloneBackupFormat.from_file_name(file_path)) is not None:
 				return ebf
-			logger.error('Cannot infer export format from output file name {!r}', file_path.name)
+			logger.error('Cannot infer export format from output file name {!r}'.format(file_path.name))
 		else:
 			try:
 				return StandaloneBackupFormat[self.args.format]
@@ -135,7 +136,11 @@ class CliHandler:
 
 		backup = GetBackupAction(self.args.backup_id).run()
 		logger.info('Exporting backup #{} to {}, format {}'.format(backup.id, str(output_path.as_posix()), fmt.name))
-		kwargs = dict(fail_soft=self.args.fail_soft, verify_blob=not self.args.no_verify)
+		kwargs = dict(
+			fail_soft=self.args.fail_soft,
+			verify_blob=not self.args.no_verify,
+			create_meta=not self.args.no_meta,
+		)
 		if isinstance(fmt.value, TarFormat):
 			act = ExportBackupToTarAction(backup.id, output_path, fmt.value, **kwargs)
 		else:
@@ -208,6 +213,7 @@ class CliHandler:
 		parser_export.add_argument('-f', '--format', help='The format of the output file. If not given, attempt to infer from the output file name. Options: {}'.format(enum_options(StandaloneBackupFormat)))
 		parser_export.add_argument('--fail-soft', action='store_true', help='Skip files with export failure in the backup, so a single failure will not abort the export. Notes: a corrupted file might damaged the tar-based file ')
 		parser_export.add_argument('--no-verify', action='store_true', help='Do not verify the exported file contents')
+		parser_export.add_argument('--no-meta', action='store_true', help='Do not add the backup metadata file {!r} in the exported file'.format(constants.BACKUP_META_FILE_NAME))
 
 		desc = 'Extract a single file from a backup'
 		parser_extract = subparsers.add_parser('extract', help=desc, description=desc)

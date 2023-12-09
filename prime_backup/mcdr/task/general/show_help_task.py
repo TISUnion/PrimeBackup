@@ -95,6 +95,7 @@ class ShowHelpTask(ImmediateTask[None]):
 				elif self.what == 'export':
 					from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 					kwargs['export_formats'] = ', '.join([f'§3{ebf.name}§r' for ebf in StandaloneBackupFormat])
+					kwargs['backup_meta_file_name'] = f'§3{constants.BACKUP_META_FILE_NAME}§r'
 
 				self.__reply_help(self.tr(f'node_help.{self.what}', **kwargs))
 

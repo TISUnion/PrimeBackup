@@ -253,6 +253,7 @@ prime_backup:
           §7--overwrite§r: Overwrites existing exported backup. By default, no export will be made if the output file exists
           §7--fail-soft§r: Skip files with export failure in the backup, so a single failure will not abort the export. Notes: a corrupted file might damaged the tar-based file 
           §7--no-verify§r: Do not verify the exported file contents
+          §7--no-meta§r: Do not add the backup metadata file {backup_meta_file_name} in the exported file
           §d[Examples]§r
           §7{prefix} export 12§r: Use the default §3tar§r format to export backup §612§r
           §7{prefix} export 12 tar_gz§r: Use the §tar_gz§r format to export backup §612§r

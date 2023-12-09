@@ -18,9 +18,10 @@ class BackupMeta(Serializable):
 	tags: Dict[str, Any] = {}
 
 	def to_dict(self) -> dict:
-		dt = self.serialize()
-		dt['_version'] = 1
-		return dt
+		return {
+			'_version': 1,
+			**self.serialize(),
+		}
 
 	@classmethod
 	def from_dict(cls, dt: dict) -> 'BackupMeta':

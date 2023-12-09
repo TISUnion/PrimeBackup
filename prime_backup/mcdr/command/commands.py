@@ -134,7 +134,14 @@ class CommandManager:
 		fail_soft = context.get('fail_soft', 0) > 0
 		verify_blob = context.get('no_verify', 0) == 0
 		overwrite_existing = context.get('overwrite', 0) > 0
-		self.task_manager.add_task(ExportBackupTask(source, backup_id, export_format, fail_soft=fail_soft, verify_blob=verify_blob, overwrite_existing=overwrite_existing))
+		create_meta = context.get('no_meta', 0) == 0
+		self.task_manager.add_task(ExportBackupTask(
+			source, backup_id, export_format,
+			fail_soft=fail_soft,
+			verify_blob=verify_blob,
+			overwrite_existing=overwrite_existing,
+			create_meta=create_meta,
+		))
 
 	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
 		job_id = context.get('job_id')
@@ -297,6 +304,7 @@ class CommandManager:
 				set_fail_soft_able(node)
 				set_no_verify_able(node)
 				node.then(CountingLiteral('--overwrite', 'overwrite').redirects(node))
+				node.then(CountingLiteral('--no-meta', 'no_meta').redirects(node))
 				node.runs(self.cmd_export)
 
 			return node_sc

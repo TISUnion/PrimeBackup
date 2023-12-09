@@ -114,4 +114,4 @@ mcdr_root/
 
 在 MCDR 控制台或游戏中输入 `!!pb`，你应该看到如下所示的欢迎页面
 
-![welcome](img/command/welcome.zh.png)
+![welcome](img/pb_welcome.zh.png)

@@ -12,13 +12,13 @@ title: 'Commands'
 
 The root `!!pb` command shows the welcome page
 
-![welcome](img/command/welcome.png)
+![welcome](img/pb_welcome.png)
 
 ## Command list overview
 
 Use `!!pb help` to have a full view of all commands
 
-![!!pb help](img/command/pb_help.png)
+![!!pb help](img/pb_help.png)
 
 ## TODO
 

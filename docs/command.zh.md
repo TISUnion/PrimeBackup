@@ -12,13 +12,13 @@ title: '指令'
 
 根命令 `!!pb` 用于显示欢迎页面
 
-![welcome](img/command/welcome.zh.png)
+![welcome](img/pb_welcome.zh.png)
 
 ## 指令列表概览
 
 使用 `!!pb help` 可查看所有命令的完整列表
 
-![!!pb help](img/command/pb_help.zh.png)
+![!!pb help](img/pb_help.zh.png)
 
 ## TODO
 

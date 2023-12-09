@@ -114,4 +114,4 @@ Now Prime Backup should start working
 
 Enter `!!pb` in the MCDR console, or in game, you should see the welcome page as shown below
 
-![welcome](img/command/welcome.png)
+![welcome](img/pb_welcome.png)

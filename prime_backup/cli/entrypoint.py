@@ -5,7 +5,8 @@ import sys
 from pathlib import Path
 from typing import Type
 
-from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction, ExportBackupToTarAction, ExportBackupToZipAction
+from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction, ExportBackupToTarAction, \
+	ExportBackupToZipAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.get_file_action import GetFileAction
@@ -21,8 +22,11 @@ from prime_backup.types.file_info import FileType
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
+from prime_backup.utils import log_utils
 
 logger = get_logger()
+assert len(logger).handlers == 1
+logger.handlers[0].setFormatter(log_utils.LOG_FORMATTER_NO_FUNC)
 DEFAULT_STORAGE_ROOT = Config.get_default().storage_root
 
 
@@ -205,7 +209,7 @@ class CliHandler:
 		parser_export.add_argument('backup_id', type=int, help='The ID of the backup to export')
 		parser_export.add_argument('output', help='The output file name of the exported backup. Example: my_backup.tar')
 		parser_export.add_argument('-f', '--format', help='The format of the output file. If not given, attempt to infer from the output file name. Options: {}'.format(enum_options(StandaloneBackupFormat)))
-		parser_export.add_argument('--fail-soft', action='store_true', help='Skip files with export failure in the backup, so a single failure will not abort the export')
+		parser_export.add_argument('--fail-soft', action='store_true', help='Skip files with export failure in the backup, so a single failure will not abort the export. Notes: a corrupted file might damaged the tar-based file ')
 		parser_export.add_argument('--no-verify', action='store_true', help='Do not verify the exported file contents')
 
 		desc = 'Extract a single file from a backup'

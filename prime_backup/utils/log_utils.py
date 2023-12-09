@@ -6,6 +6,7 @@ from typing import ContextManager
 from prime_backup import constants
 
 LOG_FORMATTER = logging.Formatter('[%(asctime)s %(levelname)s] (%(funcName)s) %(message)s')
+LOG_FORMATTER_NO_FUNC = logging.Formatter('[%(asctime)s %(levelname)s] %(message)s')
 
 
 def __get_log_mode() -> int:

@@ -10,7 +10,7 @@ prime_backup:
   task:
     backup_clear_tag:
       name: 清除备份标签
-      cleared: 已清理备份{0}的标签{1}
+      cleared: 已清除备份{0}的标签{1}
       not_exists: 备份{0}不存在标签{1}
     backup_create:
       name: 创建备份
@@ -54,20 +54,20 @@ prime_backup:
       prev: 上一页
       aborted: 列出备份任务终止
     backup_prune:
-      name: 裁剪备份
-      nothing_to_prune: 未找到需要被裁剪的备份
-      list_to_be_pruned: '将要裁剪的备份 (共{}个): {}'
+      name: 清理备份
+      nothing_to_prune: 未找到需要被清理的备份
+      list_to_be_pruned: '将要清理的备份 (共{}个): {}'
       prune: 正在删除{}
-      aborted: 裁剪任务中止
-      done: 裁剪完成, 共删除{}个备份、{}个数据对象, 共释放{}
+      aborted: 清理备份任务中止
+      done: 清理完成, 共删除{}个备份、{}个数据对象, 共释放{}
     backup_prune_all:
-      name: 全范围裁剪备份
-      nothing_to_do: 没有生效的裁剪子任务, 裁剪中止
+      name: 全范围清理备份
+      nothing_to_do: 没有生效的清理子任务, 清理中止
       what:
         regular: 普通备份
         pre_restore: 回档前备份
-      start: 开始裁剪{}
-      done: 已完成所有裁剪子任务, 共删除{}个备份、{}个数据对象, 共释放{}
+      start: 开始清理{}
+      done: 已完成所有清理子任务, 共删除{}个备份、{}个数据对象, 共释放{}
     backup_rename:
       name: 重命名备份
       modified: 已将备份{}的注释修改为{}
@@ -194,7 +194,7 @@ prime_backup:
           §7{prefix} delete §6<备份ID> [<备份ID>...]§r: 删除给定备份。可输入多个备份ID
           §7{prefix} delete_range §6<备份ID范围>§r: 删除给定ID范围的备份
           §7{prefix} export §6<备份ID> §7[...]§r: 导出给定备份到文件。详见§7{prefix} help export§r
-          §7{prefix} prune §6<备份ID>§r: 手动触发一次备份裁剪
+          §7{prefix} prune §6<备份ID>§r: 手动触发一次备份清理
           §7{prefix} crontab §a<作业ID> §7[...]§r: 操作定时作业。详见§7{prefix} help crontab§r
           §7{prefix} tag §6<备份ID> §7[...]§r: 操作给定备份的标签。详见§7{prefix} help tag§r
           §7{prefix} database [...]§r: 操作数据库。详见§7{prefix} help database§r
@@ -309,8 +309,8 @@ prime_backup:
       name: 创建数据库备份
       name_titled: 创建数据库备份
     prune_backup:
-      name: 裁剪备份
-      name_titled: 裁剪备份
+      name: 清理备份
+      name_titled: 清理备份
     schedule_backup:
       name: 定时备份
       name_titled: 定时备份

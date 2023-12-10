@@ -349,9 +349,9 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 
 ---
 
-### 剪裁配置
+### 清理配置
 
-Prime Backup 的备份剪裁功能可用于自动清理过时备份
+Prime Backup 的备份清理功能可用于自动清理过时备份
 
 ```json
 {
@@ -385,12 +385,12 @@ Prime Backup 的备份剪裁功能可用于自动清理过时备份
 }
 ```
 
-它包含两种剪裁设置，分别针对于如下两种类型的备份：
+它包含两种清理设置，分别针对于如下两种类型的备份：
 
 - `regular_backup`: 针对常规备份，即非回档前备份
 - `pre_restore_backup`: 针对回档前备份
 
-每种剪裁设置都详细描述了存档的保留策略
+每种清理设置都详细描述了存档的保留策略
 
 Prime Backup 会执行以下步骤来决定删除/保留哪些备份
 
@@ -408,7 +408,7 @@ Prime Backup 会执行以下步骤来决定删除/保留哪些备份
 
 #### max_lifetime
 
-定义所有备份的最大保存时长。超出给定时长的备份将被裁剪删除
+定义所有备份的最大保存时长。超出给定时长的备份将被清理
 
 设置为 `0s` 表示无时长限制
 
@@ -416,11 +416,11 @@ Prime Backup 会执行以下步骤来决定删除/保留哪些备份
 
 #### last, hour, day, week, month, year
 
-一组 [PBS](https://pbs.proxmox.com/) 风格的剪裁选项，用于描述备份的删除/保留方式
+一组 [PBS](https://pbs.proxmox.com/) 风格的清理选项，用于描述备份的删除/保留方式
 
-查看 [剪裁模拟器](https://pbs.proxmox.com/docs/prune-simulator/) 了解这些选项的更多解释
+查看 [清理模拟器](https://pbs.proxmox.com/docs/prune-simulator/) 了解这些选项的更多解释
 
-[剪裁模拟器](https://pbs.proxmox.com/docs/prune-simulator/) 也可用于模拟备份的保留策略
+[清理模拟器](https://pbs.proxmox.com/docs/prune-simulator/) 也可用于模拟备份的保留策略
 
 注意：值 `0` 表示不为该区间保留任何备份；值 `-1` 表示该区间可以保留无限多的备份，与设为极大值等价
 
@@ -434,7 +434,7 @@ Prime Backup 会执行以下步骤来决定删除/保留哪些备份
 
 #### timezone_override
 
-在裁剪期间，所使用的时区。默认情况下（使用 `null` 值），Prime Backup 将使用本地时区
+在备份清理时所使用的时区。默认情况下（使用 `null` 值），Prime Backup 将使用本地时区
 
 例子：`null`, `"Asia/Shanghai"`, `"US/Eastern"`, `"Europe/Amsterdam"`
 

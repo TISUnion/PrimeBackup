@@ -344,6 +344,8 @@ See the [crontab job setting](#crontab-job-setting) section
 
 If the schedule timer should be reset on each manual backup
 
+This feature is only effective when the job is in interval mode
+
 - Type: `bool`
 - Default: `true`
 

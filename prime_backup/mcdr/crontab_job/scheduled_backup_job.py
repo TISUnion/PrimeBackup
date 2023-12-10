@@ -63,5 +63,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 		if event == CrontabJobEvent.manual_backup_created:
 			self.found_created_backup.set()
 			if not self.is_executing.is_set() and self.config.reset_timer_on_backup:
-				if self.reschedule():
-					broadcast_message(self.tr('reset_on_backup', self.get_next_run_date()))
+				if self.interval is not None:  # reset for interval mode only
+					ok = self.reschedule()
+					if ok:
+						broadcast_message(self.tr('reset_on_backup', self.get_next_run_date()))

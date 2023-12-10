@@ -394,9 +394,32 @@ Prime Backup 的备份清理功能可用于自动清理过时备份
 
 Prime Backup 会执行以下步骤来决定删除/保留哪些备份
 
-1. 使用 [`last`, `hour`, `day`, `week`, `month`, `year`](#last-hour-day-week-month-year) 筛选出要删除/保留的备份
-2. 使用 `max_amount`、`max_lifetime`，在第 1 步保留的那些备份中，筛选出那些旧的和过期的备份
-3. 收集上面 2 步中筛出来的那些需要删除的备份，逐个进行删除
+1. 使用 [`last`, `hour`, `day`, `week`, `month`, `year`](#last-hour-day-week-month-year)，
+   基于 [PBS](https://pbs.proxmox.com/docs/prune-simulator/) 保留策略，筛选出要删除/保留的备份
+2. 使用 `max_amount`、`max_lifetime` 这两条规则，在第一步保留的那些备份里，筛出那些旧的和过期的备份
+3. 收集上述两次筛选过程中，找到的哪些需要删除的备份，并逐个进行删除
+
+删除备份相关的决策结果会以日志形式储存在 [数据根目录](#storage_root) 的 `logs/prune.log` 文件里
+
+``` title="prune.log"
+Backup #147 at 2023-12-10 21:49:09: keep=True reason=keep last 1
+Backup #146 at 2023-12-10 21:36:10: keep=True reason=keep last 2
+Backup #145 at 2023-12-10 21:26:25: keep=True reason=keep last 3
+Backup #144 at 2023-12-10 21:21:22: keep=False reason=superseded by 145 (hour)
+Backup #143 at 2023-12-10 21:16:19: keep=False reason=superseded by 145 (hour)
+Backup #142 at 2023-12-10 21:11:14: keep=False reason=superseded by 145 (hour)
+Backup #141 at 2023-12-10 21:05:06: keep=False reason=superseded by 145 (hour)
+Backup #140 at 2023-12-10 21:00:03: keep=True reason=protected
+Backup #139 at 2023-12-10 20:55:01: keep=True reason=keep hour 1
+Backup #138 at 2023-12-10 20:49:57: keep=False reason=superseded by 139 (hour)
+Backup #137 at 2023-12-10 20:44:53: keep=False reason=superseded by 139 (hour)
+Backup #136 at 2023-12-10 20:39:45: keep=False reason=superseded by 139 (hour)
+Backup #135 at 2023-12-10 20:34:41: keep=False reason=superseded by 139 (hour)
+Backup #128 at 2023-12-10 19:59:06: keep=True reason=keep hour 2
+Backup #116 at 2023-12-10 18:56:14: keep=True reason=keep hour 3
+Backup #104 at 2023-12-10 17:55:35: keep=False reason=superseded by 116 (day)
+Backup #22 at 2023-12-09 23:59:53: keep=True reason=keep day 1
+```
 
 #### max_amount
 

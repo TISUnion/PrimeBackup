@@ -394,9 +394,32 @@ Each prune settings describes the retain policy in detailed
 
 Prime Backup use the following steps to decide what to delete and what to retain:
 
-1. Use [`last`, `hour`, `day`, `week`, `month`, `year`](#last-hour-day-week-month-year) to filter out backups to be deleted / retained
+1. Use [`last`, `hour`, `day`, `week`, `month`, `year`](#last-hour-day-week-month-year),
+   based on the [PBS](https://pbs.proxmox.com/docs/prune-simulator/) policy, filter out backups to be deleted / retained
 2. Use `max_amount` and `max_lifetime` to filter out those old and expired backups from the to-be-retained backups from step 1
 3. Collected those to-be-deleted backups from the 2 steps above, delete them one by one
+
+The final prune result will be stored in the log file at `logs/prune.log` within the [storage root](#storage_root)
+
+``` title="prune.log"
+Backup #147 at 2023-12-10 21:49:09: keep=True reason=keep last 1
+Backup #146 at 2023-12-10 21:36:10: keep=True reason=keep last 2
+Backup #145 at 2023-12-10 21:26:25: keep=True reason=keep last 3
+Backup #144 at 2023-12-10 21:21:22: keep=False reason=superseded by 145 (hour)
+Backup #143 at 2023-12-10 21:16:19: keep=False reason=superseded by 145 (hour)
+Backup #142 at 2023-12-10 21:11:14: keep=False reason=superseded by 145 (hour)
+Backup #141 at 2023-12-10 21:05:06: keep=False reason=superseded by 145 (hour)
+Backup #140 at 2023-12-10 21:00:03: keep=True reason=protected
+Backup #139 at 2023-12-10 20:55:01: keep=True reason=keep hour 1
+Backup #138 at 2023-12-10 20:49:57: keep=False reason=superseded by 139 (hour)
+Backup #137 at 2023-12-10 20:44:53: keep=False reason=superseded by 139 (hour)
+Backup #136 at 2023-12-10 20:39:45: keep=False reason=superseded by 139 (hour)
+Backup #135 at 2023-12-10 20:34:41: keep=False reason=superseded by 139 (hour)
+Backup #128 at 2023-12-10 19:59:06: keep=True reason=keep hour 2
+Backup #116 at 2023-12-10 18:56:14: keep=True reason=keep hour 3
+Backup #104 at 2023-12-10 17:55:35: keep=False reason=superseded by 116 (day)
+Backup #22 at 2023-12-09 23:59:53: keep=True reason=keep day 1
+```
 
 #### max_amount
 

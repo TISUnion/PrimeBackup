@@ -89,6 +89,7 @@ prime_backup:
       title: '备份{}'
       date: '创建日期: {}'
       comment: '注释: {}'
+      comment_edit: '点我修改备份{}的注释'
       stored_size: '存储大小: {} ({})'
       raw_size: '原始大小: {}'
       creator: '创建者: {}'

@@ -89,6 +89,7 @@ prime_backup:
       title: 'Backup {}'
       date: 'Creation date: {}'
       comment: 'Comment: {}'
+      comment_edit: 'Click me to edit comment of {}'
       stored_size: 'Size (stored): {} ({})'
       raw_size: 'Size (raw): {}'
       creator: 'Creator: {}'

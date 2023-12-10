@@ -23,7 +23,11 @@ class ShowBackupTask(LightTask[None]):
 		self.reply(TextComponents.title(self.tr('title', TextComponents.backup_id(backup.id))))
 
 		self.reply(self.tr('date', TextComponents.backup_date(backup)))
-		self.reply(self.tr('comment', TextComponents.backup_comment(backup.comment)))
+		self.reply(RTextList(
+			self.tr('comment', TextComponents.backup_comment(backup.comment)).
+			h(self.tr('comment_edit', TextComponents.backup_id(backup.id))).
+			c(RAction.suggest_command, mkcmd(f'rename {backup.id} ')),
+		))
 		self.reply(self.tr('stored_size', TextComponents.file_size(backup.stored_size), TextComponents.percent(backup.stored_size, backup.raw_size)))
 		self.reply(self.tr('raw_size', TextComponents.file_size(backup.raw_size)))
 

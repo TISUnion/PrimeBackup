@@ -1,5 +1,5 @@
 # core
-mcdreforged>=2.12.0.dev0
+mcdreforged>=2.12.0
 psutil
 pytz
 xxhash>=3

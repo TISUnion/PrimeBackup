@@ -193,7 +193,7 @@ Prime Backup 在创建备份时的操作时序如下：
     "ignored_files": [
         "session.lock"
     ],
-    "follow_target_symlink": true,
+    "follow_target_symlink": false,
     "hash_method": "xxh128",
     "compress_method": "zstd",
     "compress_threshold": 64
@@ -258,7 +258,7 @@ world --> foo --> bar
 Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 符号链接，和最终的的 `bar` 文件夹
 
 - 类型：`bool`
-- 默认值：`true`
+- 默认值：`false`
 
 #### hash_method
 

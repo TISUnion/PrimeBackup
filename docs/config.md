@@ -193,7 +193,7 @@ Configs on how the backup is made
     "ignored_files": [
         "session.lock"
     ],
-    "follow_target_symlink": true,
+    "follow_target_symlink": false,
     "hash_method": "xxh128",
     "compress_method": "zstd",
     "compress_threshold": 64
@@ -258,7 +258,7 @@ backup target
 Prime Backup will save not only the `world` symbolic link, but also the `foo` symbolic link and the final `bar` directory
 
 - Type: `bool`
-- Default: `true`
+- Default: `false`
 
 #### hash_method
 

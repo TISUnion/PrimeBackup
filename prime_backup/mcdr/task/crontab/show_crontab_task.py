@@ -15,7 +15,11 @@ class ShowCrontabJobTask(CrontabTaskBase[None]):
 		job = self.get_job()
 
 		self.reply(TextComponents.title(self.tr('title', job.get_name_text())))
-		self.reply(self.tr('enabled', TextComponents.boolean(self.config.scheduled_backup.enabled)))
+		self.reply(self.tr('enabled', TextComponents.boolean(job.is_enabled())))
+
+		if not job.is_enabled():
+			return
+
 		self.reply(self.tr('running', TextComponents.boolean(not job.is_pause())))
 		if isinstance(job, BasicCrontabJob):
 			if job.interval is not None:

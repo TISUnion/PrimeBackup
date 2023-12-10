@@ -21,6 +21,12 @@ def _list_it(seq: Sequence[T]) -> List[T]:
 	return seq
 
 
+def _int_or_0(value: Optional[int]) -> int:
+	if value is None:
+		return 0
+	return int(value)
+
+
 class DbSession:
 	def __init__(self, session: Session):
 		self.session = session
@@ -65,7 +71,7 @@ class DbSession:
 		return blob
 
 	def get_blob_count(self) -> int:
-		return int(self.session.execute(select(func.count()).select_from(schema.Blob)).scalar_one())
+		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.Blob)).scalar_one())
 
 	def get_blob_opt(self, h: str) -> Optional[schema.Blob]:
 		return self.session.get(schema.Blob, h)
@@ -103,10 +109,10 @@ class DbSession:
 		return result
 
 	def get_blob_stored_size_sum(self) -> int:
-		return int(self.session.execute(func.sum(schema.Blob.stored_size).select()).scalar_one())
+		return _int_or_0(self.session.execute(func.sum(schema.Blob.stored_size).select()).scalar_one())
 
 	def get_blob_raw_size_sum(self) -> int:
-		return int(self.session.execute(func.sum(schema.Blob.raw_size).select()).scalar_one())
+		return _int_or_0(self.session.execute(func.sum(schema.Blob.raw_size).select()).scalar_one())
 
 	def delete_blob(self, blob: schema.Blob):
 		self.session.delete(blob)
@@ -141,7 +147,7 @@ class DbSession:
 		return file
 
 	def get_file_count(self) -> int:
-		return int(self.session.execute(select(func.count()).select_from(schema.File)).scalar_one())
+		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.File)).scalar_one())
 
 	def get_file_opt(self, backup_id: int, path: str) -> Optional[schema.File]:
 		return self.session.get(schema.File, dict(backup_id=backup_id, path=path))
@@ -153,16 +159,16 @@ class DbSession:
 		return file
 
 	def get_file_raw_size_sum(self) -> int:
-		return int(self.session.execute(func.sum(schema.File.blob_raw_size).select()).scalar_one())
+		return _int_or_0(self.session.execute(func.sum(schema.File.blob_raw_size).select()).scalar_one())
 
 	def get_file_count_by_blob_hashes(self, hashes: List[str]) -> int:
 		cnt = 0
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
-			cnt += self.session.execute(
+			cnt += _int_or_0(self.session.execute(
 				select(func.count()).
 				select_from(schema.File).
 				where(schema.File.blob_hash.in_(view))
-			).scalar_one()
+			).scalar_one())
 		return cnt
 
 	def list_files(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.File]:
@@ -197,7 +203,7 @@ class DbSession:
 		s = select(func.count()).select_from(schema.Backup)
 		if backup_filter is not None:
 			s = self.__apply_backup_filter(s, backup_filter)
-		return int(self.session.execute(s).scalar())
+		return _int_or_0(self.session.execute(s).scalar_one())
 
 	def get_backup_opt(self, backup_id: int) -> Optional[schema.Backup]:
 		return self.session.get(schema.Backup, backup_id)

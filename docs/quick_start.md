@@ -77,7 +77,7 @@ Here are a few important things in the config file:
         - [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality 128bit non-cryptographic hash algorithm. 
           Recommend to use, unless you want theoretic extreme safety on hackers
         - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used 256bit hash algorithm.
-          It's slower than xxh128, but the speed is acceptable enough with modern hardware
+          It's slower than xxh128, but the speed could be acceptable with modern hardware
 
     - [`compress_method`](config.md#compress_method): The way the backups get compressed. Common suggestions:
 

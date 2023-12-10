@@ -267,7 +267,7 @@ The algorithm to hash the files. Available options: "xxh128", "sha256"
 - [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality 128bit non-cryptographic hash algorithm. 
   Recommend to use, unless you want theoretic extreme safety on hackers
 - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used 256bit hash algorithm.
-  It's slower than xxh128, but the speed is acceptable enough with modern hardware
+  It's slower than xxh128, but the speed could be acceptable with modern hardware
 
 
 !!! danger

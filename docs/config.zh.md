@@ -267,7 +267,7 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 - [`"xxh128"`](https://github.com/Cyan4973/xxHash):：一种极快的、高质量的 128 位哈希算法，不提供密码学安全性。
   推荐使用，除非你想要理论上的极端安全
 - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): 一种广泛使用的、密码学安全的 256 位哈希算法。
-  它比 xxh128 慢，但在现代的硬件上也不会慢太多
+  它比 xxh128 慢，但在现代的硬件上可能也不会太慢
 
 
 !!! danger

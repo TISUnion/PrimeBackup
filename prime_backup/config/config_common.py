@@ -25,5 +25,8 @@ class CrontabJobSetting(Serializable):
 			_validate_crontab_str(attr_value)
 
 	def on_deserialization(self, **kwargs):
-		if self.enabled and self.interval is None and self.crontab is None:
-			raise ValueError('Field interval and crontab cannot be None at the same time')
+		if self.enabled:
+			if self.interval is None and self.crontab is None:
+				raise ValueError('Field interval and crontab cannot be None at the same time')
+			if self.interval is not None and self.crontab is not None:
+				raise ValueError('Field interval and crontab cannot be set at the same time')

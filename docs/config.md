@@ -451,15 +451,15 @@ Configurations for the SQLite database, used by Prime Backup
 {
     "compact": {
         "enabled": true,
-        "interval": "1d",
-        "crontab": null,
-        "jitter": "5m"
+        "interval": null,
+        "crontab": "0 7 * * *",
+        "jitter": "1m"
     },
     "backup": {
         "enabled": true,
-        "interval": "7d",
-        "crontab": null,
-        "jitter": "10m"
+        "interval": null,
+        "crontab": "0 6 * * 0",
+        "jitter": "1m"
     }
 }
 ```
@@ -536,7 +536,7 @@ It should be `null` if the job is not in crontab mode
 
 The jitter between 2 scheduled backup jobs
 
-The actual execution time for the next job will be shifted randomly with `[-jitter, +jitter]`
+The actual execution time for the next job will be shifted randomly with `[0, jitter]`
 
 Set it to `"0s"` for no jitter
 

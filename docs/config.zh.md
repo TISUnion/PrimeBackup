@@ -451,15 +451,15 @@ Prime Backup 所使用的 SQLite 数据库的相关配置
 {
     "compact": {
         "enabled": true,
-        "interval": "1d",
-        "crontab": null,
-        "jitter": "5m"
+        "interval": null,
+        "crontab": "0 7 * * *",
+        "jitter": "1m"
     },
     "backup": {
         "enabled": true,
-        "interval": "7d",
-        "crontab": null,
-        "jitter": "10m"
+        "interval": null,
+        "crontab": "0 6 * * 0",
+        "jitter": "1m"
     }
 }
 ```
@@ -536,7 +536,7 @@ Prime Backup 所使用的 SQLite 数据库的相关配置
 
 两次作业之间，执行之间的抖动
 
-下一个任务的实际执行时间，将在范围 `[-jitter, +jitter]` 内进行随机偏移
+下一个任务的实际执行时间，将在范围 `[0, jitter]` 内进行随机偏移
 
 设置为 `"0s"` 表示无抖动
 

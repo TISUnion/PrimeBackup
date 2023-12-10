@@ -26,4 +26,5 @@ def does_fs_support_cow(path: Path) -> bool:
 			if mount_point is None or Path(p.mountpoint).is_relative_to(mount_point):
 				mount_point = p.mountpoint
 				fs_type = p.fstype.lower()
-	return fs_type in ['zfs', 'btrfs', 'apfs', 'refs']
+	# zfs does not support COW copy yet: https://github.com/openzfs/zfs/issues/405
+	return fs_type in ['xfs', 'btrfs', 'apfs']

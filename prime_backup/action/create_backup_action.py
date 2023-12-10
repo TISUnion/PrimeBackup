@@ -254,24 +254,25 @@ class CreateBackupAction(CreateBackupActionBase):
 
 			if last_chance:
 				policy = _BlobCreatePolicy.copy_hash
-			elif st.st_size <= _READ_ALL_SIZE_THRESHOLD:
-				policy = _BlobCreatePolicy.read_all
-				with open(src_path, 'rb') as f:
-					blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
-				if len(blob_content) > _READ_ALL_SIZE_THRESHOLD:
-					self.logger.warning('Read too many bytes for read_all policy, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
-					raise _BlobFileChanged()
-				blob_hash = hash_utils.calc_bytes_hash(blob_content)
-			elif not can_copy_on_write and st.st_size > _HASH_ONCE_SIZE_THRESHOLD:
-				can_hash_once = self.__blob_by_size_cache.get(st.st_size, False) is False
-				if can_hash_once:
-					# noinspection PyTypeChecker
-					yield BlobBySizeFetcher.Req(st.st_size)
+			elif not can_copy_on_write:  # do tricks iff. no COW copy
+				if st.st_size <= _READ_ALL_SIZE_THRESHOLD:
+					policy = _BlobCreatePolicy.read_all
+					with open(src_path, 'rb') as f:
+						blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
+					if len(blob_content) > _READ_ALL_SIZE_THRESHOLD:
+						self.logger.warning('Read too many bytes for read_all policy, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
+						raise _BlobFileChanged()
+					blob_hash = hash_utils.calc_bytes_hash(blob_content)
+				elif st.st_size > _HASH_ONCE_SIZE_THRESHOLD:
 					can_hash_once = self.__blob_by_size_cache.get(st.st_size, False) is False
-				if can_hash_once:
-					# it's certain that this blob is unique, but notes: the following code
-					# cannot be interrupted (yield), or other generator could make a same blob
-					policy = _BlobCreatePolicy.hash_once
+					if can_hash_once:
+						# noinspection PyTypeChecker
+						yield BlobBySizeFetcher.Req(st.st_size)
+						can_hash_once = self.__blob_by_size_cache.get(st.st_size, False) is False
+					if can_hash_once:
+						# it's certain that this blob is unique, but notes: the following code
+						# cannot be interrupted (yield), or other generator could make a same blob
+						policy = _BlobCreatePolicy.hash_once
 			if policy is None:
 				policy = _BlobCreatePolicy.default
 				blob_hash = hash_utils.calc_file_hash(src_path)

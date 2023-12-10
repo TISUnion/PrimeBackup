@@ -1,5 +1,7 @@
 # Prime Backup
 
+[English](README.md) | **中文**
+
 一个强大的 MCDR 备份插件，一套先进的 Minecraft 存档备份解决方案
 
 中文文档：https://tisunion.github.io/PrimeBackup/zh/

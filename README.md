@@ -1,5 +1,7 @@
 # Prime Backup
 
+**English** | [中文](README.zh.md)
+
 A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world
 
 Document: https://tisunion.github.io/PrimeBackup/
@@ -32,7 +34,7 @@ With that, Prime Backup can deduplicate files with same content, and only stores
 
 Besides that, Prime Backup also supports compression on the stored files, which reduces the disk usage further more
 
-PrimeBackup can store common file types, including regular files, directories, and symbolic links. For these 3 file types:
+PrimeBackup is capable of storing various of common file types, including regular files, directories, and symbolic links. For these 3 types:
 
 - Regular file: Prime Backup calculates its hash values first. If the hash does not exist in the file pool, 
   Prime backup will (compress and) store its content into a new blob in the file pool.

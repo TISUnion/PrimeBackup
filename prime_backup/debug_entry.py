@@ -12,14 +12,10 @@ from prime_backup.types.operator import Operator
 from prime_backup.types.tar_format import TarFormat
 
 
-# @memory_profiler.profile
 def main():
 	DbAccess.init()
-	# db_logger.get_logger().addHandler(logger.get().handlers[0])
-
-	logger.get().info('start')
-
 	backup_id = 1
+	logger.get().info('debug entry start')
 
 	def create(n: int = 1):
 		nonlocal backup_id
@@ -39,16 +35,18 @@ def main():
 
 		print('cost', round(time.time() - t, 2), 's')
 
-	def export():
+	def export(bid=None):
+		if bid is None:
+			bid = backup_id
 		t = time.time()
 
 		_ = [ExportBackupToDirectoryAction, ExportBackupToTarAction, ExportBackupToZipAction, TarFormat]
-		# ExportBackupToTarAction(backup_id, Path('export.tar'), TarFormat.plain).run()
-		# ExportBackupToTarAction(backup_id, Path('export.tar.gz'), TarFormat.gzip).run()
-		# ExportBackupToTarAction(backup_id, Path('export.tar.zst'), TarFormat.zstd).run()
-		# ExportBackupToTarAction(backup_id, Path('export.tar.xz'), TarFormat.lzma).run()
-		# ExportBackupToZipAction(backup_id, Path('export.zip')).run()
-		ExportBackupToDirectoryAction(backup_id, Path('export'), delete_existing=True).run()
+		ExportBackupToTarAction(bid, Path('export.tar'), TarFormat.plain).run()
+		# ExportBackupToTarAction(bid, Path('export.tar.gz'), TarFormat.gzip).run()
+		# ExportBackupToTarAction(bid, Path('export.tar.zst'), TarFormat.zstd).run()
+		# ExportBackupToTarAction(bid, Path('export.tar.xz'), TarFormat.lzma).run()
+		# ExportBackupToZipAction(bid, Path('export.zip')).run()
+		# ExportBackupToDirectoryAction(bid, Path('export'), delete_existing=True).run()
 
 		print('cost', round(time.time() - t, 2), 's')
 

@@ -22,6 +22,10 @@ class OperateCrontabJobTask(CrontabTaskBase[None]):
 
 	def run(self) -> None:
 		job = self.get_job()
+		if not job.is_enabled():
+			self.reply(self.tr('disabled', job.get_name_text()))
+			return
+
 		if self.operation == self.Operation.pause:
 			self.__pause(job)
 		elif self.operation == self.Operation.resume:

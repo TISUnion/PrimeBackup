@@ -121,14 +121,15 @@ prime_backup:
       line.paused: '{} {}'
     crontab_operate:
       name: 操控定时作业
-      pause.already: 定时作业"{}"已处于暂停状态
-      pause.done: 定时作业"{}"已暂停至本插件卸载
+      disabled: 定时作业{}已被禁用，无法操作
+      pause.already: 定时作业{}已处于暂停状态
+      pause.done: 定时作业{}已暂停至本插件卸载
       pause.done.notes: 如果你想要永久禁用这个作业, 你需要修改配置文件中的相关项
-      resume.already: '定时作业"{}"已处于运行状态, 下次运行: {}'
-      resume.done: '定时作业"{}"已继续, 下次运行: {}'
+      resume.already: '定时作业{}已处于运行状态, 下次运行: {}'
+      resume.done: '定时作业{}已继续, 下次运行: {}'
     crontab_show:
       name: 展示定时作业状态
-      title: 定时作业"{}"
+      title: 定时作业{}
       enabled: '已启用: {}'
       running: '运行中: {}'
       interval: '间隔: {}'
@@ -137,9 +138,9 @@ prime_backup:
       next_run_date: '下次运行: {}'
       quick_actions: '快捷操作: {}'
       pause: 暂停
-      pause.hover: 点击以暂停运行作业"{}"
+      pause.hover: 点击以暂停运行作业{}
       resume: 继续
-      resume.hover: 点击以继续运行作业"{}"
+      resume.hover: 点击以继续运行作业{}
     db_overview:
       name: 概览数据库
       title: 数据库概览
@@ -299,8 +300,8 @@ prime_backup:
     base:
       found_ongoing:
         unknown_task: 未知
-        skip: '发现正在进行的任务"{}", 跳过本次{}作业执行'
-        wait_retry: '发现正在进行的任务"{}", {}作业将在{}后重试'
+        skip: '发现正在进行的任务{}, 跳过本次{}作业执行'
+        wait_retry: '发现正在进行的任务{}, {}作业将在{}后重试'
       completed: '{}完成, 下次执行: {}'
       completed_with_error: '{}失败, 下次执行: {}'
       next_run_date_paused: 已暂停
@@ -330,7 +331,7 @@ prime_backup:
       bad_id_range: 非法ID范围
     permission_denied: 权限不足
     too_much_ongoing_task:
-      exclusive: '请等待当前任务"{}"完成'
+      exclusive: '请等待当前任务{}完成'
       try_abort: 你也可以选择中止当前任务
       try_abort.hover: 点我或输入{}以中止当前任务
       generic: '待处理的任务过多 (最大值{}), 请等待一些任务完成'

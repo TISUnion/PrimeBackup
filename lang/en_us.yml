@@ -121,14 +121,15 @@ prime_backup:
       line.paused: '{} {}'
     crontab_operate:
       name: operate crontab
-      pause.already: Crontab job "{}" is already paused
-      pause.done: Crontab job "{}" paused until plugin reload
+      disabled: Crontab job {} is disabled
+      pause.already: Crontab job {} is already paused
+      pause.done: Crontab job {} paused until plugin reload
       pause.done.notes: If you want to disable it permanently, you need to modify related config
-      resume.already: 'Crontab job "{}" is already running. Next run at: {}'
-      resume.done: 'Crontab job "{}" resumed. Next run at: {}'
+      resume.already: 'Crontab job {} is already running. Next run at: {}'
+      resume.done: 'Crontab job {} resumed. Next run at: {}'
     crontab_show:
       name: show crontab
-      title: Crontab job "{}"
+      title: Crontab job {}
       enabled: 'Enabled: {}'
       running: 'Running: {}'
       interval: 'Interval: {}'
@@ -137,9 +138,9 @@ prime_backup:
       next_run_date: 'Next at: {}'
       quick_actions: 'Quick actions: {}'
       pause: pause
-      pause.hover: Click to pause job "{}"
+      pause.hover: Click to pause job {}
       resume: resume
-      resume.hover: Click to resume job "{}"
+      resume.hover: Click to resume job {}
     db_overview:
       name: overview database
       title: Database overview
@@ -299,8 +300,8 @@ prime_backup:
     base:
       found_ongoing:
         unknown_task: unknown
-        skip: 'Found ongoing task "{}", job {} execution skipped'
-        wait_retry: 'Found ongoing task "{}", job {} will retry in {}'
+        skip: 'Found ongoing task {}, job {} execution skipped'
+        wait_retry: 'Found ongoing task {}, job {} will retry in {}'
       completed: '{} completed, next execution at {}'
       completed_with_error: '{} completed with error, next execution at {}'
       next_run_date_paused: Paused
@@ -330,7 +331,7 @@ prime_backup:
       bad_id_range: Bad ID Range
     permission_denied: Permission denied
     too_much_ongoing_task:
-      exclusive: 'Please wait for the ongoing task "{}" to finish'
+      exclusive: 'Please wait for the ongoing task {} to finish'
       try_abort: You can also abort the ongoing task
       try_abort.hover: Click me or enter command {} to abort the ongoing task
       generic: 'Too many pending tasks (maximum = {}), please wait for some to finish'

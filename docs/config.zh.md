@@ -264,10 +264,10 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 
 对文件进行哈希时所使用的算法。可用选项：`"xxh128"`、`"sha256"`
 
-- [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality 128bit non-cryptographic hash algorithm. 
-  Recommend to use, unless you want theoretic extreme safety on hackers
-- [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used 256bit hash algorithm.
-  It's slower than xxh128, but the speed is acceptable enough with modern hardware
+- [`"xxh128"`](https://github.com/Cyan4973/xxHash):：一种极快的、高质量的 128 位哈希算法，不提供密码学安全性。
+  推荐使用，除非你想要理论上的极端安全
+- [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): 一种广泛使用的、密码学安全的 256 位哈希算法。
+  它比 xxh128 慢，但在现代的硬件上也不会慢太多
 
 
 !!! danger

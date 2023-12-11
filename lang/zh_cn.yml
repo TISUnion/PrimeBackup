@@ -149,6 +149,7 @@ prime_backup:
         在文档{}中搜索hash_method以获得更多帮助
       show_whats_going_on: 准备把文件池所使用的哈希算法从{}迁移至{}
       confirm_target: 迁移
+      start: 正在将哈希算法从{}迁移至{}，见控制台以了解进度
       no_confirm: 未做出选择, 哈希算法迁移任务中止
       aborted: 哈希算法迁移任务中止
       done: 已将哈希算法从{}迁移至{}

@@ -149,6 +149,7 @@ prime_backup:
         Search hash_method in the document {} for more help
       show_whats_going_on: Prepare for file pool hash method migration, from {} to {}
       confirm_target: migrate
+      start: Migrating the hash method from {} to {}, check console to see the progress
       no_confirm: No choice has been made, migrate hash method task aborted
       aborted: Migrate hash method task aborted
       done: Migrated the hash method from {} to {}

@@ -44,6 +44,8 @@ class MigrateHashMethodTask(HeavyTask[None]):
 			self.reply(self.tr('aborted'))
 			return
 
+		self.reply(self.tr('start', TextComponents.hash_method(db_meta.hash_method), TextComponents.hash_method(self.new_hash_method)))
+
 		self.run_action(MigrateHashMethodAction(self.new_hash_method))
 		self.server.save_config_simple(self.config)
 

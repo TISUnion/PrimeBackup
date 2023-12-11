@@ -1,13 +1,13 @@
 from pathlib import Path
 from typing import NamedTuple, IO
 
-from prime_backup.config.config import Config
 from prime_backup.types.hash_method import Hasher
 from prime_backup.utils.bypass_io import BypassReader
 
 
 def create_hasher() -> 'Hasher':
-	return Config.get().backup.hash_method.value.create_hasher()
+	from prime_backup.db.access import DbAccess
+	return DbAccess.get_hash_method().value.create_hasher()
 
 
 _READ_BUF_SIZE = 128 * 1024

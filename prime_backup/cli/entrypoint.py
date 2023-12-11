@@ -58,8 +58,7 @@ class CliHandler:
 		except BadDbVersion as e:
 			logger.info('Load database failed, you need to ensure the database is accessible with MCDR plugin: {}'.format(e))
 			sys.exit(1)
-		with DbAccess.open_session() as session:
-			config.backup.hash_method = session.get_db_meta().hash_method
+		config.backup.hash_method = DbAccess.get_hash_method().name
 
 	def get_ebf(self, file_path: Path) -> StandaloneBackupFormat:
 		if self.args.format is None:

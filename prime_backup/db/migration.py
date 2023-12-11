@@ -18,14 +18,13 @@ class DbMigration:
 	DB_VERSION = db_constants.DB_VERSION
 
 	def __init__(self, engine: Engine):
-		self.config = Config.get()
 		self.logger = logger.get()
 		self.engine = engine
 		self.migrations: Dict[int, Callable[[Session], Any]] = {
 			2: self.__migrate_1_2,  # 1 -> 2
 		}
 
-	def migrate(self):
+	def check_and_migrate(self):
 		inspector = Inspector.from_engine(self.engine)
 		if inspector.has_table(schema.DbMeta.__tablename__):
 			with Session(self.engine) as session, session.begin():
@@ -55,6 +54,9 @@ class DbMigration:
 			pass
 
 	def ensure_version(self):
+		"""
+		Minimum check
+		"""
 		inspector = Inspector.from_engine(self.engine)
 		if inspector.has_table(schema.DbMeta.__tablename__):
 			with Session(self.engine) as session:
@@ -70,7 +72,7 @@ class DbMigration:
 
 	@property
 	def __configured_hash_method(self) -> str:
-		return self.config.backup.hash_method.name
+		return Config.get().backup.hash_method.name
 
 	def __create_the_world(self):
 		schema.Base.metadata.create_all(self.engine)

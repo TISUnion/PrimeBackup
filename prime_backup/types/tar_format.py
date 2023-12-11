@@ -19,7 +19,7 @@ class _TarFormatItem(NamedTuple):
 
 
 class TarFormat(enum.Enum):
-	plain = _TarFormatItem('.tar', '', CompressMethod.plain)
+	plain = _TarFormatItem('.tar', ':', CompressMethod.plain)
 	gzip = _TarFormatItem('.tar.gz', ':gz', CompressMethod.plain)
 	lzma = _TarFormatItem('.tar.xz', ':xz', CompressMethod.plain)
-	zstd = _TarFormatItem('.tar.zst', '', CompressMethod.zstd)
+	zstd = _TarFormatItem('.tar.zst', ':', CompressMethod.zstd)

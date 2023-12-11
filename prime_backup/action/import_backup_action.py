@@ -1,8 +1,10 @@
 import contextlib
+import functools
 import json
 import shutil
 import stat
 import tarfile
+import threading
 import time
 import zipfile
 from abc import ABC, abstractmethod
@@ -11,6 +13,7 @@ from typing import ContextManager, IO, Optional, NamedTuple, List, Dict, Tuple
 
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
+from prime_backup.config.config import Config
 from prime_backup.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
@@ -167,10 +170,21 @@ class TarBackupHandler(PackedBackupFileHandler):
 
 	@contextlib.contextmanager
 	def open_file(self, path: Path) -> ContextManager[TarFileHolder]:
-		with open(path, 'rb') as f:
-			compressor = Compressor.create(self.tar_format.value.compress_method)
-			with compressor.compress_stream(f) as f_compressed:
-				with tarfile.open(fileobj=f_compressed, mode=self.tar_format.value.mode_r) as tar:
+		compress_method = self.tar_format.value.compress_method
+		if compress_method == CompressMethod.plain:
+			with tarfile.open(path, mode=self.tar_format.value.mode_r) as tar:
+				yield self.TarFileHolder(tar)
+		else:
+			# zstd stream does not support seek operation, sowe need to extract the tar into a temp path first,
+			# then operate on it. requires extra spaces tho
+
+			temp_file = Config.get().storage_path / 'temp' / 'import_{}.tmp'.format(threading.current_thread().ident)
+			temp_file.parent.mkdir(parents=True, exist_ok=True)
+			with contextlib.ExitStack() as exit_stack:
+				exit_stack.callback(functools.partial(temp_file.unlink, missing_ok=True))
+				Compressor.create(compress_method).copy_decompressed(path, temp_file)
+
+				with tarfile.open(temp_file, mode=self.tar_format.value.mode_r) as tar:
 					yield self.TarFileHolder(tar)
 
 

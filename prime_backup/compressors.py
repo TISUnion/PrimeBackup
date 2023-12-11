@@ -37,7 +37,7 @@ class Compressor(ABC):
 
 	def copy_compressed(self, source_path: PathLike, dest_path: PathLike, *, calc_hash: bool = False) -> CopyCompressResult:
 		"""
-		source --[compressor]--> destination
+		source --[compress]--> destination
 		"""
 		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
 			reader = BypassReader(f_in, calc_hash=calc_hash)
@@ -46,11 +46,17 @@ class Compressor(ABC):
 			return self.CopyCompressResult(reader.get_read_len(), reader.get_hash(), writer.get_write_len())
 
 	def copy_decompressed(self, source_path: PathLike, dest_path: PathLike):
+		"""
+		source --[decompress]--> destination
+		"""
 		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
 			self._copy_decompressed(f_in, f_out)
 
 	@contextlib.contextmanager
 	def open_compressed(self, target_path: PathLike) -> ContextManager[BinaryIO]:
+		"""
+		(writer) --[compress]--> target_path
+		"""
 		with open(target_path, 'wb') as f:
 			with self.compress_stream(f) as f_compressed:
 				yield f_compressed
@@ -58,7 +64,8 @@ class Compressor(ABC):
 	@contextlib.contextmanager
 	def open_compressed_bypassed(self, target_path: PathLike) -> ContextManager[Tuple[BypassWriter, BinaryIO]]:
 		"""
-		Bypass the receiving-compressed-content file writer
+		(writer) --[compress]--> target_path
+		                      ^- bypassed
 		"""
 		with open(target_path, 'wb') as f:
 			writer = BypassWriter(f)
@@ -67,6 +74,9 @@ class Compressor(ABC):
 
 	@contextlib.contextmanager
 	def open_decompressed(self, source_path: PathLike) -> ContextManager[BinaryIO]:
+		"""
+		source_path --[decompress]--> (reader)
+		"""
 		with open(source_path, 'rb') as f:
 			with self.decompress_stream(f) as f_decompressed:
 				yield f_decompressed
@@ -74,7 +84,8 @@ class Compressor(ABC):
 	@contextlib.contextmanager
 	def open_decompressed_bypassed(self, source_path: PathLike) -> ContextManager[Tuple[BypassReader, BinaryIO]]:
 		"""
-		Bypass the raw compressed file reader
+		source_path --[decompress]--> (reader)
+		             ^- bypassed
 		"""
 		with open(source_path, 'rb') as f:
 			reader = BypassReader(f, calc_hash=False)  # it's meaningless to calc hash on the compressed file
@@ -83,18 +94,30 @@ class Compressor(ABC):
 
 	@abstractmethod
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
+		"""
+		Open a stream from compressing write
+		"""
 		...
 
 	@abstractmethod
 	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
+		"""
+		Open a stream from decompressing read
+		"""
 		...
 
 	@abstractmethod
 	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
+		"""
+		shutil.copyfileobj on: f_in --[compress]--> f_out
+		"""
 		...
 
 	@abstractmethod
 	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
+		"""
+		shutil.copyfileobj on: f_in --[decompress]--> f_out
+		"""
 		...
 
 

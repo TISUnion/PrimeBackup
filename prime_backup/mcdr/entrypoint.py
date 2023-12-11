@@ -35,11 +35,11 @@ def on_load(server: PluginServerInterface, old):
 	try:
 		config = server.load_config_simple(target_class=Config, failure_policy='raise')
 		set_config_instance(config)
-		__check_config(server)
 		if not is_enabled():
 			server.logger.warning('{} is disabled by config'.format(mcdr_globals.metadata.name))
 			return
 
+		__check_config(server)
 		DbAccess.init()
 		task_manager = TaskManager()
 		task_manager.start()

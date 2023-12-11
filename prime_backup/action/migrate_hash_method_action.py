@@ -1,6 +1,4 @@
-import shutil
 import time
-from pathlib import Path
 from typing import List, Dict, Set
 
 from prime_backup.action import Action
@@ -49,14 +47,6 @@ class MigrateHashMethodAction(Action[None]):
 
 		for file in session.get_file_by_blob_hashes(list(hash_mapping.keys())):
 			file.blob_hash = hash_mapping[file.blob_hash]
-
-	def __replace_blob_store(self, old_store: Path, new_store: Path):
-		trash_bin = self.config.storage_path / 'temp' / 'old_blobs'
-		trash_bin.parent.mkdir(parents=True, exist_ok=True)
-
-		old_store.rename(trash_bin)
-		new_store.rename(old_store)
-		shutil.rmtree(trash_bin)
 
 	def run(self):
 		processed_hash_mapping: Dict[str, str] = {}  # old -> new

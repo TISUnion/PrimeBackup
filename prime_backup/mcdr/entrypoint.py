@@ -22,6 +22,11 @@ init_ok = False
 
 
 def __check_config(server: PluginServerInterface):
+	db_hash = DbAccess.get_hash_method().name
+	cfg_hash = config.backup.hash_method.name
+	if cfg_hash != db_hash:
+		server.logger.warning('WARN: Hash method mismatched! config: {}, database: {}. Use the database one'.format(cfg_hash, db_hash))
+
 	if (cm := config.backup.compress_method) == CompressMethod.lzma:
 		server.logger.warning('WARN: Using {} as the compress method might significantly increase the backup time'.format(cm.name))
 
@@ -39,8 +44,8 @@ def on_load(server: PluginServerInterface, old):
 			server.logger.warning('{} is disabled by config'.format(mcdr_globals.metadata.name))
 			return
 
-		__check_config(server)
 		DbAccess.init()
+		__check_config(server)
 		task_manager = TaskManager()
 		task_manager.start()
 		crontab_manager = CrontabManager(task_manager)

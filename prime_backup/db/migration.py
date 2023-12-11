@@ -70,22 +70,18 @@ class DbMigration:
 					raise BadDbVersion('Bad DbMeta table')
 		raise BadDbVersion('DbMeta table not found')
 
-	@property
-	def __configured_hash_method(self) -> str:
-		return Config.get().backup.hash_method.name
-
 	def __create_the_world(self):
 		schema.Base.metadata.create_all(self.engine)
+		config = Config.get()
 		with Session(self.engine) as session, session.begin():
 			session.add(schema.DbMeta(
 				magic=self.DB_MAGIC_INDEX,
 				version=self.DB_VERSION,
-				hash_method=self.__configured_hash_method,
+				hash_method=config.backup.hash_method.name,
 			))
 
 	def __check_db_meta(self, dbm: schema.DbMeta):
-		if dbm.hash_method != self.__configured_hash_method:
-			raise ValueError('hash method mismatch, {} is used in this database, but {} is configured to used'.format(dbm.hash_method, self.__configured_hash_method))
+		pass
 
 	def __migrate_1_2(self, session: Session):
 		# noinspection PyUnreachableCode

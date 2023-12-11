@@ -15,6 +15,7 @@ from prime_backup.types.hash_method import HashMethod
 class DbAccess:
 	__engine: Optional[Engine] = None
 	__db_path: Optional[Path] = None
+
 	__hash_method: Optional[HashMethod] = None
 
 	@classmethod

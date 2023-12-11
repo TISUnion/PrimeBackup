@@ -41,6 +41,7 @@ class CliHandler:
 
 	def init_environment(self):
 		config = Config.get_default()
+		set_config_instance(config)
 
 		root_path = Path(self.args.db)
 		if root_path.is_file() and root_path.name == db_constants.DB_FILE_NAME:
@@ -49,9 +50,7 @@ class CliHandler:
 		if not (dbf := root_path / db_constants.DB_FILE_NAME).is_file():
 			logger.error('Database file {!r} in does not exists'.format(dbf.as_posix()))
 			sys.exit(1)
-
 		config.storage_root = str(root_path.as_posix())
-		set_config_instance(config)
 
 		logger.info('Storage root set to {!r}'.format(config.storage_root))
 		try:
@@ -59,6 +58,8 @@ class CliHandler:
 		except BadDbVersion as e:
 			logger.info('Load database failed, you need to ensure the database is accessible with MCDR plugin: {}'.format(e))
 			sys.exit(1)
+		with DbAccess.open_session() as session:
+			config.backup.hash_method = session.get_db_meta().hash_method
 
 	def get_ebf(self, file_path: Path) -> StandaloneBackupFormat:
 		if self.args.format is None:

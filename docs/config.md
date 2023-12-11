@@ -262,13 +262,13 @@ Prime Backup will save not only the `world` symbolic link, but also the `foo` sy
 
 #### hash_method
 
-The algorithm to hash the files. Available options: "xxh128", "sha256"
+The algorithm to hash the files. Available options: `"xxh128"`、`"sha256"`、`"blake3"`
 
-- [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality 128bit non-cryptographic hash algorithm. 
-  Recommend to use, unless you want theoretic extreme safety on hackers
-- [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used 256bit hash algorithm.
-  It's slower than xxh128, but the speed could be acceptable with modern hardware
-
+| Hash Method                                       | Description                                                                                                                                       | Speed | cryptographically secure |
+|---------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|-------|--------------------------|
+| [`xxh128`](https://github.com/Cyan4973/xxHash)    | A extremely fast, high-quality 128bit non-cryptographic hash algorithm. Recommend to use, unless you want theoretic extreme safety on hackers     | ★★★★★ | :cross_mark:             |
+| [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | A cryptographically secure and widely used 256bit hash algorithm. It's slower than xxh128, but the speed could be acceptable with modern hardware | ★★    | :check_mark:             |
+| [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | A cryptographically secure and speedy 256bit hash algorithm. It's still slower than xxh128, but is faster than sha256                             | ★★★   | :check_mark:             |
 
 !!! danger
 
@@ -276,6 +276,15 @@ The algorithm to hash the files. Available options: "xxh128", "sha256"
 
     If you do want to change the `hash_method`, you need to delete the `prime_backup.db` file and the `blobs` folder in the [storage root](#storage_root),
     which will delete all existing backups
+
+!!! note
+
+    If you want to use `blake3` as the hash method, you need to install the `blake3` python library manually.
+    It's not included in the default requirement list, because in some environments it might require rust runtime to build and install
+
+    ```bash
+    pip3 install blake3
+    ```
 
 - Type: `str`
 - Default: `"xxh128"`
@@ -298,7 +307,7 @@ The method to compress files stored in a backup
 
 !!! note
 
-    If you want to use `lz4` as the compress method, you need to install the lz4 python library manually
+    If you want to use `lz4` as the compress method, you need to install the `lz4` python library manually
 
     ```bash
     pip3 install lz4

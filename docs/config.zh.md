@@ -262,13 +262,13 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 
 #### hash_method
 
-对文件进行哈希时所使用的算法。可用选项：`"xxh128"`、`"sha256"`
+对文件进行哈希时所使用的算法。可用选项：`"xxh128"`、`"sha256"`、`"blake3"`
 
-- [`"xxh128"`](https://github.com/Cyan4973/xxHash):：一种极快的、高质量的 128 位哈希算法，不提供密码学安全性。
-  推荐使用，除非你想要理论上的极端安全
-- [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): 一种广泛使用的、密码学安全的 256 位哈希算法。
-  它比 xxh128 慢，但在现代的硬件上可能也不会太慢
-
+| 哈希算法                                              | 描述                                                   | 速度    | 密码学安全性       |
+|---------------------------------------------------|------------------------------------------------------|-------|--------------|
+| [`xxh128`](https://github.com/Cyan4973/xxHash)    | 一种极快的、高质量的 128 位哈希算法，不提供密码学安全性。推荐使用，除非你想要理论上的极端安全    | ★★★★★ | :cross_mark: |
+| [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | 一种广泛使用的、密码学安全的 256 位哈希算法。它比 xxh128 慢，但在现代的硬件上可能也不会太慢 | ★★    | :check_mark: |
+| [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | 一种高效的、密码学安全的哈希算法。比 sha256 更快，但是依然比 xxh128 慢          | ★★★   | :check_mark: |
 
 !!! danger
 
@@ -276,6 +276,15 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 
     如果你确实需要修改 `hash_method`，你需要删除 [数据根目录](#storage_root) 路径下的 `prime_backup.db` 文件和 `blobs` 文件夹。
     这将删除所有的备份
+
+!!! note
+
+    如果你想使用 `blake3` 作为哈希算法，你需要手动安装 `blake3` Python 库。
+    它并不包含在默认的 Python 依赖列表中，因为它在某些情况下，可能需要 rust 环境来构建安装
+
+    ```bash
+    pip3 install blake3
+    ```
 
 - 类型：`str`
 - 默认值：`"xxh128"`
@@ -298,7 +307,7 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 
 !!! note
 
-    如果你想使用 `lz4` 作为压缩方法，你需要手动安装 `lz4` python 库
+    如果你想使用 `lz4` 作为压缩方法，你需要手动安装 `lz4` Python 库
 
     ```bash
     pip3 install lz4

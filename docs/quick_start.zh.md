@@ -72,12 +72,12 @@ mcdr_root/
     }
     ```
    
-    - [`hash_method`](config.zh.md#hash_method): 对文件进行哈希的算法。可用选项： "xxh128", "sha256"
+    - [`hash_method`](config.zh.md#hash_method): 对文件进行哈希的算法。可用选项： "xxh128", "sha256", "blake3"
 
-        - [`"xxh128"`](https://github.com/Cyan4973/xxHash):：一种极快的、高质量的 128 位哈希算法，不提供密码学安全性。
+        - [`"xxh128"`](https://github.com/Cyan4973/xxHash):：一种极快的、高质量的哈希算法，不提供密码学安全保证。
           推荐使用，除非你想要理论上的极端安全
-        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): 一种广泛使用的、密码学安全的 256 位哈希算法。
-          它比 xxh128 慢，但在现代的硬件上可能也不会太慢
+        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): 一种广泛使用的、密码学安全的哈希算法
+        - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): 一种高效的、密码学安全的哈希算法。比 sha256 更快，但是依然比 xxh128 慢
 
     - [`compress_method`](config.zh.md#compress_method): 备份文件的压缩方式。常用建议：
 
@@ -87,6 +87,15 @@ mcdr_root/
     !!! danger
     
         你 **不能** 在启用插件后修改 `hash_method`。请明智地做出选择
+
+    !!! note
+   
+        如果你想使用 `blake3` 作为哈希算法，你需要手动安装 `blake3` Python 库。
+        它并不包含在默认的 Python 依赖列表中，因为它在某些情况下，可能需要 rust 环境来构建安装
+   
+        ```bash
+        pip3 install blake3
+        ```
     
     !!! warning
 

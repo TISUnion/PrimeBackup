@@ -72,12 +72,12 @@ Here are a few important things in the config file:
     }
     ```
    
-    - [`hash_method`](config.md#hash_method): The algorithm to hash the files. Available options: "xxh128", "sha256"
+    - [`hash_method`](config.md#hash_method): The algorithm to hash the files. Available options: "xxh128", "sha256", "blake3"
 
-        - [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality 128bit non-cryptographic hash algorithm. 
+        - [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality non-cryptographic hash algorithm. 
           Recommend to use, unless you want theoretic extreme safety on hackers
-        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used 256bit hash algorithm.
-          It's slower than xxh128, but the speed could be acceptable with modern hardware
+        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used hash algorithm
+        - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and speedy hash algorithm. Faster than sha256, but still slower than xxh128
 
     - [`compress_method`](config.md#compress_method): The way the backups get compressed. Common suggestions:
 
@@ -87,6 +87,15 @@ Here are a few important things in the config file:
     !!! danger
     
         You **CANNOT** change the `hash_method` after the plugin is enabled. Make your choice wisely
+
+    !!! note
+   
+        If you want to use `blake3` as the hash method, you need to install the `blake3` python library manually.
+        It's not included in the default requirement list, because in some environments it might require rust runtime to build and install
+   
+        ```bash
+        pip3 install blake3
+        ```
     
     !!! warning
 

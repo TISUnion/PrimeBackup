@@ -84,10 +84,6 @@ Here are a few important things in the config file:
         - `"plain"`: No compression. Use this if you want the maximum operation speed
         - [`"zstd"`](https://github.com/facebook/zstd): Fast and good compression algorithm. Recommend to use you want to save some disk spaces
     
-    !!! danger
-    
-        You **CANNOT** change the `hash_method` after the plugin is enabled. Make your choice wisely
-
     !!! note
    
         If you want to use `blake3` as the hash method, you need to install the `blake3` python library manually.

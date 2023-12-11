@@ -270,13 +270,6 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 | [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | 一种广泛使用的、密码学安全的 256 位哈希算法。它比 xxh128 慢，但在现代的硬件上可能也不会太慢 | ★★    | :check_mark: |
 | [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | 一种高效的、密码学安全的哈希算法。比 sha256 更快，但是依然比 xxh128 慢          | ★★★   | :check_mark: |
 
-!!! danger
-
-    你 **不能** 在启用插件后修改 `hash_method`。请明智地做出选择
-
-    如果你确实需要修改 `hash_method`，你需要删除 [数据根目录](#storage_root) 路径下的 `prime_backup.db` 文件和 `blobs` 文件夹。
-    这将删除所有的备份
-
 !!! note
 
     如果你想使用 `blake3` 作为哈希算法，你需要手动安装 `blake3` Python 库。

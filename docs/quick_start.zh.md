@@ -84,10 +84,6 @@ mcdr_root/
         - `"plain"`: 无压缩。如果你希望获得最快的操作速度，就用这个
         - [`"zstd"`](https://github.com/facebook/zstd): 快速且高效的压缩算法。如果你想节约一些磁盘空间的话，推荐使用
     
-    !!! danger
-    
-        你 **不能** 在启用插件后修改 `hash_method`。请明智地做出选择
-
     !!! note
    
         如果你想使用 `blake3` 作为哈希算法，你需要手动安装 `blake3` Python 库。

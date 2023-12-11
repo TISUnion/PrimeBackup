@@ -270,13 +270,6 @@ The algorithm to hash the files. Available options: `"xxh128"`、`"sha256"`、`"
 | [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | A cryptographically secure and widely used 256bit hash algorithm. It's slower than xxh128, but the speed could be acceptable with modern hardware | ★★    | :check_mark:             |
 | [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | A cryptographically secure and speedy 256bit hash algorithm. It's still slower than xxh128, but is faster than sha256                             | ★★★   | :check_mark:             |
 
-!!! danger
-
-    You **CANNOT** change the `hash_method` after the plugin is enabled. Make your choice wisely
-
-    If you do want to change the `hash_method`, you need to delete the `prime_backup.db` file and the `blobs` folder in the [storage root](#storage_root),
-    which will delete all existing backups
-
 !!! note
 
     If you want to use `blake3` as the hash method, you need to install the `blake3` python library manually.

@@ -264,11 +264,11 @@ Prime Backup will save not only the `world` symbolic link, but also the `foo` sy
 
 The algorithm to hash the files. Available options: `"xxh128"`、`"sha256"`、`"blake3"`
 
-| Hash Method                                       | Description                                                                                                                                       | Speed | cryptographically secure |
-|---------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|-------|--------------------------|
-| [`xxh128`](https://github.com/Cyan4973/xxHash)    | A extremely fast, high-quality 128bit non-cryptographic hash algorithm. Recommend to use, unless you want theoretic extreme safety on hackers     | ★★★★★ | :cross_mark:             |
-| [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | A cryptographically secure and widely used 256bit hash algorithm. It's slower than xxh128, but the speed could be acceptable with modern hardware | ★★    | :check_mark:             |
-| [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | A cryptographically secure and speedy 256bit hash algorithm. It's still slower than xxh128, but is faster than sha256                             | ★★★   | :check_mark:             |
+| Hash Method                                       | Description                                                                                                                                                       | Speed | cryptographically secure |
+|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|--------------------------|
+| [`xxh128`](https://github.com/Cyan4973/xxHash)    | A extremely fast, high-quality 128bit non-cryptographic hash algorithm. Recommend to use, unless you want theoretic extreme safety on hackers                     | ★★★★★ | :cross_mark:             |
+| [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | A cryptographically secure and widely used 256bit hash algorithm. It's slower than xxh128, but the speed could be acceptable using cpu with hardware acceleration | ★★    | :check_mark:             |
+| [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | A cryptographically secure and speedy 256bit hash algorithm. It's still slower than xxh128, but is much faster than sha256                                        | ★★★☆  | :check_mark:             |
 
 !!! note
 

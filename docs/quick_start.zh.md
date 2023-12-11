@@ -28,6 +28,17 @@ Prime Backup 需要一些 python 库才能运行，它们都被列在了
 
 使用命令 `pip3 install -r requirements.txt` 即可安装所有需要的 Python 依赖
 
+### 可选依赖
+
+一些 Prime Backup 功能所需要的 Python 库并没有在 requirements.txt 中列出，
+因为在某些环境下安装这些依赖库可能会 [花不少功夫](https://github.com/oconnor663/blake3-py/issues/41)
+
+如果你想解锁 Prime Backup 的全部功能选项，你可以使用以下命令：
+
+```bash
+pip3 install blake3 lz4
+```
+
 ### 安装插件
 
 从 [GitHub Release](https://github.com/TISUnion/PrimeBackup/releases) 下载 Prime Backup 插件，
@@ -77,7 +88,8 @@ mcdr_root/
         - [`"xxh128"`](https://github.com/Cyan4973/xxHash):：一种极快的、高质量的哈希算法，不提供密码学安全保证。
           推荐使用，除非你想要理论上的极端安全
         - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): 一种广泛使用的、密码学安全的哈希算法
-        - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): 一种高效的、密码学安全的哈希算法。比 sha256 更快，但是依然比 xxh128 慢
+        - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): 一种高效的、密码学安全的哈希算法。比 sha256 快很多，但是依然比 xxh128 慢。
+          推荐使用，记得要装 `blake3` Python 依赖
 
     - [`compress_method`](config.zh.md#compress_method): 备份文件的压缩方式。常用建议：
 

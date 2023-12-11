@@ -22,11 +22,22 @@ See [MCDR document](https://mcdreforged.readthedocs.io/en/latest/quick_start.htm
 Prime Backup requires a few python libraries to run, they are all listed in the
 [requirements.txt](https://github.com/TISUnion/PrimeBackup/blob/master/requirements.txt) at the [GitHub repository](https://github.com/TISUnion/PrimeBackup) root
 
-```bash title="requirements.txt"
+```title="requirements.txt"
 --8<-- "requirements.txt"
 ```
 
 Use command `pip3 install -r requirements.txt` to install all required Python requirements
+
+### Optional requirements
+
+Some Prime Backup features requires python libraries that does not listed in the requirements.txt,
+because it might [take you some effort](https://github.com/oconnor663/blake3-py/issues/41) to install in some environments
+
+If you want to have full features of Prime Backup, you can use the following command in advanced:
+
+```bash
+pip3 install blake3 lz4
+```
 
 ### Install the plugin
 
@@ -77,7 +88,8 @@ Here are a few important things in the config file:
         - [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality non-cryptographic hash algorithm. 
           Recommend to use, unless you want theoretic extreme safety on hackers
         - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used hash algorithm
-        - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and speedy hash algorithm. Faster than sha256, but still slower than xxh128
+        - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and speedy hash algorithm. Much faster than sha256, but still slower than xxh128
+          Recommend to use, don't forget to install the `blake3` Python requirement
 
     - [`compress_method`](config.md#compress_method): The way the backups get compressed. Common suggestions:
 

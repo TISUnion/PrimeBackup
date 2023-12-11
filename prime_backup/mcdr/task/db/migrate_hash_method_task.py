@@ -26,7 +26,6 @@ class MigrateHashMethodTask(HeavyTask[None]):
 				'missing_library',
 				TextComponents.hash_method(self.new_hash_method),
 				TextComponents.url(constants.DOCUMENTATION_URL, click=True),
-				str(e)
 			))
 			return
 

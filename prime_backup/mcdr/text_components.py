@@ -8,6 +8,7 @@ from prime_backup import constants
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount, Duration
 from prime_backup.utils import conversion_utils, misc_utils, backup_utils
@@ -209,6 +210,12 @@ class TextComponents:
 		if not isinstance(byte_cnt, ByteCount):
 			byte_cnt = ByteCount(byte_cnt)
 		return RText(byte_cnt.auto_str(ndigits=ndigits), color=color)
+
+	@classmethod
+	def hash_method(cls, hash_method: Union[str, HashMethod]) -> RTextBase:
+		if isinstance(hash_method, HashMethod):
+			hash_method = hash_method.name
+		return RText(hash_method, RColor.light_purple)
 
 	@classmethod
 	def number(cls, value: Any) -> RTextBase:

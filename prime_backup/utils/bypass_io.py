@@ -1,15 +1,21 @@
 import io
-from typing import Union
+from typing import Union, TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+	from prime_backup.types.hash_method import HashMethod
 
 
 class BypassReader(io.BytesIO):
-	def __init__(self, file_obj, calc_hash: bool):
+	def __init__(self, file_obj, calc_hash: bool, *, hash_method: Optional['HashMethod'] = None):
 		super().__init__()
 		self.file_obj: io.BytesIO = file_obj
 		self.read_len = 0
 
-		from prime_backup.utils import hash_utils
-		self.hasher = hash_utils.create_hasher() if calc_hash else None
+		if calc_hash:
+			from prime_backup.utils import hash_utils
+			self.hasher = hash_utils.create_hasher(hash_method=hash_method)
+		else:
+			self.hasher = None
 
 	def read(self, *args, **kwargs):
 		data = self.file_obj.read(*args, **kwargs)

@@ -1,13 +1,15 @@
 from pathlib import Path
-from typing import NamedTuple, IO
+from typing import NamedTuple, IO, Optional
 
-from prime_backup.types.hash_method import Hasher
+from prime_backup.types.hash_method import Hasher, HashMethod
 from prime_backup.utils.bypass_io import BypassReader
 
 
-def create_hasher() -> 'Hasher':
-	from prime_backup.db.access import DbAccess
-	return DbAccess.get_hash_method().value.create_hasher()
+def create_hasher(*, hash_method: Optional[HashMethod] = None) -> 'Hasher':
+	if hash_method is None:
+		from prime_backup.db.access import DbAccess
+		hash_method = DbAccess.get_hash_method()
+	return hash_method.value.create_hasher()
 
 
 _READ_BUF_SIZE = 128 * 1024
@@ -18,24 +20,28 @@ class SizeAndHash(NamedTuple):
 	hash: str
 
 
-def calc_reader_size_and_hash(file_obj: IO[bytes], *, buf_size: int = _READ_BUF_SIZE) -> SizeAndHash:
-	reader = BypassReader(file_obj, True)
+def calc_reader_size_and_hash(
+		file_obj: IO[bytes], *,
+		buf_size: int = _READ_BUF_SIZE,
+		hash_method: Optional[HashMethod] = None,
+) -> SizeAndHash:
+	reader = BypassReader(file_obj, True, hash_method=hash_method)
 	while reader.read(buf_size):
 		pass
 	return SizeAndHash(reader.get_read_len(), reader.get_hash())
 
 
-def calc_file_size_and_hash(path: Path, *, buf_size: int = _READ_BUF_SIZE) -> SizeAndHash:
+def calc_file_size_and_hash(path: Path, **kwargs) -> SizeAndHash:
 	with open(path, 'rb') as f:
-		return calc_reader_size_and_hash(f, buf_size=buf_size)
+		return calc_reader_size_and_hash(f, **kwargs)
 
 
-def calc_reader_hash(file_obj: IO[bytes], *, buf_size: int = _READ_BUF_SIZE) -> str:
-	return calc_reader_size_and_hash(file_obj, buf_size=buf_size).hash
+def calc_reader_hash(file_obj: IO[bytes], **kwargs) -> str:
+	return calc_reader_size_and_hash(file_obj, **kwargs).hash
 
 
-def calc_file_hash(path: Path, *, buf_size: int = _READ_BUF_SIZE) -> str:
-	return calc_file_size_and_hash(path, buf_size=buf_size).hash
+def calc_file_hash(path: Path, **kwargs) -> str:
+	return calc_file_size_and_hash(path, **kwargs).hash
 
 
 def calc_bytes_hash(buf: bytes) -> str:

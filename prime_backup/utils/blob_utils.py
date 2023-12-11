@@ -14,6 +14,7 @@ def get_blob_path(h: str) -> Path:
 
 
 def prepare_blob_directories():
+	blob_store = get_blob_store()
 	for i in range(0, 256):
-		p = get_blob_store() / hex(i)[2:].rjust(2, '0')
+		p = blob_store / hex(i)[2:].rjust(2, '0')
 		p.mkdir(parents=True, exist_ok=True)

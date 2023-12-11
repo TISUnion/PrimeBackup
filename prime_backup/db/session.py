@@ -1,6 +1,6 @@
 import contextlib
 import time
-from typing import Optional, Sequence, Dict, ContextManager
+from typing import Optional, Sequence, Dict, ContextManager, Iterator
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text
@@ -40,8 +40,21 @@ class DbSession:
 	def add(self, obj: schema.Base):
 		self.session.add(obj)
 
+	def expunge(self, obj: schema.Base):
+		self.session.expunge(obj)
+
+	def expunge_all(self):
+		self.session.expunge_all()
+
 	def flush(self):
 		self.session.flush()
+
+	def flush_and_expunge_all(self):
+		self.flush()
+		self.expunge_all()
+
+	def commit(self):
+		self.session.commit()
 
 	@contextlib.contextmanager
 	def no_auto_flush(self) -> ContextManager[None]:
@@ -93,6 +106,14 @@ class DbSession:
 		if offset is not None:
 			s = s.offset(offset)
 		return _list_it(self.session.execute(s).scalars().all())
+
+	def iterate_blob_batch(self, *, batch_size: int = 3000) -> Iterator[List[schema.Blob]]:
+		limit, offset = batch_size, 0
+		while True:
+			blobs = self.list_blobs(limit=limit, offset=offset)
+			if len(blobs) == 0:
+				break
+			yield blobs
 
 	def get_all_blob_hashes(self) -> List[str]:
 		return _list_it(self.session.execute(select(schema.Blob.hash)).scalars().all())
@@ -161,6 +182,16 @@ class DbSession:
 	def get_file_raw_size_sum(self) -> int:
 		return _int_or_0(self.session.execute(func.sum(schema.File.blob_raw_size).select()).scalar_one())
 
+	def get_file_by_blob_hashes(self, hashes: List[str]) -> List[schema.File]:
+		hashes = collection_utils.deduplicated_list(hashes)
+		result = []
+		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+			result.extend(self.session.execute(
+				select(schema.File).
+				where(schema.File.blob_hash.in_(view))
+			).scalars().all())
+		return result
+
 	def get_file_count_by_blob_hashes(self, hashes: List[str]) -> int:
 		cnt = 0
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
@@ -178,6 +209,14 @@ class DbSession:
 		if offset is not None:
 			s = s.offset(offset)
 		return _list_it(self.session.execute(s).scalars().all())
+
+	def iterate_file_batch(self, *, batch_size: int = 3000) -> Iterator[List[schema.File]]:
+		limit, offset = batch_size, 0
+		while True:
+			files = self.list_files(limit=limit, offset=offset)
+			if len(files) == 0:
+				break
+			yield files
 
 	def delete_file(self, file: schema.File):
 		self.session.delete(file)

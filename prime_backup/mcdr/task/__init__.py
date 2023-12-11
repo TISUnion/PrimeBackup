@@ -19,8 +19,9 @@ class TaskEvent(enum.Enum):
 class Task(Generic[T], mcdr_utils.TranslationContext, ABC):
 	def __init__(self, source: CommandSource):
 		super().__init__(f'task.{self.id}')
+		from prime_backup.mcdr import mcdr_globals
 		self.source = source
-		self.server = source.get_server()
+		self.server = mcdr_globals.server
 
 	def get_name_text(self) -> RTextBase:
 		return self.tr('name').set_color(RColor.aqua)

@@ -18,3 +18,7 @@ class BackupFileNotFound(PrimeBackupError):
 class UnsupportedFileFormat(PrimeBackupError):
 	def __init__(self, mode: int):
 		self.mode = mode
+
+
+class VerificationError(PrimeBackupError):
+	pass

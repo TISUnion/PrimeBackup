@@ -8,6 +8,7 @@ from prime_backup.mcdr.crontab_job import CrontabJobId
 from prime_backup.mcdr.task.basic_task import ImmediateTask
 from prime_backup.mcdr.task.general import help_message_utils
 from prime_backup.mcdr.text_components import TextComponents, TextColors
+from prime_backup.types.hash_method import HashMethod
 from prime_backup.utils.mcdr_utils import mkcmd
 
 
@@ -84,6 +85,7 @@ class ShowHelpTask(ImmediateTask[None]):
 				elif self.what == 'database':
 					name = mcdr_globals.metadata.name
 					kwargs['name'] = name
+					kwargs['hash_methods'] = ', '.join([f'§d{hm.name}§r' for hm in HashMethod])
 					if self.config.database.compact.enabled:
 						kwargs['scheduled_compact_notes'] = self.tr(
 							f'node_help.{self.what}.scheduled_compact.on',

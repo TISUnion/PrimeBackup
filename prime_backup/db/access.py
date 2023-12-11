@@ -39,18 +39,22 @@ class DbAccess:
 		else:
 			migration.ensure_version()
 
-		with cls.open_session() as session:
-			hash_method_str = str(session.get_db_meta().hash_method)
-		try:
-			cls.__hash_method = HashMethod[hash_method_str]
-		except KeyError:
-			raise ValueError('invalid hash method {!r} in db meta'.format(hash_method_str)) from None
+		cls.sync_hash_method()
 
 	@classmethod
 	def shutdown(cls):
 		if (logger := db_logger.get()) is not None:
 			for hdr in list(logger.handlers):
 				logger.removeHandler(hdr)
+
+	@classmethod
+	def sync_hash_method(cls):
+		with cls.open_session() as session:
+			hash_method_str = str(session.get_db_meta().hash_method)
+		try:
+			cls.__hash_method = HashMethod[hash_method_str]
+		except KeyError:
+			raise ValueError('invalid hash method {!r} in db meta'.format(hash_method_str)) from None
 
 	@classmethod
 	def __ensure_not_none(cls, value):

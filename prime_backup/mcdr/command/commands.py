@@ -23,6 +23,7 @@ from prime_backup.mcdr.task.backup.show_backup_task import ShowBackupTask
 from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
+from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
 from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
 from prime_backup.mcdr.task.db.vacuum_sqlite_task import VacuumSqliteTask
 from prime_backup.mcdr.task.db.validate_db_task import ValidateDbTask, ValidateParts
@@ -31,6 +32,7 @@ from prime_backup.mcdr.task.general.show_welcome_task import ShowWelcomeTask
 from prime_backup.mcdr.task_manager import TaskManager
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_tags import BackupTagName
+from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.utils import misc_utils
@@ -71,6 +73,10 @@ class CommandManager:
 
 	def cmd_db_vacuum(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(VacuumSqliteTask(source))
+
+	def cmd_db_migrate_hash_method(self, source: CommandSource, context: CommandContext):
+		new_hash_method = context['hash_method']
+		self.task_manager.add_task(MigrateHashMethodTask(source, new_hash_method))
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
 		def callback(_, err):
@@ -217,8 +223,12 @@ class CommandManager:
 
 		builder = SimpleCommandBuilder()
 
+		# help
+
 		builder.command('help', self.cmd_help)
 		builder.command('help <what>', self.cmd_help)
+
+		builder.arg('what', Text).suggests(lambda: ShowHelpTask.COMMANDS_WITH_DETAILED_HELP)
 
 		# backup
 		builder.command('make', self.cmd_make)
@@ -228,11 +238,17 @@ class CommandManager:
 		builder.command('delete_range <backup_id_range>', self.cmd_delete_range)
 		builder.command('prune', self.cmd_prune)
 
+		builder.arg('backup_id', create_backup_id)
+		builder.arg('backup_id_range', IdRangeNode)
+		builder.arg('comment', GreedyText)
+
 		# crontab
 		builder.command('crontab', self.cmd_crontab_show)
 		builder.command('crontab <job_id>', self.cmd_crontab_show)
 		builder.command('crontab <job_id> pause', self.cmd_crontab_pause)
 		builder.command('crontab <job_id> resume', self.cmd_crontab_resume)
+
+		builder.arg('job_id', lambda n: Enumeration(n, CrontabJobId))
 
 		# db
 		builder.command('database overview', self.cmd_db_overview)
@@ -240,20 +256,15 @@ class CommandManager:
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidateParts.blobs))
 		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidateParts.files))
 		builder.command('database vacuum', self.cmd_db_vacuum)
+		builder.command('database migrate_hash_method <hash_method>', self.cmd_db_migrate_hash_method)
+
+		builder.arg('hash_method', lambda n: Enumeration(n, HashMethod))
 
 		# operations
 		builder.command('confirm', self.cmd_confirm)
 		builder.command('abort', self.cmd_abort)
 
-		# node defs
-		builder.arg('backup_id', create_backup_id)
-		builder.arg('backup_id_range', IdRangeNode)
-		builder.arg('comment', GreedyText)
-		builder.arg('job_id', lambda n: Enumeration(n, CrontabJobId))
-		builder.arg('page', lambda n: Integer(n).at_min(1))
-		builder.arg('per_page', lambda n: Integer(n).at_min(1))
-		builder.arg('what', Text).suggests(lambda: ShowHelpTask.COMMANDS_WITH_DETAILED_HELP)
-
+		# subcommand permissions
 		for name, level in permissions.items():
 			builder.literal(name).requires(get_permission_checker(name), get_permission_denied_text)
 

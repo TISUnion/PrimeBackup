@@ -17,16 +17,12 @@ from prime_backup.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.exceptions import PrimeBackupError
+from prime_backup.exceptions import PrimeBackupError, VerificationError
 from prime_backup.types.backup_meta import BackupMeta
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils import file_utils, blob_utils, misc_utils, hash_utils
 from prime_backup.utils.bypass_io import BypassReader
-
-
-class VerificationError(PrimeBackupError):
-	pass
 
 
 class _ExportInterrupted(PrimeBackupError):

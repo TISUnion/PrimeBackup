@@ -32,6 +32,10 @@ class UnsupportedFormat(PrimeBackupError):
 	pass
 
 
+class BackupMetadataNotFound(PrimeBackupError):
+	pass
+
+
 class _FileDescription(NamedTuple):
 	blob: Optional[schema.Blob]
 	hash: str
@@ -258,7 +262,7 @@ class ZipBackupHandler(PackedBackupFileHandler):
 
 
 class ImportBackupAction(CreateBackupActionBase):
-	def __init__(self, file_path: Path, backup_format: Optional[StandaloneBackupFormat] = None):
+	def __init__(self, file_path: Path, backup_format: Optional[StandaloneBackupFormat] = None, *, ensure_meta: bool = True):
 		super().__init__()
 
 		if backup_format is None:
@@ -268,6 +272,8 @@ class ImportBackupAction(CreateBackupActionBase):
 
 		self.file_path = file_path
 		self.backup_format = backup_format
+		self.ensure_meta = ensure_meta
+
 		self.__blob_cache: Dict[str, schema.Blob] = {}
 
 	def __create_blob_file(self, file_reader: IO[bytes], sah: SizeAndHash) -> Tuple[int, CompressMethod]:
@@ -343,8 +349,14 @@ class ImportBackupAction(CreateBackupActionBase):
 					meta = BackupMeta.from_dict(meta_dict)
 				except Exception as e:
 					self.logger.error('Read backup meta from {!r} failed: {}'.format(BACKUP_META_FILE_NAME, e))
+					if self.ensure_meta:
+						raise BackupMetadataNotFound(e)
 				else:
 					self.logger.info('Read backup meta from {!r} ok'.format(BACKUP_META_FILE_NAME))
+		else:
+			self.logger.info('The importing backup does not contain the backup meta file {!r}'.format(BACKUP_META_FILE_NAME))
+			if self.ensure_meta:
+				raise BackupMetadataNotFound('{} does not exist'.format(BACKUP_META_FILE_NAME))
 
 		members: List[PackedBackupFileHandler.Member] = list(filter(
 			lambda m: m.path != BACKUP_META_FILE_NAME,

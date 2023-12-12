@@ -154,7 +154,8 @@ class CommandManager:
 	def cmd_import(self, source: CommandSource, context: CommandContext):
 		file_path = Path(context['file_path'])
 		backup_format = context.get('backup_format')
-		self.task_manager.add_task(ImportBackupTask(source, file_path, backup_format))
+		ensure_meta = context.get('no_meta', 0) == 0
+		self.task_manager.add_task(ImportBackupTask(source, file_path, backup_format, ensure_meta=ensure_meta))
 
 	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
 		job_id = context.get('job_id')
@@ -243,15 +244,12 @@ class CommandManager:
 		builder.command('show <backup_id>', self.cmd_show)
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
 		builder.command('delete_range <backup_id_range>', self.cmd_delete_range)
-		builder.command('import <file_path>', self.cmd_import)
-		builder.command('import <file_path> <backup_format>', self.cmd_import)
 		builder.command('prune', self.cmd_prune)
 
 		builder.arg('backup_id', create_backup_id)
 		builder.arg('backup_id_range', IdRangeNode)
 		builder.arg('comment', GreedyText)
 		builder.arg('file_path', QuotableText)
-		builder.arg('backup_format', lambda n: Enumeration(n, StandaloneBackupFormat))
 
 		# crontab
 		builder.command('crontab', self.cmd_crontab_show)
@@ -331,6 +329,18 @@ class CommandManager:
 
 			return node_sc
 
+		def make_import_cmd() -> Literal:
+			node_sc = create_subcommand('import')
+			node_fp = QuotableText('file_path')
+			node_bf = Enumeration('backup_format', StandaloneBackupFormat)
+
+			node_sc.then(node_fp)
+			node_fp.then(node_bf)
+			for node in [node_fp, node_bf]:
+				node.then(CountingLiteral('--no-meta', 'no_meta').redirects(node))
+				node.runs(self.cmd_import)
+			return node_sc
+
 		def make_list_cmd() -> Literal:
 			node = create_subcommand('list')
 			node.runs(self.cmd_list)
@@ -369,6 +379,7 @@ class CommandManager:
 		root.then(make_back_cmd())
 		root.then(make_delete_cmd())
 		root.then(make_export_cmd())
+		root.then(make_import_cmd())
 		root.then(make_list_cmd())
 		root.then(make_tag_cmd())
 

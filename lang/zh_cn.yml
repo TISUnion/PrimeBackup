@@ -44,7 +44,10 @@ prime_backup:
       not_a_file: 目标{}不是一个文件
       cannot_infer_backup_format: 无法从文件名{}推断格式, 请显式指定
       start: 正在从{}导入备份, 使用格式{}
-      done: '已从{}导入备份: {}'
+      backup_metadata_not_found: '备份导入失败, 文件{}中不存在可用的备份元数据: {}'
+      backup_metadata_not_found.suggestion:
+        请确保要导入的备份是一个由{name}导出的备份。你也可以带上参数§7--no-meta§r来自动生成新的元数据
+      done: '已从{}导入备份, ID {}'
     backup_export:
       name: 导出备份
       already_exists: 文件{}已存在

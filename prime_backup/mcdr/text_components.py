@@ -104,7 +104,9 @@ class TextComponents:
 		return rtl
 
 	@classmethod
-	def backup_id(cls, backup_id: int, *, hover: bool = True, click: bool = True) -> RTextBase:
+	def backup_id(cls, backup_id: Union[int, BackupInfo], *, hover: bool = True, click: bool = True) -> RTextBase:
+		if isinstance(backup_id, BackupInfo):
+			backup_id = backup_id.id
 		text = RText(f'#{backup_id}', TextColors.backup_id)
 		if hover:
 			text.h(cls.tr('backup_id.hover', RText(backup_id, TextColors.backup_id)))

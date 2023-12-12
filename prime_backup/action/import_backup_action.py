@@ -198,9 +198,17 @@ class ZipBackupHandler(PackedBackupFileHandler):
 			self.zipf = zipf
 			self.member = member
 
+			mode = (self.member.external_attr >> 16) & 0xFFFF
+			if mode == 0:
+				if self.path.endswith('/'):
+					mode = stat.S_IFDIR | 0o755
+				else:
+					mode = stat.S_IFREG | 0o644
+			self.__mode = mode
+
 		@property
 		def mode(self) -> int:
-			return (self.member.external_attr >> 16) & 0xFFFF
+			return self.__mode
 
 		@property
 		def path(self) -> str:

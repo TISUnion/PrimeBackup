@@ -27,6 +27,7 @@ class ShowCrontabJobTask(CrontabTaskBase[None]):
 			elif job.crontab is not None:
 				self.reply(self.tr('crontab', TextComponents.crontab(job.crontab)))
 			else:
+				# should never come here cuz there's the config validation
 				self.reply(RText('ERROR: no valid trigger', RColor.red))
 			self.reply(self.tr('jitter', TextComponents.duration(job.jitter)))
 		self.reply(self.tr('next_run_date', job.get_next_run_date()))

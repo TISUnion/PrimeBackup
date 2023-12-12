@@ -4,6 +4,7 @@
 
 - [ ] List and removed backup with invalid / corrupted files / blobs
 - [ ] Import good backups to fix corrupted blobs
+- [ ] Show diff between 2 backups
 
 ## QOL
 

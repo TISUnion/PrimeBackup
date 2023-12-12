@@ -261,7 +261,7 @@ prime_backup:
           §d【指令帮助】§r
           §7{prefix} database overview§r: 查看数据库信息概览
           §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
-          §7{prefix} database vacuum§r: 手动执行SQLite数据库的精简操作，减少数据库文件的体积
+          §7{prefix} database vacuum§r: 手动执行SQLite数据库的整理操作，减少数据库文件的体积
           §7{prefix} database migrate_hash_method <哈希算法>§r: 将当前使用的哈希算法迁移至另一种算法。这将影响所有数据，耗时可能较长
           {scheduled_compact_notes}
           §d【参数帮助】§r
@@ -270,8 +270,8 @@ prime_backup:
           - §ablobs§r: 验证数据对象的正确性，如数据大小、哈希值
           - §afiles§r: 验证文件对象的正确性，如文件与数据的关联
           - §aall§r: 验证上述全部
-        database.scheduled_compact.on: '注意: 在当前配置下，{name}会定期执行数据库精简操作。详见{cmd}'
-        database.scheduled_compact.off: '注意: 在当前配置下，定时数据库精简操作已被禁用'
+        database.scheduled_compact.on: '注意: 在当前配置下，{name}会定期执行数据库整理操作。详见{cmd}'
+        database.scheduled_compact.off: '注意: 在当前配置下，定时数据库整理操作已被禁用'
         export: |-
           §d【export指令帮助】§r
           以给定格式导出给定备份到§3export§r文件夹

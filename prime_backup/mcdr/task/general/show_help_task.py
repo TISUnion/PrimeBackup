@@ -18,6 +18,7 @@ class ShowHelpTask(ImmediateTask[None]):
 		'crontab',
 		'database',
 		'export',
+		'import',
 		'list',
 		'tag',
 	]
@@ -47,6 +48,10 @@ class ShowHelpTask(ImmediateTask[None]):
 		return self.source.has_permission(self.config.command.permission.get(literal))
 
 	def run(self) -> None:
+		def get_standalone_formats() -> str:
+			from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
+			return ', '.join([f'§3{ebf.name}§r' for ebf in StandaloneBackupFormat])
+
 		with self.source.preferred_language_context():
 			if self.what is None:
 				self.reply(self.tr('commands.title').set_color(TextColors.help_title))
@@ -95,9 +100,10 @@ class ShowHelpTask(ImmediateTask[None]):
 					else:
 						kwargs['scheduled_compact_notes'] = self.tr(f'node_help.{self.what}.scheduled_compact.off')
 				elif self.what == 'export':
-					from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
-					kwargs['export_formats'] = ', '.join([f'§3{ebf.name}§r' for ebf in StandaloneBackupFormat])
+					kwargs['export_formats'] = get_standalone_formats()
 					kwargs['backup_meta_file_name'] = f'§3{constants.BACKUP_META_FILE_NAME}§r'
+				elif self.what == 'import':
+					kwargs['backup_formats'] = get_standalone_formats()
 
 				self.__reply_help(self.tr(f'node_help.{self.what}', **kwargs))
 

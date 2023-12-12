@@ -45,6 +45,13 @@ prime_backup:
       unfinished: Backup export unfinished
       exported: Exported backup {} to {}, cost {}, size {}
       failures: 'Found {} errors during the export:'
+    backup_import:
+      name: import backup
+      file_not_found: File {} does not exist
+      not_a_file: Target {} is not a file
+      cannot_infer_backup_format: Cannot infer backup format from file {}, please specify explicitly
+      start: Importing backup from {}
+      done: 'Backup imported from {}: {}'
     backup_list:
       name: list backup
       title: Backup list
@@ -206,6 +213,7 @@ prime_backup:
           §7{prefix} delete §6<backup_id> [<backup_id>...]§r: Delete the given backup. You can enter multiple backup IDs
           §7{prefix} delete_range §6<backup_id_range>§r: Delete backups inside the given ID range
           §7{prefix} export §6<backup_id> §7[...]§r: Export the given backup. See §7{prefix} help export§r for detailed help
+          §7{prefix} import §3<file_path> §7[...]§r: Import backup from an external file. See §7{prefix} help import§r for detailed help
           §7{prefix} prune §6<backup_id>§r: Manually trigger a backup prune
           §7{prefix} crontab §a<job_id> §7[...]§r: Crontab job operations. See §7{prefix} help crontab§r for help
           §7{prefix} tag §6<backup_id> §7[...]§r: Tag operation on the given backup
@@ -275,6 +283,19 @@ prime_backup:
           §7{prefix} export 12§r: Use the default §3tar§r format to export backup §612§r
           §7{prefix} export 12 tar_gz§r: Use the §tar_gz§r format to export backup §612§r
           §7{prefix} export 12 tar --fail-soft --no-verify§r: Export backup §612§r with best effort
+        import: |-
+          §d[import Command Usage]§r
+          Import an external backup from a given file path
+          §7{prefix} import §3<file_path> §3[<backup_format>]§r
+          §d[Arguments]§r
+          §3<file_path>§r: Path of to the backup file to import. It can be an absolute path, or a related path (related to MCDR root directory).
+          If the path contains space character, you need to wrap the whole path with double quotes,
+          §3<backup_format>§r: Available options: {backup_formats}. If not specified, try inferring from the file name
+          §d[Examples]§r
+          §7{prefix} import /path/to/the/backup.tar.gz§r
+          §7{prefix} import /path/to/a/tarball/foo.bar tar§r
+          §7{prefix} import D:\storage\my_backup.zip§r
+          §7{prefix} import ./pb_files/export/backup_1.tgz tar_gz§r
         list: |-
           §d[list Command Usage]§r
           List backups with given filters

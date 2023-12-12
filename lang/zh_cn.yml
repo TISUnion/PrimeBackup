@@ -38,6 +38,13 @@ prime_backup:
       deleted: 已删除{}
       deleted.skipped: 已跳过{} (备份不存在)
       done: 任务完成, 共删除{}个备份, 共释放{}
+    backup_import:
+      name: 导入备份
+      file_not_found: 文件{}不存在
+      not_a_file: 目标{}不是一个文件
+      cannot_infer_backup_format: 无法从文件名{}推断格式, 请显式指定
+      start: 正在从{}导入备份
+      done: '已从{}导入备份: {}'
     backup_export:
       name: 导出备份
       already_exists: 文件{}已存在
@@ -206,6 +213,7 @@ prime_backup:
           §7{prefix} delete §6<备份ID> [<备份ID>...]§r: 删除给定备份。可输入多个备份ID
           §7{prefix} delete_range §6<备份ID范围>§r: 删除给定ID范围的备份
           §7{prefix} export §6<备份ID> §7[...]§r: 导出给定备份到文件。详见§7{prefix} help export§r
+          §7{prefix} import §3<文件路径> §7[...]§r: 导入外部的备份文件。详见§7{prefix} help import§r
           §7{prefix} prune §6<备份ID>§r: 手动触发一次备份清理
           §7{prefix} crontab §a<作业ID> §7[...]§r: 操作定时作业。详见§7{prefix} help crontab§r
           §7{prefix} tag §6<备份ID> §7[...]§r: 操作给定备份的标签。详见§7{prefix} help tag§r
@@ -262,8 +270,8 @@ prime_backup:
         database.scheduled_compact.off: '注意: 在当前配置下，定时数据库精简操作已被禁用'
         export: |-
           §d【export指令帮助】§r
-          §7{prefix} export §6<备份ID> §3[<导出格式>] §7[--可选参数]§r
           以给定格式导出给定备份到§3export§r文件夹
+          §7{prefix} export §6<备份ID> §3[<导出格式>] §7[--可选参数]§r
           §d【参数帮助】§r
           §3<导出格式>§r: 可用选项: {export_formats}。若未指定，则使用§3tar§r格式
           §d【可选参数】§r
@@ -275,6 +283,19 @@ prime_backup:
           §7{prefix} export 12§r: 使用默认的§3tar§r格式导出备份§612§r
           §7{prefix} export 12 tar_gz§r: 使用§3tar_gz§r格式导出备份§612§r
           §7{prefix} export 12 tar --fail-soft --no-verify§r: 使用§3tar§r格式尽力而为地导出备份§612§r
+        import: |-
+          §d【import指令帮助】§r
+          从给定路径导入一个外部的备份
+          §7{prefix} import §3<文件路径> §3[<备份格式>]§r
+          §d【参数帮助】§r
+          §3<文件路径>§r: 需要导入的备份文件的路径。可以是一个绝对路径，或者一个相对路径 (相对 MCDR 的根目录)。
+          如果路径中含有空格字符，你需要把整个路径用英文双引号包起来
+          §3<备份格式>§r: 可用选项: {backup_formats}。若未指定，则尝试从文件名推断
+          §d【例子】§r
+          §7{prefix} import /path/to/the/backup.tar.gz§r
+          §7{prefix} import /path/to/a/tarball/foo.bar tar§r
+          §7{prefix} import D:\storage\my_backup.zip§r
+          §7{prefix} import ./pb_files/export/backup_1.tgz tar_gz§r
         list: |-
           §d【list指令帮助】§r
           列出备份, 展示备份列表

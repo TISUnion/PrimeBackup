@@ -1,5 +1,6 @@
 import functools
 import typing
+from pathlib import Path
 from typing import List, Callable, Optional, Type
 
 from mcdreforged.api.all import *
@@ -13,6 +14,7 @@ from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.task.backup.delete_backup_range_task import DeleteBackupRangeTask
 from prime_backup.mcdr.task.backup.delete_backup_task import DeleteBackupTask
 from prime_backup.mcdr.task.backup.export_backup_task import ExportBackupTask
+from prime_backup.mcdr.task.backup.import_backup_task import ImportBackupTask
 from prime_backup.mcdr.task.backup.list_backup_task import ListBackupTask
 from prime_backup.mcdr.task.backup.operate_backup_tag_task import SetBackupTagTask, ClearBackupTagTask
 from prime_backup.mcdr.task.backup.prune_backup_task import PruneAllBackupTask
@@ -149,6 +151,11 @@ class CommandManager:
 			create_meta=create_meta,
 		))
 
+	def cmd_import(self, source: CommandSource, context: CommandContext):
+		file_path = Path(context['file_path'])
+		backup_format = context.get('backup_format')
+		self.task_manager.add_task(ImportBackupTask(source, file_path, backup_format))
+
 	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
 		job_id = context.get('job_id')
 		if job_id is None:
@@ -236,11 +243,15 @@ class CommandManager:
 		builder.command('show <backup_id>', self.cmd_show)
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
 		builder.command('delete_range <backup_id_range>', self.cmd_delete_range)
+		builder.command('import <file_path>', self.cmd_import)
+		builder.command('import <file_path> <backup_format>', self.cmd_import)
 		builder.command('prune', self.cmd_prune)
 
 		builder.arg('backup_id', create_backup_id)
 		builder.arg('backup_id_range', IdRangeNode)
 		builder.arg('comment', GreedyText)
+		builder.arg('file_path', QuotableText)
+		builder.arg('backup_format', lambda n: Enumeration(n, StandaloneBackupFormat))
 
 		# crontab
 		builder.command('crontab', self.cmd_crontab_show)

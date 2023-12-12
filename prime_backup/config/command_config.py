@@ -28,6 +28,22 @@ class CommandPermissions(Serializable):
 		return self.serialize().items()
 
 
+def __add_import_permission():
+	# "import" is a python syntax keyword, we have to do some hack
+	setattr(CommandPermissions, 'import', 4)
+
+	# insert the "import" after the "export"
+	annotations = list(map(tuple, CommandPermissions.__annotations__.items()))
+	for i in range(len(annotations)):
+		if annotations[i][0] == 'export':
+			annotations.insert(i + 1, ('import', int))
+	CommandPermissions.__annotations__.clear()
+	CommandPermissions.__annotations__.update(dict(annotations))
+
+
+__add_import_permission()
+
+
 class CommandConfig(Serializable):
 	prefix: str = '!!pb'
 	permission: CommandPermissions = CommandPermissions()

@@ -263,6 +263,8 @@ class ImportBackupAction(CreateBackupActionBase):
 
 		if backup_format is None:
 			backup_format = StandaloneBackupFormat.from_file_name(file_path)
+			if backup_format is None:
+				raise ValueError('cannot infer backup format from {}'.format(file_path))
 
 		self.file_path = file_path
 		self.backup_format = backup_format

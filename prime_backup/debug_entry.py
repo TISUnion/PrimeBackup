@@ -41,12 +41,12 @@ def main():
 		t = time.time()
 
 		_ = [ExportBackupToDirectoryAction, ExportBackupToTarAction, ExportBackupToZipAction, TarFormat]
-		ExportBackupToTarAction(bid, Path('export.tar'), TarFormat.plain).run()
+		# ExportBackupToTarAction(bid, Path('export.tar'), TarFormat.plain).run()
 		# ExportBackupToTarAction(bid, Path('export.tar.gz'), TarFormat.gzip).run()
 		# ExportBackupToTarAction(bid, Path('export.tar.zst'), TarFormat.zstd).run()
 		# ExportBackupToTarAction(bid, Path('export.tar.xz'), TarFormat.lzma).run()
 		# ExportBackupToZipAction(bid, Path('export.zip')).run()
-		# ExportBackupToDirectoryAction(bid, Path('export'), delete_existing=True).run()
+		ExportBackupToDirectoryAction(bid, Path('export')).run()
 
 		print('cost', round(time.time() - t, 2), 's')
 
@@ -70,9 +70,9 @@ def main():
 		print('cost', round(time.time() - t, 2), 's')
 
 	# create(2)
-	import_()
+	# import_()
 	# list_()
-	# export()
+	export()
 	# delete()
 
 

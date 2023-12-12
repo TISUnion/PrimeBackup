@@ -35,6 +35,6 @@ class ImportBackupTask(HeavyTask[None]):
 		else:
 			backup_format = self.backup_format
 
-		self.reply(self.tr('start', t_fp))
+		self.reply(self.tr('start', t_fp, RText(backup_format.name, RColor.dark_aqua)))
 		backup = self.run_action(ImportBackupAction(self.file_path, backup_format))
 		self.reply(self.tr('done', t_fp, TextComponents.backup_brief(backup)))

@@ -1,7 +1,6 @@
 import enum
 import os
-from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, List
 
 from prime_backup.types.common import PathLike
 from prime_backup.types.tar_format import TarFormat
@@ -9,6 +8,10 @@ from prime_backup.types.tar_format import TarFormat
 
 class ZipFormat(NamedTuple):
 	extension: str
+
+	@property
+	def all_extensions(self) -> List[str]:
+		return [self.extension]
 
 
 class StandaloneBackupFormat(enum.Enum):
@@ -19,22 +22,19 @@ class StandaloneBackupFormat(enum.Enum):
 	zip = ZipFormat('.zip')
 
 	@property
-	def file_ext(self) -> str:
+	def __all_file_extensions(self) -> List[str]:
 		if isinstance(self.value, TarFormat):
-			return self.value.value.extension
+			return self.value.value.all_extensions
 		elif isinstance(self.value, ZipFormat):
-			return self.value.extension
+			return self.value.all_extensions
 		else:
 			raise ValueError(self.value)
 
 	@classmethod
 	def from_file_name(cls, file: PathLike) -> Optional['StandaloneBackupFormat']:
-		if isinstance(file, Path):
-			name = file.name
-		else:
-			name = os.path.basename(file)
-
+		name = os.path.basename(file)
 		for ebf in StandaloneBackupFormat:
-			if name.endswith(ebf.file_ext):
-				return ebf
+			for ext in ebf.__all_file_extensions:
+				if name.endswith(ext):
+					return ebf
 		return None

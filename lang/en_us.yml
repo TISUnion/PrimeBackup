@@ -50,7 +50,7 @@ prime_backup:
       file_not_found: File {} does not exist
       not_a_file: Target {} is not a file
       cannot_infer_backup_format: Cannot infer backup format from file {}, please specify explicitly
-      start: Importing backup from {}
+      start: Importing backup from {} with format {}
       done: 'Backup imported from {}: {}'
     backup_list:
       name: list backup

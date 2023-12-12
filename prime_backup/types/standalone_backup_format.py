@@ -17,6 +17,7 @@ class ZipFormat(NamedTuple):
 class StandaloneBackupFormat(enum.Enum):
 	tar = TarFormat.plain
 	tar_gz = TarFormat.gzip
+	tar_bz2 = TarFormat.bz2
 	tar_xz = TarFormat.lzma
 	tar_zst = TarFormat.zstd
 	zip = ZipFormat('.zip')

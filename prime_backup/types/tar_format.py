@@ -26,5 +26,16 @@ class _TarFormatItem(NamedTuple):
 class TarFormat(enum.Enum):
 	plain = _TarFormatItem('.tar', (), ':', CompressMethod.plain)
 	gzip = _TarFormatItem('.tar.gz', ('.tgz',), ':gz', CompressMethod.plain)
+	bz2 = _TarFormatItem('.tar.bz2', ('.tbz2',), ':bz2', CompressMethod.plain)
 	lzma = _TarFormatItem('.tar.xz', ('.txz',), ':xz', CompressMethod.plain)
-	zstd = _TarFormatItem('.tar.zst', ('.tzst',), ':', CompressMethod.zstd)
+	zstd = _TarFormatItem('.tar.zst', ('.tar.zstd', '.tzst', '.tzstd'), ':', CompressMethod.zstd)
+
+
+def __validate_tar_formats():
+	for tf in TarFormat:
+		for ext in tf.value.all_extensions:
+			if not ext.startswith('.'):
+				raise AssertionError('bad extension that does not start with "." for {}: {}'.format(tf, ext))
+
+
+__validate_tar_formats()

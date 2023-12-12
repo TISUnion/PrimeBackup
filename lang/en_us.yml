@@ -164,6 +164,7 @@ prime_backup:
       name: overview database
       title: Database overview
       db_version: 'Database version: {}'
+      db_file_size: 'Database file size: {}'
       hash_method: 'Hash method: {}'
       backup_count: 'Backup count: {}'
       file_count: 'File count: {}'

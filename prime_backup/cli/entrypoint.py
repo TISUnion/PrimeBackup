@@ -76,6 +76,8 @@ class CliHandler:
 		self.init_environment()
 		result = GetDbOverviewAction().run()
 		logger.info('DB version: %s', result.db_version)
+		logger.info('DB path: %s', DbAccess.get_db_file_path())
+		logger.info('DB file size: %s (%s)', result.db_file_size, ByteCount(result.db_file_size).auto_str())
 		logger.info('Hash method: %s', result.hash_method)
 		logger.info('Backup count: %s', result.backup_count)
 		logger.info('Blob count: %s', result.blob_count)

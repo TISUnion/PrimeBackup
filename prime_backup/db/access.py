@@ -14,7 +14,7 @@ from prime_backup.types.hash_method import HashMethod
 
 class DbAccess:
 	__engine: Optional[Engine] = None
-	__db_path: Optional[Path] = None
+	__db_file_path: Optional[Path] = None
 
 	__hash_method: Optional[HashMethod] = None
 
@@ -31,7 +31,7 @@ class DbAccess:
 
 		db_path = db_dir / db_constants.DB_FILE_NAME
 		cls.__engine = create_engine('sqlite:///' + str(db_path))
-		cls.__db_path = db_path
+		cls.__db_file_path = db_path
 
 		migration = DbMigration(cls.__engine)
 		if auto_migrate:
@@ -63,8 +63,8 @@ class DbAccess:
 		return value
 
 	@classmethod
-	def get_db_path(cls) -> Path:
-		return cls.__ensure_not_none(cls.__db_path)
+	def get_db_file_path(cls) -> Path:
+		return cls.__ensure_not_none(cls.__db_file_path)
 
 	@classmethod
 	def get_hash_method(cls) -> HashMethod:

@@ -10,7 +10,6 @@ from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
-from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.utils import backup_utils
 from prime_backup.utils.mcdr_utils import broadcast_message
@@ -42,7 +41,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 		if not mcdr_globals.server.is_server_running():
 			return
 
-		broadcast_message(self.tr('triggered', self.get_name_text_titled(), TextComponents.duration(self.config.interval)))
+		broadcast_message(self.tr('triggered', self.get_name_text_titled()))
 		with contextlib.ExitStack() as exit_stack:
 			self.is_executing.set()
 			exit_stack.callback(self.is_executing.clear)

@@ -352,7 +352,7 @@ prime_backup:
     schedule_backup:
       name: 定时备份
       name_titled: 定时备份
-      triggered: 每{1}一次的{0}触发
+      triggered: '{}触发'
       reset_on_backup: '检测到新增的备份, 重置定时器。下次定时备份: {}'
     vacuum_sqlite:
       name: 整理数据库

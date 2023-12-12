@@ -215,7 +215,8 @@ class CreateBackupAction(CreateBackupActionBase):
 				scan_queue.append(target_path.readlink())
 				continue
 
-			if target_path.is_dir():
+			# as-is policy, don't scan into symlink
+			if not target_path.is_symlink() and target_path.is_dir():
 				for dir_path, dir_names, file_names in os.walk(target_path):
 					for name in file_names + dir_names:
 						file_path = Path(dir_path) / name

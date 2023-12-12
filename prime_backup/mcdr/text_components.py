@@ -63,8 +63,11 @@ class TextComponents:
 	@classmethod
 	def backup_comment(cls, comment: str) -> RTextBase:
 		if len(comment) > 0:
-			if (key := backup_utils.extract_backup_comment_translation_key(comment)) is not None:
-				return cls.tr(f'backup_comment.{key}')
+			if (er := backup_utils.extract_backup_comment_translation_key(comment)) is not None:
+				args = er.args
+				if er.key == 'pre_restore' and len(args) == 0:
+					args = ('?',)
+				return cls.tr(f'backup_comment.{er.key}', *args)
 			return RText(comment)
 		else:
 			return cls.tr('backup_comment.none').set_color(RColor.gray).set_styles(RStyle.italic)

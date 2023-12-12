@@ -89,7 +89,6 @@ prime_backup:
       countdown: '{}秒后将§c回档§r至{}'
       countdown.hover: 点我或输入{}以终止回档
       no_confirm: 未做出选择, 回档任务中止
-      pre_restore_comment: '回档至#{}前的自动备份'
       aborted: 回档任务中止
     backup_set_tag:
       name: 设置备份标签
@@ -380,6 +379,7 @@ prime_backup:
     backup_comment:
       none: 空
       scheduled_backup: 定时备份
+      pre_restore: '回档至#{}前的自动备份'
     backup_full:
       creator: '创建者: {}'
       restore: 回档至备份{}

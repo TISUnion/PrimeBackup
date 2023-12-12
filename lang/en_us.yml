@@ -89,7 +89,6 @@ prime_backup:
       countdown: '{} second later, the world will §cbe restored§r to {}'
       countdown.hover: Click me or enter command {} to abort restore
       no_confirm: No choice has been made, restore task aborted
-      pre_restore_comment: 'Automatic backup before restoring to #{}'
       aborted: Restore task aborted
     backup_set_tag:
       name: set backup tag
@@ -380,6 +379,7 @@ prime_backup:
     backup_comment:
       none: no comment
       scheduled_backup: Scheduled Backup
+      pre_restore: 'Automatic backup before restoring to #{}'
     backup_full:
       creator: 'Creator: {}'
       restore: Restore to backup {}

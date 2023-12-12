@@ -12,6 +12,7 @@ from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags, BackupTagName
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
+from prime_backup.utils import backup_utils
 from prime_backup.utils.mcdr_utils import click_and_run, mkcmd
 from prime_backup.utils.timer import Timer
 
@@ -79,7 +80,7 @@ class RestoreBackupTask(HeavyTask[None]):
 			self.logger.info('Creating backup of existing files to avoid idiot')
 			CreateBackupAction(
 				Operator.pb(PrimeBackupOperatorNames.pre_restore),
-				self.tr('pre_restore_comment', backup.id).to_plain_text(),
+				backup_utils.create_translated_backup_comment('pre_restore', backup.id),
 				tags=BackupTags().set(BackupTagName.pre_restore_backup, True),
 			).run()
 		cost_backup = timer.get_and_restart()

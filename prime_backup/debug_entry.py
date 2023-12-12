@@ -53,7 +53,7 @@ def main():
 	def import_():
 		t = time.time()
 		# bi = ImportBackupAction(Path('export.tar')).run()
-		bi = ImportBackupAction(Path(r'D:\Codes\Minecraft\[MCDR]\MCDReforged\run\pb_files\export\backup_3_1.tar.zst')).run()
+		bi = ImportBackupAction(Path(r'export.tar.zst')).run()
 		print('cost', round(time.time() - t, 2), 's')
 		nonlocal backup_id
 		backup_id = bi.id

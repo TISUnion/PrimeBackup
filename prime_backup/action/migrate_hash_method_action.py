@@ -80,7 +80,7 @@ class MigrateHashMethodAction(Action[None]):
 			self.logger.info('Migration done, cost {}s'.format(round(time.time() - t, 2)))
 
 		except Exception:
-			self.logger.info('Error occurs during migration, applying rollback')
+			self.logger.warning('Error occurs during migration, applying rollback')
 			for old_hash, new_hash in processed_hash_mapping.items():
 				old_path = blob_utils.get_blob_path(old_hash)
 				new_path = blob_utils.get_blob_path(new_hash)

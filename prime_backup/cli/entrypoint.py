@@ -184,7 +184,6 @@ class CliHandler:
 
 		ExportBackupToDirectoryAction(
 			self.args.backup_id, output_path,
-			delete_existing=True,
 			child_to_export=file_path,
 			recursively_export_child=self.args.recursively,
 		).run()

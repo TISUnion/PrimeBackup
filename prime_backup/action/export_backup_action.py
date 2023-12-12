@@ -4,12 +4,13 @@ import os
 import shutil
 import stat
 import tarfile
+import threading
 import time
 import zipfile
 from abc import abstractmethod, ABC
 from io import BytesIO
 from pathlib import Path
-from typing import ContextManager, Optional, List, Tuple, IO, Any
+from typing import ContextManager, Optional, List, Tuple, IO, Any, Dict
 
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor, CompressMethod
@@ -85,13 +86,11 @@ def _i_am_root():
 class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 	def __init__(
 			self, backup_id: int, output_path: Path, *,
-			delete_existing: bool = True,
 			child_to_export: Optional[Path] = None,
 			recursively_export_child: bool = False,
 			**kwargs,
 	):
 		super().__init__(backup_id, output_path, **kwargs)
-		self.delete_existing = delete_existing
 		self.child_to_export = child_to_export
 		self.recursively_export_child = recursively_export_child
 
@@ -170,16 +169,19 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			self.logger.info('Exporting child {!r} in {} to directory {}, recursively = {}'.format(self.child_to_export.as_posix(), backup, self.output_path, self.recursively_export_child))
 		self.output_path.mkdir(parents=True, exist_ok=True)
 
-		# clean up existing
-		if self.delete_existing:
-			for target in backup.targets:
-				target_path = self.output_path / target
-				if target_path.is_dir():
-					shutil.rmtree(target_path)
-				else:
-					target_path.unlink(missing_ok=True)
+		trash_bin = self.config.storage_path / 'temp' / 'export_dir_{}_{}'.format(os.getpid(), threading.current_thread().ident)
+		trash_bin.mkdir(parents=True, exist_ok=True)
+		trash_mapping: Dict[Path, Path] = {}  # trash path -> original path
 
 		try:
+			# clean up existing
+			for target in backup.targets:
+				target_path = self.output_path / target
+				if target_path.exists():
+					trash_path = trash_bin / target
+					target_path.rename(trash_path)
+					trash_mapping[trash_path] = target_path
+
 			directories: List[Tuple[schema.File, Path]] = []
 			for file in backup.files:
 				if self.is_interrupted.is_set():
@@ -197,9 +199,19 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 					self.__set_attrs(dir_file, dir_file_path)
 				except Exception as e:
 					failures.add_or_raise(dir_file, e)
+
 		except Exception:
-			# TODO: rollback?
+			self.logger.warning('Error occurs during export to directory, applying rollback')
+			for trash_path, original_path in trash_mapping.items():
+				if original_path.exists():
+					if original_path.is_dir() and not original_path.is_symlink():
+						shutil.rmtree(original_path)
+					else:
+						original_path.unlink()
+				trash_path.rename(original_path)
 			raise
+		finally:
+			shutil.rmtree(trash_bin)
 
 		return failures
 

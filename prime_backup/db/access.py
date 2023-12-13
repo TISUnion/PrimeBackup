@@ -46,6 +46,9 @@ class DbAccess:
 		if (logger := db_logger.get()) is not None:
 			for hdr in list(logger.handlers):
 				logger.removeHandler(hdr)
+		if (engine := cls.__engine) is not None:
+			engine.dispose()
+			cls.__engine = None
 
 	@classmethod
 	def sync_hash_method(cls):
@@ -55,6 +58,12 @@ class DbAccess:
 			cls.__hash_method = HashMethod[hash_method_str]
 		except KeyError:
 			raise ValueError('invalid hash method {!r} in db meta'.format(hash_method_str)) from None
+
+	@classmethod
+	def __ensure_engine(cls) -> Engine:
+		if cls.__engine is None:
+			raise RuntimeError('engine unavailable')
+		return cls.__engine
 
 	@classmethod
 	def __ensure_not_none(cls, value):
@@ -73,14 +82,15 @@ class DbAccess:
 	@classmethod
 	@contextlib.contextmanager
 	def open_session(cls) -> ContextManager['DbSession']:
-		with Session(cls.__engine) as session, session.begin():
+		with Session(cls.__ensure_engine()) as session, session.begin():
 			yield DbSession(session)
 
 	@classmethod
 	@contextlib.contextmanager
 	def enable_echo(cls) -> ContextManager[None]:
-		cls.__engine.echo = True
+		engine = cls.__ensure_engine()
+		engine.echo = True
 		try:
 			yield
 		finally:
-			cls.__engine.echo = False
+			engine.echo = False

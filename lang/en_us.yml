@@ -3,11 +3,11 @@ prime_backup:
     help:
       no_help: No detailed help message for command {}
     confirm:
-      sent: Confirming task {}
+      sent: Confirming {} task
       noop: Nothing to confirm
       not_your_task: Nothing for you to confirm
     abort:
-      sent: Aborting task {}
+      sent: Aborting {} task
       noop: Nothing to abort
       no_permission: You don't have the permission to abort the current task
 

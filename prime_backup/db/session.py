@@ -43,7 +43,7 @@ class DbSession:
 		if not is_supported:
 			from prime_backup import logger
 			import sqlite3
-			logger.get().warning(f'WARN: SQLite backend does not support json query. Inefficient manual query is used as a fallback. SQLite version: {sqlite3.sqlite_version}')
+			logger.get().warning(f'WARN: SQLite backend does not support json query. Inefficient manual query is used as the fallback. SQLite version: {sqlite3.sqlite_version}')
 		return is_supported
 
 	# ========================= General Database Operations =========================

@@ -104,7 +104,7 @@ class LightTask(_BasicTask[_T], ABC):
 	"""
 	For tasks that require DB access and runs fast
 	"""
-	MAX_ONGOING_TASK = 3
+	MAX_ONGOING_TASK = 5
 
 
 class ImmediateTask(_BasicTask[_T], ABC):

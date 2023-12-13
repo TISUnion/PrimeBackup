@@ -7,7 +7,7 @@ prime_backup:
       not_your_task: 你没有什么是需要确认的
     abort:
       noop: 没有什么是需要终止的
-      no_permission: 你没有终止当前任务所需的权限
+      no_permission: 权限不足，无法终止当前任务
 
   task:
     backup_clear_tag:
@@ -17,8 +17,8 @@ prime_backup:
     backup_create:
       name: 创建备份
       start: 创建备份中...请稍等
-      abort.save_wait_time_out: 等待世界保存超时, 备份任务中止
-      abort.unloaded: 插件卸载, 备份任务中止
+      abort.save_wait_time_out: 等待世界保存超时, 备份任务终止
+      abort.unloaded: 插件卸载, 备份任务终止
       completed: '备份完成, ID {}, 耗时{}, 体积{} (+{})'
       cost.hover: |-
         等待世界保存: {}
@@ -35,8 +35,8 @@ prime_backup:
       to_delete_count: '将要删除以下{}个备份: '
       ellipsis.hover: 省略{}个备份
       confirm_target: 删除
-      no_confirm: 未做出选择, 范围删除备份任务中止
-      aborted: 范围删除备份任务中止
+      no_confirm: 未做出选择, 范围删除备份任务终止
+      aborted: 范围删除备份任务终止
       deleted: 已删除{}
       deleted.skipped: 已跳过{} (备份不存在)
       done: 任务完成, 共删除{}个备份, 共释放{}
@@ -70,11 +70,11 @@ prime_backup:
       nothing_to_prune: 未找到需要被清理的备份
       list_to_be_pruned: '将要清理的备份 (共{}个): {}'
       prune: 正在删除{}
-      aborted: 清理备份任务中止
+      aborted: 清理备份任务终止
       done: 清理完成, 共删除{}个备份、{}个数据对象, 共释放{}
     backup_prune_all:
       name: 全范围清理备份
-      nothing_to_do: 没有生效的清理子任务, 清理中止
+      nothing_to_do: 没有生效的清理子任务, 清理终止
       what:
         regular: 普通备份
         pre_restore: 回档前备份
@@ -90,8 +90,8 @@ prime_backup:
       confirm_target: 回档
       countdown: '{}秒后将§c回档§r至{}'
       countdown.hover: 点我或输入{}以终止回档
-      no_confirm: 未做出选择, 回档任务中止
-      aborted: 回档任务中止
+      no_confirm: 未做出选择, 回档任务终止
+      aborted: 回档任务终止
     backup_set_tag:
       name: 设置备份标签
       set: 已将备份{0}的标签{1}设置为{2}
@@ -161,8 +161,8 @@ prime_backup:
       show_whats_going_on: 准备把文件池所使用的哈希算法从{}迁移至{}
       confirm_target: 迁移
       start: 正在将哈希算法从{}迁移至{}，见控制台以了解进度
-      no_confirm: 未做出选择, 哈希算法迁移任务中止
-      aborted: 哈希算法迁移任务中止
+      no_confirm: 未做出选择, 哈希算法迁移任务终止
+      aborted: 哈希算法迁移任务终止
       done: 已将哈希算法从{}迁移至{}
     db_overview:
       name: 概览数据库
@@ -308,13 +308,13 @@ prime_backup:
           §d【可选参数】§r
           §7--per-page §e<每页行数>§r: 设置每页展示的备份数量。默认: §e10§r
           §7--creator §e<创建者>§r: 仅列出给定创建者的备份
-          §7--start §b<起始日期>§r: 仅列出给定日期之后的备份
-          §7--end §b<结束日期>§r: 仅列出给定日期之前的备份
+          §7--from §b<起始日期>§r: 仅列出给定日期之后的备份
+          §7--to §b<结束日期>§r: 仅列出给定日期之前的备份
           §7--all§r: 展示所有的备份。默认情况下, 隐藏备份、回档前备份不会被展示
           §7--flags§r: 展示备份标志位, 这些标志位是基于备份的标签生成的
           §d【例子】§r
           §7{prefix} list --all --flags§r
-          §7{prefix} list --start 20231130§r
+          §7{prefix} list --from 20231130§r
           §7{prefix} list 3 --per-page 20§r
         tag: |-
           §d【tag指令帮助】§r
@@ -372,8 +372,8 @@ prime_backup:
     permission_denied: 权限不足
     too_much_ongoing_task:
       exclusive: '请等待当前任务{}完成'
-      try_abort: 你也可以选择中止当前任务
-      try_abort.hover: 点我或输入{}以中止当前任务
+      try_abort: 你也可以选择终止当前任务
+      try_abort.hover: 点我或输入{}以终止当前任务
       generic: '待处理的任务过多 (最大值{}), 请等待一些任务完成'
 
   text_components:

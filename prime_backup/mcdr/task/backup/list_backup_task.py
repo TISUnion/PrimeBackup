@@ -38,9 +38,9 @@ class ListBackupTask(LightTask[None]):
 		if self.backup_filter.creator is not None:
 			cmd += f' --creator {self.backup_filter.creator}'
 		if self.backup_filter.timestamp_start is not None:
-			cmd += f' --start {date_str(self.backup_filter.timestamp_start)}'
+			cmd += f' --from {date_str(self.backup_filter.timestamp_start)}'
 		if self.backup_filter.timestamp_end is not None:
-			cmd += f' --end {date_str(self.backup_filter.timestamp_end)}'
+			cmd += f' --to {date_str(self.backup_filter.timestamp_end)}'
 		if self.show_all:
 			cmd += f' --all'
 		if self.show_flags:

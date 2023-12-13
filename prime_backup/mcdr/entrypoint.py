@@ -63,7 +63,17 @@ def on_load(server: PluginServerInterface, old):
 		init_ok = is_enabled()
 
 
+_has_unload = False
+_has_unload_lock = threading.Lock()
+
+
 def on_unload(server: PluginServerInterface):
+	with _has_unload_lock:
+		global _has_unload
+		if _has_unload:
+			return
+		_has_unload = True
+
 	server.logger.info('Shutting down everything...')
 	global task_manager, crontab_manager
 

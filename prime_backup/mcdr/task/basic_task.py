@@ -43,6 +43,9 @@ class _BasicTask(Task[_T], ABC):
 				or ((action := self.__running_action) is not None and action.is_interruptable())
 		)
 
+	def get_abort_permission(self) -> int:
+		return max(PermissionLevel.ADMIN, self.source.get_permission_level())
+
 	def on_event(self, event: TaskEvent):
 		self._confirm_helper.on_event(event)
 		if event in [TaskEvent.plugin_unload, TaskEvent.operation_aborted]:
@@ -56,13 +59,13 @@ class _BasicTask(Task[_T], ABC):
 
 	# ==================================== Utils ====================================
 
-	def wait_confirm(self, confirm_target_text: RTextBase, time_wait: Optional[Duration] = None, *, broadcast: bool = False) -> WaitableValue[ConfirmResult]:
+	def wait_confirm(self, confirm_target_text: RTextBase, time_wait: Optional[Duration] = None) -> WaitableValue[ConfirmResult]:
 		if time_wait is None:
 			time_wait = self.config.command.confirm_time_wait
 
 		self.is_waiting_confirm = True
 		try:
-			return self._confirm_helper.wait_confirm(confirm_target_text, time_wait, broadcast=broadcast)
+			return self._confirm_helper.wait_confirm(confirm_target_text, time_wait)
 		finally:
 			self.is_waiting_confirm = False
 

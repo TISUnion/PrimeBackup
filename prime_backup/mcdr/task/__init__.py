@@ -38,5 +38,9 @@ class Task(Generic[T], mcdr_utils.TranslationContext, ABC):
 	def run(self) -> T:
 		...
 
+	@abstractmethod
+	def get_abort_permission(self) -> int:
+		...
+
 	def on_event(self, event: TaskEvent):
 		pass

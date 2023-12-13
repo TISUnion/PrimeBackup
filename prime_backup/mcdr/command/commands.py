@@ -31,7 +31,7 @@ from prime_backup.mcdr.task.db.vacuum_sqlite_task import VacuumSqliteTask
 from prime_backup.mcdr.task.db.validate_db_task import ValidateDbTask, ValidateParts
 from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task.general.show_welcome_task import ShowWelcomeTask
-from prime_backup.mcdr.task_manager import TaskManager
+from prime_backup.mcdr.task_manager import TaskManager, SendEventResult
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.hash_method import HashMethod
@@ -176,12 +176,18 @@ class CommandManager:
 		self.task_manager.add_task(PruneAllBackupTask(source))
 
 	def cmd_confirm(self, source: CommandSource, _: CommandContext):
-		if not self.task_manager.do_confirm():
+		result = self.task_manager.do_confirm(source)
+		if result == SendEventResult.no_task:
 			reply_message(source, tr('command.confirm.noop'))
+		elif result == SendEventResult.no_permission:
+			reply_message(source, tr('command.confirm.not_your_task'))
 
 	def cmd_abort(self, source: CommandSource, _: CommandContext):
-		if not self.task_manager.do_abort():
+		result = self.task_manager.do_abort(source)
+		if result == SendEventResult.no_task:
 			reply_message(source, tr('command.abort.noop'))
+		elif result == SendEventResult.no_permission:
+			reply_message(source, tr('command.confirm.no_permission'))
 
 	def cmd_show_backup_tag(self, source: CommandSource, context: CommandContext, tag_name: Optional[BackupTagName] = None):
 		backup_id = context['backup_id']

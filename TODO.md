@@ -8,7 +8,7 @@
 
 ## QOL
 
-- [ ] More restrictive `!!pb confirm` and `!!pb delete`
+- [x] More restrictive `!!pb confirm` and `!!pb abort`
 
 ## Documents
 

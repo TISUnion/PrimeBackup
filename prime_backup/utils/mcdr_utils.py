@@ -48,3 +48,12 @@ def broadcast_message(msg: Union[str, RTextBase], *, with_prefix: bool = True):
 
 def click_and_run(message: Any, text: Any, command: str) -> RTextBase:
 	return RTextBase.from_any(message).h(text).c(RAction.run_command, command)
+
+
+def are_source_equals(a: CommandSource, b: CommandSource):
+	if isinstance(a, PlayerCommandSource) and isinstance(b, PlayerCommandSource):
+		return a.player == b.player
+	elif isinstance(a, ConsoleCommandSource) and isinstance(b, ConsoleCommandSource):
+		return True
+	else:
+		return a == b

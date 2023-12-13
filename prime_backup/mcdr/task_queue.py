@@ -76,6 +76,15 @@ class TaskQueue(Generic[T]):
 		with self.__lock:
 			return len(self.__queue)
 
+	def peek_first_unfinished_item(self) -> Union[T, _NoneItem]:
+		with self.__lock:
+			if self.__current_item is not self.NONE:
+				return self.__current_item
+			if len(self.__queue) > 0:
+				return self.__queue[0]
+			else:
+				return self.NONE
+
 	def unfinished_size(self) -> int:
 		with self.__lock:
 			return self.__unfinished_size

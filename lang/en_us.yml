@@ -4,8 +4,10 @@ prime_backup:
       no_help: No detailed help message for command {}
     confirm:
       noop: Nothing to confirm
+      not_your_task: Nothing for you to confirm
     abort:
       noop: Nothing to abort
+      no_permission: You don't have the permission to abort the current task
 
   task:
     backup_clear_tag:

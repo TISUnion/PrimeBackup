@@ -29,6 +29,9 @@ class RestoreBackupTask(HeavyTask[None]):
 	def id(self) -> str:
 		return 'backup_restore'
 
+	def get_abort_permission(self) -> int:
+		return 0
+
 	def __countdown_and_stop_server(self, backup: BackupInfo) -> bool:
 		for countdown in range(max(0, self.config.command.restore_countdown_sec), 0, -1):
 			self.broadcast(click_and_run(
@@ -60,7 +63,7 @@ class RestoreBackupTask(HeavyTask[None]):
 
 		if self.needs_confirm:
 			self.broadcast(self.tr('show_backup', TextComponents.backup_brief(backup)))
-			wr = self.wait_confirm(self.tr('confirm_target'), broadcast=True)
+			wr = self.wait_confirm(self.tr('confirm_target'))
 			if not wr.is_set():
 				self.broadcast(self.tr('no_confirm'))
 				return

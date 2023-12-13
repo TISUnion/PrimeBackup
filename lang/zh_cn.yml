@@ -4,8 +4,10 @@ prime_backup:
       no_help: 指令{}无详细帮助内容
     confirm:
       noop: 没有什么是需要确认的
+      not_your_task: 你没有什么是需要确认的
     abort:
       noop: 没有什么是需要终止的
+      no_permission: 你没有终止当前任务所需的权限
 
   task:
     backup_clear_tag:

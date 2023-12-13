@@ -22,7 +22,7 @@ from prime_backup.exceptions import PrimeBackupError, VerificationError
 from prime_backup.types.backup_meta import BackupMeta
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.tar_format import TarFormat
-from prime_backup.utils import file_utils, blob_utils, misc_utils, hash_utils
+from prime_backup.utils import file_utils, blob_utils, misc_utils, hash_utils, path_utils
 from prime_backup.utils.bypass_io import BypassReader
 
 
@@ -206,7 +206,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 
 		def add_export_item(file_: schema.File, export_path: Path):
 			for t in backup.targets:
-				if Path(file_.path).is_relative_to(t):
+				if path_utils.is_relative_to(Path(file_.path), t):
 					export_items.append(self._ExportItem(file_, export_path, export_path.as_posix()))
 					return
 			self.logger.warning('Found out-of-backup-target file, ignored. file.path: {!r}, backup.targets: {}'.format(file, backup.targets))

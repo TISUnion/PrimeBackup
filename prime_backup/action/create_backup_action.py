@@ -21,7 +21,7 @@ from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils
+from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, path_utils
 
 
 class VolatileBlobFile(PrimeBackupError):
@@ -205,7 +205,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			if not target_path.exists():
 				self.logger.info('Skipping not-exist backup target {}'.format(target_path))
 				continue
-			if not target_path.is_relative_to(source_path):
+			if not path_utils.is_relative_to(target_path, source_path):
 				self.logger.warning("Skipping backup target {} cuz it's not inside the source path {}".format(target_path, source_path))
 				continue
 

@@ -5,6 +5,8 @@ from typing import Optional
 
 import psutil
 
+from prime_backup.utils import path_utils
+
 HAS_COPY_FILE_RANGE = callable(getattr(os, 'copy_file_range', None))
 
 
@@ -22,8 +24,8 @@ def does_fs_support_cow(path: Path) -> bool:
 	mount_point: Optional[str] = None
 	fs_type = '?'
 	for p in psutil.disk_partitions():
-		if p.mountpoint and p.fstype and path.is_relative_to(p.mountpoint):
-			if mount_point is None or Path(p.mountpoint).is_relative_to(mount_point):
+		if p.mountpoint and p.fstype and path_utils.is_relative_to(path, p.mountpoint):
+			if mount_point is None or path_utils.is_relative_to(Path(p.mountpoint), mount_point):
 				mount_point = p.mountpoint
 				fs_type = p.fstype.lower()
 	# zfs does not support COW copy yet: https://github.com/openzfs/zfs/issues/405

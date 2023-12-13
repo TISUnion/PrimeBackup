@@ -355,6 +355,7 @@ class CommandManager:
 			node.then(Literal('--creator').then(QuotableText('creator').redirects(node)))
 			node.then(Literal('--from').then(DateNode('start_date').redirects(node)))
 			node.then(Literal('--to').then(DateNode('end_date').redirects(node)))
+			node.then(CountingLiteral('-a', 'all').redirects(node))
 			node.then(CountingLiteral('--all', 'all').redirects(node))
 			node.then(CountingLiteral('--flag', 'flags').redirects(node))
 			node.then(CountingLiteral('--flags', 'flags').redirects(node))

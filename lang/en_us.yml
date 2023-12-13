@@ -310,7 +310,7 @@ prime_backup:
           §7--creator §e<creator>§r: Show backup created by the given creator only
           §7--from §b<start_date>§r: Show backup after the given date only
           §7--to §b<end_date>§r: Show backup before the given date only
-          §7--all§r: Show all backups. By default, hidden backups and pre-restore backups will not be shown
+          §7-a, --all§r: Show all backups. By default, hidden backups and pre-restore backups will not be shown
           §7--flags§r: Show backup flags, based on the tags of the backup
           §d[Examples]§r
           §7{prefix} list --all --flags§r

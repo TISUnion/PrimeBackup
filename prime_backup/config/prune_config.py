@@ -27,9 +27,9 @@ class PruneSetting(Serializable):
 
 class PruneConfig(CrontabJobSetting):
 	enabled: bool = True
-	interval: Optional[Duration] = Duration('3h')
+	interval: Optional[Duration] = Duration('6h')
 	crontab: Optional[str] = None
-	jitter: Duration = Duration('20s')
+	jitter: Duration = Duration('1m')
 
 	timezone_override: Optional[str] = None
 	regular_backup: PruneSetting = PruneSetting()

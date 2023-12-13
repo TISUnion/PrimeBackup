@@ -29,5 +29,5 @@ class PruneBackupJob(BasicCrontabJob):
 		self.logger.info('Prune backup job started')
 
 		# enable state is checked inside the task
-		task = PruneAllBackupTask(self.get_command_source())
-		self.run_task_with_retry(task, True).report()
+		task = PruneAllBackupTask(self.get_command_source(), verbose=1)
+		self.run_task_with_retry(task, True)

@@ -1,11 +1,11 @@
 import enum
 
-from mcdreforged.api.all import RTextBase
+from mcdreforged.api.all import RTextBase, CommandSource
 
 from prime_backup.mcdr.task import TaskEvent
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.units import Duration
-from prime_backup.utils.mcdr_utils import broadcast_message
+from prime_backup.utils.mcdr_utils import broadcast_message, reply_message
 from prime_backup.utils.waitable_value import WaitableValue
 
 
@@ -21,11 +21,16 @@ class ConfirmResult(enum.Enum):
 
 
 class ConfirmHelper:
-	def __init__(self):
+	def __init__(self, source: CommandSource):
+		self.source = source
 		self.__confirm_result: WaitableValue[ConfirmResult] = WaitableValue()
 
-	def wait_confirm(self, confirm_target_text: RTextBase, time_wait: Duration) -> WaitableValue[ConfirmResult]:
-		broadcast_message(TextComponents.confirm_hint(confirm_target_text, TextComponents.duration(time_wait)))
+	def wait_confirm(self, confirm_target_text: RTextBase, time_wait: Duration, *, broadcast: bool) -> WaitableValue[ConfirmResult]:
+		text = TextComponents.confirm_hint(confirm_target_text, TextComponents.duration(time_wait))
+		if broadcast:
+			broadcast_message(text)
+		else:
+			reply_message(self.source, text)
 		self.__confirm_result.clear()
 		self.__confirm_result.wait(time_wait.value)
 		return self.__confirm_result

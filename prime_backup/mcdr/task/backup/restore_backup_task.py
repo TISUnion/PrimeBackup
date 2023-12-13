@@ -60,7 +60,7 @@ class RestoreBackupTask(HeavyTask[None]):
 
 		if self.needs_confirm:
 			self.broadcast(self.tr('show_backup', TextComponents.backup_brief(backup)))
-			wr = self.wait_confirm(self.tr('confirm_target'))
+			wr = self.wait_confirm(self.tr('confirm_target'), broadcast=True)
 			if not wr.is_set():
 				self.broadcast(self.tr('no_confirm'))
 				return

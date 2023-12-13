@@ -28,7 +28,7 @@ class _BasicTask(Task[_T], ABC):
 		self.aborted_event = threading.Event()
 		self.plugin_unloaded_event = threading.Event()
 		self.is_waiting_confirm = False
-		self._confirm_helper = ConfirmHelper()
+		self._confirm_helper = ConfirmHelper(self.source)
 		self._quiet = False
 
 		self.__running_action: Optional[Action] = None
@@ -56,13 +56,13 @@ class _BasicTask(Task[_T], ABC):
 
 	# ==================================== Utils ====================================
 
-	def wait_confirm(self, confirm_target_text: RTextBase, time_wait: Optional[Duration] = None) -> WaitableValue[ConfirmResult]:
+	def wait_confirm(self, confirm_target_text: RTextBase, time_wait: Optional[Duration] = None, *, broadcast: bool = False) -> WaitableValue[ConfirmResult]:
 		if time_wait is None:
 			time_wait = self.config.command.confirm_time_wait
 
 		self.is_waiting_confirm = True
 		try:
-			return self._confirm_helper.wait_confirm(confirm_target_text, time_wait)
+			return self._confirm_helper.wait_confirm(confirm_target_text, time_wait, broadcast=broadcast)
 		finally:
 			self.is_waiting_confirm = False
 

@@ -39,9 +39,10 @@ class _TaskWorker:
 	def shutdown(self):
 		self.stopped = True
 		self.send_event_to_current_task(TaskEvent.plugin_unload)
+		self.task_queue.clear()
 		self.task_queue.put_direct(None)
 		if self.thread.is_alive():
-			self.thread.join(Duration('10min').value)
+			self.thread.join(Duration('1h').value)
 
 	@classmethod
 	def run_task(cls, holder: TaskHolder) -> Optional[Exception]:

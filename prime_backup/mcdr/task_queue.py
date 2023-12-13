@@ -72,6 +72,14 @@ class TaskQueue(Generic[T]):
 			self.__unfinished_size -= 1
 			self.__current_item = self.NONE
 
+	def clear(self):
+		with self.__lock:
+			n = len(self.__queue)
+			self.__queue.clear()
+			for _ in range(n):
+				self.__semaphore.release()
+			self.__unfinished_size -= n
+
 	def qsize(self) -> int:
 		with self.__lock:
 			return len(self.__queue)

@@ -2,7 +2,7 @@ import contextlib
 import enum
 import sqlite3
 import threading
-from typing import Optional, Callable
+from typing import Optional, Callable, NamedTuple, Any
 
 from mcdreforged.api.all import *
 from sqlalchemy.exc import OperationalError
@@ -17,11 +17,15 @@ from prime_backup.utils import misc_utils, mcdr_utils
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
-class SendEventResult(enum.Enum):
-	success = enum.auto()
-	no_task = enum.auto()
-	not_your_task = enum.auto()
-	no_permission = enum.auto()
+class _SendEventStatus(enum.Enum):
+	sent = enum.auto()
+	missed = enum.auto()
+	failed = enum.auto()
+
+
+class _SendEventResult(NamedTuple):
+	status: _SendEventStatus
+	holder: Optional[TaskHolder]
 
 
 class _TaskWorker:
@@ -107,16 +111,20 @@ class _TaskWorker:
 
 	def send_event_to_current_task(
 			self, event: TaskEvent, *,
-			task_checker: Optional[Callable[[TaskHolder], Optional[SendEventResult]]] = None
-	) -> SendEventResult:
+			task_checker: Optional[Callable[[TaskHolder], bool]] = None,
+			pre_send_callback: Optional[Callable[[TaskHolder], Any]] = None,
+	) -> _SendEventResult:
 		task_holder = self.task_queue.peek_first_unfinished_item()
 		if task_holder not in (None, TaskQueue.NONE):
-			if task_checker is not None and (cr := task_checker(task_holder)) is not None:
-				return cr
+			if task_checker is not None and not task_checker(task_holder):
+				return _SendEventResult(_SendEventStatus.failed, None)
+
+			if pre_send_callback is not None:
+				pre_send_callback(task_holder)
 			task_holder.task.on_event(event)
-			return SendEventResult.success
+			return _SendEventResult(_SendEventStatus.sent, task_holder)
 		else:
-			return SendEventResult.no_task
+			return _SendEventResult(_SendEventStatus.missed, None)
 
 
 class TaskManager:
@@ -147,29 +155,41 @@ class TaskManager:
 		else:
 			raise TypeError(type(task))
 
-	def do_confirm(self, source: CommandSource) -> SendEventResult:
-		def check_confirm_able(holder: TaskHolder) -> Optional[SendEventResult]:
-			if mcdr_utils.are_source_equals(source, holder.source):
-				return  # you can confirm you task
+	def do_confirm(self, source: CommandSource):
+		def check_confirm_able(holder: TaskHolder) -> bool:
+			if mcdr_utils.are_source_same(source, holder.source):
+				return True  # you can confirm you task
 
 			if source.get_permission_level() >= max(PermissionLevel.ADMIN, holder.source.get_permission_level()):
-				return  # admin and above can confirm other people's tasks, if they have enough permission
+				return True  # admin and above can confirm other people's tasks, if they have enough permission
 
-			return SendEventResult.not_your_task
+			reply_message(source, tr('command.confirm.not_your_task'))
+			return False
 
-		return self.worker_heavy.send_event_to_current_task(TaskEvent.operation_confirmed, task_checker=check_confirm_able)
+		def pre_send(holder: TaskHolder):
+			reply_message(source, tr('command.confirm.sent', holder.task_name()))
 
-	def do_abort(self, source: CommandSource) -> SendEventResult:
-		def check_abort_able(holder: TaskHolder) -> Optional[SendEventResult]:
-			if mcdr_utils.are_source_equals(source, holder.source):
-				return  # you can abort your task
+		result = self.worker_heavy.send_event_to_current_task(TaskEvent.operation_confirmed, task_checker=check_confirm_able, pre_send_callback=pre_send)
+		if result.status == _SendEventStatus.missed:
+			reply_message(source, tr('command.confirm.noop'))
+
+	def do_abort(self, source: CommandSource):
+		def check_abort_able(holder: TaskHolder) -> bool:
+			if mcdr_utils.are_source_same(source, holder.source):
+				return True  # you can abort your task
 
 			if source.get_permission_level() >= holder.task.get_abort_permission():
-				return  # or your permission needs to >= the task's requirement
+				return True  # or your permission needs to >= the task's requirement
 
-			return SendEventResult.no_permission
+			reply_message(source, tr('command.abort.no_permission'))
+			return False
 
-		return self.worker_heavy.send_event_to_current_task(TaskEvent.operation_aborted, task_checker=check_abort_able)
+		def pre_send(holder: TaskHolder):
+			reply_message(source, tr('command.abort.sent', holder.task_name()))
+
+		result = self.worker_heavy.send_event_to_current_task(TaskEvent.operation_aborted, task_checker=check_abort_able, pre_send_callback=pre_send)
+		if result.status == _SendEventStatus.missed:
+			reply_message(source, tr('command.abort.noop'))
 
 	def on_world_saved(self):
 		self.worker_heavy.send_event_to_current_task(TaskEvent.world_save_done)

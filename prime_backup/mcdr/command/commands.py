@@ -13,6 +13,7 @@ from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
 from prime_backup.mcdr.task.backup.delete_backup_range_task import DeleteBackupRangeTask
 from prime_backup.mcdr.task.backup.delete_backup_task import DeleteBackupTask
+from prime_backup.mcdr.task.backup.diff_backup_task import DiffBackupTask
 from prime_backup.mcdr.task.backup.export_backup_task import ExportBackupTask
 from prime_backup.mcdr.task.backup.import_backup_task import ImportBackupTask
 from prime_backup.mcdr.task.backup.list_backup_task import ListBackupTask
@@ -175,6 +176,11 @@ class CommandManager:
 	def cmd_prune(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(PruneAllBackupTask(source))
 
+	def cmd_diff(self, source: CommandSource, context: CommandContext):
+		backup_id_old = context['backup_id_old']
+		backup_id_new = context['backup_id_new']
+		self.task_manager.add_task(DiffBackupTask(source, backup_id_old, backup_id_new))
+
 	def cmd_confirm(self, source: CommandSource, _: CommandContext):
 		self.task_manager.do_confirm(source)
 
@@ -243,8 +249,10 @@ class CommandManager:
 		builder.command('rename <backup_id> <comment>', self.cmd_rename)
 		builder.command('delete_range <backup_id_range>', self.cmd_delete_range)
 		builder.command('prune', self.cmd_prune)
+		builder.command('diff <backup_id_old> <backup_id_new>', self.cmd_diff)
 
-		builder.arg('backup_id', create_backup_id)
+		for arg in ['backup_id', 'backup_id_old', 'backup_id_new']:
+			builder.arg(arg, create_backup_id)
 		builder.arg('backup_id_range', IdRangeNode)
 		builder.arg('comment', GreedyText)
 		builder.arg('file_path', QuotableText)

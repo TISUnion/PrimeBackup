@@ -11,6 +11,7 @@ class CommandPermissions(Serializable):
 	database: int = 4
 	delete: int = 2
 	delete_range: int = 3
+	diff: int = 4
 	export: int = 4
 	# import: int = 4  # see the __add_import_permission() function below
 	list: int = 1

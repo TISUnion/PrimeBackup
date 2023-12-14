@@ -42,6 +42,17 @@ prime_backup:
       deleted: Deleted {}
       deleted.skipped: Skipped {} (missed)
       done: Done, {} backups deleted, freed {}
+    backup_diff:
+      name: diff backup
+      no_diff: No difference between {} and {}
+      found_diff: 'Found {0} differences from {1} to {2}: {3}'
+      diff:
+        mode: mode changed
+        blob: blob changed
+        link_target: symlink target changed
+        owner: uid/gid changed
+        mtime: mtime changed
+        other: other
     backup_export:
       name: export backup
       already_exists: File {} already exists
@@ -222,6 +233,7 @@ prime_backup:
           §7{prefix} export §6<backup_id> §7[...]§r: Export the given backup. See §7{prefix} help export§r for detailed help
           §7{prefix} import §3<file_path> §7[...]§r: Import backup from an external file. See §7{prefix} help import§r for detailed help
           §7{prefix} prune §6<backup_id>§r: Manually trigger a backup prune
+          §7{prefix} diff §6<backup_id_old> §6<backup_id_new>§r: Show file differences between two backups
           §7{prefix} crontab §a<job_id> §7[...]§r: Crontab job operations. See §7{prefix} help crontab§r for help
           §7{prefix} tag §6<backup_id> §7[...]§r: Tag operation on the given backup
           §7{prefix} database [...]§r: Database operations. See §7{prefix} help database§r for help

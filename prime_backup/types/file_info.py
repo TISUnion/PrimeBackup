@@ -72,3 +72,11 @@ class FileInfo:
 
 	def is_link(self) -> bool:
 		return stat.S_ISLNK(self.mode)
+
+	@functools.cached_property
+	def __cmp_key(self) -> tuple:
+		parts = [(part.lower(), part) for part in self.path.split('/')]
+		return self.backup_id, *parts
+
+	def __lt__(self, other: 'FileInfo') -> bool:
+		return self.__cmp_key < other.__cmp_key

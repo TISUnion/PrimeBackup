@@ -42,6 +42,17 @@ prime_backup:
       deleted: 已删除{}
       deleted.skipped: 已跳过{} (备份不存在)
       done: 任务完成, 共删除{}个备份, 共释放{}
+    backup_diff:
+      name: 对比备份
+      no_diff: 备份{}与{}间没有任何差异
+      found_diff: '备份{1}与{2}间存在{0}个差异: {3}'
+      diff:
+        mode: 模式变动
+        blob: 数据变动
+        link_target: 符号链接目标变动
+        owner: uid/gid变动
+        mtime: 修改日期变动
+        other: 其他
     backup_import:
       name: 导入备份
       file_not_found: 文件{}不存在
@@ -222,6 +233,7 @@ prime_backup:
           §7{prefix} export §6<备份ID> §7[...]§r: 导出给定备份到文件。详见§7{prefix} help export§r
           §7{prefix} import §3<文件路径> §7[...]§r: 导入外部的备份文件。详见§7{prefix} help import§r
           §7{prefix} prune §6<备份ID>§r: 手动触发一次备份清理
+          §7{prefix} diff §6<旧备份ID> §6<新备份ID>§r: 展示两个备份之间的文件差异
           §7{prefix} crontab §a<作业ID> §7[...]§r: 操作定时作业。详见§7{prefix} help crontab§r
           §7{prefix} tag §6<备份ID> §7[...]§r: 操作给定备份的标签。详见§7{prefix} help tag§r
           §7{prefix} database [...]§r: 操作数据库。详见§7{prefix} help database§r

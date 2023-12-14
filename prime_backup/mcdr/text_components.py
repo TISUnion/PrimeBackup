@@ -45,7 +45,7 @@ class TextComponents:
 		elif isinstance(value, ByteCount):
 			return cls.file_size(value)
 		elif isinstance(value, Path):
-			return cls.file_path(value)
+			return cls.file_name(value)
 		elif isinstance(value, datetime.datetime):
 			return cls.date(value)
 		else:
@@ -207,7 +207,7 @@ class TextComponents:
 		return text
 
 	@classmethod
-	def file_path(cls, file_path: Path) -> RTextBase:
+	def file_name(cls, file_path: Path) -> RTextBase:
 		return RText(file_path.name, TextColors.file).h(file_path.as_posix())
 
 	@classmethod

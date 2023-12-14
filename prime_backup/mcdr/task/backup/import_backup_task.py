@@ -22,7 +22,7 @@ class ImportBackupTask(HeavyTask[None]):
 		return 'backup_import'
 
 	def run(self) -> None:
-		t_fp = TextComponents.file_path(self.file_path)
+		t_fp = TextComponents.file_name(self.file_path)
 		if not self.file_path.exists():
 			self.reply(self.tr('file_not_found', t_fp))
 			return

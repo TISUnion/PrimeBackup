@@ -62,7 +62,7 @@ class ExportBackupTask(HeavyTask[None]):
 			raise TypeError(efv)
 
 		if path.exists() and not self.overwrite_existing:
-			self.reply(self.tr('already_exists', TextComponents.file_path(path)))
+			self.reply(self.tr('already_exists', TextComponents.file_name(path)))
 			return
 
 		self.reply(self.tr('exporting', TextComponents.backup_id(backup.id)))
@@ -71,7 +71,7 @@ class ExportBackupTask(HeavyTask[None]):
 		t_cost = RText(f'{round(timer.get_elapsed(), 2)}s', RColor.gold)
 
 		if path.is_file():
-			self.reply(self.tr('exported', TextComponents.backup_id(backup.id), TextComponents.file_path(path), t_cost, TextComponents.file_size(path.stat().st_size)))
+			self.reply(self.tr('exported', TextComponents.backup_id(backup.id), TextComponents.file_name(path), t_cost, TextComponents.file_size(path.stat().st_size)))
 		else:
 			self.reply(self.tr('unfinished'))
 		if len(failures) > 0:

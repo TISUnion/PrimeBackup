@@ -333,7 +333,14 @@ class CreateBackupAction(CreateBackupActionBase):
 
 					raw_size, blob_hash, stored_size = cr.read_size, cr.read_hash, cr.write_size
 					blob_path = bp_rba(blob_hash)
-					os.rename(temp_file_path, blob_path)
+
+					# reference: shutil.move
+					try:
+						os.rename(temp_file_path, blob_path)
+					except OSError:
+						# The temp dir is in the different file system to the blob store?
+						# Whatever, use file copy as the fallback
+						file_utils.copy_file_fast(temp_file_path, blob_path)
 
 			else:
 				misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')

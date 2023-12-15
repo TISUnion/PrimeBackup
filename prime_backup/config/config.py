@@ -40,6 +40,14 @@ class Config(Serializable):
 		return Path(self.storage_root)
 
 	@property
+	def blobs_path(self) -> Path:
+		return self.storage_path / 'blobs'
+
+	@property
+	def temp_path(self) -> Path:
+		return self.storage_path / 'temp'
+
+	@property
 	def source_path(self) -> Path:
 		return Path(self.backup.source_root)
 

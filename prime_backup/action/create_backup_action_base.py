@@ -19,8 +19,7 @@ class CreateBackupActionBase(Action[BackupInfo], ABC):
 
 	def _remove_file(self, file_to_remove: Path):
 		try:
-			if file_to_remove.is_file():
-				file_to_remove.unlink(missing_ok=True)
+			file_to_remove.unlink(missing_ok=True)
 		except OSError as e:
 			self.logger.error('(rollback) remove file {!r} failed: {}'.format(file_to_remove, e))
 

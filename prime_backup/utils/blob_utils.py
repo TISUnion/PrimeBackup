@@ -3,7 +3,7 @@ from pathlib import Path
 
 def get_blob_store() -> Path:
 	from prime_backup.config.config import Config
-	return Config.get().storage_path / 'blobs'
+	return Config.get().blobs_path
 
 
 def get_blob_path(h: str) -> Path:

@@ -12,6 +12,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, IO, Any, NamedTuple
 
+from prime_backup import constants
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.constants import BACKUP_META_FILE_NAME
@@ -82,14 +83,17 @@ def _i_am_root():
 
 class _TrashBin:
 	def __init__(self, trash_bin_path: Path):
+		if trash_bin_path.exists():
+			shutil.rmtree(trash_bin_path)
 		trash_bin_path.mkdir(parents=True, exist_ok=True)
+
 		self.trash_bin_path = trash_bin_path
 		self.trashes: List[Tuple[Path, Path]] = []  # (trash path, original path)
 
 	def add(self, src_path: Path, relpath_in_bin: Path):
 		dst_path = self.trash_bin_path / relpath_in_bin
 		dst_path.parent.mkdir(parents=True, exist_ok=True)
-		src_path.rename(dst_path)
+		shutil.move(src_path, dst_path)
 		self.trashes.append((dst_path, src_path))
 
 	def erase(self):
@@ -102,7 +106,7 @@ class _TrashBin:
 					shutil.rmtree(original_path)
 				else:
 					original_path.unlink()
-			trash_path.rename(original_path)
+			shutil.move(trash_path, original_path)
 
 		self.trashes.clear()
 
@@ -232,7 +236,14 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 
 		# 2. do the export
 
-		trash_bin = _TrashBin(self.config.storage_path / 'temp' / 'export_dir_{}_{}'.format(os.getpid(), threading.current_thread().ident))
+		self.output_path.mkdir(parents=True, exist_ok=True)
+		self.config.temp_path.mkdir(parents=True, exist_ok=True)
+		trash_bin_dir_name = 'export_trashes_{}_{}'.format(os.getpid(), threading.current_thread().ident)
+		trash_bin_path = self.config.temp_path / trash_bin_dir_name
+		if self.config.temp_path.stat().st_dev != self.output_path.stat().st_dev:
+			trash_bin_path = self.output_path / '.{}.{}'.format(constants.PLUGIN_ID, trash_bin_dir_name)
+		trash_bin = _TrashBin(trash_bin_path)
+
 		try:
 			if self.restore_mode:
 				# in restore mode, recover what it was like

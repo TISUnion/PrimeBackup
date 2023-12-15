@@ -1,3 +1,4 @@
+import shutil
 import time
 from typing import List, Dict, Set
 
@@ -40,7 +41,7 @@ class MigrateHashMethodAction(Action[None]):
 			old_hash, new_hash = blob.hash, hash_mapping[blob.hash]
 			old_path = blob_utils.get_blob_path(old_hash)
 			new_path = blob_utils.get_blob_path(new_hash)
-			old_path.rename(new_path)
+			shutil.move(old_path, new_path)
 
 			processed_hash_mapping[old_hash] = new_hash
 			blob.hash = new_hash
@@ -84,5 +85,5 @@ class MigrateHashMethodAction(Action[None]):
 			for old_hash, new_hash in processed_hash_mapping.items():
 				old_path = blob_utils.get_blob_path(old_hash)
 				new_path = blob_utils.get_blob_path(new_hash)
-				new_path.rename(old_path)
+				shutil.move(new_path, old_path)
 			raise

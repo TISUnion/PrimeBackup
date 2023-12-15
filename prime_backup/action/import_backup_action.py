@@ -183,7 +183,7 @@ class TarBackupHandler(PackedBackupFileHandler):
 			# zstd stream does not support seek operation, sowe need to extract the tar into a temp path first,
 			# then operate on it. requires extra spaces tho
 
-			temp_file = Config.get().storage_path / 'temp' / 'import_{}_{}.tmp'.format(os.getpid(), threading.current_thread().ident)
+			temp_file = Config.get().temp_path / 'import_{}_{}.tmp'.format(os.getpid(), threading.current_thread().ident)
 			temp_file.parent.mkdir(parents=True, exist_ok=True)
 			with contextlib.ExitStack() as exit_stack:
 				exit_stack.callback(functools.partial(temp_file.unlink, missing_ok=True))

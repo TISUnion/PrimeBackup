@@ -36,6 +36,8 @@ class CrontabManager:
 		jobs = [clazz(self.scheduler, self.task_manager) for clazz in job_classes]
 		self.jobs: Dict[CrontabJobId, CrontabJob] = {job.id: job for job in jobs}
 
+		self.__no_more_event = False
+
 	def start(self):
 		self.thread.start()
 		for job in self.jobs.values():
@@ -43,6 +45,7 @@ class CrontabManager:
 
 	def shutdown(self):
 		self.send_event(CrontabJobEvent.plugin_unload)
+		self.__no_more_event = True
 		if self.thread.is_alive():
 			self.scheduler.shutdown()
 			self.thread.join()
@@ -61,5 +64,8 @@ class CrontabManager:
 			raise
 
 	def send_event(self, event: CrontabJobEvent):
+		if self.__no_more_event:
+			return
+
 		for job in self.jobs.values():
 			job.on_event(event)

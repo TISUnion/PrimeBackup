@@ -1,5 +1,6 @@
 import os
 import shutil
+import stat
 from pathlib import Path
 from typing import Optional
 
@@ -17,6 +18,19 @@ def copy_file_fast(src_path: Path, dst_path: Path):
 				pass
 	else:
 		shutil.copyfile(src_path, dst_path, follow_symlinks=False)
+
+
+def rm_rf(path: Path, *, missing_ok: bool = False):
+	try:
+		is_dir = stat.S_ISDIR(path.lstat().st_mode)
+	except FileNotFoundError:
+		if not missing_ok:
+			raise
+	else:
+		if is_dir:
+			shutil.rmtree(path)
+		else:
+			path.unlink(missing_ok=missing_ok)
 
 
 def does_fs_support_cow(path: Path) -> bool:

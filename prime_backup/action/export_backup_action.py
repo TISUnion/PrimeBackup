@@ -83,8 +83,7 @@ def _i_am_root():
 
 class _TrashBin:
 	def __init__(self, trash_bin_path: Path):
-		if trash_bin_path.exists():
-			shutil.rmtree(trash_bin_path)
+		file_utils.rm_rf(trash_bin_path, missing_ok=True)
 		trash_bin_path.mkdir(parents=True, exist_ok=True)
 
 		self.trash_bin_path = trash_bin_path
@@ -101,11 +100,7 @@ class _TrashBin:
 
 	def restore(self):
 		for trash_path, original_path in self.trashes:
-			if os.path.lexists(original_path):
-				if original_path.is_dir() and not original_path.is_symlink():
-					shutil.rmtree(original_path)
-				else:
-					original_path.unlink()
+			file_utils.rm_rf(original_path, missing_ok=True)
 			shutil.move(trash_path, original_path)
 
 		self.trashes.clear()

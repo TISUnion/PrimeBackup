@@ -23,7 +23,7 @@ from prime_backup.exceptions import PrimeBackupError, VerificationError
 from prime_backup.types.backup_meta import BackupMeta
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.tar_format import TarFormat
-from prime_backup.utils import file_utils, blob_utils, misc_utils, hash_utils, path_utils
+from prime_backup.utils import file_utils, blob_utils, misc_utils, hash_utils, path_utils, platform_utils
 from prime_backup.utils.bypass_io import BypassReader
 
 
@@ -330,8 +330,12 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 
 		if file.uid is not None:
 			info.uid = file.uid
+			if (uid_name := platform_utils.uid_to_name(int(file.uid))) is not None:
+				info.uname = uid_name
 		if file.gid is not None:
 			info.gid = file.gid
+			if (gid_name := platform_utils.gid_to_name(int(file.gid))) is not None:
+				info.gname = gid_name
 		if file.mtime_ns is not None:
 			info.mtime = int(file.mtime_ns / 1e9)
 		if stat.S_ISREG(file.mode):

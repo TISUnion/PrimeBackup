@@ -165,6 +165,53 @@ prime_backup:
       pause.hover: Click to pause job {}
       resume: resume
       resume.hover: Click to resume job {}
+    db_inspect_backup:
+      name: inspect backup
+      title: 'Backup {}'
+      id: 'ID: {}'
+      timestamp: 'Timestamp (nanosecond): {} (date: {})'
+      creator: 'Creator: {} ({})'
+      comment.regular: 'Comment: {}'
+      comment.translated: 'Comment: {} ({})'
+      targets: 'Backup targets: {}'
+      tags: 'Tags: {}'
+      raw_size: 'Raw size: {} ({})'
+      stored_size: 'Stored size: {} ({})'
+      file_count:
+        all: 'File counts: {}'
+        file: 'Regular files: {}'
+        directory: 'Directories: {}'
+        symlink: 'Symlinks: {}'
+    db_inspect_blob:
+      name: inspect blob
+      title: 'Blob {}'
+      hash: 'Hash: {}'
+      compress: 'Compress: {}'
+      raw_size: 'Raw size: {} ({})'
+      stored_size: 'Stored size: {} ({})'
+      used_by: 'Associated file count: {}'
+    db_inspect_file:
+      name: inspect file
+      title: 'File {1} in backup {0}'
+      backup_id: 'Associated Backup: {}'
+      path: 'Path: {}'
+      mode: 'Mode: {} ({})'
+      content: 'Content: {}'
+      blob.hash: 'Blob hash: {}'
+      blob.compress: 'Blob compress: {}'
+      blob.raw_size: 'Blob raw size: {} ({})'
+      blob.stored_size: 'Blob stored size: {} ({})'
+      uid.full: 'Uid: {} / {}'
+      uid.simple: 'Uid: {}'
+      gid.full: 'Gid: {} / {}'
+      gid.simple: 'Gid: {}'
+      ctime: 'create time: {} ({})'
+      mtime: 'modify time: {} ({})'
+      atime: 'access time: {} ({})'
+    db_inspect_object_base:
+      hover:
+        backup_id: Click to inspect backup {}
+        blob_hash: Click to inspect blob {}
     db_migrate_hash_method:
       name: migrate hash method
       hash_method_unchanged: The hash method is already {}
@@ -275,11 +322,16 @@ prime_backup:
           Operate the core SQLite database of {name}
           §d[Usages]§r
           §7{prefix} database overview§r: Report an overview of the database
+          §7{prefix} database inspect backup §6<backup_id>§r: Inspect the internal data of the given backup
+          §7{prefix} database inspect file §6<backup_id> §3<file_path>§r: Inspect the internal data of the given file
+          §7{prefix} database inspect blob §d<blob_hash>§r: Inspect the internal data of the given blob
           §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database. Might take a long time
           §7{prefix} database vacuum§r: Compact the SQLite database manually, to reduce the size of the database file
           §7{prefix} database migrate_hash_method <hash_method>§r: Migrate the currently used hash method to another. Affects all data, might take a long time
           {scheduled_compact_notes}
           §d[Arguments]§r
+          §6<file_path>§r: Path of the file related to the backup source root
+          §d<blob_hash>§r: Hash value of the blob. Can be a prefix of the hash string as long as it's unique
           §d<hash_method>§r: Available options: {hash_methods}
           §a<part>§r: 
           - §ablobs§r: Validate the correctness of blobs, e.g. data size, hash value
@@ -375,7 +427,11 @@ prime_backup:
       name_titled: Compact database
 
   error:
+    backup_file_not_found: Backup {} does not have file {}
     backup_not_found: Backup with ID {} does not exist
+    blob_hash_not_unique: 'The given hash {} cannot uniquely identify a blob'
+    blob_hash_not_unique.candidates: 'Found at least {} candidates: {}'
+    blob_not_found: Blob with hash {} does not exist
     db_locked: Task {} execution error cuz the database is locked. Please retry later
     disabled: Plugin disabled
     generic: Task {} execution error, see console for more error
@@ -383,6 +439,7 @@ prime_backup:
     node:
       bad_date: Bad input date
       bad_id_range: Bad ID Range
+      bad_hex_string: Bad hex string
     permission_denied: Permission denied
     too_much_ongoing_task:
       exclusive: 'Please wait for the ongoing task {} to finish'

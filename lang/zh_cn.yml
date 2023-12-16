@@ -165,6 +165,53 @@ prime_backup:
       pause.hover: 点击以暂停运行作业{}
       resume: 继续
       resume.hover: 点击以继续运行作业{}
+    db_inspect_backup:
+      name: 审查备份
+      title: '备份{}'
+      id: 'ID: {}'
+      timestamp: '时间戳 (纳秒): {} (日期: {})'
+      creator: '创建者: {} ({})'
+      comment.regular: '注释: {}'
+      comment.translated: '注释: {} ({})'
+      targets: '备份目标: {}'
+      tags: '标签: {}'
+      raw_size: '原始大小: {} ({})'
+      stored_size: '储存大小: {} ({})'
+      file_count:
+        all: '文件总数: {}'
+        file: '普通玩家: {}'
+        directory: '文件夹: {}'
+        symlink: '符号链接: {}'
+    db_inspect_blob:
+      name: 审查数据对象
+      title: '数据对象{}'
+      hash: '哈希: {}'
+      compress: '压缩方法: {}'
+      raw_size: '原始大小: {} ({})'
+      stored_size: '储存大小: {} ({})'
+      used_by: '关联文件数: {}'
+    db_inspect_file:
+      name: 审查备份文件
+      title: '备份{0}的文件{1}'
+      backup_id: '所属备份: {}'
+      path: '路径: {}'
+      mode: '模式: {} ({})'
+      content: '内容: {}'
+      blob.hash: '数据对象哈希: {}'
+      blob.compress: '数据对象压缩方法: {}'
+      blob.raw_size: '数据对象原始大小: {} ({})'
+      blob.stored_size: '数据对象储存大小: {} ({})'
+      uid.full: 'Uid: {} / {}'
+      uid.simple: 'Uid: {}'
+      gid.full: 'Gid: {} / {}'
+      gid.simple: 'Gid: {}'
+      ctime: '创建时间: {} ({})'
+      mtime: '修改时间: {} ({})'
+      atime: '访问时间: {} ({})'
+    db_inspect_object_base:
+      hover:
+        backup_id: 点击以审查备份{}
+        blob_hash: 点击以审查数据对象{}
     db_migrate_hash_method:
       name: 哈希算法迁移
       hash_method_unchanged: 哈希算法已经是{}了
@@ -275,11 +322,16 @@ prime_backup:
           操作{name}的核心SQLite数据库
           §d【指令帮助】§r
           §7{prefix} database overview§r: 查看数据库信息概览
+          §7{prefix} database inspect backup §6<备份ID>§r: 审查给定备份的原始信息
+          §7{prefix} database inspect file §6<备份ID> §3<文件路径>§r: 审查给定文件的原始信息
+          §7{prefix} database inspect blob §d<哈希值>§r: 审查给定数据对象的原始信息
           §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
           §7{prefix} database vacuum§r: 手动执行SQLite数据库的整理操作，减少数据库文件的体积
           §7{prefix} database migrate_hash_method <哈希算法>§r: 将当前使用的哈希算法迁移至另一种算法。这将影响所有数据，耗时可能较长
           {scheduled_compact_notes}
           §d【参数帮助】§r
+          §6<文件路径>§r: 要审查的文件的路径，相对备份根目录
+          §d<哈希值>§r: 要审查的数据对象的哈希值。可以是哈希串的前缀，只要唯一即可
           §d<哈希算法>§r: 可用选项: {hash_methods}
           §a<组件>§r: 
           - §ablobs§r: 验证数据对象的正确性，如数据大小、哈希值
@@ -375,7 +427,11 @@ prime_backup:
       name_titled: 整理数据库
 
   error:
+    backup_file_not_found: 备份{}不存在文件{}
     backup_not_found: ID为{}的备份不存在
+    blob_hash_not_unique: '给定的哈希值{}无法唯一确定一个数据对象'
+    blob_hash_not_unique.candidates: '找到了至少{}个可能的数据对象: {}'
+    blob_not_found: 哈希值为{}的数据对象不存在
     db_locked: 任务{}执行失败, 数据库已被锁定。请稍候再试
     disabled: 插件已禁用
     generic: 任务{}执行失败, 见控制台以了解错误详情
@@ -383,6 +439,7 @@ prime_backup:
     node:
       bad_date: 非法日期格式
       bad_id_range: 非法ID范围
+      bad_hex_string: 非法的十六进制字符串
     permission_denied: 权限不足
     too_much_ongoing_task:
       exclusive: '请等待当前任务{}完成'

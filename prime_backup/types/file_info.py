@@ -35,17 +35,21 @@ class FileInfo:
 		"""
 		Notes: should be inside a session
 		"""
+		if file.blob_hash is not None:
+			blob = BlobInfo(
+				hash=str(file.blob_hash),
+				compress=file.blob_compress,
+				raw_size=file.blob_raw_size,
+				stored_size=file.blob_stored_size,
+			)
+		else:
+			blob = None
 		return FileInfo(
 			backup_id=file.backup_id,
 			path=file.path,
 			mode=file.mode,
 			content=file.content,
-			blob=BlobInfo(
-				hash=file.blob_hash,
-				compress=file.blob_compress,
-				raw_size=file.blob_raw_size,
-				stored_size=file.blob_stored_size,
-			),
+			blob=blob,
 			uid=file.uid,
 			gid=file.gid,
 			ctime_ns=file.ctime_ns,
@@ -72,6 +76,17 @@ class FileInfo:
 
 	def is_link(self) -> bool:
 		return stat.S_ISLNK(self.mode)
+
+	@functools.cached_property
+	def content_str(self) -> Optional[str]:
+		"""
+		Decode the content with utf8
+		"""
+		if self.content is None:
+			return None
+		if not self.is_link():
+			raise AssertionError('should only access the str form of the file content for symlink files, not for {}'.format(self.file_type))
+		return self.content.decode('utf8')
 
 	@functools.cached_property
 	def __cmp_key(self) -> tuple:

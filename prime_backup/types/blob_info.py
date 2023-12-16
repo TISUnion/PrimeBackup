@@ -12,8 +12,10 @@ class BlobInfo(NamedTuple):
 	raw_size: int
 	stored_size: int
 
+	file_count: int = 0
+
 	@classmethod
-	def of(cls, blob: schema.Blob) -> 'BlobInfo':
+	def of(cls, blob: schema.Blob, *, file_count: int = 0) -> 'BlobInfo':
 		"""
 		Notes: should be inside a session
 		"""
@@ -22,12 +24,16 @@ class BlobInfo(NamedTuple):
 			compress=CompressMethod[blob.compress],
 			raw_size=blob.raw_size,
 			stored_size=blob.stored_size,
+			file_count=file_count,
 		)
 
 	@property
 	def blob_path(self) -> Path:
 		from prime_backup.utils import blob_utils
 		return blob_utils.get_blob_path(self.hash)
+
+	def __lt__(self, other: 'BlobInfo') -> bool:
+		return self.hash < other.hash
 
 
 class BlobListSummary(NamedTuple):

@@ -8,7 +8,7 @@ from mcdreforged.api.all import *
 from sqlalchemy.exc import OperationalError
 
 from prime_backup import logger
-from prime_backup.exceptions import BackupNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, BlobHashNotUnique
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.mcdr.task.basic_task import HeavyTask, LightTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
@@ -49,14 +49,33 @@ class _TaskWorker:
 			self.thread.join(Duration('1h').value)
 
 	@classmethod
+	def __handle_common_exceptions(cls, holder: TaskHolder, e: Exception) -> bool:
+		if isinstance(e, BackupNotFound):
+			lines = [tr('error.backup_not_found', e.backup_id)]
+		elif isinstance(e, BackupFileNotFound):
+			lines = [tr('error.backup_file_not_found', e.backup_id, e.path)]
+		elif isinstance(e, BlobNotFound):
+			lines = [tr('error.blob_not_found', e.blob_hash)]
+		elif isinstance(e, BlobHashNotUnique):
+			lines = [
+				tr('error.blob_hash_not_unique', e.blob_hash_prefix),
+				tr('error.blob_hash_not_unique.candidates', len(e.candidates), ', '.join([b.hash for b in e.candidates])),
+			]
+		else:
+			return False
+
+		for text in lines:
+			reply_message(holder.source, text.set_color(RColor.red))
+		return True
+
+	@classmethod
 	def run_task(cls, holder: TaskHolder) -> Optional[Exception]:
 		try:
 			ret = holder.task.run()
 		except Exception as e:
 			holder.run_callback(None, e)
 
-			if isinstance(e, BackupNotFound):
-				reply_message(holder.source, tr('error.backup_not_found', e.backup_id).set_color(RColor.red))
+			if cls.__handle_common_exceptions(holder, e):
 				return
 
 			logger.get().exception('Task {} run error'.format(holder.task))

@@ -55,3 +55,14 @@ class IdRangeNode(ArgumentNode):
 		else:
 			raise IllegalArgument(tr('error.node.bad_id_range'), result.char_read)
 		return ParseResult(r, result.char_read)
+
+
+class HexStringNode(Text):
+	__pattern = re.compile('[a-f0-9]+')
+
+	def parse(self, text: str) -> ParseResult:
+		result = super().parse(text)
+		h: str = result.value.lower()
+		if not self.__pattern.fullmatch(h):
+			raise IllegalArgument(tr('error.node.bad_hex_string'), result.char_read)
+		return ParseResult(h, result.char_read)

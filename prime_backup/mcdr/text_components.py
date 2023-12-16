@@ -1,4 +1,5 @@
 import datetime
+import stat
 from pathlib import Path
 from typing import Any, Union, Optional, Iterable
 
@@ -180,7 +181,9 @@ class TextComponents:
 			return cls.tr('date_diff.ago', cls.duration(-diff))
 
 	@classmethod
-	def date(cls, date: datetime.datetime) -> RTextBase:
+	def date(cls, date: Union[datetime.datetime, int]) -> RTextBase:
+		if isinstance(date, int):
+			date = conversion_utils.timestamp_to_local_date(date)
 		return RText(conversion_utils.datetime_to_str(date), TextColors.date).h(cls.date_diff(date))
 
 	@classmethod
@@ -205,6 +208,27 @@ class TextComponents:
 		if color is not None:
 			text.set_color(color)
 		return text
+
+	@classmethod
+	def file_mode(cls, mode: int) -> RTextBase:
+		if stat.S_ISREG(mode):
+			type_flag = '-'
+			color = RColor.light_purple
+		elif stat.S_ISDIR(mode):
+			type_flag = 'd'
+			color = RColor.blue
+		elif stat.S_ISLNK(mode):
+			type_flag = 'l'
+			color = RColor.aqua
+		else:
+			type_flag = '?'
+			color = RColor.gray
+
+		permissions = ''
+		for i in range(9):
+			permissions += 'rwx'[i % 3] if (mode >> (8 - i)) & 1 == 1 else '-'
+
+		return RText(type_flag + permissions, color)
 
 	@classmethod
 	def file_name(cls, file_path: Path) -> RTextBase:

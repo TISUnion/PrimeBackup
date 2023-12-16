@@ -1,4 +1,3 @@
-import stat
 from typing import Callable, List
 
 from mcdreforged.api.all import *
@@ -42,24 +41,7 @@ class DiffBackupTask(LightTask[None]):
 		))
 
 		def pretty_mode(mode: int) -> RTextBase:
-			if stat.S_ISREG(mode):
-				type_flag = '-'
-				color = RColor.light_purple
-			elif stat.S_ISDIR(mode):
-				type_flag = 'd'
-				color = RColor.blue
-			elif stat.S_ISLNK(mode):
-				type_flag = 'l'
-				color = RColor.aqua
-			else:
-				type_flag = '?'
-				color = RColor.gray
-
-			permissions = ''
-			for i in range(9):
-				permissions += 'rwx'[i % 3] if (mode >> (8 - i)) & 1 == 1 else '-'
-
-			return RText(type_flag + permissions, color)
+			return TextComponents.file_mode(mode)
 
 		def reply_single(f: FileInfo, head: RTextBase):
 			text = RTextBase.format(

@@ -8,7 +8,7 @@ from sqlalchemy import select, delete, desc, func, Select, JSON, text
 from sqlalchemy.orm import Session
 
 from prime_backup.db import schema, db_logger, db_constants, db_utils
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.utils import collection_utils
 
@@ -100,6 +100,12 @@ class DbSession:
 	def get_blob_opt(self, h: str) -> Optional[schema.Blob]:
 		return self.session.get(schema.Blob, h)
 
+	def get_blob(self, h: str) -> schema.Blob:
+		blob = self.get_blob_opt(h)
+		if blob is None:
+			raise BlobNotFound(h)
+		return blob
+
 	def get_blobs(self, hashes: List[str]) -> Dict[str, Optional[schema.Blob]]:
 		"""
 		:return: a dict, hash -> optional blob. All given hashes are in the dict
@@ -116,6 +122,10 @@ class DbSession:
 			s = s.limit(limit)
 		if offset is not None:
 			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
+
+	def list_blob_with_hash_prefix(self, hash_prefix: str, limit: int) -> List[schema.Blob]:
+		s = select(schema.Blob).where(schema.Blob.hash.startswith(hash_prefix, autoescape=True)).limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def iterate_blob_batch(self, *, batch_size: int = 3000) -> Iterator[List[schema.Blob]]:

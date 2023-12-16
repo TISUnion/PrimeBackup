@@ -179,7 +179,7 @@ prime_backup:
       stored_size: '储存大小: {} ({})'
       file_count:
         all: '文件总数: {}'
-        file: '普通玩家: {}'
+        file: '普通文件: {}'
         directory: '文件夹: {}'
         symlink: '符号链接: {}'
     db_inspect_blob:

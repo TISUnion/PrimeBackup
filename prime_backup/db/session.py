@@ -128,15 +128,17 @@ class DbSession:
 		s = select(schema.Blob).where(schema.Blob.hash.startswith(hash_prefix, autoescape=True)).limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
 
-	def iterate_blob_batch(self, *, batch_size: int = 3000) -> Iterator[List[schema.Blob]]:
+	def iterate_blob_batch(self, *, batch_size: int = 5000) -> Iterator[List[schema.Blob]]:
 		limit, offset = batch_size, 0
 		while True:
 			blobs = self.list_blobs(limit=limit, offset=offset)
 			if len(blobs) == 0:
 				break
 			yield blobs
+			offset += limit
 
 	def get_all_blob_hashes(self) -> List[str]:
+		# TODO: don't load all blob into memory?
 		return _list_it(self.session.execute(select(schema.Blob.hash)).scalars().all())
 
 	def has_blob_with_size(self, raw_size: int) -> bool:
@@ -208,8 +210,7 @@ class DbSession:
 		result = []
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			result.extend(self.session.execute(
-				select(schema.File).
-				where(schema.File.blob_hash.in_(view))
+				select(schema.File).where(schema.File.blob_hash.in_(view))
 			).scalars().all())
 		return result
 
@@ -231,13 +232,14 @@ class DbSession:
 			s = s.offset(offset)
 		return _list_it(self.session.execute(s).scalars().all())
 
-	def iterate_file_batch(self, *, batch_size: int = 3000) -> Iterator[List[schema.File]]:
+	def iterate_file_batch(self, *, batch_size: int = 5000) -> Iterator[List[schema.File]]:
 		limit, offset = batch_size, 0
 		while True:
 			files = self.list_files(limit=limit, offset=offset)
 			if len(files) == 0:
 				break
 			yield files
+			offset += limit
 
 	def delete_file(self, file: schema.File):
 		self.session.delete(file)
@@ -246,6 +248,12 @@ class DbSession:
 		q = self.session.query(schema.File).filter_by(blob_hash=h).exists()
 		exists = self.session.query(q).scalar()
 		return exists
+
+	def calc_file_stored_size_sum(self, backup_id: int) -> int:
+		return _int_or_0(self.session.execute(
+			select(func.sum(schema.File.blob_stored_size)).
+			where(schema.File.backup_id == backup_id)
+		).scalar_one())
 
 	# ==================================== Backup ====================================
 
@@ -358,6 +366,16 @@ class DbSession:
 			raise BackupNotFound(backup_id)
 		return backup
 
+	def get_backups(self, backup_ids: List[int]) -> Dict[int, schema.Backup]:
+		"""
+		:return: a dict, backup id -> optional Backup. All id hashes are in the dict
+		"""
+		result: Dict[int, Optional[schema.Backup]] = {bid: None for bid in backup_ids}
+		for view in collection_utils.slicing_iterate(backup_ids, self.__safe_var_limit):
+			for backup in self.session.execute(select(schema.Backup).where(schema.Backup.id.in_(view))).scalars().all():
+				result[backup.id] = backup
+		return result
+
 	def get_backup_ids_by_blob_hashes(self, hashes: List[str]) -> List[int]:
 		backup_ids = set()
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
@@ -389,6 +407,15 @@ class DbSession:
 			if limit is not None:
 				s = s.limit(limit)
 			return _list_it(self.session.execute(s).scalars().all())
+
+	def iterate_backup_batch(self, *, batch_size: int = 5000) -> Iterator[List[schema.Backup]]:
+		limit, offset = batch_size, 0
+		while True:
+			backups = self.list_backup(limit=limit, offset=offset)
+			if len(backups) == 0:
+				break
+			yield backups
+			offset += limit
 
 	def delete_backup(self, backup: schema.Backup):
 		self.session.delete(backup)

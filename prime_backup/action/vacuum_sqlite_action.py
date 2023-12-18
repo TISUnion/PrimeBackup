@@ -1,25 +1,17 @@
 from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import Optional
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
+from prime_backup.types.size_diff import SizeDiff
 
 
-class FileSizeDiff(NamedTuple):
-	before: int
-	after: int
-
-	@property
-	def diff(self) -> int:
-		return self.after - self.before
-
-
-class VacuumSqliteAction(Action[FileSizeDiff]):
+class VacuumSqliteAction(Action[SizeDiff]):
 	def __init__(self, target_path: Optional[Path] = None):
 		super().__init__()
 		self.target_path = target_path
 
-	def run(self) -> FileSizeDiff:
+	def run(self) -> SizeDiff:
 		db_file_path = DbAccess.get_db_file_path()
 		prev_size = db_file_path.stat().st_size
 
@@ -36,4 +28,4 @@ class VacuumSqliteAction(Action[FileSizeDiff]):
 			after_size = self.target_path.stat().st_size
 		else:
 			after_size = db_file_path.stat().st_size
-		return FileSizeDiff(prev_size, after_size)
+		return SizeDiff(prev_size, after_size)

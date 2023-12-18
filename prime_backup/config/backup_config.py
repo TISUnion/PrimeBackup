@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from mcdreforged.api.utils import Serializable
 
@@ -20,11 +20,14 @@ class BackupConfig(Serializable):
 	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 64
 
-	def get_compress_method_from_size(self, file_size: int) -> CompressMethod:
+	def get_compress_method_from_size(self, file_size: int, *, compress_method_override: Optional[CompressMethod] = None) -> CompressMethod:
 		if file_size < self.compress_threshold:
 			return CompressMethod.plain
 		else:
-			return self.compress_method
+			if compress_method_override is not None:
+				return compress_method_override
+			else:
+				return self.compress_method
 
 	def is_file_ignore(self, full_path: Path) -> bool:
 		"""

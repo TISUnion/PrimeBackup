@@ -5,6 +5,7 @@ from typing import List, Callable, Optional, Type
 
 from mcdreforged.api.all import *
 
+from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config
 from prime_backup.mcdr.command.backup_id_suggestor import BackupIdSuggestor
 from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, MultiIntegerNode, HexStringNode
@@ -27,6 +28,7 @@ from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
 from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectFileTask, InspectBlobTask
+from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompressMethodTask
 from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
 from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
 from prime_backup.mcdr.task.db.vacuum_sqlite_task import VacuumSqliteTask
@@ -90,6 +92,10 @@ class CommandManager:
 
 	def cmd_db_vacuum(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(VacuumSqliteTask(source))
+
+	def cmd_db_migrate_compress_method(self, source: CommandSource, context: CommandContext):
+		new_compress_method = context['compress_method']
+		self.task_manager.add_task(MigrateCompressMethodTask(source, new_compress_method))
 
 	def cmd_db_migrate_hash_method(self, source: CommandSource, context: CommandContext):
 		new_hash_method = context['hash_method']
@@ -288,11 +294,13 @@ class CommandManager:
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidateParts.blobs))
 		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidateParts.files))
 		builder.command('database vacuum', self.cmd_db_vacuum)
+		builder.command('database migrate_compress_method <compress_method>', self.cmd_db_migrate_compress_method)
 		builder.command('database migrate_hash_method <hash_method>', self.cmd_db_migrate_hash_method)
 
-		builder.arg('hash_method', lambda n: Enumeration(n, HashMethod))
 		builder.arg('file_path', QuotableText)  # Notes: it's actually a redefine
 		builder.arg('blob_hash', HexStringNode)
+		builder.arg('compress_method', lambda n: Enumeration(n, CompressMethod))
+		builder.arg('hash_method', lambda n: Enumeration(n, HashMethod))
 
 		# operations
 		builder.command('confirm', self.cmd_confirm)

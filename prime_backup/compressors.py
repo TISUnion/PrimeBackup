@@ -35,6 +35,11 @@ class Compressor(ABC):
 	def get_name(cls) -> str:
 		return cls.get_method().name
 
+	@classmethod
+	@abstractmethod
+	def ensure_lib(cls):
+		...
+
 	def copy_compressed(self, source_path: PathLike, dest_path: PathLike, *, calc_hash: bool = False) -> CopyCompressResult:
 		"""
 		source --[compress]--> destination
@@ -122,6 +127,10 @@ class Compressor(ABC):
 
 
 class PlainCompressor(Compressor):
+	@classmethod
+	def ensure_lib(cls):
+		pass
+
 	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
 		shutil.copyfileobj(f_in, f_out)
 
@@ -146,6 +155,10 @@ class _GzipLikeCompressorBase(Compressor, ABC):
 	@classmethod
 	def _lib(cls) -> _GzipLikeLibrary:
 		...
+
+	@classmethod
+	def ensure_lib(cls):
+		cls._lib()
 
 	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
 		with self.compress_stream(f_out) as compressed_out:

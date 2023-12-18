@@ -34,11 +34,14 @@ class UnitValuePair(NamedTuple):
 	value: float
 	unit: str
 
-	def to_str(self, ndigits: int = 2) -> str:
+	def to_str(self, ndigits: int = 2, always_sign: bool = False) -> str:
 		if ndigits >= 0:
-			return f'{self.value:.{ndigits}f}{self.unit}'
+			s = f'{self.value:.{ndigits}f}{self.unit}'
 		else:
-			return f'{self.value}{self.unit}'
+			s = f'{self.value}{self.unit}'
+		if always_sign and s[:1] != '-':
+			s = '+' + s
+		return s
 
 
 class _UnitValueBase(Generic[T], str, ABC):
@@ -117,11 +120,11 @@ class _UnitValueBase(Generic[T], str, ABC):
 	def auto_format(self) -> UnitValuePair:
 		return self._auto_format(self._value)
 
-	def auto_str(self, ndigits: int = 2) -> str:
-		return self.auto_format().to_str(ndigits=ndigits)
+	def auto_str(self, **kwargs) -> str:
+		return self.auto_format().to_str(**kwargs)
 
-	def precise_str(self, ndigits: int = 2) -> str:
-		return self.precise_format().to_str(ndigits=ndigits)
+	def precise_str(self, **kwargs) -> str:
+		return self.precise_format().to_str(**kwargs)
 
 	def __str__(self) -> str:
 		return self.precise_str(ndigits=-1)

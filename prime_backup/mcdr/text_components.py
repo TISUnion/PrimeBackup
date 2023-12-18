@@ -6,6 +6,7 @@ from typing import Any, Union, Optional, Iterable
 from mcdreforged.api.all import *
 
 from prime_backup import constants
+from prime_backup.compressors import CompressMethod
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.blob_info import BlobListSummary
@@ -150,6 +151,12 @@ class TextComponents:
 		return text
 
 	@classmethod
+	def compress_method(cls, compress_method: Union[str, CompressMethod]) -> RTextBase:
+		if isinstance(compress_method, CompressMethod):
+			compress_method = compress_method.name
+		return RText(compress_method, RColor.light_purple)
+
+	@classmethod
 	def confirm_hint(cls, what: RTextBase, time_wait_text: Any):
 		return cls.tr(
 			'confirm_hint.base',
@@ -235,10 +242,10 @@ class TextComponents:
 		return RText(file_path.name, TextColors.file).h(file_path.as_posix())
 
 	@classmethod
-	def file_size(cls, byte_cnt: Union[int, ByteCount], *, ndigits: int = 2, color: RColor = TextColors.byte_count) -> RTextBase:
+	def file_size(cls, byte_cnt: Union[int, ByteCount], *, ndigits: int = 2, always_sign: bool = False, color: RColor = TextColors.byte_count) -> RTextBase:
 		if not isinstance(byte_cnt, ByteCount):
 			byte_cnt = ByteCount(byte_cnt)
-		return RText(byte_cnt.auto_str(ndigits=ndigits), color=color)
+		return RText(byte_cnt.auto_str(ndigits=ndigits, always_sign=always_sign), color=color)
 
 	@classmethod
 	def hash_method(cls, hash_method: Union[str, HashMethod]) -> RTextBase:

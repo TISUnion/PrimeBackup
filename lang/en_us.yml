@@ -212,6 +212,17 @@ prime_backup:
       hover:
         backup_id: Click to inspect backup {}
         blob_hash: Click to inspect blob {}
+    db_migrate_compress_method:
+      name: migrate compress method
+      missing_library:
+        Failed to import the target compress method, please make sure you have installed the required python library for {}.
+        Search compress_method in the document {} for more help
+      show_whats_going_on: Prepare for file pool compress method migration to {}, compress threshold {}
+      confirm_target: migrate
+      start: Migrating the compress method to {}, check console to see the progress
+      no_confirm: No choice has been made, migrate compress method task aborted
+      aborted: Migrate compress method task aborted
+      done: 'Migrated the compress method from to {}, blob stored size sum: {} -> {} ({})'
     db_migrate_hash_method:
       name: migrate hash method
       hash_method_unchanged: The hash method is already {}
@@ -327,11 +338,13 @@ prime_backup:
           §7{prefix} database inspect blob §d<blob_hash>§r: Inspect the internal data of the given blob
           §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database. Might take a long time
           §7{prefix} database vacuum§r: Compact the SQLite database manually, to reduce the size of the database file
+          §7{prefix} database migrate_compress_method <compress_method>§r: Migrate the currently used compress method to another. Affects all data, might take a long time
           §7{prefix} database migrate_hash_method <hash_method>§r: Migrate the currently used hash method to another. Affects all data, might take a long time
           {scheduled_compact_notes}
           §d[Arguments]§r
           §6<file_path>§r: Path of the file related to the backup source root
           §d<blob_hash>§r: Hash value of the blob. Can be a prefix of the hash string as long as it's unique
+          §d<compress_method>§r: Available options: {compress_methods}
           §d<hash_method>§r: Available options: {hash_methods}
           §a<part>§r: 
           - §ablobs§r: Validate the correctness of blobs, e.g. data size, hash value

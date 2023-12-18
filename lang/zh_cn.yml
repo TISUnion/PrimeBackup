@@ -212,6 +212,17 @@ prime_backup:
       hover:
         backup_id: 点击以审查备份{}
         blob_hash: 点击以审查数据对象{}
+    db_migrate_compress_method:
+      name: 压缩方法迁移
+      missing_library:
+        无法导入目标压缩方法, 请确保你已经安装了{}方法所需的Python依赖库。
+        在文档{}中搜索compress_method以获得更多帮助
+      show_whats_going_on: 准备把文件池所使用的压缩方法迁移至{}，压缩阈值为{}
+      confirm_target: 迁移
+      start: 正在将压缩方法迁移至{}，见控制台以了解进度
+      no_confirm: 未做出选择, 压缩方法迁移任务终止
+      aborted: 压缩方法迁移任务终止
+      done: '已将压缩方法迁移至{}, 数据对象总储存大小变化: {} -> {} ({})'
     db_migrate_hash_method:
       name: 哈希算法迁移
       hash_method_unchanged: 哈希算法已经是{}了
@@ -327,11 +338,13 @@ prime_backup:
           §7{prefix} database inspect blob §d<哈希值>§r: 审查给定数据对象的原始信息
           §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
           §7{prefix} database vacuum§r: 手动执行SQLite数据库的整理操作，减少数据库文件的体积
+          §7{prefix} database migrate_compress_method <压缩方法>§r: 将当前使用的压缩方法迁移至另一种方法。这将影响所有数据，耗时可能较长
           §7{prefix} database migrate_hash_method <哈希算法>§r: 将当前使用的哈希算法迁移至另一种算法。这将影响所有数据，耗时可能较长
           {scheduled_compact_notes}
           §d【参数帮助】§r
           §6<文件路径>§r: 要审查的文件的路径，相对备份根目录
           §d<哈希值>§r: 要审查的数据对象的哈希值。可以是哈希串的前缀，只要唯一即可
+          §d<压缩方法>§r: 可用选项: {compress_methods}
           §d<哈希算法>§r: 可用选项: {hash_methods}
           §a<组件>§r: 
           - §ablobs§r: 验证数据对象的正确性，如数据大小、哈希值

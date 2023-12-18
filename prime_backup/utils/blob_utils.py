@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Iterator
 
 
 def get_blob_store() -> Path:
@@ -13,8 +14,12 @@ def get_blob_path(h: str) -> Path:
 	return get_blob_store() / h[:2] / h
 
 
-def prepare_blob_directories():
+def iterate_blob_directories() -> Iterator[Path]:
 	blob_store = get_blob_store()
 	for i in range(0, 256):
-		p = blob_store / hex(i)[2:].rjust(2, '0')
+		yield blob_store / hex(i)[2:].rjust(2, '0')
+
+
+def prepare_blob_directories():
+	for p in iterate_blob_directories():
 		p.mkdir(parents=True, exist_ok=True)

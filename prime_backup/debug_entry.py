@@ -7,6 +7,8 @@ from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction, ExportBackupToTarAction, ExportBackupToZipAction
 from prime_backup.action.import_backup_action import ImportBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
+from prime_backup.action.migrate_compress_method_action import MigrateCompressMethodAction
+from prime_backup.compressors import CompressMethod
 from prime_backup.db.access import DbAccess
 from prime_backup.types.operator import Operator
 from prime_backup.types.tar_format import TarFormat
@@ -69,11 +71,19 @@ def main():
 			print(backup)
 		print('cost', round(time.time() - t, 2), 's')
 
-	# create(2)
+	def migrate():
+		print(MigrateCompressMethodAction(CompressMethod.plain).run())
+		print(MigrateCompressMethodAction(CompressMethod.lz4).run())
+		print(MigrateCompressMethodAction(CompressMethod.zstd).run())
+		print(MigrateCompressMethodAction(CompressMethod.gzip).run())
+		# print(MigrateCompressMethodAction(CompressMethod.lzma).run())
+
+	create(1)
 	# import_()
 	# list_()
-	export()
+	# export()
 	# delete()
+	migrate()
 
 
 if __name__ == '__main__':

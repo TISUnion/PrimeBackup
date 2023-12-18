@@ -3,6 +3,7 @@ from typing import Optional, Union
 from mcdreforged.api.all import *
 
 from prime_backup import constants
+from prime_backup.compressors import CompressMethod
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJobId
 from prime_backup.mcdr.task.basic_task import ImmediateTask
@@ -90,6 +91,7 @@ class ShowHelpTask(ImmediateTask[None]):
 				elif self.what == 'database':
 					name = mcdr_globals.metadata.name
 					kwargs['name'] = name
+					kwargs['compress_methods'] = ', '.join([f'§d{cm.name}§r' for cm in CompressMethod])
 					kwargs['hash_methods'] = ', '.join([f'§d{hm.name}§r' for hm in HashMethod])
 					if self.config.database.compact.enabled:
 						kwargs['scheduled_compact_notes'] = self.tr(

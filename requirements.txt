@@ -4,7 +4,7 @@ psutil
 pytz
 xxhash>=3
 SQLAlchemy>=2
-APScheduler>=3
+APScheduler>=3.8,<4
 
 # compress
 zstandard

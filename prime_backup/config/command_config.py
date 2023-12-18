@@ -8,11 +8,13 @@ class CommandPermissions(Serializable):
 	abort: int = 1
 	back: int = 2
 	confirm: int = 1
+	crontab: int = 3
 	database: int = 4
 	delete: int = 2
 	delete_range: int = 3
 	diff: int = 4
 	export: int = 4
+	help: int = 0
 	# import: int = 4  # see the __add_import_permission() function below
 	list: int = 1
 	make: int = 1
@@ -31,13 +33,13 @@ class CommandPermissions(Serializable):
 
 
 def __add_import_permission():
-	# "import" is a python syntax keyword, we have to do some hack
+	# "import" is a python syntax keyword, we have to do some hacks
 	setattr(CommandPermissions, 'import', 4)
 
-	# insert the "import" after the "export"
+	# insert the "import" after the "help"
 	annotations = list(map(tuple, CommandPermissions.__annotations__.items()))
 	for i in range(len(annotations)):
-		if annotations[i][0] == 'export':
+		if annotations[i][0] == 'help':
 			annotations.insert(i + 1, ('import', int))
 	CommandPermissions.__annotations__.clear()
 	CommandPermissions.__annotations__.update(dict(annotations))

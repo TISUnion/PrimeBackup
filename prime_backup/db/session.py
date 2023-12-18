@@ -7,7 +7,7 @@ from typing import TypeVar, List
 from sqlalchemy import select, delete, desc, func, Select, JSON, text
 from sqlalchemy.orm import Session
 
-from prime_backup.db import schema, db_logger, db_constants, db_utils
+from prime_backup.db import schema, db_constants, db_utils
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.utils import collection_utils
@@ -31,7 +31,6 @@ def _int_or_0(value: Optional[int]) -> int:
 class DbSession:
 	def __init__(self, session: Session):
 		self.session = session
-		self.logger = db_logger.get()
 
 		# the limit in old sqlite (https://www.sqlite.org/limits.html#max_variable_number)
 		self.__safe_var_limit = 999 - 20

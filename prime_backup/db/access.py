@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session
 
 from prime_backup.config.config import Config
-from prime_backup.db import db_logger, db_constants
+from prime_backup.db import db_constants
 from prime_backup.db.migration import DbMigration
 from prime_backup.db.session import DbSession
 from prime_backup.types.hash_method import HashMethod
@@ -27,7 +27,6 @@ class DbAccess:
 		"""
 		db_dir = Config.get().storage_path
 		db_dir.mkdir(parents=True, exist_ok=True)
-		db_logger.init_logger()
 
 		db_path = db_dir / db_constants.DB_FILE_NAME
 		cls.__engine = create_engine('sqlite:///' + str(db_path))
@@ -43,9 +42,6 @@ class DbAccess:
 
 	@classmethod
 	def shutdown(cls):
-		if (logger := db_logger.get()) is not None:
-			for hdr in list(logger.handlers):
-				logger.removeHandler(hdr)
 		if (engine := cls.__engine) is not None:
 			engine.dispose()
 			cls.__engine = None

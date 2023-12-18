@@ -101,7 +101,7 @@ Here are a few important things in the config file:
      ]
      ```
 
-2. The backup format you want to use
+2. The methods to calculate / store all backup data
 
     ```json
     // root config

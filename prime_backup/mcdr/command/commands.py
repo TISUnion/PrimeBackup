@@ -248,8 +248,8 @@ class CommandManager:
 			node.requires(get_permission_checker('back'), get_permission_denied_text)
 			return node
 
-		def create_backup_id(arg: str = 'backup_id', clazz: Type[Integer] = Integer) -> Integer:
-			return clazz(arg).at_min(1).suggests(self.suggest_backup_id)
+		def create_backup_id(arg_: str = 'backup_id', clazz: Type[Integer] = Integer) -> Integer:
+			return clazz(arg_).at_min(1).suggests(self.suggest_backup_id)
 
 		# --------------- simple commands ---------------
 

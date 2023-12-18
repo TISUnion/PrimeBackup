@@ -75,14 +75,21 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 					result.ok += 1
 
 	def run(self) -> ValidateFilesResult:
+		self.logger.info('File validation start')
 		result = ValidateFilesResult()
+
 		with DbAccess.open_session() as session:
 			result.total = session.get_file_count()
-			limit, offset = 3000, 0
-			while not self.is_interrupted.is_set():
-				files = session.list_files(limit=limit, offset=offset)
-				if len(files) == 0:
+			cnt = 0
+			for files in session.iterate_file_batch():
+				if self.is_interrupted.is_set():
 					break
+				cnt += len(files)
+				if cnt % 50000 == 0 or cnt == result.total:
+					self.logger.info('Validating {} / {} files'.format(cnt, result.total))
 				self.__validate(session, result, list(map(FileInfo.of, files)))
-				offset += limit
+
+		self.logger.info('File validation done: total {}, validated {}, ok {}, bad {}'.format(
+			result.total, result.validated, result.ok, result.validated - result.ok,
+		))
 		return result

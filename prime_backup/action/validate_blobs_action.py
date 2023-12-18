@@ -80,16 +80,18 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 				result.ok += 1
 
 	def run(self) -> ValidateBlobsResult:
+		self.logger.info('Blob validation start')
 		result = ValidateBlobsResult()
+
 		with DbAccess.open_session() as session:
 			result.total = session.get_blob_count()
-			limit, offset = 3000, 0
-			while not self.is_interrupted.is_set():
-				blobs = session.list_blobs(limit=limit, offset=offset)
-				if len(blobs) == 0:
+			cnt = 0
+			for blobs in session.iterate_blob_batch():
+				if self.is_interrupted.is_set():
 					break
+				cnt += len(blobs)
+				self.logger.info('Validating {} / {} blobs'.format(cnt, result.total))
 				self.__validate(session, result, list(map(BlobInfo.of, blobs)))
-				offset += limit
 
 			bad_blob_hashes = []
 			bad_blob_hashes.extend([bbi.blob.hash for bbi in result.invalid])
@@ -101,4 +103,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 				result.affected_file_count = session.get_file_count_by_blob_hashes(bad_blob_hashes)
 				result.affected_backup_ids = session.get_backup_ids_by_blob_hashes(bad_blob_hashes)
 
+		self.logger.info('Blob validation done: total {}, validated {}, ok {}, bad {}'.format(
+			result.total, result.validated, result.ok, len(bad_blob_hashes),
+		))
 		return result

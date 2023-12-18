@@ -23,7 +23,7 @@ def create_file_logger(name: str) -> logging.Logger:
 	logger = logging.Logger(f'{constants.PLUGIN_ID}-{name}', __get_log_mode())
 	log_file = __get_log_file_path(f'{name}.log')
 	log_file.parent.mkdir(parents=True, exist_ok=True)
-	handler = logging.FileHandler(log_file)
+	handler = logging.FileHandler(log_file, encoding='utf8')
 	handler.setFormatter(LOG_FORMATTER)
 	logger.addHandler(handler)
 	return logger

@@ -222,7 +222,7 @@ prime_backup:
       start: 正在将压缩方法迁移至{}，见控制台以了解进度
       no_confirm: 未做出选择, 压缩方法迁移任务终止
       aborted: 压缩方法迁移任务终止
-      done: '已将压缩方法迁移至{}, 数据对象总储存大小变化: {} -> {} ({})'
+      done: '已将压缩方法迁移至{}, 数据对象总储存大小: {} -> {} ({})'
     db_migrate_hash_method:
       name: 哈希算法迁移
       hash_method_unchanged: 哈希算法已经是{}了

@@ -59,6 +59,8 @@ class MigrateHashMethodAction(Action[None]):
 					self.logger.info('Hash method of the database is already {}, no need to migrate'.format(self.new_hash_method.name))
 					return
 
+				self.logger.info('Migrating hash method from {} to {}'.format(meta.hash_method, self.new_hash_method.name))
+
 				total_blob_count = session.get_blob_count()
 				all_hashes = session.get_all_blob_hashes()
 				all_hash_set = set(all_hashes)
@@ -78,7 +80,7 @@ class MigrateHashMethodAction(Action[None]):
 			DbAccess.sync_hash_method()
 			self.config.backup.hash_method = self.new_hash_method.name
 
-			self.logger.info('Migration done, cost {}s'.format(round(time.time() - t, 2)))
+			self.logger.info('Hash method migration done, cost {}s'.format(round(time.time() - t, 2)))
 
 		except Exception:
 			self.logger.warning('Error occurs during migration, applying rollback')

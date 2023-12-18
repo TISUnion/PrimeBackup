@@ -89,22 +89,22 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 				cnt = 0
 				for blobs in session.iterate_blob_batch(batch_size=1000):
 					cnt += len(blobs)
-					self.logger.info('Migrating blobs {} / {}'.format(cnt, total_blob_count))
+					self.logger.info('Processing blobs {} / {}'.format(cnt, total_blob_count))
 					self.__migrate_blobs_and_sync_files(session, blobs)
 					session.flush_and_expunge_all()
 
 				if len(self.__migrated_blob_hashes) == 0:
-					self.logger.info('No blob is changed, no need to migrate')
+					self.logger.info('No blob needs a compress method change, nothing to migrate')
 				else:
 					self.logger.info('Migrated {} blobs and related files'.format(len(self.__migrated_blob_hashes)))
 
 					# 3. migrate backup data
-					self.logger.info('Syncing {} backups'.format(len(self.__affected_backup_ids)))
+					self.logger.info('Syncing {} affected backups'.format(len(self.__affected_backup_ids)))
 					self.__update_backups(session)
 					session.flush_and_expunge_all()
 
 					# 4. finalize blob file change
-					self.logger.info('Finalize blob file change')
+					self.logger.info('Finalizing blob file change')
 					self.__finalize_blobs_change()
 					session.flush_and_expunge_all()
 
@@ -112,7 +112,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 				after_size = session.get_blob_stored_size_sum()
 
 			self.config.backup.compress_method = self.new_compress_method
-			self.logger.info('Migration done, cost {}s'.format(round(time.time() - t, 2)))
+			self.logger.info('Compress method migration done, cost {}s'.format(round(time.time() - t, 2)))
 			return SizeDiff(before_size, after_size)
 
 		finally:

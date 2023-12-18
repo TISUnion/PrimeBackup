@@ -55,7 +55,7 @@ class RestoreBackupTask(HeavyTask[None]):
 			backup_filter.filter_non_pre_restore_backup()
 			candidates = ListBackupAction(backup_filter=backup_filter, limit=1).run()
 			if len(candidates) == 0:
-				self.reply(self.tr('no_backup'))
+				self.reply_tr('no_backup')
 				return
 			backup = candidates[0]
 		else:

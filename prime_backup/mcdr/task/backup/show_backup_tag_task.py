@@ -24,9 +24,9 @@ class ShowBackupSingleTagTask(LightTask[None]):
 		backup = GetBackupAction(self.backup_id).run()
 		value = backup.tags.get(self.tag_name)
 		if value != BackupTags.NONE:
-			self.reply(self.tr('value', TextComponents.backup_id(backup.id), TextComponents.tag_name(self.tag_name), TextComponents.auto(value)))
+			self.reply_tr('value', TextComponents.backup_id(backup.id), TextComponents.tag_name(self.tag_name), TextComponents.auto(value))
 		else:
-			self.reply(self.tr('not_exists', TextComponents.backup_id(backup.id), TextComponents.tag_name(self.tag_name)))
+			self.reply_tr('not_exists', TextComponents.backup_id(backup.id), TextComponents.tag_name(self.tag_name))
 
 
 class ShowBackupTagTask(LightTask[None]):
@@ -65,7 +65,7 @@ class ShowBackupTagTask(LightTask[None]):
 	def run(self) -> None:
 		backup = GetBackupAction(self.backup_id).run()
 		self.reply(TextComponents.title(self.tr('title', TextComponents.backup_id(backup.id))))
-		self.reply(self.tr('amount', TextComponents.number(len(backup.tags))))
+		self.reply_tr('amount', TextComponents.number(len(backup.tags)))
 
 		recognized_names = set()
 		for tag_name in BackupTagName:

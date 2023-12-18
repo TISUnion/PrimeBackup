@@ -37,10 +37,10 @@ class DeleteBackupRangeTask(HeavyTask[None]):
 		backups = ListBackupAction(backup_filter=backup_filter).run()
 		backups = [backup for backup in backups if not backup.tags.is_protected()]  # double check
 		if len(backups) == 0:
-			self.reply(self.tr('no_backup'))
+			self.reply_tr('no_backup')
 			return
 
-		self.reply(self.tr('to_delete_count', TextComponents.number(len(backups))))
+		self.reply_tr('to_delete_count', TextComponents.number(len(backups)))
 		n = 10
 		if len(backups) <= n:
 			self.__reply_backups(backups)
@@ -51,17 +51,17 @@ class DeleteBackupRangeTask(HeavyTask[None]):
 
 		wr = self.wait_confirm(self.tr('confirm_target'))
 		if not wr.is_set():
-			self.reply(self.tr('no_confirm'))
+			self.reply_tr('no_confirm')
 			return
 		elif wr.get().is_cancelled():
-			self.reply(self.tr('aborted'))
+			self.reply_tr('aborted')
 			return
 
 		cnt = 0
 		bls = BlobListSummary.zero()
 		for backup in backups:
 			if self.aborted_event.is_set():
-				self.reply(self.tr('aborted'))
+				self.reply_tr('aborted')
 				return
 			try:
 				dr = DeleteBackupAction(backup.id).run()
@@ -70,5 +70,5 @@ class DeleteBackupRangeTask(HeavyTask[None]):
 			else:
 				cnt += 1
 				bls = bls + dr.bls
-				self.reply(self.tr('deleted', TextComponents.backup_brief(dr.backup, backup_id_fancy=False)))
-		self.reply(self.tr('done', TextComponents.number(cnt), TextComponents.blob_list_summary_store_size(bls)))
+				self.reply_tr('deleted', TextComponents.backup_brief(dr.backup, backup_id_fancy=False))
+		self.reply_tr('done', TextComponents.number(cnt), TextComponents.blob_list_summary_store_size(bls))

@@ -24,24 +24,24 @@ class ImportBackupTask(HeavyTask[None]):
 	def run(self) -> None:
 		t_fp = TextComponents.file_name(self.file_path)
 		if not self.file_path.exists():
-			self.reply(self.tr('file_not_found', t_fp))
+			self.reply_tr('file_not_found', t_fp)
 			return
 		if not self.file_path.is_file():
-			self.reply(self.tr('not_a_file', t_fp))
+			self.reply_tr('not_a_file', t_fp)
 			return
 
 		if self.backup_format is None:
 			if (backup_format := StandaloneBackupFormat.from_file_name(self.file_path)) is None:
-				self.reply(self.tr('cannot_infer_backup_format', RText(self.file_path.name, TextColors.file)))
+				self.reply_tr('cannot_infer_backup_format', RText(self.file_path.name, TextColors.file))
 				return
 		else:
 			backup_format = self.backup_format
 
-		self.reply(self.tr('start', t_fp, RText(backup_format.name, RColor.dark_aqua)))
+		self.reply_tr('start', t_fp, RText(backup_format.name, RColor.dark_aqua))
 		try:
 			backup = self.run_action(ImportBackupAction(self.file_path, backup_format, ensure_meta=self.ensure_meta))
 		except BackupMetadataNotFound as e:
 			self.reply(self.tr('backup_metadata_not_found', t_fp, str(e)).set_color(RColor.red))
-			self.reply(self.tr('backup_metadata_not_found.suggestion', name=mcdr_globals.metadata.name))
+			self.reply_tr('backup_metadata_not_found.suggestion', name=mcdr_globals.metadata.name)
 		else:
-			self.reply(self.tr('done', t_fp, TextComponents.backup_id(backup)))
+			self.reply_tr('done', t_fp, TextComponents.backup_id(backup))

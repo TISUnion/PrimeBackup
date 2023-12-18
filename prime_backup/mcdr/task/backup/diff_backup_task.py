@@ -26,10 +26,10 @@ class DiffBackupTask(LightTask[None]):
 		t_bid_new = TextComponents.backup_id(self.backup_id_new)
 		t_na = RText('N/A', RColor.gray)
 		if result.diff_count == 0:
-			self.reply(self.tr('no_diff', t_bid_old, t_bid_new))
+			self.reply_tr('no_diff', t_bid_old, t_bid_new)
 			return
 
-		self.reply(self.tr(
+		self.reply_tr(
 			'found_diff',
 			TextComponents.number(result.diff_count),
 			t_bid_old, t_bid_new,
@@ -38,7 +38,7 @@ class DiffBackupTask(LightTask[None]):
 				RText(f'-{len(result.deleted)}', RColor.red),
 				RText(f'*{len(result.changed)}', RColor.yellow),
 			])
-		))
+		)
 
 		def pretty_mode(mode: int) -> RTextBase:
 			return TextComponents.file_mode(mode)

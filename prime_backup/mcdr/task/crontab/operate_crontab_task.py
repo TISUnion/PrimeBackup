@@ -23,7 +23,7 @@ class OperateCrontabJobTask(CrontabTaskBase[None]):
 	def run(self) -> None:
 		job = self.get_job()
 		if not job.is_enabled():
-			self.reply(self.tr('disabled', job.get_name_text()))
+			self.reply_tr('disabled', job.get_name_text())
 			return
 
 		if self.operation == self.Operation.pause:
@@ -35,15 +35,15 @@ class OperateCrontabJobTask(CrontabTaskBase[None]):
 
 	def __pause(self, job: CrontabJob):
 		if job.is_pause():
-			self.reply(self.tr('pause.already', job.get_name_text()))
+			self.reply_tr('pause.already', job.get_name_text())
 		else:
 			job.pause()
-			self.reply(self.tr('pause.done', job.get_name_text()))
-			self.reply(self.tr('pause.done.notes'))
+			self.reply_tr('pause.done', job.get_name_text())
+			self.reply_tr('pause.done.notes')
 
 	def __resume(self, job: CrontabJob):
 		if job.is_pause():
 			job.resume()
-			self.reply(self.tr('resume.done', job.get_name_text(), job.get_next_run_date()))
+			self.reply_tr('resume.done', job.get_name_text(), job.get_next_run_date())
 		else:
-			self.reply(self.tr('resume.already', job.get_name_text(), job.get_next_run_date()))
+			self.reply_tr('resume.already', job.get_name_text(), job.get_next_run_date())

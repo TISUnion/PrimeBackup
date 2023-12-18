@@ -19,4 +19,4 @@ class RenameBackupTask(LightTask[None]):
 
 	def run(self) -> None:
 		RenameBackupAction(self.backup_id, self.comment).run()
-		self.reply(self.tr('modified', TextComponents.backup_id(self.backup_id), json.dumps(self.comment, ensure_ascii=False)))
+		self.reply_tr('modified', TextComponents.backup_id(self.backup_id), json.dumps(self.comment, ensure_ascii=False))

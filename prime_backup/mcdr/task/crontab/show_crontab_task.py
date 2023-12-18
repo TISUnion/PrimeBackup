@@ -15,22 +15,22 @@ class ShowCrontabJobTask(CrontabTaskBase[None]):
 		job = self.get_job()
 
 		self.reply(TextComponents.title(self.tr('title', job.get_name_text())))
-		self.reply(self.tr('enabled', TextComponents.boolean(job.is_enabled())))
+		self.reply_tr('enabled', TextComponents.boolean(job.is_enabled()))
 
 		if not job.is_enabled():
 			return
 
-		self.reply(self.tr('running', TextComponents.boolean(not job.is_pause())))
+		self.reply_tr('running', TextComponents.boolean(not job.is_pause()))
 		if isinstance(job, BasicCrontabJob):
 			if job.interval is not None:
-				self.reply(self.tr('interval', TextComponents.duration(job.interval)))
+				self.reply_tr('interval', TextComponents.duration(job.interval))
 			elif job.crontab is not None:
-				self.reply(self.tr('crontab', TextComponents.crontab(job.crontab)))
+				self.reply_tr('crontab', TextComponents.crontab(job.crontab))
 			else:
 				# should never come here cuz there's the config validation
 				self.reply(RText('ERROR: no valid trigger', RColor.red))
-			self.reply(self.tr('jitter', TextComponents.duration(job.jitter)))
-		self.reply(self.tr('next_run_date', job.get_next_run_date()))
+			self.reply_tr('jitter', TextComponents.duration(job.jitter))
+		self.reply_tr('next_run_date', job.get_next_run_date())
 
 		def make(op: str, color: RColor) -> RTextBase:
 			from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
@@ -45,4 +45,4 @@ class ShowCrontabJobTask(CrontabTaskBase[None]):
 			make('pause', RColor.gold),
 			make('resume', RColor.dark_green),
 		]
-		self.reply(self.tr('quick_actions', RTextBase.join(' ', buttons)))
+		self.reply_tr('quick_actions', RTextBase.join(' ', buttons))

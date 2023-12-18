@@ -22,28 +22,28 @@ class ShowBackupTask(LightTask[None]):
 
 		self.reply(TextComponents.title(self.tr('title', TextComponents.backup_id(backup.id))))
 
-		self.reply(self.tr('date', TextComponents.backup_date(backup)))
+		self.reply_tr('date', TextComponents.backup_date(backup))
 		self.reply(RTextList(
 			self.tr('comment', TextComponents.backup_comment(backup.comment)).
 			h(self.tr('comment_edit', TextComponents.backup_id(backup.id))).
 			c(RAction.suggest_command, mkcmd(f'rename {backup.id} ')),
 		))
-		self.reply(self.tr('stored_size', TextComponents.file_size(backup.stored_size), TextComponents.percent(backup.stored_size, backup.raw_size)))
-		self.reply(self.tr('raw_size', TextComponents.file_size(backup.raw_size)))
+		self.reply_tr('stored_size', TextComponents.file_size(backup.stored_size), TextComponents.percent(backup.stored_size, backup.raw_size))
+		self.reply_tr('raw_size', TextComponents.file_size(backup.raw_size))
 
 		t_creator = TextComponents.operator(backup.creator)
 		cmd_creator = f'list --creator {backup.creator.name if backup.creator.is_player() else str(backup.creator)}'
 		if backup.creator == Operator.pb(PrimeBackupOperatorNames.pre_restore):
 			cmd_creator += ' --all'  # pre restore backups are hidden by default
-		self.reply(self.tr(
+		self.reply_tr(
 			'creator',
 			t_creator.copy().
 			h(self.tr('creator.hover', t_creator.copy())).
 			c(RAction.suggest_command, mkcmd(cmd_creator))
-		))
+		)
 
 		if len(backup.tags) > 0:
-			self.reply(self.tr('tag.title', TextComponents.number(len(backup.tags))))
+			self.reply_tr('tag.title', TextComponents.number(len(backup.tags)))
 			for k, v in backup.tags.items():
 				try:
 					btn = BackupTagName[k]
@@ -53,4 +53,4 @@ class ShowBackupTask(LightTask[None]):
 					k = RTextBase.format('{} ({})', btn.value.text.h(btn.name), btn.value.flag)
 				self.reply(RTextBase.format('  {}: {}', k, TextComponents.auto(v)))
 		else:
-			self.reply(self.tr('tag.empty_title', self.tr('tag.empty').set_color(RColor.gray)))
+			self.reply_tr('tag.empty_title', self.tr('tag.empty').set_color(RColor.gray))

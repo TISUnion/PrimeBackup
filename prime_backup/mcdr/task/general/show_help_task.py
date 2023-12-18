@@ -61,7 +61,7 @@ class ShowHelpTask(ImmediateTask[None]):
 				self.__reply_help(self.tr('arguments.content'))
 
 				self.reply(self.tr('other.title').set_color(TextColors.help_title))
-				self.reply(self.tr(
+				self.reply_tr(
 					'other.nodes_with_help',
 					RTextBase.join(
 						RText(', ', RColor.dark_gray),
@@ -73,16 +73,16 @@ class ShowHelpTask(ImmediateTask[None]):
 							if self.__has_permission(cmd)
 						]
 					)
-				))
-				self.reply(self.tr(
+				)
+				self.reply_tr(
 					'other.docs',
 					TextComponents.url(constants.DOCUMENTATION_URL, click=True).
 					h(self.tr('other.docs.hover'))
-				))
+				)
 
 			elif self.what in self.COMMANDS_WITH_DETAILED_HELP:
 				if not self.__has_permission(self.what):
-					self.reply(self.tr('permission_denied', RText(self.what, RColor.gray)))
+					self.reply_tr('permission_denied', RText(self.what, RColor.gray))
 					return
 
 				kwargs = {'prefix': self.__cmd_prefix}

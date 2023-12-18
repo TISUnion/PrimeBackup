@@ -53,7 +53,7 @@ class ListBackupTask(LightTask[None]):
 		backups = ListBackupAction(backup_filter=self.backup_filter, limit=self.per_page, offset=(self.page - 1) * self.per_page).run()
 
 		self.reply(TextComponents.title(self.tr('title')))
-		self.reply(self.tr('backup_count', TextComponents.number(total_count)))
+		self.reply_tr('backup_count', TextComponents.number(total_count))
 		for backup in backups:
 			self.reply(TextComponents.backup_full(backup, True, show_flags=self.show_flags))
 

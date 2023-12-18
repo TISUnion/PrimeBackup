@@ -46,7 +46,7 @@ class ValidateDbTask(HeavyTask[None]):
 		result = self.run_action(ValidateBlobsAction())
 
 		vlogger.info('Validate blobs result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
-		self.reply(self.tr('validate_blobs.done', TextComponents.number(result.validated), TextComponents.number(result.total)))
+		self.reply_tr('validate_blobs.done', TextComponents.number(result.validated), TextComponents.number(result.total))
 		if result.ok == result.validated:
 			self.reply(self.tr('validate_blobs.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
 			return
@@ -54,7 +54,7 @@ class ValidateDbTask(HeavyTask[None]):
 		def show(what: str, lst: List[BadBlobItem]):
 			if len(lst) > 0:
 				vlogger.info('bad blob with category {} (len={})'.format(what, len(lst)))
-				self.reply(self.tr(f'validate_blobs.{what}', TextComponents.number(len(lst))))
+				self.reply_tr(f'validate_blobs.{what}', TextComponents.number(len(lst)))
 				item: BadBlobItem
 				for i, item in enumerate(lst):
 					text = RTextBase.format('{}. {}: {}', i + 1, item.blob.hash, item.desc)
@@ -73,7 +73,7 @@ class ValidateDbTask(HeavyTask[None]):
 		vlogger.info('Affected file amount: {} / {}'.format(result.affected_file_count, counts.file_count))
 		vlogger.info('Affected backup amount: {} / {}'.format(len(result.affected_backup_ids), counts.backup_count))
 		vlogger.info('Affected backups: {}'.format(result.affected_backup_ids))
-		self.reply(self.tr(
+		self.reply_tr(
 			'validate_blobs.affected',
 			TextComponents.number(result.affected_file_count),
 			TextComponents.number(counts.file_count),
@@ -81,13 +81,13 @@ class ValidateDbTask(HeavyTask[None]):
 			h(TextComponents.backup_id_list(result.affected_backup_ids)).
 			c(RAction.copy_to_clipboard, ', '.join(map(str, result.affected_backup_ids))),
 			TextComponents.number(counts.backup_count),
-		))
+		)
 
 	def __validate_files(self, vlogger: logging.Logger):
 		result = self.run_action(ValidateFilesAction())
 
 		vlogger.info('Validate files result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
-		self.reply(self.tr('validate_files.done', TextComponents.number(result.validated), TextComponents.number(result.total)))
+		self.reply_tr('validate_files.done', TextComponents.number(result.validated), TextComponents.number(result.total))
 		if result.ok == result.validated:
 			self.reply(self.tr('validate_files.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
 			return
@@ -95,7 +95,7 @@ class ValidateDbTask(HeavyTask[None]):
 		def show(what: str, lst: List[BadFileItem]):
 			if len(lst) > 0:
 				vlogger.info('bad file with category {} (len={})'.format(what, len(lst)))
-				self.reply(self.tr(f'validate_files.{what}', TextComponents.number(len(lst))))
+				self.reply_tr(f'validate_files.{what}', TextComponents.number(len(lst)))
 				item: BadFileItem
 				for i, item in enumerate(lst):
 					text = RTextBase.format('{}. #{} {!r}: {}', i + 1, item.file.backup_id, item.file.path, item.desc)
@@ -109,7 +109,7 @@ class ValidateDbTask(HeavyTask[None]):
 
 	def run(self) -> None:
 		if not self.parts:
-			self.reply(self.tr('nothing_to_validate'))
+			self.reply_tr('nothing_to_validate')
 			return
 
 		t = time.time()
@@ -117,12 +117,12 @@ class ValidateDbTask(HeavyTask[None]):
 			validate_logger.info('Validation start, parts: {}'.format(self.parts))
 
 			if ValidateParts.blobs in self.parts and not self.aborted_event.is_set():
-				self.reply(self.tr('validate_blobs'))
+				self.reply_tr('validate_blobs')
 				self.__validate_blobs(validate_logger)
 
 			if ValidateParts.files in self.parts and not self.aborted_event.is_set():
-				self.reply(self.tr('validate_files'))
+				self.reply_tr('validate_files')
 				self.__validate_files(validate_logger)
 
 		cost = time.time() - t
-		self.reply(self.tr('done', TextComponents.number(f'{cost:.2f}s')))
+		self.reply_tr('done', TextComponents.number(f'{cost:.2f}s'))

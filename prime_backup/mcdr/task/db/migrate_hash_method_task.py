@@ -22,30 +22,30 @@ class MigrateHashMethodTask(HeavyTask[None]):
 			self.new_hash_method.value.create_hasher()
 		except ImportError as e:
 			self.logger.warning('Failed to create hasher of {} due to ImportError: {}'.format(self.new_hash_method, e))
-			self.reply(self.tr(
+			self.reply_tr(
 				'missing_library',
 				TextComponents.hash_method(self.new_hash_method),
 				TextComponents.url(constants.DOCUMENTATION_URL, click=True),
-			))
+			)
 			return
 
 		db_meta = self.run_action(GetDbMetaAction())
 		if db_meta.hash_method == self.new_hash_method.name:
-			self.reply(self.tr('hash_method_unchanged', TextComponents.hash_method(self.new_hash_method)))
+			self.reply_tr('hash_method_unchanged', TextComponents.hash_method(self.new_hash_method))
 			return
 
-		self.reply(self.tr('show_whats_going_on', TextComponents.hash_method(db_meta.hash_method), TextComponents.hash_method(self.new_hash_method)))
+		self.reply_tr('show_whats_going_on', TextComponents.hash_method(db_meta.hash_method), TextComponents.hash_method(self.new_hash_method))
 		wr = self.wait_confirm(self.tr('confirm_target'))
 		if not wr.is_set():
-			self.reply(self.tr('no_confirm'))
+			self.reply_tr('no_confirm')
 			return
 		elif wr.get().is_cancelled():
-			self.reply(self.tr('aborted'))
+			self.reply_tr('aborted')
 			return
 
-		self.reply(self.tr('start', TextComponents.hash_method(db_meta.hash_method), TextComponents.hash_method(self.new_hash_method)))
+		self.reply_tr('start', TextComponents.hash_method(db_meta.hash_method), TextComponents.hash_method(self.new_hash_method))
 
 		self.run_action(MigrateHashMethodAction(self.new_hash_method))
 		self.server.save_config_simple(self.config)
 
-		self.reply(self.tr('done', TextComponents.hash_method(db_meta.hash_method), TextComponents.hash_method(self.new_hash_method)))
+		self.reply_tr('done', TextComponents.hash_method(db_meta.hash_method), TextComponents.hash_method(self.new_hash_method))

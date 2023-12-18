@@ -27,7 +27,7 @@ class SetBackupTagTask(_OperateBackupTagTaskBase):
 
 	def run(self) -> None:
 		SetBackupTagAction(self.backup_id, self.tag_name, self.value).run()
-		self.reply(self.tr('set', TextComponents.backup_id(self.backup_id), TextComponents.tag_name(self.tag_name), TextComponents.auto(self.value)))
+		self.reply_tr('set', TextComponents.backup_id(self.backup_id), TextComponents.tag_name(self.tag_name), TextComponents.auto(self.value))
 
 
 class ClearBackupTagTask(_OperateBackupTagTaskBase):
@@ -38,6 +38,6 @@ class ClearBackupTagTask(_OperateBackupTagTaskBase):
 	def run(self) -> None:
 		ok = ClearBackupTagAction(self.backup_id, self.tag_name).run()
 		if ok:
-			self.reply(self.tr('cleared', TextComponents.backup_id(self.backup_id), TextComponents.tag_name(self.tag_name)))
+			self.reply_tr('cleared', TextComponents.backup_id(self.backup_id), TextComponents.tag_name(self.tag_name))
 		else:
-			self.reply(self.tr('not_exists', TextComponents.backup_id(self.backup_id), TextComponents.tag_name(self.tag_name)))
+			self.reply_tr('not_exists', TextComponents.backup_id(self.backup_id), TextComponents.tag_name(self.tag_name))

@@ -22,23 +22,23 @@ class DeleteBackupTask(HeavyTask[None]):
 
 	def run(self):
 		if len(self.backup_ids) > 1:
-			self.reply(self.tr(
+			self.reply_tr(
 				'multi_delete',
 				TextComponents.number(len(self.backup_ids)),
 				TextComponents.backup_id_list(self.backup_ids, hover=False, click=False),
-			))
+			)
 
 		for backup_id in self.backup_ids:
 			backup = GetBackupAction(backup_id).run()
 			if backup.tags.is_protected():
-				self.reply(self.tr('protected', TextComponents.backup_id(backup.id)))
+				self.reply_tr('protected', TextComponents.backup_id(backup.id))
 				return
 
-			self.reply(self.tr('deleting', TextComponents.backup_brief(backup, backup_id_fancy=False)))
+			self.reply_tr('deleting', TextComponents.backup_brief(backup, backup_id_fancy=False))
 			dr = DeleteBackupAction(backup_id).run()
 
-			self.reply(self.tr(
+			self.reply_tr(
 				'deleted',
 				TextComponents.backup_id(backup_id, hover=False, click=False),
 				TextComponents.blob_list_summary_store_size(dr.bls),
-			))
+			)

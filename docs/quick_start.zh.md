@@ -111,9 +111,12 @@ mcdr_root/
         pip3 install blake3
         ```
     
-    !!! warning
+    !!! note
 
-        更改 `compress_method` 只会影响新备份中的新文件
+        建议你在一开始就明智地设置这两个选项
+
+        虽然你依然可以在 MCDR 中使用 `!!pb database migrate_xxx` 指令来迁移现有备份的压缩方法和哈希方法，
+        但完成迁移可能需要花费一定的时间和磁盘空间
 
 2. 启用插件。在配置文件的根对象中，设置 `enabled` 为 `true`。它应该位于整个配置文件的最上面
 

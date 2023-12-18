@@ -55,7 +55,7 @@ and place it into the plugin folder of MCDR. Perform a [MCDR plugin reload](http
 Before using Prime Backup, you need to configure its config file correctly
 
 Don't worry, for most of the config options, you can use the default values. 
-But there's a few options that you still need to configure carefully
+But there are a few options that you might still want to take a look at
 
 ### Location
 
@@ -111,9 +111,12 @@ Here are a few important things in the config file:
         pip3 install blake3
         ```
     
-    !!! warning
+    !!! note
 
-        Changing `compress_method` will only affect new files in new backups
+        It is recommended that you set these two options wisely from the start
+
+        Although you can still use the `!!pb database migrate_xxx` command in MCDR to migrate the compression method and hash method of existing backups,
+        completing the migration might require a certain amount of time and disk space
 
 2. Enable the plugin. Set the `enabled` option in the root object to `true`. It should be at the top of the whole config file
 

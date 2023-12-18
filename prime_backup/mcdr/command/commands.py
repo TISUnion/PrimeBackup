@@ -63,7 +63,7 @@ class CommandManager:
 	def cmd_welcome(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(ShowWelcomeTask(source))
 
-	def cmd_help(self, source: CommandSource, context: CommandContext):
+	def cmd_help(self, source: CommandSource, context: dict):
 		what = context.get('what')
 		if what is not None and what not in ShowHelpTask.COMMANDS_WITH_DETAILED_HELP:
 			reply_message(source, tr('command.help.no_help', RText(mkcmd(what), RColor.gray)))
@@ -286,6 +286,7 @@ class CommandManager:
 		builder.arg('job_id', lambda n: Enumeration(n, CrontabJobId))
 
 		# db
+		builder.command('database', lambda src: self.cmd_help(src, {'what': 'database'}))
 		builder.command('database overview', self.cmd_db_overview)
 		builder.command('database inspect backup <backup_id>', self.cmd_db_inspect_backup)
 		builder.command('database inspect file <backup_id> <file_path>', self.cmd_db_inspect_file)

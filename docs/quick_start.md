@@ -39,6 +39,12 @@ If you want to have full features of Prime Backup, you can use the following com
 pip3 install blake3 lz4
 ```
 
+These optional requirements are also stored in the [requirements.optional.txt](https://github.com/TISUnion/PrimeBackup/blob/master/requirements.optional.txt)
+
+```title="requirements.optional.txt"
+--8<-- "requirements.optional.txt"
+```
+
 ### Install the plugin
 
 Download Prime Backup from [GitHub Release](https://github.com/TISUnion/PrimeBackup/releases), 

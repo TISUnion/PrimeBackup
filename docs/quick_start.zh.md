@@ -39,6 +39,12 @@ Prime Backup 需要一些 python 库才能运行，它们都被列在了
 pip3 install blake3 lz4
 ```
 
+这些可选的依赖也被列在了 [requirements.optional.txt](https://github.com/TISUnion/PrimeBackup/blob/master/requirements.optional.txt) 里
+
+```title="requirements.optional.txt"
+--8<-- "requirements.optional.txt"
+```
+
 ### 安装插件
 
 从 [GitHub Release](https://github.com/TISUnion/PrimeBackup/releases) 下载 Prime Backup 插件，

@@ -12,7 +12,7 @@ from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags, BackupTagName
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
-from prime_backup.utils import backup_utils
+from prime_backup.utils import backup_utils, log_utils
 from prime_backup.utils.mcdr_utils import click_and_run, mkcmd
 from prime_backup.utils.timer import Timer
 
@@ -82,11 +82,14 @@ class RestoreBackupTask(HeavyTask[None]):
 		timer = Timer()
 		if self.config.command.backup_on_restore:
 			self.logger.info('Creating backup of existing files to avoid idiot')
-			CreateBackupAction(
+			pre_restore_backup = CreateBackupAction(
 				Operator.pb(PrimeBackupOperatorNames.pre_restore),
 				backup_utils.create_translated_backup_comment('pre_restore', backup.id),
 				tags=BackupTags().set(BackupTagName.pre_restore_backup, True),
 			).run()
+			pre_restore_backup_id = f'#{pre_restore_backup.id}'
+		else:
+			pre_restore_backup_id = 'N/A'
 		cost_backup = timer.get_and_restart()
 
 		self.logger.info('Restoring to backup #{} (fail_soft={}, verify_blob={})'.format(backup.id, self.fail_soft, self.verify_blob))
@@ -109,3 +112,8 @@ class RestoreBackupTask(HeavyTask[None]):
 
 		if server_was_running:
 			self.server.start()
+
+		with log_utils.open_file_logger('restore') as logger:
+			logger.info('{} restored world to backup {} (date={}, comment={!r}), pre-restore backup: {}'.format(
+				self.source, backup.id, backup.comment, backup.date_str, pre_restore_backup_id,
+			))

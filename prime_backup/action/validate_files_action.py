@@ -36,18 +36,18 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 			result.validated += 1
 
 			if file.is_file():
-				if file.blob.hash is not None:
+				if file.blob is not None:
 					hash_to_file[file.blob.hash].append(file)
 				else:
 					result.bad_blob_relation.append(BadFileItem(file, 'file without blob'))
 					continue
 			elif file.is_dir():
-				if file.blob.hash is not None:
+				if file.blob is not None:
 					result.bad_blob_relation.append(BadFileItem(file, 'dir with blob'))
 					continue
 				result.ok += 1
 			elif file.is_link():
-				if file.blob.hash is not None:
+				if file.blob is not None:
 					result.bad_blob_relation.append(BadFileItem(file, 'symlink with blob'))
 					continue
 				if len(file.content) == 0:

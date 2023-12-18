@@ -10,6 +10,7 @@ prime_backup:
       sent: 正在终止{}任务
       noop: 没有什么是需要终止的
       no_permission: 权限不足，无法终止当前任务
+      not_abort_able: 当前任务{}无法被终止
 
   task:
     backup_clear_tag:

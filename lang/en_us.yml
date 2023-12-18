@@ -10,6 +10,7 @@ prime_backup:
       sent: Aborting {} task
       noop: Nothing to abort
       no_permission: You don't have the permission to abort the current task
+      not_abort_able: The current task {} is not abort-able
 
   task:
     backup_clear_tag:

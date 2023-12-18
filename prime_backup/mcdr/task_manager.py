@@ -194,14 +194,20 @@ class TaskManager:
 
 	def do_abort(self, source: CommandSource):
 		def check_abort_able(holder: TaskHolder) -> bool:
-			if mcdr_utils.are_source_same(source, holder.source):
-				return True  # you can abort your task
+			if not (
+				# you can abort your task
+				mcdr_utils.are_source_same(source, holder.source)
+				# or your permission needs to >= the task's requirement
+				or source.get_permission_level() >= holder.task.get_abort_permission()
+			):
+				reply_message(source, tr('command.abort.no_permission'))
+				return False
 
-			if source.get_permission_level() >= holder.task.get_abort_permission():
-				return True  # or your permission needs to >= the task's requirement
+			if not holder.task.is_abort_able():
+				reply_message(source, tr('command.abort.not_abort_able', holder.task_name()))
+				return False
 
-			reply_message(source, tr('command.abort.no_permission'))
-			return False
+			return True
 
 		def pre_send(holder: TaskHolder):
 			reply_message(source, tr('command.abort.sent', holder.task_name()))

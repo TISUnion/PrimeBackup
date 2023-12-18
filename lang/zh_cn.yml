@@ -13,6 +13,9 @@ prime_backup:
       not_abort_able: 当前任务{}无法被终止
 
   task:
+    _base:
+      no_confirm: 未做出选择, {}任务已终止
+      aborted: '{}任务已终止'
     backup_clear_tag:
       name: 清除备份标签
       cleared: 已清除备份{0}的标签{1}
@@ -38,8 +41,6 @@ prime_backup:
       to_delete_count: '将要删除以下{}个备份: '
       ellipsis.hover: 省略{}个备份
       confirm_target: 删除
-      no_confirm: 未做出选择, 范围删除备份任务终止
-      aborted: 范围删除备份任务终止
       deleted: 已删除{}
       deleted.skipped: 已跳过{} (备份不存在)
       done: 任务完成, 共删除{}个备份, 共释放{}
@@ -104,8 +105,6 @@ prime_backup:
       confirm_target: 回档
       countdown: '{}秒后将§c回档§r至{}'
       countdown.hover: 点我或输入{}以终止回档
-      no_confirm: 未做出选择, 回档任务终止
-      aborted: 回档任务终止
     backup_set_tag:
       name: 设置备份标签
       set: 已将备份{0}的标签{1}设置为{2}
@@ -221,8 +220,6 @@ prime_backup:
       show_whats_going_on: 准备把文件池所使用的压缩方法迁移至{}，压缩阈值为{}
       confirm_target: 迁移
       start: 正在将压缩方法迁移至{}，见控制台以了解进度
-      no_confirm: 未做出选择, 压缩方法迁移任务终止
-      aborted: 压缩方法迁移任务终止
       done: '已将压缩方法迁移至{}, 数据对象总储存大小: {} -> {} ({})'
     db_migrate_hash_method:
       name: 哈希算法迁移
@@ -233,8 +230,6 @@ prime_backup:
       show_whats_going_on: 准备把文件池所使用的哈希算法从{}迁移至{}
       confirm_target: 迁移
       start: 正在将哈希算法从{}迁移至{}，见控制台以了解进度
-      no_confirm: 未做出选择, 哈希算法迁移任务终止
-      aborted: 哈希算法迁移任务终止
       done: 已将哈希算法从{}迁移至{}
     db_overview:
       name: 概览数据库
@@ -417,7 +412,7 @@ prime_backup:
         restore: '回档到最新的备份'
 
   job:
-    base:
+    _base:
       found_ongoing:
         unknown_task: 未知
         skip: '发现正在进行的任务{}, 跳过本次{}作业执行'

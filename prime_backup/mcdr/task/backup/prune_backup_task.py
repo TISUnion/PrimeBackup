@@ -230,7 +230,7 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 				bid = pl.backup.id
 				if self.aborted_event.is_set():
 					if self.verbose >= _PruneVerbose.delete:
-						self.reply_tr('aborted')
+						self.reply(self.get_aborted_text())
 					break
 				if not pl.mark.keep:
 					self.reply_tr('prune', TextComponents.backup_id(bid, hover=False, click=False))

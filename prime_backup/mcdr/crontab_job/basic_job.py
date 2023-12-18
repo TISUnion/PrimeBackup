@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
-	__base_tr = TranslationContext('job.base').tr
+	__base_tr = TranslationContext('job._base').tr
 
 	def __init__(self, scheduler: BaseScheduler, task_manager: 'TaskManager'):
 		CrontabJob.__init__(self, scheduler, task_manager)

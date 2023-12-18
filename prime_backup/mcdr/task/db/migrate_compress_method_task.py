@@ -33,12 +33,7 @@ class MigrateCompressMethodTask(HeavyTask[None]):
 			TextComponents.compress_method(self.new_compress_method),
 			TextComponents.file_size(self.config.backup.compress_threshold, ndigits=0),
 		)
-		wr = self.wait_confirm(self.tr('confirm_target'))
-		if not wr.is_set():
-			self.reply_tr('no_confirm')
-			return
-		elif wr.get().is_cancelled():
-			self.reply_tr('aborted')
+		if not self.wait_confirm(self.tr('confirm_target')):
 			return
 
 		self.reply_tr('start', TextComponents.compress_method(self.new_compress_method))

@@ -49,19 +49,14 @@ class DeleteBackupRangeTask(HeavyTask[None]):
 			self.reply(RText('...', RColor.gray).h(self.tr('ellipsis.hover', TextComponents.number(len(backups) - n))))
 			self.__reply_backups(backups[-n // 2:])
 
-		wr = self.wait_confirm(self.tr('confirm_target'))
-		if not wr.is_set():
-			self.reply_tr('no_confirm')
-			return
-		elif wr.get().is_cancelled():
-			self.reply_tr('aborted')
+		if not self.wait_confirm(self.tr('confirm_target')):
 			return
 
 		cnt = 0
 		bls = BlobListSummary.zero()
 		for backup in backups:
 			if self.aborted_event.is_set():
-				self.reply_tr('aborted')
+				self.reply(self.get_aborted_text())
 				return
 			try:
 				dr = DeleteBackupAction(backup.id).run()

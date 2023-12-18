@@ -13,6 +13,9 @@ prime_backup:
       not_abort_able: The current task {} is not abort-able
 
   task:
+    _base:
+      no_confirm: No choice has been made, task {} aborted
+      aborted: Task {} aborted
     backup_clear_tag:
       name: set backup tag
       cleared: Cleared tag {1} of backup {0}
@@ -38,8 +41,6 @@ prime_backup:
       to_delete_count: 'Found {} backups to be deleted:'
       ellipsis.hover: Omitted {} backups
       confirm_target: delete
-      no_confirm: No choice has been made, delete task aborted
-      aborted: Delete task aborted
       deleted: Deleted {}
       deleted.skipped: Skipped {} (missed)
       done: Done, {} backups deleted, freed {}
@@ -104,8 +105,6 @@ prime_backup:
       confirm_target: restore
       countdown: '{} second later, the world will §cbe restored§r to {}'
       countdown.hover: Click me or enter command {} to abort restore
-      no_confirm: No choice has been made, restore task aborted
-      aborted: Restore task aborted
     backup_set_tag:
       name: set backup tag
       set: Set tag {1} of backup {0} to {2}
@@ -221,8 +220,6 @@ prime_backup:
       show_whats_going_on: Prepare for file pool compress method migration to {}, compress threshold {}
       confirm_target: migrate
       start: Migrating the compress method to {}, check console to see the progress
-      no_confirm: No choice has been made, migrate compress method task aborted
-      aborted: Migrate compress method task aborted
       done: 'Migrated the compress method from to {}, blob stored size sum: {} -> {} ({})'
     db_migrate_hash_method:
       name: migrate hash method
@@ -233,8 +230,6 @@ prime_backup:
       show_whats_going_on: Prepare for file pool hash method migration, from {} to {}
       confirm_target: migrate
       start: Migrating the hash method from {} to {}, check console to see the progress
-      no_confirm: No choice has been made, migrate hash method task aborted
-      aborted: Migrate hash method task aborted
       done: Migrated the hash method from {} to {}
     db_overview:
       name: overview database
@@ -417,7 +412,7 @@ prime_backup:
         restore: 'restore to the latest backup'
 
   job:
-    base:
+    _base:
       found_ongoing:
         unknown_task: unknown
         skip: 'Found ongoing task {}, job {} execution skipped'

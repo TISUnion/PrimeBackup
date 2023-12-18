@@ -35,12 +35,7 @@ class MigrateHashMethodTask(HeavyTask[None]):
 			return
 
 		self.reply_tr('show_whats_going_on', TextComponents.hash_method(db_meta.hash_method), TextComponents.hash_method(self.new_hash_method))
-		wr = self.wait_confirm(self.tr('confirm_target'))
-		if not wr.is_set():
-			self.reply_tr('no_confirm')
-			return
-		elif wr.get().is_cancelled():
-			self.reply_tr('aborted')
+		if not self.wait_confirm(self.tr('confirm_target')):
 			return
 
 		self.reply_tr('start', TextComponents.hash_method(db_meta.hash_method), TextComponents.hash_method(self.new_hash_method))

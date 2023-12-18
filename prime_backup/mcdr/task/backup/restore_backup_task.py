@@ -24,10 +24,14 @@ class RestoreBackupTask(HeavyTask[None]):
 		self.needs_confirm = needs_confirm
 		self.fail_soft = fail_soft
 		self.verify_blob = verify_blob
+		self.__can_abort = False
 
 	@property
 	def id(self) -> str:
 		return 'backup_restore'
+
+	def is_abort_able(self) -> bool:
+		return super().is_abort_able() or self.__can_abort
 
 	def get_abort_permission(self) -> int:
 		return 0
@@ -41,7 +45,7 @@ class RestoreBackupTask(HeavyTask[None]):
 			))
 
 			if self.aborted_event.wait(1):
-				self.broadcast(self.tr('aborted'))
+				self.broadcast(self.get_aborted_text())
 				return False
 
 		self.server.stop()
@@ -61,14 +65,10 @@ class RestoreBackupTask(HeavyTask[None]):
 		else:
 			backup = GetBackupAction(self.backup_id).run()
 
+		self.__can_abort = True
 		self.broadcast(self.tr('show_backup', TextComponents.backup_brief(backup)))
 		if self.needs_confirm:
-			wr = self.wait_confirm(self.tr('confirm_target'))
-			if not wr.is_set():
-				self.broadcast(self.tr('no_confirm'))
-				return
-			elif wr.get().is_cancelled():
-				self.broadcast(self.tr('aborted'))
+			if not self.wait_confirm(self.tr('confirm_target')):
 				return
 
 		server_was_running = self.server.is_server_running()
@@ -77,6 +77,7 @@ class RestoreBackupTask(HeavyTask[None]):
 				return
 		else:
 			self.logger.info('Found an already-stopped server')
+		self.__can_abort = False
 
 		timer = Timer()
 		if self.config.command.backup_on_restore:

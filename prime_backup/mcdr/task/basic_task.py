@@ -7,16 +7,18 @@ from typing_extensions import final
 
 from prime_backup.action import Action
 from prime_backup.mcdr.task import Task, TaskEvent
-from prime_backup.mcdr.task.task_utils import ConfirmHelper, ConfirmResult
+from prime_backup.mcdr.task.task_utils import ConfirmHelper
 from prime_backup.types.units import Duration
 from prime_backup.utils import mcdr_utils
-from prime_backup.utils.waitable_value import WaitableValue
+from prime_backup.utils.mcdr_utils import TranslationContext
 
 T = TypeVar('T')
 _T = TypeVar('_T')
 
 
 class _BasicTask(Task[_T], ABC):
+	__base_tr = TranslationContext('task._base').tr
+
 	def __init__(self, source: CommandSource):
 		super().__init__(source)
 
@@ -59,13 +61,24 @@ class _BasicTask(Task[_T], ABC):
 
 	# ==================================== Utils ====================================
 
-	def wait_confirm(self, confirm_target_text: RTextBase, time_wait: Optional[Duration] = None) -> WaitableValue[ConfirmResult]:
+	def get_aborted_text(self) -> RTextBase:
+		return self.__base_tr('aborted', self.get_name_text())
+
+	def wait_confirm(self, confirm_target_text: Optional[RTextBase] = None, time_wait: Optional[Duration] = None) -> bool:
 		if time_wait is None:
 			time_wait = self.config.command.confirm_time_wait
 
 		self.is_waiting_confirm = True
 		try:
-			return self._confirm_helper.wait_confirm(confirm_target_text, time_wait)
+			wr = self._confirm_helper.wait_confirm(confirm_target_text, time_wait)
+			if not wr.is_set():
+				self.broadcast(self.__base_tr('no_confirm', self.get_name_text()))
+				return False
+			elif wr.get().is_cancelled():
+				self.broadcast(self.get_aborted_text())
+				return False
+			else:
+				return True
 		finally:
 			self.is_waiting_confirm = False
 

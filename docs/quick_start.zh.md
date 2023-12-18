@@ -75,7 +75,33 @@ mcdr_root/
 
 配置文件中的一些重要内容如下所示：
 
-1. 你想要使用的备份格式
+1. [备份目标](config.zh.md#targets)，即你需要备份的那些文件夹和文件。
+    你需要把 `targets` 数组里的 `"world"` 给修改成你的存档文件夹的名字
+
+    ```json
+    // root config
+    {
+        // ...
+        "backup": {
+            "targets": [
+                "world"
+            ],
+        }
+        // ...
+    }
+    ```
+
+    除此之外，如果你在用像 bukkit 那样把每个维度存在独立的文件夹里的服务器，你可能需要这么配置：
+
+     ```json
+     "targets": [
+         "world",
+         "world_nether",
+         "world_the_end"
+     ]
+     ```
+
+2. 你想要使用的备份格式
 
     ```js
     // 根配置
@@ -118,7 +144,7 @@ mcdr_root/
         虽然你依然可以在 MCDR 中使用 `!!pb database migrate_xxx` 指令来迁移现有备份的压缩方法和哈希方法，
         但完成迁移可能需要花费一定的时间和磁盘空间
 
-2. 启用插件。在配置文件的根对象中，设置 `enabled` 为 `true`。它应该位于整个配置文件的最上面
+3. 启用插件。在配置文件的根对象中，设置 `enabled` 为 `true`。它应该位于整个配置文件的最上面
 
     ```json
     // root config
@@ -128,7 +154,7 @@ mcdr_root/
     }
     ```
 
-3. 使用 MCDR 命令重载插件
+4. 使用 MCDR 命令重载插件
 
     ```text
     !!MCDR plugin reload prime_backup

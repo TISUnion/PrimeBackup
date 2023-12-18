@@ -75,9 +75,35 @@ It's a json file, so you need to follow the json syntax to edit it
 
 Here are a few important things in the config file:
 
-1. The backup format you want to use
+1. [Backup target](config.md#targets), i.e. the directories / files you want to create backup on. 
+    You need to change the `"world"` in the `targets` array to your world directory name
 
-    ```js
+    ```json
+    // root config
+    {
+        // ...
+        "backup": {
+            "targets": [
+                "world"
+            ],
+        }
+        // ...
+    }
+    ```
+
+    In addition, if you are using bukkit-like servers that split the world dimensions, you might want to use something like this:
+
+     ```json
+     "targets": [
+         "world",
+         "world_nether",
+         "world_the_end"
+     ]
+     ```
+
+2. The backup format you want to use
+
+    ```json
     // root config
     {
         // ...
@@ -88,7 +114,7 @@ Here are a few important things in the config file:
         // ...
     }
     ```
-   
+    
     - [`hash_method`](config.md#hash_method): The algorithm to hash the files. Available options: "xxh128", "sha256", "blake3"
 
         - [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality non-cryptographic hash algorithm. 
@@ -118,7 +144,7 @@ Here are a few important things in the config file:
         Although you can still use the `!!pb database migrate_xxx` command in MCDR to migrate the compression method and hash method of existing backups,
         completing the migration might require a certain amount of time and disk space
 
-2. Enable the plugin. Set the `enabled` option in the root object to `true`. It should be at the top of the whole config file
+3. Enable the plugin. Set the `enabled` option in the root object to `true`. It should be at the top of the whole config file
 
     ```json
     // root config
@@ -128,7 +154,7 @@ Here are a few important things in the config file:
     }
     ```
 
-3. Reload the plugin with MCDR command
+4. Reload the plugin with MCDR command
 
     ```text
     !!MCDR plugin reload prime_backup

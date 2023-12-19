@@ -237,12 +237,21 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 
 		self.output_path.mkdir(parents=True, exist_ok=True)
 		self.config.temp_path.mkdir(parents=True, exist_ok=True)
-		trash_bin_dir_name = 'export_trashes_{}_{}'.format(os.getpid(), threading.current_thread().ident)
+		trash_bin_name_base = f'.{constants.PLUGIN_ID}.export_trashes'
+		trash_bin_dir_name = f'{trash_bin_name_base}_{os.getpid()}_{threading.current_thread().ident}'
 		trash_bin_path = self.config.temp_path / trash_bin_dir_name
 		if self.config.temp_path.stat().st_dev != self.output_path.stat().st_dev:
-			trash_bin_path = self.output_path / '.{}.{}'.format(constants.PLUGIN_ID, trash_bin_dir_name)
-		trash_bin = _TrashBin(trash_bin_path)
+			trash_bin_path = self.output_path / trash_bin_dir_name
+		try:
+			# remove existing undeleted trash bins
+			for f in trash_bin_path.parent.iterdir():
+				if f.name.startswith(trash_bin_name_base):
+					self.logger.warning('Removing existing undeleted trash bin {}'.format(f))
+					file_utils.rm_rf(f)
+		except OSError as e:
+			self.logger.warning('Error when removing existing undeleted trash bins: {}'.format(e))
 
+		trash_bin = _TrashBin(trash_bin_path)
 		try:
 			if self.restore_mode:
 				# in restore mode, recover what it was like

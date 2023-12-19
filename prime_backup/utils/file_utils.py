@@ -12,17 +12,30 @@ from prime_backup.utils import path_utils
 HAS_COPY_FILE_RANGE = callable(getattr(os, 'copy_file_range', None))
 
 
+def __is_cow_not_supported_error(e: int) -> bool:
+	# https://github.com/coreutils/coreutils/blob/c343bee1b5de6087b70fe80db9e1f81bb1fc535c/src/copy.c#L292
+	return e in (
+		errno.ENOSYS, errno.ENOTTY, errno.EOPNOTSUPP, errno.ENOTSUP,
+		errno.EINVAL, errno.EBADF,
+		errno.EXDEV, errno.ETXTBSY,
+		errno.EPERM, errno.EACCES,
+	)
+
+
 def copy_file_fast(src_path: Path, dst_path: Path):
+	# https://man7.org/linux/man-pages/man2/copy_file_range.2.html
 	if HAS_COPY_FILE_RANGE:
+		total_read = 0
 		try:
 			with open(src_path, 'rb') as f_src, open(dst_path, 'wb+') as f_dst:
-				while os.copy_file_range(f_src.fileno(), f_dst.fileno(), 2 ** 30):
-					pass
+				while n := os.copy_file_range(f_src.fileno(), f_dst.fileno(), 2 ** 30):
+					total_read += n
 			return
 		except OSError as e:
-			# https://man7.org/linux/man-pages/man2/copy_file_range.2.html
-			if e.errno in [errno.EXDEV, errno.EOPNOTSUPP]:
-				pass  # retry with shutil.copyfile
+			# unsupported or read nothing -> retry with shutil.copyfile
+			# reference: https://github.com/coreutils/coreutils/blob/c343bee1b5de6087b70fe80db9e1f81bb1fc535c/src/copy.c#L312
+			if __is_cow_not_supported_error(e.errno) and total_read == 0:
+				pass
 			else:
 				raise
 

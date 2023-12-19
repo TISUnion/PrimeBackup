@@ -43,6 +43,9 @@ def copy_file_fast(src_path: Path, dst_path: Path):
 
 
 def rm_rf(path: Path, *, missing_ok: bool = False):
+	"""
+	Does not follow symlink
+	"""
 	try:
 		is_dir = stat.S_ISDIR(path.lstat().st_mode)
 	except FileNotFoundError:

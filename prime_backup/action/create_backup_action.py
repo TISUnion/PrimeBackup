@@ -264,6 +264,12 @@ class CreateBackupAction(CreateBackupActionBase):
 					else:
 						pass  # will use hash_once policy
 
+	@functools.cached_property
+	def __temp_path(self) -> Path:
+		p = self.config.temp_path
+		p.mkdir(parents=True, exist_ok=True)
+		return p
+
 	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Generator[Any, Any, Tuple[schema.Blob, os.stat_result]]:
 		src_path_str = repr(src_path.as_posix())
 		src_path_md5 = hashlib.md5(src_path_str.encode('utf8')).hexdigest()
@@ -271,8 +277,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		@contextlib.contextmanager
 		def make_temp_file() -> ContextManager[Path]:
 			temp_file_name = f'blob_{os.getpid()}_{threading.current_thread().ident}_{src_path_md5}.tmp'
-			temp_file_path = self.config.storage_path / 'temp' / temp_file_name
-			temp_file_path.parent.mkdir(parents=True, exist_ok=True)
+			temp_file_path = self.__temp_path / temp_file_name
 			with contextlib.ExitStack() as exit_stack:
 				exit_stack.callback(functools.partial(self._remove_file, temp_file_path))
 				yield temp_file_path

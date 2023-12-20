@@ -288,7 +288,7 @@ The method to compress files stored in a backup
 
 | Compress Method | Description                                                                                                                                                   | Speed | Compress rate |
 |-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|---------------|
-| `plain`         | No compression, copy the file directly                                                                                                                        | ★★★★★ | ☆             |
+| `plain`         | No compression, copy the file directly. Can utilize the copy-on-write technique if the file system supports that                                              | ★★★★★ | ☆             |
 | `gzip`          | The [gzip](https://docs.python.org/3/library/gzip.html) library based on [zlib](https://www.zlib.net/). The format same as a `.gz` file                       | ★★    | ★★★★          |
 | `lzma`          | The [LZMA](https://docs.python.org/3/library/lzma.html) algorithm. The same format as a `.xz` file. Provides the best compression, but the speed is very slow | ☆     | ★★★★★         |
 | `zstd`          | The [Zstandard](https://github.com/facebook/zstd) algorithm. A good balance between speed and compression rate. Recommend to  use                             | ★★★☆  | ★★★★          |

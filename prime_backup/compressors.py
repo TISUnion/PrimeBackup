@@ -95,6 +95,20 @@ class Compressor(ABC):
 			with self.decompress_stream(reader) as f_decompressed:
 				yield reader, f_decompressed
 
+	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
+		"""
+		(f_in) --[compress]--> (f_out)
+		"""
+		with self.compress_stream(f_out) as compressed_out:
+			shutil.copyfileobj(f_in, compressed_out)
+
+	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
+		"""
+		(f_in) --[decompress]--> (f_out)
+		"""
+		with self.decompress_stream(f_in) as compressed_in:
+			shutil.copyfileobj(compressed_in, f_out)
+
 	@abstractmethod
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
 		"""
@@ -109,31 +123,11 @@ class Compressor(ABC):
 		"""
 		...
 
-	@abstractmethod
-	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		"""
-		shutil.copyfileobj on: f_in --[compress]--> f_out
-		"""
-		...
-
-	@abstractmethod
-	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		"""
-		shutil.copyfileobj on: f_in --[decompress]--> f_out
-		"""
-		...
-
 
 class PlainCompressor(Compressor):
 	@classmethod
 	def ensure_lib(cls):
 		pass
-
-	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		shutil.copyfileobj(f_in, f_out)
-
-	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		shutil.copyfileobj(f_in, f_out)
 
 	@contextlib.contextmanager
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
@@ -157,14 +151,6 @@ class _GzipLikeCompressorBase(Compressor, ABC):
 	@classmethod
 	def ensure_lib(cls):
 		cls._lib()
-
-	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		with self.compress_stream(f_out) as compressed_out:
-			shutil.copyfileobj(f_in, compressed_out)
-
-	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
-		with self.decompress_stream(f_in) as compressed_in:
-			shutil.copyfileobj(compressed_in, f_out)
 
 	@contextlib.contextmanager
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:

@@ -16,6 +16,7 @@ class Config(Serializable):
 	enabled: bool = False
 	debug: bool = False
 	storage_root: str = './pb_files'
+	concurrency: int = 1
 
 	command: CommandConfig = CommandConfig()
 	server: ServerConfig = ServerConfig()
@@ -34,6 +35,13 @@ class Config(Serializable):
 		if _config is None:
 			return cls.__get_default()
 		return _config
+
+	def get_concurrency(self) -> int:
+		if self.concurrency == 0:
+			import multiprocessing
+			return max(1, int(multiprocessing.cpu_count() * 0.5))
+		else:
+			return max(1, self.concurrency)
 
 	@property
 	def storage_path(self) -> Path:

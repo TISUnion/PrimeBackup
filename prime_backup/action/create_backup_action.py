@@ -1,5 +1,6 @@
 import collections
 import contextlib
+import dataclasses
 import enum
 import functools
 import hashlib
@@ -8,6 +9,7 @@ import stat
 import threading
 import time
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set, Deque, ContextManager
 
@@ -98,8 +100,7 @@ class BlobBySizeFetcher(BatchFetcherBase):
 
 	def _batch_run(self):
 		existence = self.session.has_blob_with_size_batched(list(self.sizes))
-		for sz, e in existence.items():
-			self.result_cache[sz] = e
+		self.result_cache.update(existence)
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for sz, callback in reversed(self.tasks):
 			callback(self.Rsp(existence[sz]))
@@ -130,8 +131,7 @@ class BlobByHashFetcher(BatchFetcherBase):
 
 	def _batch_run(self):
 		blobs = self.session.get_blobs(list(self.hashes))
-		for h, blob in blobs.items():
-			self.result_cache[h] = blob
+		self.result_cache.update(blobs)
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for h, callback in reversed(self.tasks):
 			callback(self.Rsp(blobs[h]))
@@ -168,6 +168,12 @@ class _ScanResult(NamedTuple):
 	root_targets: List[str]  # list of posix path, related to the source_path
 
 
+@dataclasses.dataclass(frozen=True)
+class _PreCalculationResult:
+	stats: Dict[Path, os.stat_result] = dataclasses.field(default_factory=dict)
+	hashes: Dict[Path, str] = dataclasses.field(default_factory=dict)
+
+
 class CreateBackupAction(CreateBackupActionBase):
 	def __init__(self, creator: Operator, comment: str, *, tags: Optional[BackupTags] = None, expire_timestamp_ns: Optional[int] = None):
 		super().__init__()
@@ -179,6 +185,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		self.tags = tags
 		self.expire_timestamp_ns = expire_timestamp_ns
 
+		self.__pre_calc_result = _PreCalculationResult()
 		self.__blob_store_st: Optional[os.stat_result] = None
 		self.__blob_store_in_cow_fs: Optional[bool] = None
 
@@ -225,6 +232,41 @@ class CreateBackupAction(CreateBackupActionBase):
 
 		return _ScanResult(all_file_paths=collected, root_targets=list(scanned_targets.keys()))
 
+	def __pre_calculate_hash(self, session: DbSession, scan_result: _ScanResult, concurrency: int):
+		stats = self.__pre_calc_result.stats
+		hashes = self.__pre_calc_result.hashes
+		stats.clear()
+		hashes.clear()
+
+		sizes = set()
+		for path in scan_result.all_file_paths:
+			st = path.lstat()
+			stats[path] = st
+			if stat.S_ISREG(st.st_mode):
+				sizes.add(st.st_size)
+
+		hash_dict_lock = threading.Lock()
+		existence = session.has_blob_with_size_batched(list(sizes))
+		self.__blob_by_size_cache.update(existence)
+
+		def hash_worker(pth: Path):
+			h = hash_utils.calc_file_hash(pth)
+			with hash_dict_lock:
+				hashes[pth] = h
+
+		with ThreadPoolExecutor(max_workers=concurrency, thread_name_prefix=misc_utils.make_thread_name('hasher')) as pool:
+			futures = []
+			for path in scan_result.all_file_paths:
+				st = stats[path]
+				if stat.S_ISREG(st.st_mode):
+					if existence[st.st_size]:
+						# we need to hash the file, sooner or later
+						futures.append(pool.submit(hash_worker, path))
+					else:
+						pass  # will use hash_once policy
+			for future in futures:
+				future.result()
+
 	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Generator[Any, Any, Tuple[schema.Blob, os.stat_result]]:
 		src_path_str = repr(src_path.as_posix())
 		src_path_md5 = hashlib.md5(src_path_str.encode('utf8')).hexdigest()
@@ -252,9 +294,13 @@ class CreateBackupAction(CreateBackupActionBase):
 			blob_content: Optional[bytes] = None
 			raw_size: Optional[int] = None
 			stored_size: Optional[int] = None
+			pre_calc_hash = self.__pre_calc_result.hashes.pop(src_path, None)
 
 			if last_chance:
 				policy = _BlobCreatePolicy.copy_hash
+			elif pre_calc_hash is not None:  # hash already calculated? just use default
+				policy = _BlobCreatePolicy.default
+				blob_hash = pre_calc_hash
 			elif not can_copy_on_write:  # do tricks iff. no COW copy
 				if st.st_size <= _READ_ALL_SIZE_THRESHOLD:
 					policy = _BlobCreatePolicy.read_all
@@ -265,11 +311,12 @@ class CreateBackupAction(CreateBackupActionBase):
 						raise _BlobFileChanged()
 					blob_hash = hash_utils.calc_bytes_hash(blob_content)
 				elif st.st_size > _HASH_ONCE_SIZE_THRESHOLD:
-					can_hash_once = self.__blob_by_size_cache.get(st.st_size, False) is False
-					if can_hash_once:
-						# noinspection PyTypeChecker
+					if (exist := self.__blob_by_size_cache.get(st.st_size)) is None:
+						# existence is unknown yet
 						yield BlobBySizeFetcher.Req(st.st_size)
-						can_hash_once = self.__blob_by_size_cache.get(st.st_size, False) is False
+						can_hash_once = self.__blob_by_size_cache[st.st_size] is False
+					else:
+						can_hash_once = exist is False
 					if can_hash_once:
 						# it's certain that this blob is unique, but notes: the following code
 						# cannot be interrupted (yield), or other generator could make a same blob
@@ -402,7 +449,9 @@ class CreateBackupAction(CreateBackupActionBase):
 
 	def __create_file(self, session: DbSession, path: Path) -> Generator[Any, Any, schema.File]:
 		related_path = path.relative_to(self.config.source_path)
-		st = path.lstat()
+
+		if (st := self.__pre_calc_result.stats.pop(path, None)) is None:
+			st = path.lstat()
 
 		blob: Optional[schema.Blob] = None
 		content: Optional[bytes] = None
@@ -455,6 +504,10 @@ class CreateBackupAction(CreateBackupActionBase):
 					tags=self.tags.to_dict(),
 				)
 				self.logger.info('Creating backup {} on {}'.format(backup, scan_result.root_targets))
+
+				if (concurrency := self.config.get_concurrency()) > 1:
+					self.__pre_calculate_hash(session, scan_result, concurrency)
+					self.logger.info('Pre-calculate all file hash done')
 
 				blob_utils.prepare_blob_directories()
 				bs_path = blob_utils.get_blob_store()

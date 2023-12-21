@@ -15,6 +15,7 @@ This is the root json object in the config files
     "enabled": true,
     "debug": false,
     "storage_root": "./pb_files",
+    "concurrency": 1,
     
     // Subconfigs. See the following sections
     "command": {/* Command config */},
@@ -48,6 +49,18 @@ The path is related to the work directory of MCDR. By default, the root director
 
 - Type: `str`
 - Default: `"./pb_files"`
+
+#### concurrency
+
+The maximum concurrency to be used during all task and action executions
+
+Setting the concurrency to a higher value (e.g. `4`) can speed up actions, such as backup creation and restoration,
+but it will also consume more CPU during these actions
+
+A value of `0` means using 50% of the CPU
+
+- Type: `int`
+- Default: `1`
 
 ---
 

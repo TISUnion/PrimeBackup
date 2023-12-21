@@ -1,3 +1,4 @@
+import contextlib
 from typing import NamedTuple, List, Union, Iterator
 
 from mcdreforged.api.all import *
@@ -16,13 +17,20 @@ class ExportFailures:
 		self.__fail_soft = fail_soft
 		self.failures: List[ExportFailure] = []
 
-	def add_or_raise(self, file: Union[FileInfo, schema.File], error: Exception):
+	def __add_or_raise(self, file: Union[FileInfo, schema.File], error: Exception):
 		if self.__fail_soft:
 			if isinstance(file, schema.File):
 				file = FileInfo.of(file)
 			self.failures.append(ExportFailure(file, error))
 		else:
-			raise error
+			raise error from None
+
+	@contextlib.contextmanager
+	def handling_exception(self, file: schema.File):
+		try:
+			yield
+		except Exception as e:
+			self.__add_or_raise(file, e)
 
 	def __len__(self) -> int:
 		return len(self.failures)

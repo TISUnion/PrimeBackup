@@ -1,6 +1,7 @@
 import contextlib
 import json
 import os
+import queue
 import shutil
 import stat
 import tarfile
@@ -23,8 +24,9 @@ from prime_backup.exceptions import PrimeBackupError, VerificationError
 from prime_backup.types.backup_meta import BackupMeta
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.tar_format import TarFormat
-from prime_backup.utils import file_utils, blob_utils, misc_utils, hash_utils, path_utils, platform_utils
+from prime_backup.utils import file_utils, blob_utils, misc_utils, hash_utils, path_utils, platform_utils, collection_utils
 from prime_backup.utils.bypass_io import BypassReader
+from prime_backup.utils.thread_pool import FailFastThreadPool
 
 
 class _ExportInterrupted(PrimeBackupError):
@@ -154,14 +156,16 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			else:
 				os.utime(file_path, times)
 
-	def __export_file(self, item: _ExportItem, trash_bin: _TrashBin, exported_directories: List[Tuple[schema.File, Path]]):
+	def __prepare_for_export(self, item: _ExportItem, trash_bin: _TrashBin):
+		file_path = self.output_path / item.path
+		if os.path.lexists(file_path):
+			trash_bin.add(file_path, item.path)
+		file_path.parent.mkdir(parents=True, exist_ok=True)
+
+	def __export_file(self, item: _ExportItem, exported_directories: queue.Queue[Tuple[schema.File, Path]]):
 		file = item.file
 		file_path = self.output_path / item.path
 
-		if os.path.lexists(file_path):
-			trash_bin.add(file_path, item.path)
-
-		file_path.parent.mkdir(parents=True, exist_ok=True)
 		if stat.S_ISREG(file.mode):
 			self.logger.debug('write file {}'.format(file.path))
 			blob_path = blob_utils.get_blob_path(file.blob_hash)
@@ -186,7 +190,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		elif stat.S_ISDIR(file.mode):
 			self.logger.debug('write dir {}'.format(file.path))
 			file_path.mkdir(parents=True, exist_ok=True)
-			exported_directories.append((file, file_path))
+			exported_directories.put((file, file_path))
 
 		elif stat.S_ISLNK(file.mode):
 			link_target = file.content.decode('utf8')
@@ -248,20 +252,28 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 					if os.path.lexists(target_path):
 						trash_bin.add(target_path, Path(target))
 
-			exported_directories: List[Tuple[schema.File, Path]] = []
 			for item in export_items:
-				try:
-					self.__export_file(item, trash_bin, exported_directories)
-				except Exception as e:
-					failures.add_or_raise(item.file, e)
+				with failures.handling_exception(item.file):
+					self.__prepare_for_export(item, trash_bin)
+
+			directories: queue.Queue[Tuple[schema.File, Path]] = queue.Queue()
+			with FailFastThreadPool('export') as pool:
+				def export_worker(item_: ExportBackupToDirectoryAction._ExportItem):
+					with failures.handling_exception(item_.file):
+						self.__export_file(item_, directories)
+
+				for item in export_items:
+					pool.submit(export_worker, item)
 
 			# child dir first
 			# reference: tarfile.TarFile.extractall
-			for dir_file, dir_file_path in sorted(exported_directories, key=lambda d: d[0].path, reverse=True):
-				try:
+			for dir_file, dir_file_path in sorted(
+					collection_utils.drain_queue(directories),
+					key=lambda d: d[0].path,
+					reverse=True,
+			):
+				with failures.handling_exception(dir_file):
 					self.__set_attrs(dir_file, dir_file_path)
-				except Exception as e:
-					failures.add_or_raise(dir_file, e)
 
 		except Exception:
 			self.logger.warning('Error occurs during export to directory, applying rollback')
@@ -391,10 +403,9 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 					if self.is_interrupted.is_set():
 						self.logger.info('Export to tarfile interrupted')
 						raise _ExportInterrupted()
-					try:
+
+					with failures.handling_exception(file):
 						self.__export_file(tar, file)
-					except Exception as e:
-						failures.add_or_raise(file, e)
 
 				if self.create_meta:
 					meta_buf = self._create_meta_buf(backup)
@@ -469,10 +480,9 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 					if self.is_interrupted.is_set():
 						self.logger.info('Export to zipfile interrupted')
 						raise _ExportInterrupted()
-					try:
+
+					with failures.handling_exception(file):
 						self.__export_file(zipf, file)
-					except Exception as e:
-						failures.add_or_raise(file, e)
 
 				if self.create_meta:
 					meta_buf = self._create_meta_buf(backup)

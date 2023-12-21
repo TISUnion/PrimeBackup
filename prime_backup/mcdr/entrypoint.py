@@ -29,6 +29,7 @@ def __check_config(server: PluginServerInterface):
 
 	if (cm := config.backup.compress_method) == CompressMethod.lzma:
 		server.logger.warning('WARN: Using {} as the compress method might significantly increase the backup time'.format(cm.name))
+	cm.value.ensure_lib()
 
 
 def is_enabled() -> bool:

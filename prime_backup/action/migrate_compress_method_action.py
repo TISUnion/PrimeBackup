@@ -11,7 +11,7 @@ from prime_backup.db.session import DbSession
 from prime_backup.types.size_diff import SizeDiff
 from prime_backup.utils import blob_utils
 
-_MIGRATING_BLOB_SUFFIX = '_migrate'
+_OLD_BLOB_SUFFIX = '_old'
 
 
 class MigrateCompressMethodAction(Action[SizeDiff]):
@@ -23,9 +23,9 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 
 	@classmethod
 	def __get_blob_paths(cls, h: str) -> Tuple[Path, Path]:
-		old_path = blob_utils.get_blob_path(h)
-		new_path = old_path.parent / (old_path.name + _MIGRATING_BLOB_SUFFIX)
-		return old_path, new_path
+		blob_path = blob_utils.get_blob_path(h)
+		old_trash_path = blob_path.parent / (blob_path.name + _OLD_BLOB_SUFFIX)
+		return blob_path, old_trash_path
 
 	def __migrate_blob(self, blob: schema.Blob) -> bool:
 		new_compress_method = self.config.backup.get_compress_method_from_size(blob.raw_size, compress_method_override=self.new_compress_method)
@@ -34,9 +34,10 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 		if decompressor.get_method() == compressor.get_method():
 			return False
 
-		old_path, new_path = self.__get_blob_paths(blob.hash)
-		with decompressor.open_decompressed(old_path) as f_src:
-			with compressor.open_compressed_bypassed(new_path) as (writer, f_dst):
+		blob_path, old_trash_path = self.__get_blob_paths(blob.hash)
+		blob_path.replace(old_trash_path)
+		with decompressor.open_decompressed(old_trash_path) as f_src:
+			with compressor.open_compressed_bypassed(blob_path) as (writer, f_dst):
 				shutil.copyfileobj(f_src, f_dst)
 
 		blob.compress = new_compress_method.name
@@ -63,15 +64,16 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 			backup = backups[backup_id]
 			backup.file_stored_size_sum = session.calc_file_stored_size_sum(backup.id)
 
-	def __finalize_blobs_change(self):
+	def __erase_old_blobs(self):
 		for h in self.__migrated_blob_hashes:
-			old_path, new_path = self.__get_blob_paths(h)
-			new_path.replace(old_path)
+			_, old_trash_path = self.__get_blob_paths(h)
+			old_trash_path.unlink()
 
-	def __clean_up_remaining(self):
+	def __rollback(self):
 		for h in self.__migrated_blob_hashes:
-			_, new_path = self.__get_blob_paths(h)
-			new_path.unlink(missing_ok=True)
+			blob_path, old_trash_path = self.__get_blob_paths(h)
+			if old_trash_path.is_file():
+				old_trash_path.replace(blob_path)
 
 	def run(self) -> SizeDiff:
 		# Notes: requires 2x disk usage of the blob store, stores all blob hashes in memory
@@ -79,6 +81,10 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 		self.logger.info('Migrating compress method to {} (compress threshold = {})'.format(self.new_compress_method.name, self.config.backup.compress_threshold))
 
 		try:
+			# Blob operation steps:
+			# 1. move xxx -> xxx_old
+			# 2. copy xxx_old --[migrate]-> xxx
+			# 3. delete xxx_old
 			with DbAccess.open_session() as session:
 				# 0. fetch information before the migration
 				t = time.time()
@@ -103,19 +109,22 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 					self.__update_backups(session)
 					session.flush_and_expunge_all()
 
-					# 4. finalize blob file change
-					self.logger.info('Finalizing blob file change')
-					self.__finalize_blobs_change()
-					session.flush_and_expunge_all()
-
-				# 5. output
+				# 4. output
 				after_size = session.get_blob_stored_size_sum()
+
+		except Exception:
+			self.logger.warning('Error occurs during compress method migration, applying rollback')
+			self.__rollback()
+			raise
+
+		else:
+			# 5. migration done, do some cleanup
+			self.logger.info('Cleaning up old blobs')
+			self.__erase_old_blobs()
 
 			self.config.backup.compress_method = self.new_compress_method
 			self.logger.info('Compress method migration done, cost {}s'.format(round(time.time() - t, 2)))
 			return SizeDiff(before_size, after_size)
 
 		finally:
-			if len(self.__migrated_blob_hashes) > 0:
-				self.__clean_up_remaining()
 			self.__migrated_blob_hashes.clear()

@@ -9,7 +9,6 @@ import stat
 import threading
 import time
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set, Deque, ContextManager
 
@@ -24,6 +23,7 @@ from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, path_utils
+from prime_backup.utils.thread_pool import FailFastThreadPool
 
 
 class VolatileBlobFile(PrimeBackupError):
@@ -232,7 +232,7 @@ class CreateBackupAction(CreateBackupActionBase):
 
 		return _ScanResult(all_file_paths=collected, root_targets=list(scanned_targets.keys()))
 
-	def __pre_calculate_hash(self, session: DbSession, scan_result: _ScanResult, concurrency: int):
+	def __pre_calculate_hash(self, session: DbSession, scan_result: _ScanResult):
 		stats = self.__pre_calc_result.stats
 		hashes = self.__pre_calc_result.hashes
 		stats.clear()
@@ -254,18 +254,15 @@ class CreateBackupAction(CreateBackupActionBase):
 			with hash_dict_lock:
 				hashes[pth] = h
 
-		with ThreadPoolExecutor(max_workers=concurrency, thread_name_prefix=misc_utils.make_thread_name('hasher')) as pool:
-			futures = []
+		with FailFastThreadPool(name='hasher') as pool:
 			for path in scan_result.all_file_paths:
 				st = stats[path]
 				if stat.S_ISREG(st.st_mode):
 					if existence[st.st_size]:
 						# we need to hash the file, sooner or later
-						futures.append(pool.submit(hash_worker, path))
+						pool.submit(hash_worker, path)
 					else:
 						pass  # will use hash_once policy
-			for future in futures:
-				future.result()
 
 	def __get_or_create_blob(self, session: DbSession, src_path: Path, st: os.stat_result) -> Generator[Any, Any, Tuple[schema.Blob, os.stat_result]]:
 		src_path_str = repr(src_path.as_posix())
@@ -505,8 +502,8 @@ class CreateBackupAction(CreateBackupActionBase):
 				)
 				self.logger.info('Creating backup {} on {}'.format(backup, scan_result.root_targets))
 
-				if (concurrency := self.config.get_concurrency()) > 1:
-					self.__pre_calculate_hash(session, scan_result, concurrency)
+				if self.config.get_effective_concurrency() > 1:
+					self.__pre_calculate_hash(session, scan_result)
 					self.logger.info('Pre-calculate all file hash done')
 
 				blob_utils.prepare_blob_directories()

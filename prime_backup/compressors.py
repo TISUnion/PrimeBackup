@@ -1,7 +1,5 @@
 import contextlib
 import enum
-import gzip
-import lzma
 import shutil
 from abc import abstractmethod, ABC
 from typing import BinaryIO, Union, ContextManager, NamedTuple, Tuple
@@ -182,12 +180,14 @@ class _GzipLikeCompressorBase(Compressor, ABC):
 class GzipCompressor(_GzipLikeCompressorBase):
 	@classmethod
 	def _lib(cls):
+		import gzip
 		return gzip
 
 
 class LzmaCompressor(_GzipLikeCompressorBase):
 	@classmethod
 	def _lib(cls):
+		import lzma
 		return lzma
 
 

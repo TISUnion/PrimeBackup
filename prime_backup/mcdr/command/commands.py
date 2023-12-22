@@ -245,11 +245,11 @@ class CommandManager:
 
 		def create_subcommand(literal: str) -> Literal:
 			node = Literal(literal)
-			node.requires(get_permission_checker('back'), get_permission_denied_text)
+			node.requires(get_permission_checker(literal), get_permission_denied_text)
 			return node
 
-		def create_backup_id(arg_: str = 'backup_id', clazz: Type[Integer] = Integer) -> Integer:
-			return clazz(arg_).at_min(1).suggests(self.suggest_backup_id)
+		def create_backup_id(arg_name: str = 'backup_id', clazz: Type[Integer] = Integer) -> Integer:
+			return clazz(arg_name).at_min(1).suggests(self.suggest_backup_id)
 
 		# --------------- simple commands ---------------
 

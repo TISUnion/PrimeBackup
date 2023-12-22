@@ -3,8 +3,6 @@ import logging
 from pathlib import Path
 from typing import ContextManager
 
-from prime_backup import constants
-
 LOG_FORMATTER = logging.Formatter('[%(asctime)s %(levelname)s] (%(funcName)s) %(message)s')
 LOG_FORMATTER_NO_FUNC = logging.Formatter('[%(asctime)s %(levelname)s] %(message)s')
 
@@ -20,6 +18,7 @@ def __get_log_file_path(file_name: str) -> Path:
 
 
 def create_file_logger(name: str) -> logging.Logger:
+	from prime_backup import constants
 	logger = logging.Logger(f'{constants.PLUGIN_ID}-{name}', __get_log_mode())
 	log_file = __get_log_file_path(f'{name}.log')
 	log_file.parent.mkdir(parents=True, exist_ok=True)

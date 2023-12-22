@@ -1,11 +1,13 @@
 from pathlib import Path
-from typing import NamedTuple, IO, Optional
+from typing import NamedTuple, IO, Optional, TYPE_CHECKING
 
-from prime_backup.types.hash_method import Hasher, HashMethod
 from prime_backup.utils.bypass_io import BypassReader
 
+if TYPE_CHECKING:
+	from prime_backup.types.hash_method import Hasher, HashMethod
 
-def create_hasher(*, hash_method: Optional[HashMethod] = None) -> 'Hasher':
+
+def create_hasher(*, hash_method: Optional['HashMethod'] = None) -> 'Hasher':
 	if hash_method is None:
 		from prime_backup.db.access import DbAccess
 		hash_method = DbAccess.get_hash_method()
@@ -23,7 +25,7 @@ class SizeAndHash(NamedTuple):
 def calc_reader_size_and_hash(
 		file_obj: IO[bytes], *,
 		buf_size: int = _READ_BUF_SIZE,
-		hash_method: Optional[HashMethod] = None,
+		hash_method: Optional['HashMethod'] = None,
 ) -> SizeAndHash:
 	reader = BypassReader(file_obj, True, hash_method=hash_method)
 	while reader.read(buf_size):

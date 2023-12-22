@@ -3,6 +3,8 @@ import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor, Future
 
+from prime_backup.utils import misc_utils
+
 
 class FailFastThreadPool(ThreadPoolExecutor):
 	"""
@@ -11,7 +13,6 @@ class FailFastThreadPool(ThreadPoolExecutor):
 	- no more tasks will be executed after the exception raises
 	"""
 	def __init__(self, name: str):
-		from prime_backup.utils import misc_utils
 		from prime_backup.config.config import Config
 		thread_name_prefix = misc_utils.make_thread_name(name)
 		max_workers: int = Config.get().get_effective_concurrency()

@@ -3,11 +3,9 @@ from typing import Union, Any
 
 from mcdreforged.api.all import *
 
-from prime_backup import constants
-from prime_backup.config.config import Config
-
 
 def tr(key: str, *args, **kwargs) -> RTextBase:
+	from prime_backup import constants
 	return ServerInterface.si().rtr(constants.PLUGIN_ID + '.' + key, *args, **kwargs)
 
 
@@ -23,6 +21,7 @@ class TranslationContext(ABC):
 
 
 def mkcmd(s: str) -> str:
+	from prime_backup.config.config import Config
 	cmd = Config.get().command.prefix
 	if len(s) > 0:
 		cmd += ' ' + s

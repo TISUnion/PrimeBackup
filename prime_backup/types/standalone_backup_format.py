@@ -2,8 +2,8 @@ import enum
 import os
 from typing import NamedTuple, Optional, List
 
-from prime_backup.types.common import PathLike
 from prime_backup.types.tar_format import TarFormat
+from prime_backup.utils.path_like import PathLike
 
 
 class ZipFormat(NamedTuple):

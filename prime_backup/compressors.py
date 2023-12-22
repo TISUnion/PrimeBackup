@@ -6,8 +6,8 @@ from typing import BinaryIO, Union, ContextManager, NamedTuple, Tuple
 
 from typing_extensions import Protocol
 
-from prime_backup.types.common import PathLike
 from prime_backup.utils.bypass_io import BypassReader, BypassWriter
+from prime_backup.utils.path_like import PathLike
 
 
 class Compressor(ABC):

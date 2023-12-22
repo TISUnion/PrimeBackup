@@ -2,8 +2,8 @@ from pathlib import Path
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
-from prime_backup.types.common import PathLike
 from prime_backup.types.file_info import FileInfo
+from prime_backup.utils.path_like import PathLike
 
 
 class GetFileAction(Action[FileInfo]):

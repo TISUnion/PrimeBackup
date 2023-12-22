@@ -230,9 +230,6 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 					continue
 				add_export_item(file, Path(self.child_to_export.name) / rel_path)
 
-		# parent dir first, so self.__export_file will add parent to trash-bin first
-		export_items.sort(key=lambda ei: ei.path_posix)
-
 		# 2. do the export
 
 		self.output_path.mkdir(parents=True, exist_ok=True)
@@ -261,6 +258,8 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 					if os.path.lexists(target_path):
 						trash_bin.add(target_path, Path(target))
 
+			# parent dir first, so the parent will be added to trash-bin first
+			export_items.sort(key=lambda ei: ei.path_posix)
 			for item in export_items:
 				with failures.handling_exception(item.file):
 					self.__prepare_for_export(item, trash_bin)

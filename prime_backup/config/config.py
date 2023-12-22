@@ -36,7 +36,7 @@ class Config(Serializable):
 			return cls.__get_default()
 		return _config
 
-	def get_concurrency(self) -> int:
+	def get_effective_concurrency(self) -> int:
 		if self.concurrency == 0:
 			import multiprocessing
 			return max(1, int(multiprocessing.cpu_count() * 0.5))

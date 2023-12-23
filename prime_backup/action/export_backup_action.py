@@ -162,7 +162,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			trash_bin.add(file_path, item.path)
 		file_path.parent.mkdir(parents=True, exist_ok=True)
 
-	def __export_file(self, item: _ExportItem, exported_directories: queue.Queue[Tuple[schema.File, Path]]):
+	def __export_file(self, item: _ExportItem, exported_directories: 'queue.Queue[Tuple[schema.File, Path]]'):
 		file = item.file
 		file_path = self.output_path / item.path
 
@@ -264,7 +264,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 				with failures.handling_exception(item.file):
 					self.__prepare_for_export(item, trash_bin)
 
-			directories: queue.Queue[Tuple[schema.File, Path]] = queue.Queue()
+			directories: 'queue.Queue[Tuple[schema.File, Path]]' = queue.Queue()
 			with FailFastThreadPool('export') as pool:
 				def export_worker(item_: ExportBackupToDirectoryAction._ExportItem):
 					with failures.handling_exception(item_.file):

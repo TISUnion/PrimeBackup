@@ -19,8 +19,8 @@ class FailFastThreadPool(ThreadPoolExecutor):
 
 		super().__init__(max_workers=max_workers, thread_name_prefix=thread_name_prefix)
 		self.__sem = threading.Semaphore(max_workers)
-		self.__all_futures: queue.Queue[Future] = queue.Queue()
-		self.__error_futures: queue.Queue[Future] = queue.Queue()
+		self.__all_futures: 'queue.Queue[Future]' = queue.Queue()
+		self.__error_futures: 'queue.Queue[Future]' = queue.Queue()
 
 	def submit(self, __fn, *args, **kwargs):
 		func = functools.partial(__fn, *args, **kwargs)

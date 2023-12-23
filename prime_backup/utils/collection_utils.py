@@ -22,7 +22,7 @@ def deduplicated_list(lst: List[T]) -> List[T]:
 	return list(dict.fromkeys(lst).keys())
 
 
-def drain_queue(q: queue.Queue[T]) -> Iterator[T]:
+def drain_queue(q: 'queue.Queue[T]') -> Iterator[T]:
 	while True:
 		try:
 			yield q.get(block=False)

@@ -79,7 +79,7 @@ class DbAccess:
 	@contextlib.contextmanager
 	def open_session(cls) -> ContextManager['DbSession']:
 		with Session(cls.__ensure_engine()) as session, session.begin():
-			yield DbSession(session)
+			yield DbSession(session, cls.__db_file_path)
 
 	@classmethod
 	@contextlib.contextmanager

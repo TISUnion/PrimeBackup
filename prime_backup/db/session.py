@@ -1,18 +1,25 @@
 import contextlib
 import functools
+import shutil
+import sqlite3
 import time
-from typing import Optional, Sequence, Dict, ContextManager, Iterator
+from pathlib import Path
+from typing import Optional, Sequence, Dict, ContextManager, Iterator, Callable
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text
 from sqlalchemy.orm import Session
 
-from prime_backup.db import schema, db_constants, db_utils
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound
+from prime_backup.db import schema, db_constants
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, PrimeBackupError
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
-from prime_backup.utils import collection_utils
+from prime_backup.utils import collection_utils, db_utils
 
 T = TypeVar('T')
+
+
+class UnsupportedDatabaseOperation(PrimeBackupError):
+	pass
 
 
 # make type checker happy
@@ -29,21 +36,30 @@ def _int_or_0(value: Optional[int]) -> int:
 
 
 class DbSession:
-	def __init__(self, session: Session):
+	def __init__(self, session: Session, db_path: Path = None):
 		self.session = session
+		self.db_path = db_path
 
 		# the limit in old sqlite (https://www.sqlite.org/limits.html#max_variable_number)
 		self.__safe_var_limit = 999 - 20
 
 	@classmethod
-	@functools.lru_cache
-	def __supports_json_query(cls) -> bool:
-		is_supported = db_utils.check_sqlite_json_query_support()
-		if not is_supported:
+	def __check_support(cls, check_func: Callable[[], bool], msg: str):
+		if not (is_supported := check_func()):
 			from prime_backup import logger
 			import sqlite3
-			logger.get().warning(f'WARN: SQLite backend does not support json query. Inefficient manual query is used as the fallback. SQLite version: {sqlite3.sqlite_version}')
+			logger.get().warning(f'WARN: {msg}. SQLite version: {sqlite3.sqlite_version}')
 		return is_supported
+
+	@classmethod
+	@functools.lru_cache
+	def __supports_json_query(cls) -> bool:
+		return cls.__check_support(db_utils.check_sqlite_json_query_support, 'SQLite backend does not support json query. Inefficient manual query is used as the fallback')
+
+	@classmethod
+	@functools.lru_cache
+	def __supports_vacuum_into(cls) -> bool:
+		return cls.__check_support(db_utils.check_sqlite_vacuum_into_support, 'SQLite backend does not support VACUUM INTO statement. Insecure manual file copy is used as the fallback')
 
 	# ========================= General Database Operations =========================
 
@@ -71,10 +87,19 @@ class DbSession:
 		with self.session.no_autoflush:
 			yield
 
-	def vacuum(self, into_file: Optional[str] = None):
+	def vacuum(self, into_file: Optional[str] = None, allow_vacuum_into_fallback: bool = True):
 		# https://www.sqlite.org/lang_vacuum.html
 		if into_file is not None:
-			self.session.execute(text(f"VACUUM INTO '{into_file}'"))
+			if self.__supports_vacuum_into():
+				self.session.execute(text('VACUUM INTO :into_file').bindparams(into_file=str(into_file)))
+			elif allow_vacuum_into_fallback:
+				self.session.execute(text('VACUUM'))
+				self.session.commit()
+				if self.db_path is None:
+					raise RuntimeError('db_path undefined')
+				shutil.copyfile(self.db_path, into_file)
+			else:
+				raise UnsupportedDatabaseOperation('current sqlite version {} does not support "VACUUM INTO" statement'.format(sqlite3.sqlite_version))
 		else:
 			self.session.execute(text('VACUUM'))
 

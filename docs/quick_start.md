@@ -75,7 +75,7 @@ It's a json file, so you need to follow the json syntax to edit it
 
 Here are a few important things in the config file:
 
-1. [Backup target](config.md#targets), i.e. the directories / files you want to create backup on. 
+1. [Backup target](config.md#targets), i.e. the directories / files you want to backup. 
     You need to change the `"world"` in the `targets` array to your world directory name
 
     ```json
@@ -91,7 +91,7 @@ Here are a few important things in the config file:
     }
     ```
 
-    In addition, if you are using bukkit-like servers that split the world dimensions, you might want to use something like this:
+    In addition, if you have multiple world folders (by default on bukkit-like servers), you should add them all:
 
      ```json
      "targets": [

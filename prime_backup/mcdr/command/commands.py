@@ -379,7 +379,7 @@ class CommandManager:
 			node = create_subcommand('list')
 			node.runs(self.cmd_list)
 			node.then(Integer('page').at_min(1).redirects(node))
-			node.then(Literal('--per-page').then(Integer('per_page').in_range(1, 20).redirects(node)))
+			node.then(Literal('--per-page').then(Integer('per_page').in_range(1, 1000).redirects(node)))
 			node.then(Literal('--creator').then(QuotableText('creator').redirects(node)))
 			node.then(Literal('--from').then(DateNode('start_date').redirects(node)))
 			node.then(Literal('--to').then(DateNode('end_date').redirects(node)))

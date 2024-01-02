@@ -392,7 +392,7 @@ class DbSession:
 
 	def get_backups(self, backup_ids: List[int]) -> Dict[int, schema.Backup]:
 		"""
-		:return: a dict, backup id -> optional Backup. All id hashes are in the dict
+		:return: a dict, backup id -> optional Backup. All given ids are in the dict
 		"""
 		result: Dict[int, Optional[schema.Backup]] = {bid: None for bid in backup_ids}
 		for view in collection_utils.slicing_iterate(backup_ids, self.__safe_var_limit):
@@ -416,7 +416,7 @@ class DbSession:
 		s = select(schema.Backup)
 		if backup_filter is not None:
 			s = self.__apply_backup_filter(s, backup_filter)
-		s = s.order_by(desc(schema.Backup.id))
+		s = s.order_by(desc(schema.Backup.timestamp), desc(schema.Backup.id))
 
 		if self.__needs_manual_backup_tag_filter(backup_filter):
 			backups = [backup for backup in self.session.execute(s).scalars().all() if self.__manual_backup_tag_filter(backup, backup_filter)]

@@ -91,7 +91,7 @@ Here are a few important things in the config file:
     }
     ```
 
-    In addition, if you have multiple world folders (by default on bukkit-like servers), you should add them all:
+    In addition, if you have multiple world folders (by default on bukkit-like servers), you should add these all:
 
      ```json
      "targets": [

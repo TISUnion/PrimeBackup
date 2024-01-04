@@ -63,7 +63,7 @@ prime_backup:
       start: 正在从{}导入备份, 使用格式{}
       backup_metadata_not_found: '备份导入失败, 文件{}中不存在可用的备份元数据: {}'
       backup_metadata_not_found.suggestion:
-        请确保要导入的备份是一个由{name}导出的备份。你也可以带上参数§7--no-meta§r来自动生成新的元数据
+        请确保要导入的备份是一个由{name}导出的备份。你也可以带上参数§7--auto-meta§r来自动生成新的元数据
       done: '已从{}导入备份, ID {}'
     backup_export:
       name: 导出备份
@@ -366,11 +366,13 @@ prime_backup:
         import: |-
           §d【import指令帮助】§r
           从给定路径导入一个外部的备份
-          §7{prefix} import §3<文件路径> §3[<备份格式>]§r
+          §7{prefix} import §3<文件路径> §3[<备份格式>] §7[--可选参数]§r
           §d【参数帮助】§r
           §3<文件路径>§r: 需要导入的备份文件的路径。可以是一个绝对路径，或者一个相对路径 (相对 MCDR 的根目录)。
           如果路径中含有空格字符，你需要把整个路径用英文双引号包起来
           §3<备份格式>§r: 可用选项: {backup_formats}。若未指定，则尝试从文件名推断
+          §d【可选参数】§r
+          §7--auto-meta§r: 若备份元信息数据文件不存在，基于文件内容自动生成一个
           §d【例子】§r
           §7{prefix} import /path/to/the/backup.tar.gz§r
           §7{prefix} import /path/to/a/tarball/foo.bar tar§r

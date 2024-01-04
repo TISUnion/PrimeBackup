@@ -70,7 +70,7 @@ prime_backup:
       start: Importing backup from {} with format {}
       backup_metadata_not_found: 'Backup import failed, no valid backup metadata in file {}: {}'
       backup_metadata_not_found.suggestion:
-        Please ensure that the importing backup is a backup exported by {name}. You can also use the optional argument §7--no-meta§r to generate a new metadata automatically
+        Please ensure that the importing backup is a backup exported by {name}. You can also use the optional argument §7--auto-meta§r to generate a new metadata automatically
       done: 'Backup imported from {}, ID {}'
     backup_list:
       name: list backup
@@ -366,11 +366,13 @@ prime_backup:
         import: |-
           §d[import Command Usage]§r
           Import an external backup from a given file path
-          §7{prefix} import §3<file_path> §3[<backup_format>]§r
+          §7{prefix} import §3<file_path> §3[<backup_format>] §7[--flags]§r
           §d[Arguments]§r
           §3<file_path>§r: Path of to the backup file to import. It can be an absolute path, or a related path (related to MCDR root directory).
           If the path contains space character, you need to wrap the whole path with double quotes,
           §3<backup_format>§r: Available options: {backup_formats}. If not specified, try inferring from the file name
+          §d[Optional flags]§r
+          §7--auto-meta§r: If the backup metadata file does not exist, create an auto-generated one based on the file content
           §d[Examples]§r
           §7{prefix} import /path/to/the/backup.tar.gz§r
           §7{prefix} import /path/to/a/tarball/foo.bar tar§r

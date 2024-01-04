@@ -130,10 +130,10 @@ class CliHandler:
 
 		logger.info('Importing backup from {}, format: {}'.format(str(input_path.as_posix()), fmt.name))
 		try:
-			ImportBackupAction(input_path, fmt, ensure_meta=not self.args.no_meta).run()
+			ImportBackupAction(input_path, fmt, ensure_meta=not self.args.auto_meta).run()
 		except BackupMetadataNotFound as e:
 			logger.error('Import failed due to backup metadata not found: {}'.format(e))
-			logger.error('Please make sure the file is a valid backup create by Prime Backup. You can also use the --no-meta flag for a workaround')
+			logger.error('Please make sure the file is a valid backup create by Prime Backup. You can also use the --auto-meta flag for a workaround')
 
 	def cmd_export(self):
 		output_path = Path(self.args.output)
@@ -206,11 +206,11 @@ class CliHandler:
 		parser_show = subparsers.add_parser('show', help=desc, description=desc)
 		parser_show.add_argument('backup_id', type=int, help='The ID of the backup to export')
 
-		desc = 'Import a backup from the given file. The backup file needs to have a backup metadata file {!r}, or the --no-meta flag need to be supplied'.format(constants.BACKUP_META_FILE_NAME)
+		desc = 'Import a backup from the given file. The backup file needs to have a backup metadata file {!r}, or the --auto-meta flag need to be supplied'.format(constants.BACKUP_META_FILE_NAME)
 		parser_import = subparsers.add_parser('import', help=desc, description=desc)
 		parser_import.add_argument('input', help='The file name of the backup to be imported. Example: my_backup.tar')
 		parser_import.add_argument('-f', '--format', help='The format of the input file. If not given, attempt to infer from the input file name. Options: {}'.format(enum_options(StandaloneBackupFormat)))
-		parser_import.add_argument('--no-meta', action='store_true', help='If the backup metadata file does not exist, create an auto-generated one based on the file content')
+		parser_import.add_argument('--auto-meta', action='store_true', help='If the backup metadata file does not exist, create an auto-generated one based on the file content')
 
 		desc = 'Export the given backup to a single file'
 		parser_export = subparsers.add_parser('export', help=desc, description=desc)

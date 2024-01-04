@@ -175,7 +175,7 @@ class CommandManager:
 	def cmd_import(self, source: CommandSource, context: CommandContext):
 		file_path = Path(context['file_path'])
 		backup_format = context.get('backup_format')
-		ensure_meta = context.get('no_meta', 0) == 0
+		ensure_meta = context.get('auto_meta', 0) == 0
 		self.task_manager.add_task(ImportBackupTask(source, file_path, backup_format, ensure_meta=ensure_meta))
 
 	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
@@ -371,7 +371,7 @@ class CommandManager:
 			node_sc.then(node_fp)
 			node_fp.then(node_bf)
 			for node in [node_fp, node_bf]:
-				node.then(CountingLiteral('--no-meta', 'no_meta').redirects(node))
+				node.then(CountingLiteral('--auto-meta', 'auto_meta').redirects(node))
 				node.runs(self.cmd_import)
 			return node_sc
 

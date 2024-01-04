@@ -72,16 +72,16 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 			hash_to_blobs[blob.hash] = blob
 
 		with FailFastThreadPool('validator') as pool:
-			for blob in blobs:
+			for b in blobs:
 				if self.is_interrupted.is_set():
 					break
 				result.validated += 1
-				pool.submit(validate_one_blob, blob)
+				pool.submit(validate_one_blob, b)
 
 		orphan_hashes = set(session.filtered_orphan_blob_hashes(list(hash_to_blobs.keys())))
-		for h, blob in hash_to_blobs.items():
+		for h, b in hash_to_blobs.items():
 			if h in orphan_hashes:
-				result.orphan.append(BadBlobItem(blob, f'orphan blob with 0 associated file, hash {h}'))
+				result.orphan.append(BadBlobItem(b, f'orphan blob with 0 associated file, hash {h}'))
 			else:
 				result.ok += 1
 

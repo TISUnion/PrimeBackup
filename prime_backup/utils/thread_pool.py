@@ -10,7 +10,7 @@ class FailFastThreadPool(ThreadPoolExecutor):
 	"""
 	A thread pool that:
 	- makes exception raise as soon as possible
-	- no more tasks will be executed after the exception raises
+	- no more task will be submitted after an exception raises
 	"""
 	def __init__(self, name: str):
 		from prime_backup.config.config import Config

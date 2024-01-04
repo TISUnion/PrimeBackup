@@ -268,9 +268,9 @@ class TextComponents:
 	@classmethod
 	def operator(cls, op: Operator) -> RTextBase:
 		tr_key = f'operator.{op.type}'
-		if op.type in ['player', 'command_source', 'unknown']:
+		if op.type in ['player', 'command_source']:
 			return cls.tr(tr_key, op.name)
-		elif op.type in ['console']:
+		elif op.type in ['console', 'unknown']:
 			return cls.tr(tr_key)
 		elif op.type == constants.PLUGIN_ID:
 			from prime_backup.mcdr import mcdr_globals

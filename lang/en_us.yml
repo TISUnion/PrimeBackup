@@ -373,6 +373,7 @@ prime_backup:
           §3<backup_format>§r: Available options: {backup_formats}. If not specified, try inferring from the file name
           §d[Optional flags]§r
           §7--auto-meta§r: If the backup metadata file does not exist, create an auto-generated one based on the file content
+          §7--meta-override §e<meta_json>§r: An optional json object string. It overrides the metadata of the imported backup, regardless of whether the backup metadata file exists or not
           §d[Examples]§r
           §7{prefix} import /path/to/the/backup.tar.gz§r
           §7{prefix} import /path/to/a/tarball/foo.bar tar§r
@@ -451,6 +452,11 @@ prime_backup:
       bad_date: Bad input date
       bad_id_range: Bad ID Range
       bad_hex_string: Bad hex string
+      invalid_json:
+        empty: Empty input
+        prefix: '"{{" prefix not found'
+        suffix: '"}}" suffix not found'
+        value: 'Json decode error: {}'
     permission_denied: Permission denied
     too_much_ongoing_task:
       exclusive: 'Please wait for the ongoing task {} to finish'
@@ -500,9 +506,10 @@ prime_backup:
       player: Player {}
       console: Console
       command_source: Command source {}
-      unknown: '(Unknown) {}'
+      unknown: Unknown
       prime_backup:
         .: Prime Backup
+        import: Import
         test: Test
         scheduled_backup: Scheduled backup
         pre_restore: Automatic backup before restore

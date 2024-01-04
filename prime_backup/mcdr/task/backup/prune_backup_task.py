@@ -17,6 +17,7 @@ from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.operator import PrimeBackupOperatorNames
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import misc_utils, log_utils
 
@@ -320,7 +321,7 @@ def __main():
 		from prime_backup.types.operator import Operator
 		backups.append(BackupInfo(
 			id=id_counter, timestamp_ns=int(dt.timestamp() * 1e9),
-			creator=Operator.pb('test'), comment='', targets=[], tags=BackupTags(), raw_size=0, stored_size=0,
+			creator=Operator.pb(PrimeBackupOperatorNames.test), comment='', targets=[], tags=BackupTags(), raw_size=0, stored_size=0,
 			files=[],
 		))
 

@@ -1,3 +1,4 @@
+import json
 import re
 from typing import NamedTuple, Optional
 
@@ -66,3 +67,44 @@ class HexStringNode(Text):
 		if not self.__pattern.fullmatch(h):
 			raise IllegalArgument(tr('error.node.bad_hex_string'), result.char_read)
 		return ParseResult(h, result.char_read)
+
+
+class InvalidJson(IllegalArgument):
+	pass
+
+
+class JsonObjectNode(ArgumentNode):
+	def parse(self, text: str) -> ParseResult:
+		if len(text) == 0:
+			raise InvalidJson(tr('error.node.invalid_json.empty'), 0)
+		if text[0] != '{':
+			raise InvalidJson(tr('error.node.invalid_json.prefix'), 1)
+
+		in_string = False
+		is_escape = False
+		level = 0
+		for i, c in enumerate(text):
+			if in_string:
+				if is_escape:
+					is_escape = False
+				elif c == '\\':
+					is_escape = True
+				elif c == '"':
+					in_string = False
+			else:
+				if c == '"':
+					in_string = True
+				elif c == '{':
+					level += 1
+				elif c == '}':
+					level -= 1
+					if level == 0:
+						n = i + 1
+						try:
+							data = json.loads(text[:n])
+						except ValueError as e:
+							raise InvalidJson(tr('error.node.invalid_json.value', e), n)
+						else:
+							return ParseResult(data, n)
+
+		raise InvalidJson(tr('error.node.invalid_json.suffix'), len(text))

@@ -358,7 +358,7 @@ prime_backup:
           §7--overwrite§r: 覆盖已存在的备份导出文件。默认情况下，若输出文件已存在则不导出
           §7--fail-soft§r: 在导出过程中跳过导出失败的文件，因此单个文件的失败不会导致整个导出的失败。注意: 损坏的文件可能会破坏tar一类的导出文件
           §7--no-verify§r: 不校验导出文件的内容
-          §7--no-meta§r: 在导出的文件中不添加备份元信息数据文件{backup_meta_file_name}
+          §7--no-meta§r: 在导出的文件中不添加备份元信息文件{backup_meta_file_name}
           §d【例子】§r
           §7{prefix} export 12§r: 使用默认的§3tar§r格式导出备份§612§r
           §7{prefix} export 12 tar_gz§r: 使用§3tar_gz§r格式导出备份§612§r
@@ -372,7 +372,8 @@ prime_backup:
           如果路径中含有空格字符，你需要把整个路径用英文双引号包起来
           §3<备份格式>§r: 可用选项: {backup_formats}。若未指定，则尝试从文件名推断
           §d【可选参数】§r
-          §7--auto-meta§r: 若备份元信息数据文件不存在，基于文件内容自动生成一个
+          §7--auto-meta§r: 若备份元信息文件不存在，基于文件内容自动生成一个
+          §7--meta-override §e<备份元信息json>§r: 一个json对象字符串。若给定，无论备份元信息文件是否存在，都会用给定的值作为导入的备份的元数据内容
           §d【例子】§r
           §7{prefix} import /path/to/the/backup.tar.gz§r
           §7{prefix} import /path/to/a/tarball/foo.bar tar§r
@@ -451,6 +452,11 @@ prime_backup:
       bad_date: 非法日期格式
       bad_id_range: 非法ID范围
       bad_hex_string: 非法的十六进制字符串
+      invalid_json:
+        empty: 空输入
+        prefix: 未找到"{{"前缀
+        suffix: 未找到"}}"后缀
+        value: 'Json解析失败: {}'
     permission_denied: 权限不足
     too_much_ongoing_task:
       exclusive: '请等待当前任务{}完成'
@@ -500,9 +506,10 @@ prime_backup:
       player: 玩家{}
       console: 控制台
       command_source: 指令源{}
-      unknown: '(未知) {}'
+      unknown: 未知
       prime_backup:
         .: Prime Backup
+        import: 导入
         test: 测试
         scheduled_backup: 定时备份
         pre_restore: 回档前的自动备份

@@ -22,6 +22,7 @@ from prime_backup.db.session import DbSession
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_meta import BackupMeta
+from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
@@ -34,6 +35,10 @@ class UnsupportedFormat(PrimeBackupError):
 
 
 class BackupMetadataNotFound(PrimeBackupError):
+	pass
+
+
+class BackupMetadataInvalid(PrimeBackupError):
 	pass
 
 
@@ -271,7 +276,10 @@ class ZipBackupHandler(PackedBackupFileHandler):
 
 
 class ImportBackupAction(CreateBackupActionBase):
-	def __init__(self, file_path: Path, backup_format: Optional[StandaloneBackupFormat] = None, *, ensure_meta: bool = True):
+	def __init__(
+			self, file_path: Path, backup_format: Optional[StandaloneBackupFormat] = None, *,
+			ensure_meta: bool = True, meta_override: Optional[dict] = None,
+	):
 		super().__init__()
 
 		if backup_format is None:
@@ -282,6 +290,7 @@ class ImportBackupAction(CreateBackupActionBase):
 		self.file_path = file_path
 		self.backup_format = backup_format
 		self.ensure_meta = ensure_meta
+		self.meta_override = meta_override
 
 		self.__blob_cache: Dict[str, schema.Blob] = {}
 
@@ -351,15 +360,20 @@ class ImportBackupAction(CreateBackupActionBase):
 	def __import_packed_backup_file(self, session: DbSession, file_holder: PackedBackupFileHandler.FileHolder) -> schema.Backup:
 		meta: Optional[BackupMeta] = None
 
-		if (meta_obj := file_holder.get_member(BACKUP_META_FILE_NAME)) is not None:
+		if self.meta_override is not None:
+			try:
+				meta = BackupMeta.from_dict(self.meta_override)
+			except Exception as e:
+				self.logger.error('Read backup meta from meta_override {!r} failed: {}'.format(self.meta_override, e))
+				raise BackupMetadataInvalid(e)
+		elif (meta_obj := file_holder.get_member(BACKUP_META_FILE_NAME)) is not None:
 			with meta_obj.open() as meta_reader:
 				try:
 					meta_dict = json.load(meta_reader)
 					meta = BackupMeta.from_dict(meta_dict)
 				except Exception as e:
 					self.logger.error('Read backup meta from {!r} failed: {}'.format(BACKUP_META_FILE_NAME, e))
-					if self.ensure_meta:
-						raise BackupMetadataNotFound(e)
+					raise BackupMetadataInvalid(e)
 				else:
 					self.logger.info('Read backup meta from {!r} ok'.format(BACKUP_META_FILE_NAME))
 		else:
@@ -387,6 +401,8 @@ class ImportBackupAction(CreateBackupActionBase):
 				self.logger.warning('Found extra files inside {!r}: {}. They are not included in the targets {}'.format(
 					self.file_path.name, extra_files, meta.targets,
 				))
+		if meta.creator == str(Operator.unknown()):
+			meta.creator = str(Operator.pb(PrimeBackupOperatorNames.import_))
 
 		backup = session.create_backup(**meta.to_backup_kwargs())
 

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class BackupMeta(Serializable):
-	creator: str = str(Operator.pb('import'))
+	creator: str = str(Operator.unknown())
 	comment: str = ''
 	timestamp_ns: int
 	targets: List[str] = []

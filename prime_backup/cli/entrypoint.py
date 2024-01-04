@@ -1,5 +1,6 @@
 import argparse
 import enum
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -128,9 +129,21 @@ class CliHandler:
 		fmt = self.get_ebf(input_path)
 		self.init_environment()
 
+		if self.args.meta_override is not None:
+			try:
+				meta_override = json.loads(self.args.meta_override)
+			except ValueError as e:
+				logger.error('Bad json {!r}: {}'.format(self.args.meta_override, e))
+				sys.exit(1)
+			if not isinstance(meta_override, dict):
+				logger.error('meta_override should be a dict, but found {}: {!r}'.format(type(meta_override), meta_override))
+				sys.exit(1)
+		else:
+			meta_override = None
+
 		logger.info('Importing backup from {}, format: {}'.format(str(input_path.as_posix()), fmt.name))
 		try:
-			ImportBackupAction(input_path, fmt, ensure_meta=not self.args.auto_meta).run()
+			ImportBackupAction(input_path, fmt, ensure_meta=not self.args.auto_meta, meta_override=meta_override).run()
 		except BackupMetadataNotFound as e:
 			logger.error('Import failed due to backup metadata not found: {}'.format(e))
 			logger.error('Please make sure the file is a valid backup create by Prime Backup. You can also use the --auto-meta flag for a workaround')
@@ -211,6 +224,7 @@ class CliHandler:
 		parser_import.add_argument('input', help='The file name of the backup to be imported. Example: my_backup.tar')
 		parser_import.add_argument('-f', '--format', help='The format of the input file. If not given, attempt to infer from the input file name. Options: {}'.format(enum_options(StandaloneBackupFormat)))
 		parser_import.add_argument('--auto-meta', action='store_true', help='If the backup metadata file does not exist, create an auto-generated one based on the file content')
+		parser_import.add_argument('--meta-override', help='An optional json object string. It overrides the metadata of the imported backup, regardless of whether the backup metadata file exists or not')
 
 		desc = 'Export the given backup to a single file'
 		parser_export = subparsers.add_parser('export', help=desc, description=desc)

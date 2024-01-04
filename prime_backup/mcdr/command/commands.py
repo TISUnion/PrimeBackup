@@ -8,7 +8,7 @@ from mcdreforged.api.all import *
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config
 from prime_backup.mcdr.command.backup_id_suggestor import BackupIdSuggestor
-from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, MultiIntegerNode, HexStringNode
+from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, MultiIntegerNode, HexStringNode, JsonObjectNode
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
@@ -176,7 +176,8 @@ class CommandManager:
 		file_path = Path(context['file_path'])
 		backup_format = context.get('backup_format')
 		ensure_meta = context.get('auto_meta', 0) == 0
-		self.task_manager.add_task(ImportBackupTask(source, file_path, backup_format, ensure_meta=ensure_meta))
+		meta_override = context.get('meta_override')
+		self.task_manager.add_task(ImportBackupTask(source, file_path, backup_format, ensure_meta=ensure_meta, meta_override=meta_override))
 
 	def cmd_crontab_show(self, source: CommandSource, context: CommandContext):
 		job_id = context.get('job_id')
@@ -372,6 +373,7 @@ class CommandManager:
 			node_fp.then(node_bf)
 			for node in [node_fp, node_bf]:
 				node.then(CountingLiteral('--auto-meta', 'auto_meta').redirects(node))
+				node.then(Literal('--meta-override').then(JsonObjectNode('meta_override').redirects(node)))
 				node.runs(self.cmd_import)
 			return node_sc
 

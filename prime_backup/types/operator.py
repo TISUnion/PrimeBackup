@@ -6,10 +6,18 @@ if TYPE_CHECKING:
 	from mcdreforged.api.all import CommandSource, RTextBase
 
 
+class _PrimeBackupOperatorName(str):
+	pass
+
+
 class PrimeBackupOperatorNames:
-	pre_restore = 'pre_restore'
-	scheduled_backup = 'scheduled_backup'
-	test = 'test'
+	"""
+	For :meth:`prime_backup.types.operator.Operator.pb`
+	"""
+	import_ = _PrimeBackupOperatorName('import')
+	pre_restore = _PrimeBackupOperatorName('pre_restore')
+	scheduled_backup = _PrimeBackupOperatorName('scheduled_backup')
+	test = _PrimeBackupOperatorName('test')
 
 
 class Operator(NamedTuple):
@@ -17,8 +25,12 @@ class Operator(NamedTuple):
 	name: str
 
 	@classmethod
-	def pb(cls, what: str) -> 'Operator':
-		return Operator(constants.PLUGIN_ID, what)
+	def unknown(cls) -> 'Operator':
+		return Operator('unknown', '')
+
+	@classmethod
+	def pb(cls, pb_op_name: _PrimeBackupOperatorName) -> 'Operator':
+		return Operator(constants.PLUGIN_ID, str(pb_op_name))
 
 	@classmethod
 	def player(cls, name: str) -> 'Operator':
@@ -44,7 +56,7 @@ class Operator(NamedTuple):
 				t, n = value.split(':', 1)
 				return Operator(type=t, name=n)
 			else:
-				return Operator(type='unknown', name=value)
+				return Operator(type=value, name='')
 		else:
 			raise TypeError(value)
 

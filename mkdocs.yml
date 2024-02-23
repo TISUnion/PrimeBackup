@@ -14,6 +14,9 @@ markdown_extensions:
   - admonition
   - toc:
       permalink: true
+      # https://github.com/mkdocs/mkdocs/issues/212#issuecomment-286035214
+      slugify: !!python/name:pymdownx.slugs.uslugify
+
   # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown-extensions/
   - pymdownx.highlight
   - pymdownx.inlinehilite

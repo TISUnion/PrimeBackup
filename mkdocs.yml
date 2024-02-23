@@ -14,8 +14,12 @@ markdown_extensions:
   - admonition
   - toc:
       permalink: true
-      # https://github.com/mkdocs/mkdocs/issues/212#issuecomment-286035214
-      slugify: !!python/name:pymdownx.slugs.uslugify
+      slugify:
+        # https://github.com/mkdocs/mkdocs/issues/212#issuecomment-286035214
+        # pymdownx.slugs.uslugify is deprecated, let's use the modern way
+        !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
 
   # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown-extensions/
   - pymdownx.highlight

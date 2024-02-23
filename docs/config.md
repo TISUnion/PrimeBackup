@@ -356,7 +356,9 @@ It's for creating a backup periodically and automatically for your server
     "interval": "12h",
     "crontab": null,
     "jitter": "10s",
-    "reset_timer_on_backup": true
+    "reset_timer_on_backup": true,
+    "require_online_players": false,
+    "require_online_players_blacklist": []
 }
 ```
 
@@ -372,6 +374,82 @@ This feature is only effective when the job is in interval mode
 
 - Type: `bool`
 - Default: `true`
+
+#### require_online_players
+
+If set to `true`, scheduled backups will only run normally when players are present on the server.
+If all players logged out, then after the next scheduled backup is created, no more scheduled backup will be created
+
+Example timeline:
+
+```mermaid
+flowchart LR
+    subgraph g1[Players online]
+    b1[8:00\ncreated] --> b2
+    end
+
+    subgraph g2[No players online]
+    b2[9:00\ncreated] --> b3
+    b3[10:00\ncreated] --> b4:::disabled
+    b4[11:00\nskipped] --> b5:::disabled
+    end
+
+    subgraph g3[Players online]
+    b5[12:00\nskipped] --> b6
+    b6[13:00\ncreated]
+    end
+    
+    classDef disabled fill:#eee,stroke:#aaa,color:gray
+```
+
+!!! note
+
+    This feature requires the Prime Backup plugin to be loaded **before the server starts**.
+    It's needed so Prime Backup can calculate the online player count correctly
+
+    If the Prime Backup plugin is loaded when the server is already running, 
+    the player detection feature will be disabled, as if [require_online_players](#require_online_players) is set to `false`
+
+    Exception: If [MinecraftDataAPI](https://github.com/MCDReforged/MinecraftDataAPI) plugin is present,
+    then Prime Backup will utilize its API to query online player dynamically, and the requirement mentioned above no longer exists
+
+!!! note
+
+    The player detection logic might not work in heavily modded servers that behave too differently from vanilla servers
+
+!!! tip
+
+    Since Prime Backup supports file deduplication and highly customizable [prune config](#prune-config),
+    having backups even when no player is on the server will not result in excessive space usage
+
+- Type: `bool`
+- Default: `false`
+
+#### require_online_players_blacklist
+
+In [require_online_players](#require_online_players), when determining if there are players online, 
+the list of regex patterns for player names to be excluded
+
+If you want the server to still be considered as having no players online and thus not perform scheduled backups,
+when only certain players are online, you can utilize this option
+
+Example:
+
+```json
+"require_online_players_blacklist": [
+    "bot_.*",  // Matches any player name starting with "bot_"
+    "Steve"    // Matches the player name "Steve"
+]
+```
+
+!!! note
+
+    The regex patterns will perform [full match](https://docs.python.org/3/library/re.html#re.fullmatch) checks on the player names
+   
+    Matches are **case-insensitive**
+
+- Type: `List[re.Pattern]`
+- Default: `[]`
 
 ---
 

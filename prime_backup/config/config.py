@@ -8,7 +8,7 @@ from prime_backup.config.backup_config import BackupConfig
 from prime_backup.config.command_config import CommandConfig
 from prime_backup.config.database_config import DatabaseConfig
 from prime_backup.config.prune_config import PruneConfig
-from prime_backup.config.scheduled_backup import ScheduledBackupConfig
+from prime_backup.config.scheduled_backup_config import ScheduledBackupConfig
 from prime_backup.config.server_config import ServerConfig
 
 

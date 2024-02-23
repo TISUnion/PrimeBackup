@@ -5,10 +5,11 @@ from typing import TYPE_CHECKING
 from apscheduler.schedulers.base import BaseScheduler
 
 from prime_backup.config.config_common import CrontabJobSetting
-from prime_backup.config.scheduled_backup import ScheduledBackupConfig
+from prime_backup.config.scheduled_backup_config import ScheduledBackupConfig
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
+from prime_backup.mcdr.online_player_counter import OnlinePlayerCounter
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.utils import backup_utils
@@ -34,12 +35,39 @@ class ScheduledBackupJob(BasicCrontabJob):
 	def job_config(self) -> CrontabJobSetting:
 		return self.config
 
+	@property
+	def __store(self) -> dict:
+		return OnlinePlayerCounter.get().job_data_store
+
+	@property
+	def __backups_without_players(self) -> int:
+		return self.__store.get('backups_without_players', 0)
+
+	@__backups_without_players.setter
+	def __backups_without_players(self, value: int):
+		self.__store['backups_without_players'] = value
+
 	def run(self):
 		if not self.config.enabled:
 			return
 
 		if not mcdr_globals.server.is_server_running():
 			return
+
+		if self.config.require_online_players:
+			online_players = OnlinePlayerCounter.get().get_online_players()
+			base_msg = 'Scheduled backup player check: valid={} ignored={}'.format(online_players.valid, online_players.ignored)
+			if online_players is not None and len(online_players.valid) == 0:
+				if self.__backups_without_players > 1:
+					self.logger.info('{}, backup skipped'.format(base_msg))
+					return
+				self.__backups_without_players = self.__backups_without_players + 1
+				self.logger.info('{}, performing the last backup'.format(base_msg))
+			else:
+				# player exists (True), or no valid data (None)
+				# let's perform the backup
+				self.__backups_without_players = 0
+				self.logger.info('{}, performing normally'.format(base_msg))
 
 		broadcast_message(self.tr('triggered', self.get_name_text_titled()))
 		with contextlib.ExitStack() as exit_stack:

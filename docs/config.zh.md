@@ -355,7 +355,9 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
     "interval": "12h",
     "crontab": null,
     "jitter": "10s",
-    "reset_timer_on_backup": true
+    "reset_timer_on_backup": true,
+    "require_online_players": false,
+    "require_online_players_blacklist": []
 }
 ```
 
@@ -371,6 +373,83 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 
 - 类型：`bool`
 - 默认值：`true`
+
+#### require_online_players
+
+若设为 `true`，则只有在服务器中存在玩家时，才正常进行定时备份。
+如果所有玩家均已离线，则在下一次定时备份完成后，之后的定时备份都会被跳过。
+也就是说，Prime Backup 在没有玩家在线上时，只会触发一次定时备份
+
+时间线举例：
+
+```mermaid
+flowchart LR
+    subgraph g1[有玩家在线]
+    b1[8:00\n备份创建] --> b2
+    end
+
+    subgraph g2[无玩家在线]
+    b2[9:00\n备份创建] --> b3
+    b3[10:00\n备份创建] --> b4:::disabled
+    b4[11:00\n备份跳过] --> b5:::disabled
+    end
+
+    subgraph g3[有玩家在线]
+    b5[12:00\n备份跳过] --> b6
+    b6[13:00\n备份创建]
+    end
+    
+    classDef disabled fill:#eee,stroke:#aaa,color:gray
+```
+
+!!! note
+
+    该功能需要 Prime Backup 插件在 **服务器启动前** 就被加载。
+    这是必需的，以便 Prime Backup 能够正确计算在线玩家数量
+
+    如果 Prime Backup 插件是在服务器运行过程中被加载的，
+    玩家检测功能将被禁用，就如同 [require_online_players](#require_online_players) 被设置为了 `false` 一样。
+
+    特例：如果存在 [MinecraftDataAPI](https://github.com/MCDReforged/MinecraftDataAPI) 插件，
+    那么 Prime Backup 将利用其 API 动态地查询在线玩家，此时上述需求将不再存在
+
+!!! note
+
+    对于那些行为表现过于不原版的服务器，Prime Backup 的玩家在线计算逻辑可能无法正常工作
+
+!!! tip
+
+    由于 Prime Backup 支持文件去重和高可自定义的 [清理配置](#清理配置) 功能，
+    即使在玩家不在线也照常进行定时备份，也不会占用过多的磁盘空间
+
+- 类型：`bool`
+- 默认值：`false`
+
+#### require_online_players_blacklist
+
+在 [require_online_players](#require_online_players) 判断是否存在玩家在线时，
+排除的玩家名正则表达式列表
+
+如果你希望服务器中只有某些玩家在线的时候，也视作服务器中不存在玩家，
+不进行定时备份，则可以使用该选项
+
+配置举例：
+
+```json
+"require_online_players_blacklist": [
+    "bot_.*",  // 匹配所有以 "bot_" 为前缀的玩家名
+    "Steve"    // 匹配 "Steve" 这个玩家名
+]
+```
+
+!!! note
+
+    列表中的正则表达式将对玩家名执行 [全串匹配](https://docs.python.org/3/library/re.html#re.fullmatch) 检查
+
+    匹配时 **忽略大小写**
+
+- 类型：`List[re.Pattern]`
+- 默认值：`[]`
 
 ---
 

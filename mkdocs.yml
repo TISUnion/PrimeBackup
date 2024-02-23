@@ -31,6 +31,13 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  # https://mkdocs-mermaid2.readthedocs.io/en/latest/#use-of-the-material-theme
+  - pymdownx.superfences:
+      # make exceptions to highlighting of code:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
 theme:
   name: material
   features:
@@ -73,6 +80,9 @@ plugins:
           site_name: Prime Backup 文档
           nav_translations:
             Reference: 参考
+  # https://mkdocs-mermaid2.readthedocs.io/
+  - mermaid2:
+      javascript: js/mermaid-10.8.0.min.js
 
 nav:
   - index.md

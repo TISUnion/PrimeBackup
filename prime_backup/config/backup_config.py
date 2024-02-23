@@ -9,6 +9,7 @@ from prime_backup.types.hash_method import HashMethod
 
 class BackupConfig(Serializable):
 	source_root: str = './server'
+	source_root_use_mcdr_working_directory: bool = False
 	targets: List[str] = [
 		'world',
 	]

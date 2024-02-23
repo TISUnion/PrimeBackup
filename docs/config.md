@@ -200,6 +200,7 @@ Configs on how the backup is made
 ```json
 {
     "source_root": "./server",
+    "source_root_use_mcdr_working_directory": false,
     "targets": [
         "world"
     ],
@@ -222,6 +223,14 @@ i.e. the `server` directory by default
 
 - Type: `str`
 - Default: `"./server"`
+
+#### source_root_use_mcdr_working_directory
+
+If set to `true`, use the working directory of MCDR as the value of [source_root](#source_root),
+and the value of key [source_root](#source_root) in the config will be ignored
+
+- Type: `bool`
+- Default: `false`
 
 #### targets
 

@@ -199,6 +199,7 @@ Prime Backup 在创建备份时的操作时序如下：
 ```json
 {
     "source_root": "./server",
+    "source_root_use_mcdr_working_directory": false,
     "targets": [
         "world"
     ],
@@ -221,6 +222,14 @@ Prime Backup 在创建备份时的操作时序如下：
 
 - 类型：`str`
 - 默认值：`"./server"`
+
+#### source_root_use_mcdr_working_directory
+
+若设置为 `true`，则使用 MCDR 的工作路径作为 [source_root](#source_root) 的值。
+此时，配置文件中 [source_root](#source_root) 键的值将被忽略
+
+- 类型：`bool`
+- 默认值：`false`
 
 #### targets
 

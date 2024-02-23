@@ -175,7 +175,7 @@ class _PreCalculationResult:
 
 
 class CreateBackupAction(CreateBackupActionBase):
-	def __init__(self, creator: Operator, comment: str, *, tags: Optional[BackupTags] = None, expire_timestamp_ns: Optional[int] = None):
+	def __init__(self, creator: Operator, comment: str, *, tags: Optional[BackupTags] = None, expire_timestamp_ns: Optional[int] = None, source_path: Optional[Path] = None):
 		super().__init__()
 		if tags is None:
 			tags = BackupTags()
@@ -193,10 +193,11 @@ class CreateBackupAction(CreateBackupActionBase):
 		self.__blob_by_size_cache: Dict[int, bool] = {}
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
 
+		self.__source_path: Path = source_path or self.config.source_path
+
 	def __scan_files(self) -> _ScanResult:
 		collected = []
 
-		source_path = self.config.source_path
 		scanned_targets: Dict[str, bool] = {}  # use as an ordered set
 		scan_queue: Deque[Path] = collections.deque()  # a queue of paths related to the source_path
 		for scan_target in self.config.backup.targets:
@@ -208,12 +209,12 @@ class CreateBackupAction(CreateBackupActionBase):
 				continue
 			scanned_targets[target_posix] = True
 
-			target_path = source_path / scan_target
+			target_path = self.__source_path / scan_target
 			if not target_path.exists():
 				self.logger.info('Skipping not-exist backup target {}'.format(target_path))
 				continue
-			if not path_utils.is_relative_to(target_path, source_path):
-				self.logger.warning("Skipping backup target {} cuz it's not inside the source path {}".format(target_path, source_path))
+			if not path_utils.is_relative_to(target_path, self.__source_path):
+				self.logger.warning("Skipping backup target {} cuz it's not inside the source path {}".format(target_path, self.__source_path))
 				continue
 
 			collected.append(target_path)
@@ -450,7 +451,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path_str))
 
 	def __create_file(self, session: DbSession, path: Path) -> Generator[Any, Any, schema.File]:
-		related_path = path.relative_to(self.config.source_path)
+		related_path = path.relative_to(self.__source_path)
 
 		if (st := self.__pre_calc_result.stats.pop(path, None)) is None:
 			st = path.lstat()

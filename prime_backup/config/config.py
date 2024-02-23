@@ -57,6 +57,11 @@ class Config(Serializable):
 
 	@property
 	def source_path(self) -> Path:
+		if self.backup.source_root_use_mcdr_working_directory:
+			from mcdreforged.api.all import ServerInterface
+			si = ServerInterface.si()
+			if si is not None and (mcdr_wd := si.get_mcdr_config().get('working_directory')) is not None:
+				return Path(mcdr_wd)
 		return Path(self.backup.source_root)
 
 

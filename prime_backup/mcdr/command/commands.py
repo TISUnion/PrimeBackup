@@ -129,7 +129,7 @@ class CommandManager:
 			if ':' in creator_str:
 				creator = Operator.of(creator_str)
 			else:
-				creator = Operator.player(creator_str, source)
+				creator = Operator.player(creator_str)
 			backup_filter.creator = creator
 		show_all = context.get('all', 0) > 0
 		show_flags = context.get('flags', 0) > 0

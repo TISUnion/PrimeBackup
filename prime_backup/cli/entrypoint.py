@@ -1,7 +1,6 @@
 import argparse
 import enum
 import json
-import shutil
 import sys
 from pathlib import Path
 from typing import Type
@@ -188,12 +187,6 @@ class CliHandler:
 				if ft != file.file_type:
 					logger.error('Unexpected file type, expected {}, but found {} for the to-be-extracted file'.format(self.args.type, file.file_type.name))
 					sys.exit(2)
-
-		dest_path = output_path / file_path.name
-		if dest_path.is_file():
-			dest_path.unlink()
-		elif dest_path.is_dir():
-			shutil.rmtree(dest_path)
 
 		ExportBackupToDirectoryAction(
 			self.args.backup_id, output_path,

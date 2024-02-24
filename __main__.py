@@ -1,5 +1,5 @@
 def main():
-	from prime_backup.cli.entrypoint import cli_entry
+	from prime_backup.cli.cli_entrypoint import cli_entry
 	cli_entry()
 
 

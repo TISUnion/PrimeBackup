@@ -204,9 +204,8 @@ class CliHandler:
 		parser_overview = subparsers.add_parser('overview', help=desc, description=desc)
 
 		desc = 'List backups'
-		parser_list = subparsers.add_parser('list', help=desc, description=desc, add_help=False)
-		parser_list.add_argument('--help', action='store_true', help='show this help message and exit')
-		parser_list.add_argument('-h', '--human', action='store_true', help='Prettify backup sizes, make it human-readable')
+		parser_list = subparsers.add_parser('list', help=desc, description=desc)
+		parser_list.add_argument('-H', '--human', action='store_true', help='Prettify backup sizes, make it human-readable')
 
 		desc = 'Show detailed information of the given backup'
 		parser_show = subparsers.add_parser('show', help=desc, description=desc)
@@ -248,10 +247,7 @@ class CliHandler:
 			elif args.command == 'show':
 				handler.cmd_show()
 			elif args.command == 'list':
-				if args.help:
-					parser_list.print_help()
-				else:
-					handler.cmd_list()
+				handler.cmd_list()
 			elif args.command == 'import':
 				handler.cmd_import()
 			elif args.command == 'export':

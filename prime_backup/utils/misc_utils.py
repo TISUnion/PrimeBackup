@@ -1,5 +1,7 @@
 from typing import Union, Callable, Any, Optional, Type, Tuple, TypeVar
 
+from prime_backup import constants
+
 T = TypeVar('T')
 
 
@@ -26,5 +28,4 @@ def ensure_type(value: Any, class_or_tuple: Union[Tuple[Type[T]], Type[T], Type]
 
 
 def make_thread_name(name: str) -> str:
-	from prime_backup import constants
 	return f'PB@{constants.INSTANCE_ID}-{name}'

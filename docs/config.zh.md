@@ -149,8 +149,8 @@ MCDR 中，Prime Backup 所有命令的前缀。通常你不需要更改它
         "auto_save_on": "save-on"
     },
     "saved_world_regex": [
-        "^Saved the game$",
-        "^Saved the world$"
+        "Saved the game",
+        "Saved the world"
     ],
     "save_world_max_wait": "10m"
 }
@@ -180,6 +180,10 @@ Prime Backup 在创建备份时的操作时序如下：
 #### saved_world_regex
 
 一个正则表达式列表，用于识别服务器是否已保存完成
+
+!!! note
+
+    正则表达式将对服务端消息输出执行 [全串匹配](https://docs.python.org/3/library/re.html#re.fullmatch) 检查
 
 - 类型：`List[re.Pattern]`
 

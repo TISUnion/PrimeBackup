@@ -16,7 +16,7 @@ class ServerConfig(Serializable):
 	turn_off_auto_save: bool = True
 	commands: MinecraftServerCommands = MinecraftServerCommands()
 	saved_world_regex: List[re.Pattern] = [
-		re.compile('^Saved the game$'),
-		re.compile('^Saved the world$'),
+		re.compile('Saved the game'),
+		re.compile('Saved the world'),
 	]
 	save_world_max_wait: Duration = Duration('10min')

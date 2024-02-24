@@ -150,8 +150,8 @@ Options on how to interact with the Minecraft server
         "auto_save_on": "save-on"
     },
     "saved_world_regex": [
-        "^Saved the game$",
-        "^Saved the world$"
+        "Saved the game",
+        "Saved the world"
     ],
     "save_world_max_wait": "10m"
 }
@@ -181,6 +181,10 @@ Timing of what Prime Backup will do during a backup creation
 #### saved_world_regex
 
 A list of regular expressions for identifying whether the server has already saved the world
+
+!!! note
+
+    The regex patterns will perform a [full match](https://docs.python.org/3/library/re.html#re.fullmatch) check on the server info content
 
 - Type: `List[re.Pattern]`
 

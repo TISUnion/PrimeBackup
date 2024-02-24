@@ -64,7 +64,6 @@ theme:
         name: Switch to system preference
 
 plugins:
-  - search
   - i18n:
       # https://ultrabug.github.io/mkdocs-static-i18n/getting-started/quick-start/#configure-the-plugin-in-your-mkdocsyml
       docs_structure: suffix
@@ -80,9 +79,14 @@ plugins:
           site_name: Prime Backup 文档
           nav_translations:
             Reference: 参考
+  - macros
   # https://mkdocs-mermaid2.readthedocs.io/
   - mermaid2:
       javascript: js/mermaid-10.8.0.min.js
+  - mkdocs-simple-hooks:
+      hooks:
+        on_post_build: docs.build_hooks:on_post_build
+  - search
 
 nav:
   - index.md

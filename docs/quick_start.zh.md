@@ -28,15 +28,21 @@ Prime Backup 需要一些 python 库才能运行，它们都被列在了
 
 使用命令 `pip3 install -r requirements.txt` 即可安装所有需要的 Python 依赖
 
+除此之外，你也可以使用以下指令一键安装所有需要的 Python 依赖
+
+```shell
+pip3 install -r {{ config.site_url }}requirements.txt
+```
+
 ### 可选依赖
 
 一些 Prime Backup 功能所需要的 Python 库并没有在 requirements.txt 中列出，
 因为在某些环境下安装这些依赖库可能会 [花不少功夫](https://github.com/oconnor663/blake3-py/issues/41)
 
-如果你想解锁 Prime Backup 的全部功能选项，你可以使用以下命令：
+如果你想解锁 Prime Backup 的全部功能特性，你可以使用以下命令：
 
 ```bash
-pip3 install blake3 lz4
+pip3 install -r {{ config.site_url }}requirements.optional.txt
 ```
 
 这些可选的依赖也被列在了 [requirements.optional.txt](https://github.com/TISUnion/PrimeBackup/blob/master/requirements.optional.txt) 里

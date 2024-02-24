@@ -28,6 +28,12 @@ Prime Backup requires a few python libraries to run, they are all listed in the
 
 Use command `pip3 install -r requirements.txt` to install all required Python requirements
 
+You can also use the following command to install all required python packages for the latest Prime Backup in one step
+
+```shell
+pip3 install -r {{ config.site_url }}requirements.txt
+```
+
 ### Optional requirements
 
 Some Prime Backup features requires python libraries that does not listed in the requirements.txt,
@@ -36,7 +42,7 @@ because it might [take you some effort](https://github.com/oconnor663/blake3-py/
 If you want to have full features of Prime Backup, you can use the following command in advanced:
 
 ```bash
-pip3 install blake3 lz4
+pip3 install -r {{ config.site_url }}requirements.optional.txt
 ```
 
 These optional requirements are also stored in the [requirements.optional.txt](https://github.com/TISUnion/PrimeBackup/blob/master/requirements.optional.txt)

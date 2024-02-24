@@ -517,5 +517,5 @@ prime_backup:
   backup_tag:
     hidden: 隐藏备份
     pre_restore_backup: 回档前备份
-    temporary_backup: 临时备份
+    temporary: 临时备份
     protected: 受保护备份

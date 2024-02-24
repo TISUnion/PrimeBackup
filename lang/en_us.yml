@@ -412,7 +412,8 @@ prime_backup:
         title: '[Quick Actions]'
         create: 'Create a new backup'
         create.comment: "I'm a comment"
-        restore: 'restore to the latest backup'
+        restore: restore to the latest backup
+        restore_explain: To be precise, restore to the latest non-temporary backup
 
   job:
     _base:

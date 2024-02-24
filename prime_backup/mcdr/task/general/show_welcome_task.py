@@ -70,7 +70,7 @@ class ShowWelcomeTask(LightTask[None]):
 			buttons.append(
 				RTextList('[', self.tr('quick_actions.restore', TextComponents.backup_brief(backups[0])), ']').
 				set_color(RColor.red).
-				h(TextComponents.command('back')).
+				h(RTextBase.join('\n', [TextComponents.command('back'), self.tr('quick_actions.restore_explain')])).
 				c(RAction.suggest_command, mkcmd('back'))
 			)
 		self.reply(RTextBase.join(' ', buttons))

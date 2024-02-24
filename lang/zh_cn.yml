@@ -409,10 +409,11 @@ prime_backup:
       common_commands.hover: '输入指令{}以查看完整的指令列表'
       recent_backups: '【最新的{}个备份】'
       quick_actions:
-        title: '【快捷操作】'
-        create: '创建一个新备份'
-        create.comment: '我是一个注释'
-        restore: '回档到最新的备份'
+        title: 【快捷操作】
+        create: 创建一个新备份
+        create.comment: 我是一个注释
+        restore: 回档到最新的备份
+        restore_explain: 准确地说，回档到最新的非临时备份
 
   job:
     _base:

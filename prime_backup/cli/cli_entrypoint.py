@@ -1,8 +1,10 @@
 import argparse
 import contextlib
 import enum
+import functools
 import json
 import sys
+import zipfile
 from pathlib import Path
 from typing import Type
 
@@ -42,6 +44,26 @@ class BackupIdAlternatives(enum.Enum):
 
 def enum_options(clazz: Type[enum.Enum]) -> str:
 	return ', '.join([e_.name for e_ in clazz])
+
+
+@functools.lru_cache
+def _get_plugin_version() -> str:
+	root = Path(__file__).parent.parent.parent
+	meta_file_name = 'mcdreforged.plugin.json'
+	try:
+		if root.is_file():
+			with zipfile.ZipFile(root) as z, z.open(meta_file_name) as f:
+				meta = json.load(f)
+		elif root.is_dir():
+			with open(meta_file_name, 'rb') as f:
+				meta = json.load(f)
+		else:
+			raise Exception('unknown file type {!r}'.format(root))
+	except Exception as e:
+		logger.error('Failed to get plugin version: {}'.format(e))
+		return '?'
+	else:
+		return meta['version']
 
 
 class CliHandler:
@@ -234,7 +256,7 @@ class CliHandler:
 
 	@classmethod
 	def entrypoint(cls):
-		parser = argparse.ArgumentParser(description='Prime Backup CLI tools', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+		parser = argparse.ArgumentParser(description='Prime Backup v{} CLI tools'.format(_get_plugin_version()), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 		parser.add_argument('-d', '--db', default=DEFAULT_STORAGE_ROOT, help='Path to the {db} database file, or path to the directory that contains the {db} database file, e.g. "/my/path/{db}", or "/my/path"'.format(db=db_constants.DB_FILE_NAME))
 		subparsers = parser.add_subparsers(title='Command', help='Available commands', dest='command')
 

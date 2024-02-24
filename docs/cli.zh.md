@@ -10,26 +10,31 @@ Prime Backup 的 `*.pyz` 文件除了是一个 MCDR 插件外，也是一个命�
 ```
 $ python3 PrimeBackup.pyz
 usage: PrimeBackup.pyz [-h] [-d DB]
-                       {overview,list,show,import,export,extract} ...
+                       {overview,list,show,import,export,extract,migrate_db}   
+                       ...
 
-Prime Backup CLI tools
+Prime Backup v1.7.0 CLI tools
 
 options:
   -h, --help            show this help message and exit
-  -d DB, --db DB        Path to the prime_backup.db database file, or path to
-                        the directory that contains the prime_backup.db database
-                        file, e.g. "/my/path/prime_backup.db", or "/my/path"
-                        (default: ./pb_files)
+  -d DB, --db DB        Path to the prime_backup.db database file, or path to  
+                        the directory that contains the prime_backup.db        
+                        database file, e.g. "/my/path/prime_backup.db", or     
+                        "/my/path" (default: ./pb_files)
 
 Command:
-  {overview,list,show,import,export,extract}
+  {overview,list,show,import,export,extract,migrate_db}
                         Available commands
     overview            Show overview information of the database
     list                List backups
     show                Show detailed information of the given backup
-    import              Import a backup from the given file
+    import              Import a backup from the given file. The backup file   
+                        needs to have a backup metadata file
+                        '.prime_backup.meta.json', or the --auto-meta flag     
+                        need to be supplied
     export              Export the given backup to a single file
     extract             Extract a single file from a backup
+    migrate_db          Migrate the database to the current version (2)  
 ```
 
 你可以在每个子命令后添加 `--help` 来显示其帮助信息。例如：
@@ -37,25 +42,29 @@ Command:
 ```
 $ python3 PrimeBackup.pyz export --help
 usage: PrimeBackup.pyz export [-h] [-f FORMAT] [--fail-soft] [--no-verify]
+                              [--no-meta]
                               backup_id output
 
 Export the given backup to a single file
 
 positional arguments:
-  backup_id             The ID of the backup to export
-  output                The output file name of the exported backup. Example:
+  backup_id             The ID of the backup to export. Besides an integer     
+                        ID, it can also be "latest" and "latest_non_temp"      
+  output                The output file name of the exported backup. Example:  
                         my_backup.tar
 
 options:
   -h, --help            show this help message and exit
   -f FORMAT, --format FORMAT
-                        The format of the output file. If not given, attempt to
-                        infer from the output file name. Options: tar, tar_gz,
-                        tar_xz, tar_zst, zip
-  --fail-soft           Skip files with export failure in the backup, so a
-                        single failure will not abort the export. Notes: a
-                        corrupted file might damaged the tar-based file
+                        The format of the output file. If not given, attempt   
+                        to infer from the output file name. Options: tar,      
+                        tar_gz, tar_bz2, tar_xz, tar_zst, zip
+  --fail-soft           Skip files with export failure in the backup, so a     
+                        single failure will not abort the export. Notes: a     
+                        corrupted file might damaged the tar-based file        
   --no-verify           Do not verify the exported file contents
+  --no-meta             Do not add the backup metadata file
+                        '.prime_backup.meta.json' in the exported file
 ```
 
 作为演示，下面的这个例子展示了数据库的状况概览：

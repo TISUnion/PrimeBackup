@@ -28,7 +28,8 @@ class BackupTagValue:
 class BackupTagName(enum.Enum):
 	# name -> type
 	hidden = BackupTagValue(bool, 'H', RColor.blue)
-	pre_restore_backup = BackupTagValue(bool, 'R', RColor.yellow)
+	pre_restore_backup = BackupTagValue(bool, 'R', RColor.yellow)  # deprecated, use temporary
+	temporary = BackupTagValue(bool, 'T', RColor.yellow)
 	protected = BackupTagValue(bool, 'P', RColor.dark_green)
 
 
@@ -80,6 +81,9 @@ class BackupTags:
 
 	def is_backup_before_restore(self) -> bool:
 		return self.get(BackupTagName.pre_restore_backup) is True
+
+	def is_temporary_backup(self) -> bool:
+		return self.get(BackupTagName.temporary) is True
 
 	def is_protected(self) -> bool:
 		return self.get(BackupTagName.protected) is True

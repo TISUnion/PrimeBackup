@@ -366,6 +366,11 @@ class DbSession:
 		"""
 		if 'timestamp' not in kwargs:
 			kwargs['timestamp'] = time.time_ns()
+
+		if kwargs.get('tags', {}).get('pre_restore_backup') is not None:
+			from prime_backup import logger
+			logger.get().warning('Backup tag "pre_restore_backup" is deprecated and scheduled for removal, use tag "temporary" instead')
+
 		backup = schema.Backup(**kwargs)
 		self.session.add(backup)
 		return backup

@@ -121,7 +121,7 @@ When time exceeds, the command will be cancelled
 
 #### backup_on_restore
 
-If an automatically backup should be made before restoring the world to a given backup. These automatic backups are the "pre-restore backups"
+If an automatically backup should be made before restoring the world to a given backup. These automatic pre-restore backups are temporary backups
 
 This is a safeguard prepared for those idiot users
 
@@ -495,8 +495,8 @@ The backup prune feature from Prime Backup enables automatically backup cleanup 
 
 It contains 2 prune settings for 2 kinds of backups:
 
-- `regular_backup`: For regular backups, i.e. not pre-restore backups
-- `pre_restore_backup`: For pre-restore backups
+- `regular_backup`: For regular backups, i.e. not temporary backups
+- `temporary_backup`: For temporary backups, e.g. pre-restore backups
 
 Each prune settings describes the retain policy in detailed
 

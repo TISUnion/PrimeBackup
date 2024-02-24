@@ -92,7 +92,7 @@ class TextComponents:
 				rtl.append(RText('[x]', color=RColor.dark_gray).h(cls.tr('backup_full.protected', t_bid)), ' ')
 
 		if show_flags:
-			for name in [BackupTagName.hidden, BackupTagName.pre_restore_backup, BackupTagName.protected]:
+			for name in [BackupTagName.hidden, BackupTagName.temporary, BackupTagName.protected]:
 				misc_utils.assert_true(name.value.type is bool, 'it should be a bool field')
 				flag = backup.tags.get(name) is True
 				if flag:

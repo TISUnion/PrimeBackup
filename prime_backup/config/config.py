@@ -1,8 +1,9 @@
 import functools
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Type
 
 from mcdreforged.api.all import Serializable
+from typing_extensions import Self
 
 from prime_backup.config.backup_config import BackupConfig
 from prime_backup.config.command_config import CommandConfig
@@ -25,6 +26,8 @@ class Config(Serializable):
 	prune: PruneConfig = PruneConfig()
 	database: DatabaseConfig = DatabaseConfig()
 
+	# ==================== Instance getters ====================
+
 	@classmethod
 	@functools.lru_cache
 	def __get_default(cls) -> 'Config':
@@ -35,6 +38,8 @@ class Config(Serializable):
 		if _config is None:
 			return cls.__get_default()
 		return _config
+
+	# ==================== Field getters ====================
 
 	def get_effective_concurrency(self) -> int:
 		if self.concurrency == 0:
@@ -63,6 +68,18 @@ class Config(Serializable):
 			if si is not None and (mcdr_wd := si.get_mcdr_config().get('working_directory')) is not None:
 				return Path(mcdr_wd)
 		return Path(self.backup.source_root)
+
+	@classmethod
+	def deserialize(cls: Type[Self], data: dict, **kwargs) -> Self:
+		from prime_backup.config.migration import ConfigMigrator
+		from prime_backup import logger
+
+		has_changes = ConfigMigrator(logger.get()).migrate(data)
+		if has_changes and callable(redundancy_callback := kwargs.get('redundancy_callback')):
+			# a little hack to trigger the config write for MCDR
+			redundancy_callback(data, cls, '__foo', 'bar__')
+
+		return super().deserialize(data, **kwargs)
 
 
 _config: Optional[Config] = None

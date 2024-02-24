@@ -278,7 +278,7 @@ class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 	def run(self) -> PruneAllBackupResult:
 		config = self.config.prune
 		result = PruneAllBackupResult()
-		if not config.regular_backup.enabled and not config.pre_restore_backup.enabled:
+		if not config.regular_backup.enabled and not config.temporary_backup.enabled:
 			if self.verbose >= _PruneVerbose.all:
 				self.reply_tr('nothing_to_do')
 			return result
@@ -295,9 +295,9 @@ class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 			result.deleted_backup_count += sub_result.deleted_backup_count
 			result.deleted_blobs = result.deleted_blobs + sub_result.deleted_blobs
 
-		prune_backups('regular', BackupFilter().filter_non_pre_restore_backup(), config.regular_backup)
+		prune_backups('regular', BackupFilter().filter_non_temporary_backup(), config.regular_backup)
 		if not self.aborted_event.is_set():
-			prune_backups('pre_restore', BackupFilter().filter_pre_restore_backup(), config.pre_restore_backup)
+			prune_backups('pre_restore', BackupFilter().filter_temporary_backup(), config.temporary_backup)
 
 		if self.verbose >= _PruneVerbose.delete:
 			self.reply_tr(

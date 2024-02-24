@@ -51,7 +51,7 @@ class ShowWelcomeTask(LightTask[None]):
 			self.reply(helps[cmd])
 
 		backup_filter = BackupFilter()
-		backup_filter.filter_non_pre_restore_backup()
+		backup_filter.filter_non_temporary_backup()
 		backups = ListBackupAction(backup_filter=backup_filter, limit=self.BACKUP_NUMBER_TO_SHOW).run()
 		self.reply(self.tr('recent_backups', len(backups)).set_color(TextColors.help_title))
 		for backup in backups:

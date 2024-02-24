@@ -1,6 +1,6 @@
 from typing import Dict, Callable, Any, Optional
 
-from sqlalchemy import Engine, Inspector, text
+from sqlalchemy import Engine, Inspector, select
 from sqlalchemy.orm import Session
 
 from prime_backup import logger
@@ -24,7 +24,7 @@ class DbMigration:
 			2: self.__migrate_1_2,  # 1 -> 2
 		}
 
-	def check_and_migrate(self):
+	def check_and_migrate(self, *, create: bool, migrate: bool):
 		inspector = Inspector.from_engine(self.engine)
 		if inspector.has_table(schema.DbMeta.__tablename__):
 			with Session(self.engine) as session, session.begin():
@@ -32,43 +32,24 @@ class DbMigration:
 				if dbm is None:
 					raise ValueError('table DbMeta is empty')
 
-				self.__check_db_meta(dbm)
-
 				current_version = dbm.version
 				target_version = self.DB_VERSION
 
 				if current_version != target_version:
+					if not migrate:
+						raise BadDbVersion('DB version mismatch (expect {}, found {}), please migrate in the MCDR', self.DB_VERSION, dbm.version)
+
 					if current_version > target_version:
 						self.logger.error('The current DB version {} is larger than expected {}'.format(current_version, target_version))
 						raise ValueError('existing db version {} too large'.format(current_version))
 
-					self.logger.info('DB migration starts. current DB version: {}, target version: {}'.format(current_version, target_version))
-					for i in range(current_version, target_version):
-						self.logger.info('Migrating from v{} to v{}'.format(i, i + 1))
-						self.migrations[i + 1](session)
-					dbm.version = target_version
-					self.logger.info('DB migration done')
+					self.__migrate_db(session, dbm, current_version, target_version)
 		else:
+			if not create:
+				raise BadDbVersion('DbMeta table not found')
+
 			self.logger.info('Table {} does not exist, assuming newly created db, create everything'.format(schema.DbMeta.__tablename__))
 			self.__create_the_world()
-			pass
-
-	def ensure_version(self):
-		"""
-		Minimum check
-		"""
-		inspector = Inspector.from_engine(self.engine)
-		if inspector.has_table(schema.DbMeta.__tablename__):
-			with Session(self.engine) as session:
-				dbm = session.get(schema.DbMeta, self.DB_MAGIC_INDEX)
-				if dbm is not None:
-					if dbm.version == self.DB_VERSION:
-						return
-					else:
-						raise BadDbVersion('DB version mismatch (expect {}, found {}), please migrate in the MCDR', self.DB_VERSION, dbm.version)
-				else:
-					raise BadDbVersion('Bad DbMeta table')
-		raise BadDbVersion('DbMeta table not found')
 
 	def __create_the_world(self):
 		schema.Base.metadata.create_all(self.engine)
@@ -80,15 +61,32 @@ class DbMigration:
 				hash_method=config.backup.hash_method.name,
 			))
 
-	def __check_db_meta(self, dbm: schema.DbMeta):
-		pass
+	def __migrate_db(self, session: Session, dbm: schema.DbMeta, current_version, target_version):
+		self.logger.info('DB migration starts. current DB version: {}, target version: {}, backup file: '.format(current_version, target_version))
+
+		for i in range(current_version, target_version):
+			self.logger.info('Migrating database from version {} to version {}'.format(i, i + 1))
+			self.migrations[i + 1](session)
+		dbm.version = target_version
+
+		self.logger.info('DB migration done, new db version: {}'.format(target_version))
 
 	def __migrate_1_2(self, session: Session):
-		# noinspection PyUnreachableCode
-		if False:
-			table = schema.Backup.__tablename__
-			column = schema.Backup.timestamp
-			name = column.key
-			type_ = column.type.compile(dialect=self.engine.dialect)
-			self.logger.info('Adding column {!r} ({}) to table {!r}'.format(name, type_, table))
-			session.execute(text(f'ALTER TABLE {table} ADD COLUMN {name} {type_}'))
+		"""
+		v1.7.0 changes: renamed backup tag "pre_restore_backup" to tag "temporary"
+		"""
+		from prime_backup.types.backup_tags import BackupTags, BackupTagName
+
+		backups = session.execute(select(schema.Backup)).scalars().all()
+		src_tag = BackupTagName.pre_restore_backup
+		dst_tag = BackupTagName.temporary
+		for backup in backups:
+			tags = BackupTags(backup.tags)
+			if tags.get(src_tag) is not tags.NONE:
+				tags.set(dst_tag, True)
+				tags.clear(src_tag)
+
+				backup.tags = tags.to_dict()
+				self.logger.info('Renaming tag {!r} to {!r} for backup #{}, new tags: {}'.format(
+					src_tag.name, dst_tag.name, backup.id, backup.tags,
+				))

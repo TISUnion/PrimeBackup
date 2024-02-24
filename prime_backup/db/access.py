@@ -33,10 +33,7 @@ class DbAccess:
 		cls.__db_file_path = db_path
 
 		migration = DbMigration(cls.__engine)
-		if auto_migrate:
-			migration.check_and_migrate()
-		else:
-			migration.ensure_version()
+		migration.check_and_migrate(create=auto_migrate, migrate=auto_migrate)
 
 		cls.sync_hash_method()
 

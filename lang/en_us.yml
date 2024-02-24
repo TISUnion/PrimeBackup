@@ -92,7 +92,7 @@ prime_backup:
       nothing_to_do: No enabled prune job, no thing to do
       what:
         regular: regular backups
-        pre_restore: pre-restore backups
+        temporary: temporary backups
       start: Start pruning {}
       done: Finished all prune jobs, removed {} backups, {} blobs, freed {}
     backup_rename:
@@ -309,7 +309,7 @@ prime_backup:
           Restore the world to the given backup
           §7{prefix} back §6[<backup_id>] §7[--flags]§r
           §d[Arguments]§r
-          §3<backup_id>§r: The ID of the backup to restore. If not specified, the latest not pre-restore backup will be used
+          §3<backup_id>§r: The ID of the backup to restore. If not specified, the latest not temporary backup will be used
           §d[Optional flags]§r
           §7--confirm§r: Skip the confirm step and start the restore directly
           §7--fail-soft§r: Skip files with export failure in the backup, so a single failure will not abort the export
@@ -388,7 +388,7 @@ prime_backup:
           §7--creator §e<creator>§r: Show backup created by the given creator only
           §7--from §b<start_date>§r: Show backup after the given date only
           §7--to §b<end_date>§r: Show backup before the given date only
-          §7-a, --all§r: Show all backups. By default, hidden backups and pre-restore backups will not be shown
+          §7-a, --all§r: Show all backups. By default, hidden backups and temporary backups will not be shown
           §7--flags§r: Show backup flags, based on the tags of the backup
           §d[Examples]§r
           §7{prefix} list --all --flags§r
@@ -517,4 +517,5 @@ prime_backup:
   backup_tag:
     hidden: Hidden backup
     pre_restore_backup: Backup before restore
+    temporary: Temporary backup
     protected: Protected backup

@@ -33,7 +33,7 @@ class PruneConfig(CrontabJobSetting):
 
 	timezone_override: Optional[str] = None
 	regular_backup: PruneSetting = PruneSetting()
-	pre_restore_backup: PruneSetting = PruneSetting(
+	temporary_backup: PruneSetting = PruneSetting(
 		enabled=True,
 		max_amount=10,
 		max_lifetime=Duration('30d'),

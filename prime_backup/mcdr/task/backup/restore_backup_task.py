@@ -56,7 +56,7 @@ class RestoreBackupTask(HeavyTask[None]):
 	def run(self):
 		if self.backup_id is None:
 			backup_filter = BackupFilter()
-			backup_filter.filter_non_pre_restore_backup()
+			backup_filter.filter_non_temporary_backup()
 			candidates = ListBackupAction(backup_filter=backup_filter, limit=1).run()
 			if len(candidates) == 0:
 				self.reply_tr('no_backup')
@@ -85,7 +85,7 @@ class RestoreBackupTask(HeavyTask[None]):
 			pre_restore_backup = CreateBackupAction(
 				Operator.pb(PrimeBackupOperatorNames.pre_restore),
 				backup_utils.create_translated_backup_comment('pre_restore', backup.id),
-				tags=BackupTags().set(BackupTagName.pre_restore_backup, True),
+				tags=BackupTags().set(BackupTagName.temporary, True),
 			).run()
 			pre_restore_backup_id = f'#{pre_restore_backup.id}'
 		else:

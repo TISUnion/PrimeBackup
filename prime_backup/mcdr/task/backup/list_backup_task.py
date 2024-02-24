@@ -23,7 +23,7 @@ class ListBackupTask(LightTask[None]):
 		self.show_flags = show_flags
 
 		if not self.show_all:
-			self.backup_filter.filter_non_pre_restore_backup()
+			self.backup_filter.filter_non_temporary_backup()
 			self.backup_filter.filter_non_hidden_backup()
 
 	@property

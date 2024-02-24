@@ -75,18 +75,16 @@ class DbMigration:
 		"""
 		v1.7.0 changes: renamed backup tag "pre_restore_backup" to tag "temporary"
 		"""
-		from prime_backup.types.backup_tags import BackupTags, BackupTagName
+		from prime_backup.types.backup_tags import BackupTagName
 
 		backups = session.execute(select(schema.Backup)).scalars().all()
-		src_tag = BackupTagName.pre_restore_backup
-		dst_tag = BackupTagName.temporary
+		src_tag = 'pre_restore_backup'
+		dst_tag = BackupTagName.temporary.name
 		for backup in backups:
-			tags = BackupTags(backup.tags)
-			if tags.get(src_tag) is not tags.NONE:
-				tags.set(dst_tag, True)
-				tags.clear(src_tag)
-
-				backup.tags = tags.to_dict()
+			tags = dict(backup.tags)
+			if src_tag in tags:
+				tags[dst_tag] = tags.pop(src_tag)
+				backup.tags = tags
 				self.logger.info('Renaming tag {!r} to {!r} for backup #{}, new tags: {}'.format(
-					src_tag.name, dst_tag.name, backup.id, backup.tags,
+					src_tag, dst_tag, backup.id, backup.tags,
 				))

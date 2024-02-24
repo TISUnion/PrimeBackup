@@ -516,6 +516,5 @@ prime_backup:
 
   backup_tag:
     hidden: Hidden backup
-    pre_restore_backup: Backup before restore
     temporary: Temporary backup
     protected: Protected backup

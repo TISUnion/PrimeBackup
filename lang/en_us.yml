@@ -475,9 +475,12 @@ prime_backup:
       restore: Restore to backup {}
       delete: Delete backup {}
       protected: Backup {} is protected
-    backup_id.hover: |-
-      Backup ID: {}
-      Click to show details
+    backup_id:
+      hover_id: 'Backup ID: {}'
+      hover_date: 'Date: {}'
+      hover_comment: 'Comment: {}'
+      hover_creator: 'Creator: {}'
+      hover_click_hint: Click to show details
     command:
       run: 'Click to run {}'
       suggest: 'Click to complete {}'

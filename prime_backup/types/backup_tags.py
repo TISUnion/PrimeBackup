@@ -18,7 +18,8 @@ class BackupTagValue:
 	@property
 	def text(self) -> RTextBase:
 		from prime_backup.utils.mcdr_utils import tr
-		return tr(f'backup_tag.{BackupTagName(self).name}')
+		from prime_backup.mcdr.text_components import TextColors
+		return tr(f'backup_tag.{BackupTagName(self).name}').set_color(TextColors.backup_tag)
 
 	@property
 	def flag(self) -> RTextBase:

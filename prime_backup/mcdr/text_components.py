@@ -109,12 +109,20 @@ class TextComponents:
 		return rtl
 
 	@classmethod
-	def backup_id(cls, backup_id: Union[int, BackupInfo], *, hover: bool = True, click: bool = True) -> RTextBase:
+	def backup_id(cls, backup_id: Union[int, BackupInfo], *, hover: bool = True, click: bool = True, backup_data: Optional[BackupInfo] = None) -> RTextBase:
 		if isinstance(backup_id, BackupInfo):
 			backup_id = backup_id.id
 		text = RText(f'#{backup_id}', TextColors.backup_id)
 		if hover:
-			text.h(cls.tr('backup_id.hover', RText(backup_id, TextColors.backup_id)))
+			hover_lines = [cls.tr('backup_id.hover_id', RText(backup_id, TextColors.backup_id))]
+			if backup_data is not None:
+				hover_lines.extend([
+					cls.tr('backup_id.hover_date', cls.backup_date(backup_data)),
+					cls.tr('backup_id.hover_comment', cls.backup_comment(backup_data.comment)),
+					cls.tr('backup_id.hover_creator', cls.operator(backup_data.creator)),
+				])
+			hover_lines.append(cls.tr('backup_id.hover_click_hint'))
+			text.h(RTextBase.join('\n', hover_lines))
 		if click:
 			text.c(RAction.run_command, mkcmd(f'show {backup_id}'))
 		return text

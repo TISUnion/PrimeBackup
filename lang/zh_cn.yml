@@ -475,9 +475,12 @@ prime_backup:
       restore: 回档至备份{}
       delete: 删除备份{}
       protected: 备份{}受保护
-    backup_id.hover: |-
-      备份ID: {}
-      点击以展示详情
+    backup_id:
+      hover_id: '备份ID: {}'
+      hover_date: '创建日期: {}'
+      hover_comment: '注释: {}'
+      hover_creator: '创建者: {}'
+      hover_click_hint: 点击以展示详情
     command:
       run: '点击以执行{}'
       suggest: '点击以补全{}'

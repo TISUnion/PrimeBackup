@@ -47,7 +47,7 @@ def on_load(server: PluginServerInterface, old):
 			server.logger.warning('{} is disabled by config'.format(mcdr_globals.metadata.name))
 			return
 
-		DbAccess.init()
+		DbAccess.init(create=True, migrate=True)
 		__check_config(server)
 
 		task_manager = TaskManager()

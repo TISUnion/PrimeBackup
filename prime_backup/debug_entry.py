@@ -15,7 +15,7 @@ from prime_backup.types.tar_format import TarFormat
 
 
 def main():
-	DbAccess.init()
+	DbAccess.init(create=True, migrate=True)
 	backup_id = 1
 	logger.get().info('debug entry start')
 

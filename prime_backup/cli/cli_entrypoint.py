@@ -48,7 +48,7 @@ class CliHandler:
 	def __init__(self, args: argparse.Namespace):
 		self.args = args
 
-	def init_environment(self):
+	def init_environment(self, *, migrate: bool = False):
 		config = Config.get_default()
 		set_config_instance(config)
 
@@ -57,13 +57,13 @@ class CliHandler:
 			root_path = root_path.parent
 
 		if not (dbf := root_path / db_constants.DB_FILE_NAME).is_file():
-			logger.error('Database file {!r} in does not exists'.format(dbf.as_posix()))
+			logger.error('Database file {!r} does not exist'.format(dbf.as_posix()))
 			sys.exit(1)
 		config.storage_root = str(root_path.as_posix())
 
 		logger.info('Storage root set to {!r}'.format(config.storage_root))
 		try:
-			DbAccess.init(auto_migrate=False)
+			DbAccess.init(create=False, migrate=migrate)
 		except BadDbVersion as e:
 			logger.info('Load database failed, you need to ensure the database is accessible with MCDR plugin: {}'.format(e))
 			sys.exit(1)
@@ -227,6 +227,11 @@ class CliHandler:
 			recursively_export_child=self.args.recursively,
 		).run()
 
+	def cmd_migrate_db(self):
+		self.init_environment(migrate=True)
+		result = GetDbOverviewAction().run()
+		logger.info('Current DB version: {}'.format(result.db_version))
+
 	@classmethod
 	def entrypoint(cls):
 		parser = argparse.ArgumentParser(description='Prime Backup CLI tools', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -279,6 +284,9 @@ class CliHandler:
 		parser_extract.add_argument('-r', '--recursively', action='store_true', help='If the file to extract is a directory, recursively extract all of its containing files')
 		parser_extract.add_argument('-t', '--type', help='Type assertion of the extracted file. Default: no assertion. Options: {}'.format(enum_options(FileType)))
 
+		desc = 'Migrate the database to the current version ({})'.format(db_constants.DB_VERSION)
+		parser_migrate_db = subparsers.add_parser('migrate_db', help=desc, description=desc)
+
 		args = parser.parse_args()
 		if args.command is None:
 			parser.print_help()
@@ -298,6 +306,8 @@ class CliHandler:
 				handler.cmd_export()
 			elif args.command == 'extract':
 				handler.cmd_extract()
+			elif args.command == 'migrate_db':
+				handler.cmd_migrate_db()
 			else:
 				logger.error('Unknown command {!r}'.format(args.command))
 		except BackupNotFound as e:

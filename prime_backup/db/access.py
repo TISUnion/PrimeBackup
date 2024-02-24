@@ -19,21 +19,19 @@ class DbAccess:
 	__hash_method: Optional[HashMethod] = None
 
 	@classmethod
-	def init(cls, auto_migrate: bool = True):
+	def init(cls, create: bool, migrate: bool):
 		"""
-		:param auto_migrate:
-			True: check db meta, try to migrate;
-			False: check db version only
 		"""
 		db_dir = Config.get().storage_path
-		db_dir.mkdir(parents=True, exist_ok=True)
+		if create:
+			db_dir.mkdir(parents=True, exist_ok=True)
 
 		db_path = db_dir / db_constants.DB_FILE_NAME
 		cls.__engine = create_engine('sqlite:///' + str(db_path))
 		cls.__db_file_path = db_path
 
 		migration = DbMigration(cls.__engine)
-		migration.check_and_migrate(create=auto_migrate, migrate=auto_migrate)
+		migration.check_and_migrate(create=create, migrate=migrate)
 
 		cls.sync_hash_method()
 

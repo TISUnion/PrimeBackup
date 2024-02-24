@@ -62,7 +62,7 @@ class DbMigration:
 			))
 
 	def __migrate_db(self, session: Session, dbm: schema.DbMeta, current_version, target_version):
-		self.logger.info('DB migration starts. current DB version: {}, target version: {}, backup file: '.format(current_version, target_version))
+		self.logger.info('DB migration starts. current DB version: {}, target version: {}'.format(current_version, target_version))
 
 		for i in range(current_version, target_version):
 			self.logger.info('Migrating database from version {} to version {}'.format(i, i + 1))

@@ -13,7 +13,7 @@
     "dependencies": {
         "mcdreforged": ">=2.12.0"
     },
-    "entrypoint": "prime_backup.mcdr.entrypoint",
+    "entrypoint": "prime_backup.mcdr.mcdr_entrypoint",
     "archive_name": "PrimeBackup-v{version}.pyz",
     "resources": [
         "lang",

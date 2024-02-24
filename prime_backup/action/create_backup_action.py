@@ -506,7 +506,10 @@ class CreateBackupAction(CreateBackupActionBase):
 					targets=scan_result.root_targets,
 					tags=self.tags.to_dict(),
 				)
-				self.logger.info('Creating backup {} on {}'.format(backup, scan_result.root_targets))
+				self.logger.info('Creating backup for {} at path {!r}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
+					scan_result.root_targets, self.__source_path.as_posix(),
+					backup.timestamp, backup.creator, backup.comment, backup.tags,
+				))
 
 				if self.config.get_effective_concurrency() > 1:
 					self.__pre_calculate_hash(session, scan_result)

@@ -297,7 +297,7 @@ class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 
 		prune_backups('regular', BackupFilter().filter_non_temporary_backup(), config.regular_backup)
 		if not self.aborted_event.is_set():
-			prune_backups('pre_restore', BackupFilter().filter_temporary_backup(), config.temporary_backup)
+			prune_backups('temporary', BackupFilter().filter_temporary_backup(), config.temporary_backup)
 
 		if self.verbose >= _PruneVerbose.delete:
 			self.reply_tr(

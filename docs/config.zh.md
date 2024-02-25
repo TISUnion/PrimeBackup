@@ -479,7 +479,7 @@ Prime Backup 的备份清理功能可用于自动清理过时备份
         "month": 0,
         "year": 0
     },
-    "pre_restore_backup": {
+    "temprory_backup": {
         "enabled": true,
         "max_amount": 10,
         "max_lifetime": "30d",

@@ -479,7 +479,7 @@ The backup prune feature from Prime Backup enables automatically backup cleanup 
         "month": 0,
         "year": 0
     },
-    "pre_restore_backup": {
+    "temprory_backup": {
         "enabled": true,
         "max_amount": 10,
         "max_lifetime": "30d",

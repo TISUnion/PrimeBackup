@@ -114,6 +114,6 @@ class RestoreBackupTask(HeavyTask[None]):
 			self.server.start()
 
 		with log_utils.open_file_logger('restore') as logger:
-			logger.info('{} restored world to backup #{} (date={}, comment={!r}), pre-restore backup: {}'.format(
+			logger.info('{} restored world to backup #{} (date={}, comment={!r}), pre-restore temp backup: {}'.format(
 				self.source, backup.id, backup.comment, backup.date_str, pre_restore_backup_id,
 			))

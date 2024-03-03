@@ -23,7 +23,6 @@ from prime_backup.db.migration import BadDbVersion
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound
 from prime_backup.logger import get as get_logger
 from prime_backup.types.backup_filter import BackupFilter
-from prime_backup.types.file_info import FileType
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
@@ -230,18 +229,10 @@ class CliHandler:
 		self.init_environment()
 
 		backup_id = self.__parse_backup_id(self.args.backup_id)
-		file = GetFileAction(backup_id, file_path).run()
-		logger.info('Found file {}'.format(file))
-		if self.args.type is not None:
-			try:
-				ft = FileType[self.args.type]
-			except KeyError:
-				logger.error('Bad file type {!r}, should be one of {}'.format(self.args.type, enum_options(FileType)))
-				sys.exit(1)
-			else:
-				if ft != file.file_type:
-					logger.error('Unexpected file type, expected {}, but found {} for the to-be-extracted file'.format(self.args.type, file.file_type.name))
-					sys.exit(2)
+
+		if file_path != Path('.'):
+			file = GetFileAction(backup_id, file_path).run()
+			logger.info('Found file {}'.format(file))
 
 		ExportBackupToDirectoryAction(
 			backup_id, output_path,
@@ -301,10 +292,9 @@ class CliHandler:
 		desc = 'Extract a single file from a backup'
 		parser_extract = subparsers.add_parser('extract', help=desc, description=desc)
 		add_pos_argument_backup_id(parser_extract)
-		parser_extract.add_argument('file', help='The related path of the to-be-extracted file inside the backup')
+		parser_extract.add_argument('file', help='The related path of the to-be-extracted file inside the backup. Use "." to extract everything in the backup')
 		parser_extract.add_argument('-o', '--output', default='.', help='The output directory to place the extracted file / directory')
 		parser_extract.add_argument('-r', '--recursively', action='store_true', help='If the file to extract is a directory, recursively extract all of its containing files')
-		parser_extract.add_argument('-t', '--type', help='Type assertion of the extracted file. Default: no assertion. Options: {}'.format(enum_options(FileType)))
 
 		desc = 'Migrate the database to the current version {}'.format(db_constants.DB_VERSION)
 		parser_migrate_db = subparsers.add_parser('migrate_db', help=desc, description=desc)

@@ -315,6 +315,7 @@ class CommandManager:
 		root = (
 			Literal(self.config.command.prefix).
 			requires(lambda: not self.plugin_disabled, lambda: tr('error.disabled').set_color(RColor.red)).
+			requires(get_permission_checker('root'), get_permission_denied_text).
 			runs(self.cmd_welcome)
 		)
 		builder.add_children_for(root)

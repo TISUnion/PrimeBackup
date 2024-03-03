@@ -70,6 +70,7 @@ A value of `0` means using 50% of the CPU
 {
     "prefix": "!!pb",
     "permission": {
+        "root": 0,
         "abort": 1,  
         "back": 2,
         "confirm": 1,
@@ -106,6 +107,8 @@ If a subcommand is not in the mapping, it will use level 1 as the default permis
 
 For example, in the default config, `"back"` is mapped to `2`, 
 which means that the `!!pb back` command requires permission level >= 2 to execute
+
+Specially, `"root"` refers to the root command, which is usually `!!pb`
 
 - Type: `Dict[str, int]`
 

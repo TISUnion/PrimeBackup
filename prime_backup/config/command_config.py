@@ -5,6 +5,8 @@ from prime_backup.types.units import Duration
 
 
 class CommandPermissions(Serializable):
+	root: int = 0
+
 	abort: int = 1
 	back: int = 2
 	confirm: int = 1

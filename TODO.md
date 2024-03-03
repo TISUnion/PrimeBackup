@@ -5,6 +5,7 @@
 - [ ] List and removed backup with invalid / corrupted files / blobs
 - [ ] Import good backups to fix corrupted blobs
 - [x] Show diff between 2 backups
+- [ ] Record and show restore logs
 
 ## QOL
 

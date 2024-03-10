@@ -58,7 +58,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 			online_players = OnlinePlayerCounter.get().get_online_players()
 			base_msg = 'Scheduled backup player check: valid={} ignored={}'.format(online_players.valid, online_players.ignored)
 			if online_players is not None and len(online_players.valid) == 0:
-				if self.__backups_without_players > 1:
+				if self.__backups_without_players >= 1:
 					self.logger.info('{}, backup skipped'.format(base_msg))
 					return
 				self.__backups_without_players = self.__backups_without_players + 1

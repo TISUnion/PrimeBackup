@@ -36,6 +36,13 @@ logger.handlers[0].setFormatter(log_utils.LOG_FORMATTER_NO_FUNC)
 DEFAULT_STORAGE_ROOT = Config.get_default().storage_root
 
 
+class ErrorReturnCodes:
+	argparse_error = 2  # see argparse.ArgumentParser.error
+	action_failed = 3
+	backup_not_found = 4
+	backup_file_not_found = 5
+
+
 class BackupIdAlternatives(enum.Enum):
 	latest = enum.auto()
 	latest_non_temp = enum.auto()
@@ -198,6 +205,7 @@ class CliHandler:
 		except BackupMetadataNotFound as e:
 			logger.error('Import failed due to backup metadata not found: {}'.format(e))
 			logger.error('Please make sure the file is a valid backup create by Prime Backup. You can also use the --auto-meta flag for a workaround')
+			sys.exit(ErrorReturnCodes.action_failed)
 
 	def cmd_export(self):
 		output_path = Path(self.args.output)
@@ -222,6 +230,7 @@ class CliHandler:
 			logger.warning('Found {} failures during the export'.format(len(failures)))
 			for line in failures.to_lines():
 				logger.warning('  {}'.format(line.to_plain_text()))
+			sys.exit(ErrorReturnCodes.action_failed)
 
 	def cmd_extract(self):
 		file_path = Path(self.args.file)
@@ -234,11 +243,16 @@ class CliHandler:
 			file = GetFileAction(backup_id, file_path).run()
 			logger.info('Found file {}'.format(file))
 
-		ExportBackupToDirectoryAction(
+		failures = ExportBackupToDirectoryAction(
 			backup_id, output_path,
 			child_to_export=file_path,
 			recursively_export_child=self.args.recursively,
 		).run()
+		if len(failures) > 0:
+			logger.warning('Found {} failures during the extract'.format(len(failures)))
+			for line in failures.to_lines():
+				logger.warning('  {}'.format(line.to_plain_text()))
+			sys.exit(ErrorReturnCodes.action_failed)
 
 	def cmd_migrate_db(self):
 		self.init_environment(migrate=True)
@@ -324,8 +338,10 @@ class CliHandler:
 				logger.error('Unknown command {!r}'.format(args.command))
 		except BackupNotFound as e:
 			logger.error('Backup #{} does not exist'.format(e.backup_id))
+			sys.exit(ErrorReturnCodes.backup_not_found)
 		except BackupFileNotFound as e:
 			logger.error('File {!r} in backup #{} does not exist'.format(e.path, e.backup_id))
+			sys.exit(ErrorReturnCodes.backup_file_not_found)
 
 
 def cli_entry():

@@ -36,11 +36,14 @@ logger.handlers[0].setFormatter(log_utils.LOG_FORMATTER_NO_FUNC)
 DEFAULT_STORAGE_ROOT = Config.get_default().storage_root
 
 
-class ErrorReturnCodes:
+class ErrorReturnCodes(enum.Enum):
 	argparse_error = 2  # see argparse.ArgumentParser.error
 	action_failed = 3
 	backup_not_found = 4
 	backup_file_not_found = 5
+
+	def sys_exit(self):
+		sys.exit(self.value)
 
 
 class BackupIdAlternatives(enum.Enum):
@@ -205,7 +208,7 @@ class CliHandler:
 		except BackupMetadataNotFound as e:
 			logger.error('Import failed due to backup metadata not found: {}'.format(e))
 			logger.error('Please make sure the file is a valid backup create by Prime Backup. You can also use the --auto-meta flag for a workaround')
-			sys.exit(ErrorReturnCodes.action_failed)
+			ErrorReturnCodes.action_failed.sys_exit()
 
 	def cmd_export(self):
 		output_path = Path(self.args.output)
@@ -230,7 +233,7 @@ class CliHandler:
 			logger.warning('Found {} failures during the export'.format(len(failures)))
 			for line in failures.to_lines():
 				logger.warning('  {}'.format(line.to_plain_text()))
-			sys.exit(ErrorReturnCodes.action_failed)
+			ErrorReturnCodes.action_failed.sys_exit()
 
 	def cmd_extract(self):
 		file_path = Path(self.args.file)
@@ -252,7 +255,7 @@ class CliHandler:
 			logger.warning('Found {} failures during the extract'.format(len(failures)))
 			for line in failures.to_lines():
 				logger.warning('  {}'.format(line.to_plain_text()))
-			sys.exit(ErrorReturnCodes.action_failed)
+			ErrorReturnCodes.action_failed.sys_exit()
 
 	def cmd_migrate_db(self):
 		self.init_environment(migrate=True)
@@ -338,10 +341,10 @@ class CliHandler:
 				logger.error('Unknown command {!r}'.format(args.command))
 		except BackupNotFound as e:
 			logger.error('Backup #{} does not exist'.format(e.backup_id))
-			sys.exit(ErrorReturnCodes.backup_not_found)
+			ErrorReturnCodes.backup_not_found.sys_exit()
 		except BackupFileNotFound as e:
 			logger.error('File {!r} in backup #{} does not exist'.format(e.path, e.backup_id))
-			sys.exit(ErrorReturnCodes.backup_file_not_found)
+			ErrorReturnCodes.backup_file_not_found.sys_exit()
 
 
 def cli_entry():

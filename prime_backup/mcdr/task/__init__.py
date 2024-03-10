@@ -12,6 +12,7 @@ T = TypeVar('T')
 class TaskEvent(enum.Enum):
 	plugin_unload = enum.auto()
 	world_save_done = enum.auto()
+	server_stopped = enum.auto()
 	operation_confirmed = enum.auto()
 	operation_aborted = enum.auto()
 

@@ -134,6 +134,11 @@ def on_server_start(server: PluginServerInterface):
 		online_player_counter.on_server_start()
 
 
+def on_server_stop(server: PluginServerInterface, server_return_code: int):
+	if init_ok:
+		task_manager.on_server_stopped()
+
+
 def on_player_joined(server: PluginServerInterface, player: str, info: Info):
 	if init_ok and online_player_counter is not None:
 		online_player_counter.on_player_joined(player)

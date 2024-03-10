@@ -219,3 +219,6 @@ class TaskManager:
 	def on_world_saved(self):
 		self.worker_heavy.send_event_to_current_task(TaskEvent.world_save_done)
 
+	def on_server_stopped(self):
+		self.worker_heavy.send_event_to_current_task(TaskEvent.server_stopped)
+

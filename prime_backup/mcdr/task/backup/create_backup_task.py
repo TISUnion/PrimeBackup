@@ -74,5 +74,5 @@ class CreateBackupTask(HeavyTask[None]):
 		super().on_event(event)
 		if event == TaskEvent.plugin_unload:
 			self.world_saved_done.set()
-		elif event == TaskEvent.world_save_done:
+		elif event in [TaskEvent.world_save_done, TaskEvent.server_stopped]:
 			self.world_saved_done.set()

@@ -121,7 +121,8 @@ class TextComponents:
 					cls.tr('backup_id.hover_comment', cls.backup_comment(backup_data.comment)),
 					cls.tr('backup_id.hover_creator', cls.operator(backup_data.creator)),
 				])
-			hover_lines.append(cls.tr('backup_id.hover_click_hint'))
+			if click:
+				hover_lines.append(cls.tr('backup_id.hover_click_hint'))
 			text.h(RTextBase.join('\n', hover_lines))
 		if click:
 			text.c(RAction.run_command, mkcmd(f'show {backup_id}'))

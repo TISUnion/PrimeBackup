@@ -42,7 +42,7 @@ class Blob(Base):
 class File(Base):
 	__tablename__ = 'file'
 
-	backup_id: Mapped[str] = mapped_column(ForeignKey('backup.id'), primary_key=True, index=True)
+	backup_id: Mapped[int] = mapped_column(ForeignKey('backup.id'), primary_key=True, index=True)
 	path: Mapped[str] = mapped_column(String, primary_key=True)
 
 	mode: Mapped[int] = mapped_column(Integer)

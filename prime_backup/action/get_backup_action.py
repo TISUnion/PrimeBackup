@@ -13,4 +13,4 @@ class GetBackupAction(Action[BackupInfo]):
 	def run(self) -> BackupInfo:
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
-			return BackupInfo.of(backup, with_files=self.with_files)
+			return BackupInfo.of(backup, with_files=self.with_files, db_session=session)

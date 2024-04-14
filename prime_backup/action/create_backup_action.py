@@ -475,18 +475,17 @@ class CreateBackupAction(CreateBackupActionBase):
 		else:
 			raise UnsupportedFileFormat(st.st_mode)
 
-		return session.create_file(
+		return session.create_file_no_add(
 			path=related_path.as_posix(),
+			mode=st.st_mode,
 			content=content,
 
-			mode=st.st_mode,
 			uid=st.st_uid,
 			gid=st.st_gid,
 			ctime_ns=st.st_ctime_ns,
 			mtime_ns=st.st_mtime_ns,
 			atime_ns=st.st_atime_ns,
 
-			add_to_session=False,
 			blob=blob,
 		)
 
@@ -520,7 +519,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.__blob_store_st = bs_path.stat()
 				self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
 
-				files = []
+				files: List[schema.File] = []
 				schedule_queue: Deque[Tuple[Generator, Any]] = collections.deque()
 				for file_path in scan_result.all_file_paths:
 					schedule_queue.append((self.__create_file(session, file_path), None))

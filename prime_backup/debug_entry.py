@@ -78,12 +78,12 @@ def main():
 		print(MigrateCompressMethodAction(CompressMethod.gzip).run())
 		# print(MigrateCompressMethodAction(CompressMethod.lzma).run())
 
-	create(1)
+	# create(1)
 	# import_()
 	# list_()
 	# export()
 	# delete()
-	migrate()
+	# migrate()
 
 
 if __name__ == '__main__':

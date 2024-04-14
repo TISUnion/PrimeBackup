@@ -342,7 +342,7 @@ class ImportBackupAction(CreateBackupActionBase):
 			raise NotImplementedError('member path={!r} mode={} is not supported yet'.format(member.path, member.mode))
 
 		mtime_ns = member.mtime_ns
-		return session.create_file(
+		return session.create_file_no_add(
 			path=self.__format_path(member.path),
 			content=content,
 
@@ -353,7 +353,6 @@ class ImportBackupAction(CreateBackupActionBase):
 			mtime_ns=mtime_ns,
 			atime_ns=mtime_ns,
 
-			add_to_session=False,
 			blob=blob,
 		)
 

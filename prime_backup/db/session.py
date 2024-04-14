@@ -4,7 +4,7 @@ import shutil
 import sqlite3
 import time
 from pathlib import Path
-from typing import Optional, Sequence, Dict, ContextManager, Iterator, Callable
+from typing import Optional, Sequence, Dict, ContextManager, Iterator, Callable, Generator
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text
@@ -16,6 +16,7 @@ from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.utils import collection_utils, db_utils
 
 T = TypeVar('T')
+_GSlice = Generator[T, None, None]
 
 
 class UnsupportedDatabaseOperation(PrimeBackupError):
@@ -37,6 +38,7 @@ def _int_or_0(value: Optional[int]) -> int:
 
 class DbSession:
 	def __init__(self, session: Session, db_path: Path = None):
+		# TODO: make private
 		self.session = session
 		self.db_path = db_path
 
@@ -60,6 +62,9 @@ class DbSession:
 	@functools.lru_cache
 	def __supports_vacuum_into(cls) -> bool:
 		return cls.__check_support(db_utils.check_sqlite_vacuum_into_support, 'SQLite backend does not support VACUUM INTO statement. Insecure manual file copy is used as the fallback')
+
+	def __slicing_iterate(self, lst: List[T]) -> Generator[_GSlice, None, None]:
+		return collection_utils.slicing_iterate(lst, self.__safe_var_limit)
 
 	# ========================= General Database Operations =========================
 
@@ -135,7 +140,7 @@ class DbSession:
 		:return: a dict, hash -> optional blob. All given hashes are in the dict
 		"""
 		result: Dict[str, Optional[schema.Blob]] = {h: None for h in hashes}
-		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+		for view in self.__slicing_iterate(hashes):
 			for blob in self.session.execute(select(schema.Blob).where(schema.Blob.hash.in_(view))).scalars().all():
 				result[blob.hash] = blob
 		return result
@@ -171,7 +176,7 @@ class DbSession:
 
 	def has_blob_with_size_batched(self, sizes: List[int]) -> Dict[int, bool]:
 		result = {s: False for s in sizes}
-		for view in collection_utils.slicing_iterate(sizes, self.__safe_var_limit):
+		for view in self.__slicing_iterate(sizes):
 			for size in self.session.execute(select(schema.Blob.raw_size).where(schema.Blob.raw_size.in_(view)).distinct()).scalars().all():
 				result[size] = True
 		return result
@@ -186,12 +191,12 @@ class DbSession:
 		self.session.delete(blob)
 
 	def delete_blobs(self, hashes: List[str]):
-		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+		for view in self.__slicing_iterate(hashes):
 			self.session.execute(delete(schema.Blob).where(schema.Blob.hash.in_(view)))
 
 	def filtered_orphan_blob_hashes(self, hashes: List[str]) -> List[str]:
 		good_hashes = set()
-		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+		for view in self.__slicing_iterate(hashes):
 			good_hashes.update(
 				self.session.execute(
 					select(schema.File.blob_hash).where(schema.File.blob_hash.in_(view)).distinct()
@@ -201,7 +206,7 @@ class DbSession:
 
 	# ===================================== File =====================================
 
-	def create_file(self, *, add_to_session: bool = True, blob: Optional[schema.Blob] = None, **kwargs) -> schema.File:
+	def create_file_no_add(self, blob: Optional[schema.Blob] = None, **kwargs) -> schema.File:
 		if blob is not None:
 			kwargs.update(
 				blob_hash=blob.hash,
@@ -210,9 +215,29 @@ class DbSession:
 				blob_stored_size=blob.stored_size,
 			)
 		file = schema.File(**kwargs)
-		if add_to_session:
-			self.session.add(file)
 		return file
+
+	def get_or_add_file(self, file: schema.File) -> schema.File:
+		existing_file = self.session.execute(
+			select(schema.File).
+			filter_by(
+				path=file.path,
+				mode=file.mode,
+				content=file.content,
+				blob_hash=file.blob_hash,
+				uid=file.uid,
+				gid=file.gid,
+				ctime_ns=file.ctime_ns,
+				mtime_ns=file.mtime_ns,
+				# atime_ns=file.atime_ns,
+			).
+			limit(1)
+		).scalar_one_or_none()
+		if existing_file is not None:
+			return existing_file
+		else:
+			self.session.add(file)
+			return file
 
 	def get_file_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.File)).scalar_one())
@@ -232,7 +257,7 @@ class DbSession:
 	def get_file_by_blob_hashes(self, hashes: List[str]) -> List[schema.File]:
 		hashes = collection_utils.deduplicated_list(hashes)
 		result = []
-		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+		for view in self.__slicing_iterate(hashes):
 			result.extend(self.session.execute(
 				select(schema.File).where(schema.File.blob_hash.in_(view))
 			).scalars().all())
@@ -240,7 +265,7 @@ class DbSession:
 
 	def get_file_count_by_blob_hashes(self, hashes: List[str]) -> int:
 		cnt = 0
-		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+		for view in self.__slicing_iterate(hashes):
 			cnt += _int_or_0(self.session.execute(
 				select(func.count()).
 				select_from(schema.File).
@@ -274,10 +299,22 @@ class DbSession:
 		return exists
 
 	def calc_file_stored_size_sum(self, backup_id: int) -> int:
+		subquery = (
+			select(schema.BackupFile.file_id).
+			where(schema.BackupFile.backup_id == backup_id).
+			subquery()
+		)
 		return _int_or_0(self.session.execute(
 			select(func.sum(schema.File.blob_stored_size)).
-			where(schema.File.backup_id == backup_id)
+			join(schema.BackupFile, schema.File.id == subquery.columns.file_id)
 		).scalar_one())
+
+	# ===================================== BackupFile =====================================
+
+	def create_backup_file(self, **kwargs) -> schema.BackupFile:
+		file = schema.BackupFile(**kwargs)
+		self.session.add(file)
+		return file
 
 	# ==================================== Backup ====================================
 
@@ -400,21 +437,45 @@ class DbSession:
 		:return: a dict, backup id -> optional Backup. All given ids are in the dict
 		"""
 		result: Dict[int, Optional[schema.Backup]] = {bid: None for bid in backup_ids}
-		for view in collection_utils.slicing_iterate(backup_ids, self.__safe_var_limit):
+		for view in self.__slicing_iterate(backup_ids):
 			for backup in self.session.execute(select(schema.Backup).where(schema.Backup.id.in_(view))).scalars().all():
 				result[backup.id] = backup
 		return result
 
+	def get_backup_files(self, backup_id: int, *, check_backup_existence: bool = True) -> List[schema.File]:
+		if check_backup_existence:
+			self.get_backup(backup_id)
+		subquery = (
+			select(schema.BackupFile.file_id).
+			where(schema.BackupFile.backup_id == backup_id).
+			subquery()
+		)
+		return _list_it(self.session.execute(
+			select(schema.File).
+			join(schema.BackupFile, schema.File.id == subquery.columns.file_id)
+		).scalars().all())
+
 	def get_backup_ids_by_blob_hashes(self, hashes: List[str]) -> List[int]:
-		backup_ids = set()
-		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
-			backup_ids.update(
+		file_ids = set()
+		for view in self.__slicing_iterate(hashes):
+			file_ids.update(
 				self.session.execute(
-					select(schema.File.backup_id).
+					select(schema.File.id).
 					where(schema.File.blob_hash.in_(view)).
 					distinct()
 				).scalars().all()
 			)
+
+		backup_ids = set()
+		for view in self.__slicing_iterate(list(file_ids)):
+			backup_ids.update(
+				self.session.execute(
+					select(schema.BackupFile.backup_id).
+					where(schema.BackupFile.file_id.in_(view)).
+					distinct()
+				).scalars().all()
+			)
+
 		return list(sorted(backup_ids))
 
 	def list_backup(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Backup]:

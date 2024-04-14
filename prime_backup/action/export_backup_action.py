@@ -215,13 +215,14 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			self.logger.warning('Found out-of-backup-target file, ignored. file.path: {!r}, backup.targets: {}'.format(file, backup.targets))
 
 		export_items: List[ExportBackupToDirectoryAction._ExportItem] = []
+		backup_files = session.get_backup_files(backup.id)
 		if self.child_to_export is None:
 			self.logger.info('Exporting {} to directory {}'.format(backup, self.output_path))
-			for file in backup.files:
+			for file in backup_files:
 				add_export_item(file, Path(file.path))
 		else:
 			self.logger.info('Exporting child {!r} in {} to directory {}, recursively = {}'.format(self.child_to_export.as_posix(), backup, self.output_path, self.recursively_export_child))
-			for file in backup.files:
+			for file in backup_files:
 				try:
 					rel_path = Path(file.path).relative_to(self.child_to_export)
 				except ValueError:
@@ -395,7 +396,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		else:
 			self._on_unsupported_file_mode(file)
 
-	def _export_backup(self, session, backup: schema.Backup) -> ExportFailures:
+	def _export_backup(self, session: DbSession, backup: schema.Backup) -> ExportFailures:
 		failures = ExportFailures(self.fail_soft)
 		if not self.output_path.name.endswith(self.tar_format.value.extension):
 			raise ValueError('bad output file extension for file name {!r}, should be {!r} for tar format {}'.format(
@@ -407,7 +408,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 
 		try:
 			with self.__open_tar() as tar:
-				for file in backup.files:
+				for file in session.get_backup_files(backup.id):
 					if self.is_interrupted.is_set():
 						self.logger.info('Export to tarfile interrupted')
 						raise _ExportInterrupted()
@@ -477,14 +478,14 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 		else:
 			self._on_unsupported_file_mode(file)
 
-	def _export_backup(self, session, backup: schema.Backup) -> ExportFailures:
+	def _export_backup(self, session: DbSession, backup: schema.Backup) -> ExportFailures:
 		failures = ExportFailures(self.fail_soft)
 		self.logger.info('Exporting backup {} to zipfile {}'.format(backup, self.output_path))
 		self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
 		try:
 			with zipfile.ZipFile(self.output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-				for file in backup.files:
+				for file in session.get_backup_files(backup.id):
 					if self.is_interrupted.is_set():
 						self.logger.info('Export to zipfile interrupted')
 						raise _ExportInterrupted()

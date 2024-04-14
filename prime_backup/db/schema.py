@@ -41,10 +41,11 @@ class Blob(Base):
 
 class File(Base):
 	__tablename__ = 'file'
+	__table_args__ = {'sqlite_autoincrement': True}
 
-	backup_id: Mapped[int] = mapped_column(ForeignKey('backup.id'), primary_key=True, index=True)
-	path: Mapped[str] = mapped_column(String, primary_key=True)
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
 
+	path: Mapped[str] = mapped_column(String, index=True)
 	mode: Mapped[int] = mapped_column(Integer)
 
 	# whole file content for special files, e.g. target of symlink
@@ -60,12 +61,22 @@ class File(Base):
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
 	ctime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
 	mtime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
-	atime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 	__fields_end__: bool
 
 	blob: Mapped[Optional['Blob']] = relationship(back_populates='files', viewonly=True)
-	backup: Mapped[List['Backup']] = relationship(back_populates='files', viewonly=True)
+
+
+class BackupFile(Base):
+	__tablename__ = 'backup_file'
+
+	backup_id: Mapped[int] = mapped_column(ForeignKey('backup.id'), primary_key=True, index=True)
+	file_id: Mapped[int] = mapped_column(ForeignKey('file.id'), primary_key=True, index=True)
+
+	# this field keeps changing
+	atime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
+
+	__fields_end__: bool
 
 
 class Backup(Base):
@@ -84,5 +95,3 @@ class Backup(Base):
 	file_stored_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 	__fields_end__: bool
-
-	files: Mapped[List['File']] = relationship(back_populates='backup', viewonly=True)

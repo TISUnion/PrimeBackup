@@ -1,7 +1,7 @@
 import dataclasses
 import datetime
 import functools
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Optional
 
 from typing_extensions import Self
 
@@ -11,6 +11,7 @@ from prime_backup.types.operator import Operator
 from prime_backup.utils import conversion_utils
 
 if TYPE_CHECKING:
+	from prime_backup.db.session import DbSession
 	from prime_backup.types.file_info import FileInfo
 
 
@@ -38,10 +39,17 @@ class BackupInfo:
 		return conversion_utils.timestamp_to_local_date_str(self.timestamp_ns)
 
 	@classmethod
-	def of(cls, backup: schema.Backup, *, with_files: bool = False) -> 'Self':
+	def of(cls, backup: schema.Backup, *, with_files: bool = False, db_session: Optional['DbSession'] = None) -> 'Self':
 		"""
 		Notes: should be inside a session
 		"""
+		if with_files:
+			if db_session is None:
+				raise ValueError('db_session is None while with_files')
+			files = db_session.get_backup_files(backup.id)
+		else:
+			files = []
+
 		from prime_backup.types.file_info import FileInfo
 		return cls(
 			id=backup.id,
@@ -52,5 +60,5 @@ class BackupInfo:
 			tags=BackupTags(backup.tags),
 			raw_size=backup.file_raw_size_sum or 0,
 			stored_size=backup.file_stored_size_sum or 0,
-			files=list(map(FileInfo.of, backup.files)) if with_files else [],
+			files=list(map(FileInfo.of, files)),
 		)

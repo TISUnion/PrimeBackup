@@ -72,12 +72,13 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 			info = BackupInfo.of(backup)
 
 			hashes = []
-			for file in backup.files:
+			for file in session.get_backup_files(backup.id):
 				if file.blob_hash is not None:
 					hashes.append(file.blob_hash)
 				session.delete_file(file)
 			session.delete_backup(backup)
 
+		# TODO: orphan_file_cleaner
 		orphan_blob_cleaner = DeleteOrphanBlobsAction(hashes, quiet=True)
 		bls = orphan_blob_cleaner.run()
 

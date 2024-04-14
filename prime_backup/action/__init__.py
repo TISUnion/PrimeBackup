@@ -1,6 +1,7 @@
 """
 Actions for all kinds of DB accesses
 """
+import logging
 import threading
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic
@@ -14,8 +15,8 @@ class Action(Generic[T], ABC):
 
 		from prime_backup import logger
 		from prime_backup.config.config import Config
-		self.logger = logger.get()
-		self.config = Config.get()
+		self.logger: logging.Logger = logger.get()
+		self.config: Config = Config.get()
 
 	@abstractmethod
 	def run(self) -> T:

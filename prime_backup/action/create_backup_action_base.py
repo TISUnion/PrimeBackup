@@ -45,19 +45,25 @@ class CreateBackupActionBase(Action[BackupInfo], ABC):
 
 	@classmethod
 	def _finalize_backup_and_files(cls, session: DbSession, backup: schema.Backup, files: List[schema.File]):
-		# flush to generate the backup id
+		files = files.copy()
+		for i, file in enumerate(files):
+			files[i] = session.get_or_add_file(file)
+
+		# flush to generate backup and file ids
 		session.flush()
 
 		file_raw_size_sum = 0
 		file_stored_size_sum = 0
 
 		for file in files:
-			file.backup_id = backup.id
 			if file.blob_raw_size is not None:
 				file_raw_size_sum += file.blob_raw_size
 			if file.blob_stored_size is not None:
 				file_stored_size_sum += file.blob_stored_size
-			session.add(file)
+			session.create_backup_file(
+				backup_id=backup.id,
+				file_id=file.id,
+			)
 
 		backup.file_raw_size_sum = file_raw_size_sum
 		backup.file_stored_size_sum = file_stored_size_sum

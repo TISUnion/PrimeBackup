@@ -268,7 +268,11 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			with FailFastThreadPool('export') as pool:
 				def export_worker(item_: ExportBackupToDirectoryAction._ExportItem):
 					with failures.handling_exception(item_.file):
-						self.__export_file(item_, directories)
+						try:
+							self.__export_file(item_, directories)
+						except Exception as e_:
+							self.logger.error('Export file {!r} to path {} failed: {}'.format(item_.file.path, item_.path, e_))
+							raise
 
 				for item in export_items:
 					pool.submit(export_worker, item)
@@ -413,7 +417,11 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 						raise _ExportInterrupted()
 
 					with failures.handling_exception(file):
-						self.__export_file(tar, file)
+						try:
+							self.__export_file(tar, file)
+						except Exception as e:
+							self.logger.error('Export file {!r} to tar {} failed: {}'.format(file.path, self.output_path, e))
+							raise
 
 				if self.create_meta:
 					meta_buf = self._create_meta_buf(backup)
@@ -490,7 +498,11 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 						raise _ExportInterrupted()
 
 					with failures.handling_exception(file):
-						self.__export_file(zipf, file)
+						try:
+							self.__export_file(zipf, file)
+						except Exception as e:
+							self.logger.error('Export file {!r} to zip {} failed: {}'.format(file.path, self.output_path, e))
+							raise
 
 				if self.create_meta:
 					meta_buf = self._create_meta_buf(backup)

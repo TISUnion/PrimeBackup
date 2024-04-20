@@ -47,7 +47,13 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 	def __migrate_blobs_and_sync_files(self, session: DbSession, blobs: List[schema.Blob]):
 		blob_mapping = {}
 		for blob in blobs:
-			if self.__migrate_blob(blob):
+			try:
+				changed = self.__migrate_blob(blob)
+			except Exception as e:
+				self.logger.error('Migrate blob {} failed: {}'.format(blob, e))
+				raise
+
+			if changed:
 				blob_mapping[blob.hash] = blob
 				self.__migrated_blob_hashes.append(blob.hash)
 

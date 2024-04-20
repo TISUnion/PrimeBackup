@@ -41,7 +41,11 @@ class MigrateHashMethodAction(Action[None]):
 			old_hash, new_hash = blob.hash, hash_mapping[blob.hash]
 			old_path = blob_utils.get_blob_path(old_hash)
 			new_path = blob_utils.get_blob_path(new_hash)
-			shutil.move(old_path, new_path)
+			try:
+				shutil.move(old_path, new_path)
+			except Exception as e:
+				self.logger.error('Move blob ({} -> {}) from {!r} to {!r} failed: {}'.format(old_hash, new_hash, old_path, new_path, e))
+				raise
 
 			processed_hash_mapping[old_hash] = new_hash
 			blob.hash = new_hash

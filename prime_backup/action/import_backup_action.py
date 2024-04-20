@@ -422,7 +422,13 @@ class ImportBackupAction(CreateBackupActionBase):
 		files = []
 		blob_utils.prepare_blob_directories()
 		for i, member in enumerate(members):
-			files.append(self.__import_member(session, member, now_ns, sah_dict.get(i)))
+			try:
+				file = self.__import_member(session, member, now_ns, sah_dict.get(i))
+			except Exception as e:
+				self.logger.error('Import member {!r} (mode {}) failed: {}'.format(member.path, member.mode, e))
+				raise
+
+			files.append(file)
 
 		self._finalize_backup_and_files(session, backup, files)
 		return backup

@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, NamedTuple, List
 
 from prime_backup.action import Action
@@ -9,15 +10,21 @@ from prime_backup.utils import collection_utils, misc_utils
 
 
 class BlobTrashBin(List[BlobInfo]):
-	def __init__(self):
+	def __init__(self, logger: logging.Logger):
 		super().__init__()
+		self.logger = logger
+		self.errors: List[Exception] = []
 
 	def make_summary(self) -> BlobListSummary:
 		return BlobListSummary.of(self)
 
 	def erase_all(self):
 		for trash in self:
-			trash.blob_path.unlink()
+			try:
+				trash.blob_path.unlink()
+			except Exception as e:
+				self.logger.error('Error erasing blob {} at {!r}'.format(trash.hash, trash.blob_path))
+				self.errors.append(e)
 
 
 class DeleteOrphanBlobsAction(Action[BlobListSummary]):
@@ -29,7 +36,7 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 		self.quiet = quiet
 
 	def run(self) -> BlobListSummary:
-		trash_bin = BlobTrashBin()
+		trash_bin = BlobTrashBin(self.logger)
 
 		if not self.quiet:
 			self.logger.info('Delete orphan blobs start')
@@ -48,6 +55,11 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 
 		s = trash_bin.make_summary()
 		trash_bin.erase_all()
+
+		if len(errors := trash_bin.errors) > 0:
+			self.logger.error('Found {} orphan blob erasing failure in total'.format(len(errors)))
+			raise errors[0]
+
 		if not self.quiet:
 			self.logger.info('Delete orphan blobs done, erasing blobs (count {}, size {} / {})'.format(
 				s.count, ByteCount(s.stored_size).auto_str(), ByteCount(s.raw_size).auto_str(),

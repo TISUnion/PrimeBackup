@@ -446,6 +446,9 @@ class CreateBackupAction(CreateBackupActionBase):
 			except _BlobFileChanged:
 				self.logger.warning('Blob {} stat has changed, {}'.format(src_path_str, 'no more retry' if last_attempt else 'retrying'))
 				st = src_path.lstat()
+			except Exception as e:
+				self.logger.error('Create blob for file {} failed: {}'.format(src_path_str, e))
+				raise
 
 		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(src_path_str))
 		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path_str))

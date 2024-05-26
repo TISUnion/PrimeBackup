@@ -1,6 +1,7 @@
+import dataclasses
 import functools
 import threading
-from typing import Any, Optional, List, NamedTuple
+from typing import Any, Optional, List
 
 from mcdreforged.api.all import *
 
@@ -11,10 +12,11 @@ from prime_backup.utils import misc_utils
 _PlayerList = List[str]
 
 
-class GetOnlinePlayersResult(NamedTuple):
-	all: _PlayerList
-	valid: _PlayerList
-	ignored: _PlayerList
+@dataclasses.dataclass(frozen=True)
+class GetOnlinePlayersResult:
+	all: _PlayerList = dataclasses.field(default_factory=list)
+	valid: _PlayerList = dataclasses.field(default_factory=list)
+	ignored: _PlayerList = dataclasses.field(default_factory=list)
 
 
 class OnlinePlayerCounter:
@@ -43,7 +45,7 @@ class OnlinePlayerCounter:
 	def get_online_players(self) -> Optional[GetOnlinePlayersResult]:
 		def filter_for(players: _PlayerList):
 			blacklist = self.config.scheduled_backup.require_online_players_blacklist
-			result = GetOnlinePlayersResult([], [], [])
+			result = GetOnlinePlayersResult()
 			for player in players:
 				ok = all(map(
 					lambda pattern: not pattern.fullmatch(player),

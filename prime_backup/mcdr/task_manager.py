@@ -1,6 +1,6 @@
 import contextlib
 import enum
-import  sqlite3
+import sqlite3
 import threading
 from typing import Optional, Callable, NamedTuple, Any
 

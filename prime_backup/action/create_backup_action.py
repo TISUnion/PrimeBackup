@@ -203,6 +203,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		for scan_target in self.config.backup.targets:
 			scan_queue.append(Path(scan_target))
 
+		self.logger.debug(f'Scanning files at {list(scan_queue)}')
 		while len(scan_queue) > 0:
 			scan_target = scan_queue.popleft()
 			if (target_posix := scan_target.as_posix()) in scanned_targets:
@@ -509,8 +510,8 @@ class CreateBackupAction(CreateBackupActionBase):
 					targets=scan_result.root_targets,
 					tags=self.tags.to_dict(),
 				)
-				self.logger.info('Creating backup for {} at path {!r}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
-					scan_result.root_targets, self.__source_path.as_posix(),
+				self.logger.info('Creating backup for {} at path {!r}, file cnt {}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
+					scan_result.root_targets, self.__source_path.as_posix(), len(scan_result.all_file_paths),
 					backup.timestamp, backup.creator, backup.comment, backup.tags,
 				))
 

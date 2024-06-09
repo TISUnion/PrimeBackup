@@ -211,7 +211,7 @@ Prime Backup 在创建备份时的操作时序如下：
         "world"
     ],
     "ignored_files": [
-        "session.lock"
+        "server/session.lock"
     ],
     "follow_target_symlink": false,
     "hash_method": "xxh128",
@@ -261,11 +261,7 @@ Prime Backup 在创建备份时的操作时序如下：
 在备份时忽略的文件名列表，默认仅包含 `session.lock` 
 以解决 Windows 下 `session.lock` 被服务端占用导致备份失败的问题
 
-若文件名字符串以 `*` 开头，则将忽略以指定字符串结尾的文件，
-如 `*.test` 表示忽略所有以 `.test` 结尾的文件，如 `a.test`
-
-若文件名字符串以 `*` 结尾，则将忽略以指定字符串开头的文件，
-如 `temp*` 表示忽略所有以 `temp` 开头的文件，如 `tempfile`
+该项填写一个正则表达式，注意由于是json文件，转义符"\"需要打两遍即"\\"。
 
 - 类型：`List[str]`
 

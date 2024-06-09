@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import List, Optional
+import re
 
 from mcdreforged.api.utils import Serializable
 
@@ -14,7 +15,7 @@ class BackupConfig(Serializable):
 		'world',
 	]
 	ignored_files: List[str] = [
-		'session.lock',
+		'server/session.lock',
 	]
 	follow_target_symlink: bool = False
 	hash_method: HashMethod = HashMethod.xxh128
@@ -34,14 +35,7 @@ class BackupConfig(Serializable):
 		"""
 		Apply to not only files
 		"""
-		# TODO: better rule?
-		name = full_path.name
 		for item in self.ignored_files:
-			if len(item) > 0:
-				if item[0] == '*' and name.endswith(item[1:]):
-					return True
-				if item[-1] == '*' and name.startswith(item[:-1]):
-					return True
-				if name == item:
-					return True
+			if re.match(item, str(full_path)):
+				return True
 		return False

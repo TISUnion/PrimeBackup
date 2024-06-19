@@ -1,4 +1,5 @@
 import functools
+import logging
 from pathlib import Path
 from typing import Optional, Type
 
@@ -88,3 +89,8 @@ _config: Optional[Config] = None
 def set_config_instance(cfg: Config):
 	global _config
 	_config = cfg
+
+	if cfg.debug:
+		from prime_backup import logger
+		logger.get().setLevel(logging.DEBUG)
+		logger.get().debug('debug on')

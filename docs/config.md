@@ -212,7 +212,7 @@ Configs on how the backup is made
         "world"
     ],
     "ignored_files": [
-        "session.lock"
+        "server/session.lock"
     ],
     "follow_target_symlink": false,
     "hash_method": "xxh128",
@@ -262,11 +262,7 @@ For example, for bukkit-like servers that split the world dimensions, you might 
 A list of file names to be ignored during backup. It contains `session.lock` by default 
 to solve the backup failure problem caused by `session.lock` being occupied by the server in Windows
 
-If the name string starts with `*`, then it will ignore files with name ending with specific string, 
-e.g. `*.test` makes all files ends with `.test` be ignored, like `a.test`
-
-If the name string ends with `*`, then it will ignore files with name starting with specific string, 
-e.g. `temp*`  makes all files starts with `temp` be ignored, like `tempfile`
+This item should contain a regular expression. Note that due to it being a JSON file, the escape character "" should be doubled, i.e., "\".
 
 - Type: `List[str]`
 

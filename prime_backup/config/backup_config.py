@@ -14,7 +14,8 @@ class BackupConfig(Serializable):
 	targets: List[str] = [
 		'world',
 	]
-	ignored_files: List[str] = [
+	ignored_files: List[str] = []
+	ignored_files_regex: List[str] = [
 		'server/session.lock',
 	]
 	follow_target_symlink: bool = False
@@ -35,7 +36,16 @@ class BackupConfig(Serializable):
 		"""
 		Apply to not only files
 		"""
+		name = full_path.name
 		for item in self.ignored_files:
+			if len(item) > 0:
+				if item[0] == '*' and name.endswith(item[1:]):
+					return True
+				if item[-1] == '*' and name.startswith(item[:-1]):
+					return True
+				if name == item:
+					return True
+		for item in self.ignored_files_regex:
 			if re.match(item, str(full_path)):
 				return True
 		return False

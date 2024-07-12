@@ -210,8 +210,9 @@ Prime Backup 在创建备份时的操作时序如下：
     "targets": [
         "world"
     ],
-    "ignored_files": [
-        "server/session.lock"
+    "ignored_files": [],
+    "ignored_files_regex": [
+       "server/session.lock"
     ],
     "follow_target_symlink": false,
     "hash_method": "xxh128",
@@ -258,10 +259,17 @@ Prime Backup 在创建备份时的操作时序如下：
 
 #### ignored_files
 
-在备份时忽略的文件名列表，默认仅包含 `session.lock` 
-以解决 Windows 下 `session.lock` 被服务端占用导致备份失败的问题
+在备份时忽略的文件名列表，不支持正则表达式匹配
+建议使用`ignored_files_regex`以支持更多更准确的匹配方式
+该设置项仅为向下兼容性而保留
 
-该项填写一个正则表达式，注意由于是json文件，转义符"\"需要打两遍即"\\"。
+- 类型：`List[str]`
+
+#### ignored_files_regex
+
+在备份时忽略的文件名列表，将由正则表达式进行匹配
+默认仅包含 `session.lock`，以解决 Windows 下 `session.lock` 被服务端占用导致备份失败的问题
+该项填写一个正则表达式。注意由于是json文件，转义符"\"需要打两遍即"\\"。
 
 - 类型：`List[str]`
 

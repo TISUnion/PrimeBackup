@@ -211,8 +211,9 @@ Configs on how the backup is made
     "targets": [
         "world"
     ],
-    "ignored_files": [
-        "server/session.lock"
+    "ignored_files": [],
+    "ignored_files_regex": [
+       "server/session.lock"
     ],
     "follow_target_symlink": false,
     "hash_method": "xxh128",
@@ -259,12 +260,19 @@ For example, for bukkit-like servers that split the world dimensions, you might 
 
 #### ignored_files
 
-A list of file names to be ignored during backup. It contains `session.lock` by default 
-to solve the backup failure problem caused by `session.lock` being occupied by the server in Windows
-
-This item should contain a regular expression. Note that due to it being a JSON file, the escape character "" should be doubled, i.e., "\".
+The list of filenames to ignore during backup, does not support regex matching.
+It is recommended to use `ignored_files_regex` to support more accurate and specific matching methods.
+This setting is retained only for backward compatibility.
 
 - Type: `List[str]`
+
+#### ignored_files_regex
+
+The list of filenames to be ignored during backup will be matched by regex.
+By default, it only includes `session.lock` to resolve the issue where `session.lock` is occupied by the server on Windows, causing the backup to fail.
+For this setting, enter a regex. Noting that since it is a JSON file, the escape character "\" needs to be typed twice, that is, "\\".
+
+- Type：`List[str]`
 
 #### follow_target_symlink
 

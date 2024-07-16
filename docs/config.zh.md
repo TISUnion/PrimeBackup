@@ -339,7 +339,7 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 
 #### compress_threshold
 
-对于大小小于 `compress_threshold` 的文件，不弃用压缩。它们将以 `plain` 格式存储
+对于大小小于 `compress_threshold` 的文件，不启用压缩。它们将以 `plain` 格式存储
 
 !!! warning
 

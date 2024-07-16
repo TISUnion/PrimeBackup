@@ -306,7 +306,7 @@ class CliHandler:
 		parser_export.add_argument('--no-verify', action='store_true', help='Do not verify the exported file contents')
 		parser_export.add_argument('--no-meta', action='store_true', help='Do not add the backup metadata file {!r} in the exported file'.format(constants.BACKUP_META_FILE_NAME))
 
-		desc = 'Extract a single file from a backup'
+		desc = 'Extract a single file / directory from a backup'
 		parser_extract = subparsers.add_parser('extract', help=desc, description=desc)
 		add_pos_argument_backup_id(parser_extract)
 		parser_extract.add_argument('file', help='The related path of the to-be-extracted file inside the backup. Use "." to extract everything in the backup')

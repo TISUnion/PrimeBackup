@@ -33,7 +33,7 @@ Command:
                         '.prime_backup.meta.json', or the --auto-meta flag     
                         need to be supplied
     export              Export the given backup to a single file
-    extract             Extract a single file from a backup
+    extract             Extract a single file / directory from a backup
     migrate_db          Migrate the database to the current version (2)  
 ```
 

@@ -15,6 +15,7 @@ title: '配置文件'
     "enabled": true,
     "debug": false,
     "storage_root": "./pb_files",
+    "concurrency": 1,
     
     // 子配置。详见以下各节
     "command": {/* 命令配置 */},

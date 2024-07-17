@@ -17,11 +17,11 @@ class CreateBackupActionBase(Action[BackupInfo], ABC):
 		self.__new_blobs_summary: Optional[BlobListSummary] = None
 		self.__blobs_rollbackers: List[Callable] = []
 
-	def _remove_file(self, file_to_remove: Path):
+	def _remove_file(self, file_to_remove: Path, *, what: str = 'rollback'):
 		try:
 			file_to_remove.unlink(missing_ok=True)
 		except OSError as e:
-			self.logger.error('(rollback) remove file {!r} failed: {}'.format(file_to_remove, e))
+			self.logger.error('({}) remove file {!r} failed: {}'.format(what, file_to_remove, e))
 
 	def _add_remove_file_rollbacker(self, file_to_remove: Path):
 		self.__blobs_rollbackers.append(functools.partial(self._remove_file, file_to_remove=file_to_remove))

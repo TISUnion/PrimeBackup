@@ -12,6 +12,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set, Deque, ContextManager
 
+import pathspec
+
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
@@ -22,7 +24,7 @@ from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, path_utils
+from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils
 from prime_backup.utils.thread_pool import FailFastThreadPool
 
 
@@ -38,10 +40,10 @@ class _BlobCreatePolicy(enum.Enum):
 	"""
 	the policy of how to create a blob from a given file path
 	"""
-	read_all = enum.auto()   # small files: read all in memory, calc hash. read once
-	hash_once = enum.auto()  # files with unique size: compress+hash to temp file, then move. read once
-	copy_hash = enum.auto()  # files that keep changing: copy to temp file, calc hash, compress to blob. read twice and need more spaces
-	default = enum.auto()    # default policy: compress+hash to blob store, check hash again. read twice
+	read_all = enum.auto()   # small files: read all in memory, calc hash                                |  read 1x, write 1x
+	hash_once = enum.auto()  # files with unique size: compress+hash to temp file, then move             |  read 1x, write 1x, move 1x
+	copy_hash = enum.auto()  # files that keep changing: copy to temp file, calc hash, compress to blob  |  read 2x, write 2x. need more spaces
+	default = enum.auto()    # default policy: compress+hash to blob store, check hash again             |  read 2x, write 1x
 
 
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
@@ -163,9 +165,25 @@ class BatchQueryManager:
 		self.fetcher_hash.flush()
 
 
-class _ScanResult(NamedTuple):
-	all_file_paths: List[Path]
-	root_targets: List[str]  # list of posix path, related to the source_path
+@dataclasses.dataclass(frozen=True)
+class _ScanResultEntry:
+	path: Path  # full path, including source_root
+	stat: os.stat_result
+
+	def is_file(self) -> bool:
+		return stat.S_ISREG(self.stat.st_mode)
+
+	def is_dir(self) -> bool:
+		return stat.S_ISDIR(self.stat.st_mode)
+
+	def is_symlink(self) -> bool:
+		return stat.S_ISLNK(self.stat.st_mode)
+
+
+@dataclasses.dataclass(frozen=True)
+class _ScanResult:
+	all_files: List[_ScanResultEntry] = dataclasses.field(default_factory=list)
+	root_targets: List[str] = dataclasses.field(default_factory=list)  # list of posix path, related to the source_path
 
 
 @dataclasses.dataclass(frozen=True)
@@ -196,56 +214,73 @@ class CreateBackupAction(CreateBackupActionBase):
 		self.__source_path: Path = source_path or self.config.source_path
 
 	def __scan_files(self) -> _ScanResult:
-		collected = []
+		ignore_patterns = pathspec.GitIgnoreSpec.from_lines(self.config.backup.ignore_patterns)
+		result = _ScanResult()
+		visited_path: Set[Path] = set()  # full path
+		ignored_paths: List[Path] = []   # related path
 
-		scanned_targets: Dict[str, bool] = {}  # use as an ordered set
-		scan_queue: Deque[Path] = collections.deque()  # a queue of paths related to the source_path
-		for scan_target in self.config.backup.targets:
-			scan_queue.append(Path(scan_target))
+		def scan(full_path: Path, is_root_target: bool):
+			try:
+				rel_path = full_path.relative_to(self.__source_path)
+			except ValueError:
+				self.logger.warning("Skipping backup path {} cuz it's not inside the source path {}".format(full_path, self.__source_path))
+				return
 
-		self.logger.debug(f'Scanning files at {list(scan_queue)}')
-		while len(scan_queue) > 0:
-			scan_target = scan_queue.popleft()
-			if (target_posix := scan_target.as_posix()) in scanned_targets:
-				continue
-			scanned_targets[target_posix] = True
+			if ignore_patterns.match_file(rel_path) or self.config.backup.is_file_ignore_by_deprecated_ignored_files(rel_path.name):
+				ignored_paths.append(rel_path)
+				if is_root_target:
+					self.logger.warning('Backup target {} is ignored by config'.format(rel_path))
+				return
 
-			target_path = self.__source_path / scan_target
-			if not target_path.exists():
-				self.logger.info('Skipping not-exist backup target {}'.format(target_path))
-				continue
-			if not path_utils.is_relative_to(target_path, self.__source_path):
-				self.logger.warning("Skipping backup target {} cuz it's not inside the source path {}".format(target_path, self.__source_path))
-				continue
+			if full_path in visited_path:
+				return
+			visited_path.add(full_path)
 
-			collected.append(target_path)
+			try:
+				st = full_path.lstat()
+			except FileNotFoundError:
+				if is_root_target:
+					self.logger.info('Backup target {} does not exist, skipped. full_path: {}'.format(rel_path, full_path))
+				return
 
-			if target_path.is_symlink() and self.config.backup.follow_target_symlink:
-				scan_queue.append(target_path.readlink())
-				continue
+			entry = _ScanResultEntry(full_path, st)
+			result.all_files.append(entry)
+			if is_root_target:
+				result.root_targets.append(rel_path.as_posix())
 
-			# as-is policy, don't scan into symlink
-			if not target_path.is_symlink() and target_path.is_dir():
-				for dir_path, dir_names, file_names in os.walk(target_path):
-					for name in file_names + dir_names:
-						file_path = Path(dir_path) / name
-						if not self.config.backup.is_file_ignore(file_path):
-							collected.append(file_path)
+			if entry.is_dir():
+				for child in os.listdir(full_path):
+					scan(full_path / child, False)
+			elif is_root_target and entry.is_symlink() and self.config.backup.follow_target_symlink:
+				scan(full_path.readlink(), True)
 
-		return _ScanResult(all_file_paths=collected, root_targets=list(scanned_targets.keys()))
+		self.logger.debug(f'Scan file done start, targets: {self.config.backup.targets}')
+		start_time = time.time()
+
+		for target in self.config.backup.targets:
+			scan(self.__source_path / target, True)
+
+		self.logger.debug('Scan file done, cost {:.2f}s, count {}, root_targets (len={}): {}, ignored_paths[:100] (len={}): {}'.format(
+			time.time() - start_time, len(result.all_files),
+			len(result.root_targets), result.root_targets,
+			len(ignored_paths), [p.as_posix() for p in ignored_paths][:100],
+		))
+		return result
+
+	def __pre_calculate_stats(self, scan_result: _ScanResult):
+		stats = self.__pre_calc_result.stats
+		stats.clear()
+		for file_entry in scan_result.all_files:
+			stats[file_entry.path] = file_entry.stat
 
 	def __pre_calculate_hash(self, session: DbSession, scan_result: _ScanResult):
-		stats = self.__pre_calc_result.stats
 		hashes = self.__pre_calc_result.hashes
-		stats.clear()
 		hashes.clear()
 
-		sizes = set()
-		for path in scan_result.all_file_paths:
-			st = path.lstat()
-			stats[path] = st
-			if stat.S_ISREG(st.st_mode):
-				sizes.add(st.st_size)
+		sizes: Set[int] = set()
+		for file_entry in scan_result.all_files:
+			if file_entry.is_file():
+				sizes.add(file_entry.stat.st_size)
 
 		hash_dict_lock = threading.Lock()
 		existence = session.has_blob_with_size_batched(list(sizes))
@@ -257,12 +292,11 @@ class CreateBackupAction(CreateBackupActionBase):
 				hashes[pth] = h
 
 		with FailFastThreadPool(name='hasher') as pool:
-			for path in scan_result.all_file_paths:
-				st = stats[path]
-				if stat.S_ISREG(st.st_mode):
-					if existence[st.st_size]:
+			for file_entry in scan_result.all_files:
+				if file_entry.is_file():
+					if existence[file_entry.stat.st_size]:
 						# we need to hash the file, sooner or later
-						pool.submit(hash_worker, path)
+						pool.submit(hash_worker, file_entry.path)
 					else:
 						pass  # will use hash_once policy
 
@@ -280,9 +314,10 @@ class CreateBackupAction(CreateBackupActionBase):
 		def make_temp_file() -> ContextManager[Path]:
 			temp_file_name = f'blob_{os.getpid()}_{threading.current_thread().ident}_{src_path_md5}.tmp'
 			temp_file_path = self.__temp_path / temp_file_name
-			with contextlib.ExitStack() as exit_stack:
-				exit_stack.callback(functools.partial(self._remove_file, temp_file_path))
-				yield temp_file_path
+			try:
+				yield
+			finally:
+				self._remove_file(temp_file_path, what='temp_file')
 
 		def attempt_once(last_chance: bool = False) -> Generator[Any, Any, schema.Blob]:
 			compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(st.st_size)
@@ -364,7 +399,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					file_utils.copy_file_fast(src_path, temp_file_path)
 					blob_hash = hash_utils.calc_file_hash(temp_file_path)
 
-					misc_utils.assert_true(last_chance, 'only last_chance=True can use do hash_once without checking uniqueness')
+					misc_utils.assert_true(last_chance, 'only last_chance=True is allowed for the copy_hash policy')
 					if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
 						return cache
 					yield BlobByHashFetcher.Req(blob_hash)
@@ -416,7 +451,7 @@ class CreateBackupAction(CreateBackupActionBase):
 						raw_size, stored_size = cr.read_size, cr.write_size
 						check_changes(cr.read_size, cr.read_hash)
 				else:
-					raise AssertionError()
+					raise AssertionError('bad policy {!r}'.format(policy))
 
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
 			misc_utils.assert_true(raw_size is not None, 'raw_size is None')
@@ -511,10 +546,11 @@ class CreateBackupAction(CreateBackupActionBase):
 					tags=self.tags.to_dict(),
 				)
 				self.logger.info('Creating backup for {} at path {!r}, file cnt {}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
-					scan_result.root_targets, self.__source_path.as_posix(), len(scan_result.all_file_paths),
+					scan_result.root_targets, self.__source_path.as_posix(), len(scan_result.all_files),
 					backup.timestamp, backup.creator, backup.comment, backup.tags,
 				))
 
+				self.__pre_calculate_stats(scan_result)
 				if self.config.get_effective_concurrency() > 1:
 					self.__pre_calculate_hash(session, scan_result)
 					self.logger.info('Pre-calculate all file hash done')
@@ -526,8 +562,8 @@ class CreateBackupAction(CreateBackupActionBase):
 
 				files = []
 				schedule_queue: Deque[Tuple[Generator, Any]] = collections.deque()
-				for file_path in scan_result.all_file_paths:
-					schedule_queue.append((self.__create_file(session, file_path), None))
+				for file_entry in scan_result.all_files:
+					schedule_queue.append((self.__create_file(session, file_entry.path), None))
 				while len(schedule_queue) > 0:
 					gen, value = schedule_queue.popleft()
 					try:

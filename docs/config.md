@@ -211,8 +211,9 @@ Configs on how the backup is made
     "targets": [
         "world"
     ],
-    "ignored_files": [
-        "session.lock"
+    "ignored_files": [],
+    "ignore_patterns": [
+       "**/session.lock"
     ],
     "follow_target_symlink": false,
     "hash_method": "xxh128",
@@ -259,14 +260,29 @@ For example, for bukkit-like servers that split the world dimensions, you might 
 
 #### ignored_files
 
-A list of file names to be ignored during backup. It contains `session.lock` by default 
-to solve the backup failure problem caused by `session.lock` being occupied by the server in Windows
+!!! warning
+
+    Deprecated since v1.8.0. Use [ignore_patterns](#ignore_patterns) instead
+
+A list of file / directory names to be ignored during backup
 
 If the name string starts with `*`, then it will ignore files with name ending with specific string, 
 e.g. `*.test` makes all files ends with `.test` be ignored, like `a.test`
 
 If the name string ends with `*`, then it will ignore files with name starting with specific string, 
 e.g. `temp*`  makes all files starts with `temp` be ignored, like `tempfile`
+
+- Type: `List[str]`
+
+#### ignore_patterns
+
+A list of [gitignore flavor](http://git-scm.com/docs/gitignore) patterns for matching files / directories to be excluded during the backup
+
+The root path for the pattern matching is [source_root](#source_root).
+For example, if `source_root` is `server`, then pattern `world/trash*.obj` will match `server/world/trash1.obj`
+
+It contains a `**/session.lock` pattern by default, which matches files named `session.lock` in any location.
+It's used to solve the backup failure problem caused by `session.lock` being occupied by the server in Windows OS
 
 - Type: `List[str]`
 

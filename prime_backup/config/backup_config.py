@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import List, Optional
 
 from mcdreforged.api.utils import Serializable
@@ -13,8 +12,9 @@ class BackupConfig(Serializable):
 	targets: List[str] = [
 		'world',
 	]
-	ignored_files: List[str] = [
-		'session.lock',
+	ignored_files: List[str] = []  # deprecated
+	ignore_patterns: List[str] = [
+		'**/session.lock',
 	]
 	follow_target_symlink: bool = False
 	hash_method: HashMethod = HashMethod.xxh128
@@ -30,18 +30,13 @@ class BackupConfig(Serializable):
 			else:
 				return self.compress_method
 
-	def is_file_ignore(self, full_path: Path) -> bool:
-		"""
-		Apply to not only files
-		"""
-		# TODO: better rule?
-		name = full_path.name
+	def is_file_ignore_by_deprecated_ignored_files(self, file_name: str) -> bool:
 		for item in self.ignored_files:
 			if len(item) > 0:
-				if item[0] == '*' and name.endswith(item[1:]):
+				if item[0] == '*' and file_name.endswith(item[1:]):
 					return True
-				if item[-1] == '*' and name.startswith(item[:-1]):
+				if item[-1] == '*' and file_name.startswith(item[:-1]):
 					return True
-				if name == item:
+				if file_name == item:
 					return True
 		return False

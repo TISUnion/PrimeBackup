@@ -211,8 +211,9 @@ Prime Backup 在创建备份时的操作时序如下：
     "targets": [
         "world"
     ],
-    "ignored_files": [
-        "session.lock"
+    "ignored_files": [],
+    "ignore_patterns": [
+       "**/session.lock"
     ],
     "follow_target_symlink": false,
     "hash_method": "xxh128",
@@ -259,14 +260,29 @@ Prime Backup 在创建备份时的操作时序如下：
 
 #### ignored_files
 
-在备份时忽略的文件名列表，默认仅包含 `session.lock` 
-以解决 Windows 下 `session.lock` 被服务端占用导致备份失败的问题
+!!! warning
+
+    于 v1.8.0 弃用。请使用 [ignore_patterns](#ignore_patterns)
+
+在备份时忽略的文件名列表
 
 若文件名字符串以 `*` 开头，则将忽略以指定字符串结尾的文件，
 如 `*.test` 表示忽略所有以 `.test` 结尾的文件，如 `a.test`
 
 若文件名字符串以 `*` 结尾，则将忽略以指定字符串开头的文件，
 如 `temp*` 表示忽略所有以 `temp` 开头的文件，如 `tempfile`
+
+- 类型：`List[str]`
+
+#### ignore_patterns
+
+一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，用于在创建备份的过程中匹配并忽略指定的文件 / 文件夹
+
+模板串匹配时的根路径是 [source_root](#source_root)。
+例如，如果 `source_root` 是 `server`，那么模板串 `world/trash*.obj` 将匹配 `server/world/trash1.obj`
+
+默认包含一个 `**/session.lock` 模板串，用于匹配位于任何位置的，名为 `session.lock` 的文件，
+以解决 Windows 下 `session.lock` 被服务端占用导致备份失败的问题
 
 - 类型：`List[str]`
 

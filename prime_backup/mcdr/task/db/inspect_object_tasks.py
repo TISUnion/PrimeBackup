@@ -103,7 +103,7 @@ class InspectFileTask(_InspectObjectTaskBase):
 			self.reply_tr('content', self._jsonfy(file.content_str))
 		if file.blob is not None:
 			self.reply_tr('blob.hash', self._gt_blob_hash(file.blob.hash))
-			self.reply_tr('blob.compress', file.blob.compress)
+			self.reply_tr('blob.compress', file.blob.compress.name)
 			self.reply_tr('blob.raw_size', RText(file.blob.raw_size, TextColors.byte_count), TextComponents.file_size(file.blob.raw_size))
 			self.reply_tr('blob.stored_size', RText(file.blob.stored_size, TextColors.byte_count), TextComponents.file_size(file.blob.stored_size))
 

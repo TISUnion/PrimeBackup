@@ -87,7 +87,7 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 				cnt += len(files)
 				if cnt % 50000 == 0 or cnt == result.total:
 					self.logger.info('Validating {} / {} files'.format(cnt, result.total))
-				self.__validate(session, result, list(map(FileInfo.of, files)))
+				self.__validate(session, result, [FileInfo.of(file) for file in files])
 
 		self.logger.info('File validation done: total {}, validated {}, ok {}, bad {}'.format(
 			result.total, result.validated, result.ok, result.validated - result.ok,

@@ -229,13 +229,16 @@ class DbSession:
 	def get_file_raw_size_sum(self) -> int:
 		return _int_or_0(self.session.execute(func.sum(schema.File.blob_raw_size).select()).scalar_one())
 
-	def get_file_by_blob_hashes(self, hashes: List[str]) -> List[schema.File]:
+	def get_file_by_blob_hashes(self, hashes: List[str], *, limit: Optional[int] = None) -> List[schema.File]:
 		hashes = collection_utils.deduplicated_list(hashes)
 		result = []
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
-			result.extend(self.session.execute(
-				select(schema.File).where(schema.File.blob_hash.in_(view))
-			).scalars().all())
+			st = select(schema.File).where(schema.File.blob_hash.in_(view))
+			if limit is not None:
+				st = st.limit(max(0, limit - len(result)))
+			result.extend(self.session.execute(st).scalars().all())
+			if len(result) >= limit:
+				break
 		return result
 
 	def get_file_count_by_blob_hashes(self, hashes: List[str]) -> int:

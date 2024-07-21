@@ -6,8 +6,8 @@ from prime_backup import constants
 
 
 def __create_logger() -> logging.Logger:
-	from prime_backup.utils.log_utils import LOG_FORMATTER, __get_log_mode
-	logger = logging.Logger(constants.PLUGIN_ID, __get_log_mode())
+	from prime_backup.utils.log_utils import LOG_FORMATTER, get_log_mode
+	logger = logging.Logger(constants.PLUGIN_ID, get_log_mode())
 	handler = logging.StreamHandler(sys.stdout)
 	handler.setFormatter(LOG_FORMATTER)
 	logger.addHandler(handler)

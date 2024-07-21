@@ -261,6 +261,7 @@ prime_backup:
         mismatched: 'Mismatched blob amount: {}'
         orphan: 'Orphan blob amount: {}'
         affected: 'Affected range: {} / {} files, {} / {} backups'
+        see_log: 'See log file {} for details and affected stuffs of these bad blobs'
       validate_files:
         .: Start validating files (including file, directory and symlink), please wait...
         done: Validated {} / {} files

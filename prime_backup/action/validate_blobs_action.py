@@ -6,6 +6,7 @@ from prime_backup.compressors import Compressor
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.types.blob_info import BlobInfo
+from prime_backup.types.file_info import FileInfo
 from prime_backup.utils import blob_utils, hash_utils
 from prime_backup.utils.thread_pool import FailFastThreadPool
 
@@ -27,6 +28,7 @@ class ValidateBlobsResult:
 	orphan: List[BadBlobItem] = dataclasses.field(default_factory=list)  # orphan blobs
 
 	affected_file_count: int = 0
+	affected_file_samples: List[FileInfo] = dataclasses.field(default_factory=list)
 	affected_backup_ids: List[int] = 0
 
 
@@ -107,6 +109,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 			bad_blob_hashes.extend([bbi.blob.hash for bbi in result.orphan])
 			if len(bad_blob_hashes) > 0:
 				result.affected_file_count = session.get_file_count_by_blob_hashes(bad_blob_hashes)
+				result.affected_file_samples = [FileInfo.of(file) for file in session.get_file_by_blob_hashes(bad_blob_hashes, limit=1000)]
 				result.affected_backup_ids = session.get_backup_ids_by_blob_hashes(bad_blob_hashes)
 
 		self.logger.info('Blob validation done: total {}, validated {}, ok {}, bad {}'.format(

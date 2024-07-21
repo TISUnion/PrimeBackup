@@ -42,7 +42,7 @@ class ValidateDbTask(HeavyTask[None]):
 	def is_abort_able(self) -> bool:
 		return True
 
-	def __validate_blobs(self, vlogger: logging.Logger):
+	def __validate_blobs(self, vlogger: log_utils.FileLogger):
 		result = self.run_action(ValidateBlobsAction())
 
 		vlogger.info('Validate blobs result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
@@ -70,18 +70,24 @@ class ValidateDbTask(HeavyTask[None]):
 
 		counts = GetObjectCountsAction().run()
 
-		vlogger.info('Affected file amount: {} / {}'.format(result.affected_file_count, counts.file_count))
-		vlogger.info('Affected backup amount: {} / {}'.format(len(result.affected_backup_ids), counts.backup_count))
-		vlogger.info('Affected backups: {}'.format(result.affected_backup_ids))
+		vlogger.info('Affected file / total files: {} / {}'.format(result.affected_file_count, counts.file_count))
+		vlogger.info('Affected file samples (len={}):'.format(len(result.affected_file_samples)))
+		for file in result.affected_file_samples:
+			vlogger.info('- {!r}'.format(file))
+		vlogger.info('Affected backup / total backups: {} / {}'.format(len(result.affected_backup_ids), counts.backup_count))
+		vlogger.info('Affected backup IDs: {}'.format(result.affected_backup_ids))
+
+		sampled_backup_ids = result.affected_backup_ids[:100]
 		self.reply_tr(
 			'validate_blobs.affected',
 			TextComponents.number(result.affected_file_count),
 			TextComponents.number(counts.file_count),
 			TextComponents.number(len(result.affected_backup_ids)).
-			h(TextComponents.backup_id_list(result.affected_backup_ids)).
-			c(RAction.copy_to_clipboard, ', '.join(map(str, result.affected_backup_ids))),
+			h(TextComponents.backup_id_list(sampled_backup_ids)).
+			c(RAction.copy_to_clipboard, ', '.join(map(str, sampled_backup_ids))),
 			TextComponents.number(counts.backup_count),
 		)
+		self.reply_tr('validate_blobs.see_log', str(vlogger.log_file))
 
 	def __validate_files(self, vlogger: logging.Logger):
 		result = self.run_action(ValidateFilesAction())

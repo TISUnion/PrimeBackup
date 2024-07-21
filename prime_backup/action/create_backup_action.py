@@ -223,13 +223,13 @@ class CreateBackupAction(CreateBackupActionBase):
 			try:
 				rel_path = full_path.relative_to(self.__source_path)
 			except ValueError:
-				self.logger.warning("Skipping backup path {} cuz it's not inside the source path {}".format(full_path, self.__source_path))
+				self.logger.warning("Skipping backup path {!r} cuz it's not inside the source path {!r}".format(str(full_path), str(self.__source_path)))
 				return
 
 			if ignore_patterns.match_file(rel_path) or self.config.backup.is_file_ignore_by_deprecated_ignored_files(rel_path.name):
 				ignored_paths.append(rel_path)
 				if is_root_target:
-					self.logger.warning('Backup target {} is ignored by config'.format(rel_path))
+					self.logger.warning('Backup target {!r} is ignored by config'.format(str(rel_path)))
 				return
 
 			if full_path in visited_path:
@@ -240,7 +240,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				st = full_path.lstat()
 			except FileNotFoundError:
 				if is_root_target:
-					self.logger.info('Backup target {} does not exist, skipped. full_path: {}'.format(rel_path, full_path))
+					self.logger.warning('Backup target {!r} does not exist, skipped. full_path: {!r}'.format(str(rel_path), str(full_path)))
 				return
 
 			entry = _ScanResultEntry(full_path, st)
@@ -252,7 +252,10 @@ class CreateBackupAction(CreateBackupActionBase):
 				for child in os.listdir(full_path):
 					scan(full_path / child, False)
 			elif is_root_target and entry.is_symlink() and self.config.backup.follow_target_symlink:
-				scan(full_path.readlink(), True)
+				symlink_target = full_path.readlink()
+				symlink_target_full_path = self.__source_path / symlink_target
+				self.logger.info('Following root symlink target {!r} -> {!r} ({!r})'.format(str(rel_path), str(symlink_target), str(symlink_target_full_path)))
+				scan(symlink_target_full_path, True)
 
 		self.logger.debug(f'Scan file done start, targets: {self.config.backup.targets}')
 		start_time = time.time()

@@ -53,12 +53,12 @@ class ValidateDbTask(HeavyTask[None]):
 
 		def show(what: str, lst: List[BadBlobItem]):
 			if len(lst) > 0:
-				vlogger.info('bad blob with category {} (len={})'.format(what, len(lst)))
+				vlogger.info('bad blob with category "{}" (len={})'.format(what, len(lst)))
 				self.reply_tr(f'validate_blobs.{what}', TextComponents.number(len(lst)))
 				item: BadBlobItem
 				for i, item in enumerate(lst):
 					text = RTextBase.format('{}. {}: {}', i + 1, item.blob.hash, item.desc)
-					vlogger.info('%s. %s', i + 1, text.to_plain_text())
+					vlogger.info(text.to_plain_text())
 					self.reply(text)
 
 		self.reply(self.tr('validate_blobs.found_bad_blobs', TextComponents.number(result.validated - result.ok), TextComponents.number(result.validated)).set_color(RColor.red))

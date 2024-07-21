@@ -10,7 +10,7 @@ LOG_FORMATTER_NO_FUNC = logging.Formatter('[%(asctime)s %(levelname)s] %(message
 class FileLogger(logging.Logger):
 	def __init__(self, name: str):
 		from prime_backup import constants
-		super().__init__(f'{constants.PLUGIN_ID}-{name}', get_log_mode())
+		super().__init__(f'{constants.PLUGIN_ID}-{name}', get_log_level())
 		self.log_file = self.__get_log_file_path(f'{name}.log')
 		self.log_file.parent.mkdir(parents=True, exist_ok=True)
 		handler = logging.FileHandler(self.log_file, encoding='utf8')
@@ -23,7 +23,7 @@ class FileLogger(logging.Logger):
 		return Config.get().storage_path / 'logs' / file_name
 
 
-def get_log_mode() -> int:
+def get_log_level() -> int:
 	from prime_backup.config.config import Config
 	return logging.DEBUG if Config.get().debug else logging.INFO
 

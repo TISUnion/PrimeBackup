@@ -4,6 +4,7 @@ import functools
 import stat
 from typing import Optional
 
+from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
 from prime_backup.types.blob_info import BlobInfo
 
@@ -35,15 +36,18 @@ class FileInfo:
 		"""
 		Notes: should be inside a session
 		"""
+		blob: Optional[BlobInfo] = None
 		if file.blob_hash is not None:
-			blob = BlobInfo(
-				hash=str(file.blob_hash),
-				compress=file.blob_compress,
-				raw_size=file.blob_raw_size,
-				stored_size=file.blob_stored_size,
-			)
-		else:
-			blob = None
+			if file.blob_compress not in CompressMethod.__members__:
+				from prime_backup import logger
+				logger.get().warning('Bad blob_compress {!r} for file {!r}'.format(file.blob_compress, file))
+			else:
+				blob = BlobInfo(
+					hash=str(file.blob_hash),
+					compress=CompressMethod[file.blob_compress],
+					raw_size=file.blob_raw_size,
+					stored_size=file.blob_stored_size,
+				)
 		return FileInfo(
 			backup_id=file.backup_id,
 			path=file.path,

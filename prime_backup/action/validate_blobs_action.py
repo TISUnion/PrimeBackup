@@ -47,6 +47,9 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 				return
 
 			try:
+				# Notes: There are some codes that use `CompressMethod[blob.compress]`,
+				# which might fail hard if the blob.compress is invalid.
+				# Maybe we need to make them fail-proof somehow?
 				compressor = Compressor.create(blob.compress)
 			except ValueError:
 				result.invalid.append(BadBlobItem(blob, f'unknown compress method {blob.compress!r}'))

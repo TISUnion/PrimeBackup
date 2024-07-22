@@ -390,6 +390,11 @@ class CreateBackupAction(CreateBackupActionBase):
 					raise _BlobFileChanged()
 
 			def bp_rba(h: str) -> Path:
+				"""
+				bp_rba: blob path, roll back add
+				Get blob path by hash, and add the blob path to the rollbacker
+				Commonly used right before creating the blob file
+				"""
 				bp = blob_utils.get_blob_path(h)
 				self._add_remove_file_rollbacker(bp)
 				return bp

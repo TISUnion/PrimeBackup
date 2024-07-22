@@ -29,7 +29,7 @@ class CreateBackupActionBase(Action[BackupInfo], ABC):
 	def _apply_blob_rollback(self):
 		if len(self.__blobs_rollbackers) > 0:
 			self.__blobs_rollbackers.clear()
-			self.logger.warning('Error occurs during import, applying rollback')
+			self.logger.warning('Error occurs during backup creation, applying rollback')
 			for rollback_func in self.__blobs_rollbackers:
 				rollback_func()
 

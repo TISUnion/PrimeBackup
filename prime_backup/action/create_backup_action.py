@@ -318,7 +318,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			temp_file_name = f'blob_{os.getpid()}_{threading.current_thread().ident}_{src_path_md5}.tmp'
 			temp_file_path = self.__temp_path / temp_file_name
 			try:
-				yield
+				yield temp_file_path
 			finally:
 				self._remove_file(temp_file_path, what='temp_file')
 

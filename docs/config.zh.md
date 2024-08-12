@@ -226,7 +226,7 @@ Prime Backup 在创建备份时的操作时序如下：
 
 进行备份/还原操作的根目录
 
-通常应该是 MCDR 的 [工作目录](https://mcdreforged.readthedocs.io/zh-cn/latest/configuration.html#working-directory)，
+通常应该是 MCDR 配置中，服务端的 [工作目录](https://mcdreforged.readthedocs.io/zh-cn/latest/configuration.html#working-directory)，
 即默认情况下的 `server` 目录
 
 - 类型：`str`
@@ -234,7 +234,7 @@ Prime Backup 在创建备份时的操作时序如下：
 
 #### source_root_use_mcdr_working_directory
 
-若设置为 `true`，则使用 MCDR 的工作路径作为 [source_root](#source_root) 的值。
+若设置为 `true`，则使用 MCDR 配置中，服务端的工作路径作为 [source_root](#source_root) 的值。
 此时，配置文件中 [source_root](#source_root) 键的值将被忽略
 
 - 类型：`bool`

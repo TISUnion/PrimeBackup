@@ -226,7 +226,7 @@ Configs on how the backup is made
 
 The root directory where the backup / restore operations happen
 
-Usually this should be the [working_directory](https://mcdreforged.readthedocs.io/en/latest/configuration.html#working-directory) of MCDR, 
+Usually this should be the same as the server [working_directory](https://mcdreforged.readthedocs.io/en/latest/configuration.html#working-directory) option of MCDR, 
 i.e. the `server` directory by default
 
 - Type: `str`
@@ -234,7 +234,7 @@ i.e. the `server` directory by default
 
 #### source_root_use_mcdr_working_directory
 
-If set to `true`, use the working directory of MCDR as the value of [source_root](#source_root),
+If set to `true`, use the server working directory of MCDR as the value of [source_root](#source_root),
 and the value of key [source_root](#source_root) in the config will be ignored
 
 - Type: `bool`

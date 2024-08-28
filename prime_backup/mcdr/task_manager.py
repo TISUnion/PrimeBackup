@@ -2,7 +2,8 @@ import contextlib
 import enum
 import sqlite3
 import threading
-from typing import Optional, Callable, NamedTuple, Any
+from concurrent import futures
+from typing import Optional, Callable, NamedTuple, Any, TypeVar
 
 from mcdreforged.api.all import *
 from sqlalchemy.exc import OperationalError
@@ -15,6 +16,8 @@ from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
 from prime_backup.types.units import Duration
 from prime_backup.utils import misc_utils, mcdr_utils
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
+
+_T = TypeVar('_T')
 
 
 class _SendEventStatus(enum.Enum):
@@ -73,7 +76,7 @@ class _TaskWorker:
 		try:
 			ret = holder.task.run()
 		except Exception as e:
-			holder.run_callback(None, e)
+			holder.on_done(None, e)
 
 			if cls.__handle_common_exceptions(holder, e):
 				return
@@ -84,7 +87,7 @@ class _TaskWorker:
 			else:
 				reply_message(holder.source, tr('error.generic', holder.task_name()).set_color(RColor.red))
 		else:
-			holder.run_callback(ret, None)
+			holder.on_done(ret, None)
 
 	def __task_loop(self):
 		self.logger.info('Worker %s started', self.name)
@@ -162,7 +165,7 @@ class TaskManager:
 
 	# ================================== Interfaces ==================================
 
-	def add_task(self, task: Task, callback: Optional[TaskCallback] = None, *, handle_tmo_err: bool = True):
+	def add_task(self, task: Task[_T], callback: Optional[TaskCallback[_T]] = None, *, handle_tmo_err: bool = True) -> futures.Future[_T]:
 		source = task.source
 		holder = TaskHolder(task, source, callback)
 		if isinstance(task, HeavyTask):
@@ -173,6 +176,7 @@ class TaskManager:
 			_TaskWorker.run_task(holder)
 		else:
 			raise TypeError(type(task))
+		return holder.future
 
 	def do_confirm(self, source: CommandSource):
 		def check_confirm_able(holder: TaskHolder) -> bool:

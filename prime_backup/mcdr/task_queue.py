@@ -16,15 +16,21 @@ _T = TypeVar('_T')
 TaskCallback = Callable[[Optional[_T], Optional[Exception]], Any]
 
 
-class TaskHolder(NamedTuple):
-	task: 'Task'
+@dataclasses.dataclass(frozen=True)
+class TaskHolder(Generic[_T]):
+	task: 'Task[_T]'
 	source: 'CommandSource'
-	callback: Optional[TaskCallback]
+	callback: Optional[TaskCallback[_T]]
+	future: futures.Future[_T] = dataclasses.field(default_factory=futures.Future)
 
 	def task_name(self) -> RTextBase:
 		return self.task.get_name_text()
 
-	def run_callback(self, ret: Optional[Any], err: Optional[Exception]):
+	def on_done(self, ret: Optional[_T], err: Optional[Exception]):
+		if err is not None:
+			self.future.set_exception(err)
+		else:
+			self.future.set_result(ret)
 		if self.callback is not None:
 			self.callback(ret, err)
 

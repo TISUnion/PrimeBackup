@@ -1,6 +1,7 @@
+import dataclasses
 import enum
 import importlib
-from typing import NamedTuple, Protocol
+from typing import Protocol
 
 
 class Hasher(Protocol):
@@ -11,7 +12,8 @@ class Hasher(Protocol):
 		...
 
 
-class _HashMethodItem(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class _HashMethodItem:
 	hasher_func: str
 	hex_length: int
 

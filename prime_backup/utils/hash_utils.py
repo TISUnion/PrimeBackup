@@ -1,5 +1,6 @@
+import dataclasses
 from pathlib import Path
-from typing import NamedTuple, IO, Optional, TYPE_CHECKING
+from typing import IO, Optional, TYPE_CHECKING
 
 from prime_backup.utils.bypass_io import BypassReader
 
@@ -17,7 +18,8 @@ def create_hasher(*, hash_method: Optional['HashMethod'] = None) -> 'Hasher':
 _READ_BUF_SIZE = 128 * 1024
 
 
-class SizeAndHash(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class SizeAndHash:
 	size: int
 	hash: str
 

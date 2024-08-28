@@ -1,12 +1,14 @@
+import dataclasses
 from pathlib import Path
-from typing import NamedTuple, Iterable
+from typing import Iterable
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
 from prime_backup.utils import misc_utils
 
 
-class BlobInfo(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class BlobInfo:
 	hash: str
 	compress: CompressMethod
 	raw_size: int
@@ -36,7 +38,8 @@ class BlobInfo(NamedTuple):
 		return self.hash < other.hash
 
 
-class BlobListSummary(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class BlobListSummary:
 	count: int
 	raw_size: int
 	stored_size: int

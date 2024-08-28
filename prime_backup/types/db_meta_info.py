@@ -1,9 +1,10 @@
-from typing import NamedTuple
+import dataclasses
 
 from prime_backup.db import schema
 
 
-class DbMetaInfo(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class DbMetaInfo:
 	magic: int
 	version: int
 	hash_method: str

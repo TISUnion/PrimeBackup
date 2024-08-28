@@ -10,7 +10,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, NamedTuple, Generator, Union, Set, Deque, ContextManager
+from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, ContextManager
 
 import pathspec
 
@@ -80,10 +80,12 @@ class BatchFetcherBase(ABC):
 
 
 class BlobBySizeFetcher(BatchFetcherBase):
-	class Req(NamedTuple):
+	@dataclasses.dataclass(frozen=True)
+	class Req:
 		size: int
 
-	class Rsp(NamedTuple):
+	@dataclasses.dataclass(frozen=True)
+	class Rsp:
 		exists: bool
 
 	Callback = Callable[[Rsp], Any]
@@ -111,10 +113,12 @@ class BlobBySizeFetcher(BatchFetcherBase):
 
 
 class BlobByHashFetcher(BatchFetcherBase):
-	class Req(NamedTuple):
+	@dataclasses.dataclass(frozen=True)
+	class Req:
 		hash: str
 
-	class Rsp(NamedTuple):
+	@dataclasses.dataclass(frozen=True)
+	class Rsp:
 		blob: Optional[schema.Blob]
 
 	Callback = Callable[[Rsp], Any]
@@ -450,9 +454,9 @@ class CreateBackupAction(CreateBackupActionBase):
 					if can_copy_on_write and compress_method == CompressMethod.plain:
 						# fast copy, then calc size and hash to verify
 						file_utils.copy_file_fast(src_path, blob_path)
-						stored_size, h2 = hash_utils.calc_file_size_and_hash(blob_path)
-						raw_size = stored_size
-						check_changes(stored_size, h2)
+						sah = hash_utils.calc_file_size_and_hash(blob_path)
+						raw_size = stored_size = sah.size
+						check_changes(sah.size, sah.hash)
 					else:
 						# copy+compress+hash to blob store
 						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True)
@@ -461,9 +465,9 @@ class CreateBackupAction(CreateBackupActionBase):
 				else:
 					raise AssertionError('bad policy {!r}'.format(policy))
 
-			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
-			misc_utils.assert_true(raw_size is not None, 'raw_size is None')
-			misc_utils.assert_true(stored_size is not None, 'stored_size is None')
+			misc_utils.assert_true(blob_hash is not None, f'blob_hash is None, policy {policy}')
+			misc_utils.assert_true(raw_size is not None, f'raw_size is None, policy {policy}')
+			misc_utils.assert_true(stored_size is not None, f'stored_size is None, policy {policy}')
 			return self._create_blob(
 				session,
 				hash=blob_hash,

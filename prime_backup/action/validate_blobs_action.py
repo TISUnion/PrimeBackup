@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List, NamedTuple, Dict
+from typing import List, Dict
 
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor
@@ -11,7 +11,8 @@ from prime_backup.utils import blob_utils, hash_utils
 from prime_backup.utils.thread_pool import FailFastThreadPool
 
 
-class BadBlobItem(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class BadBlobItem:
 	blob: BlobInfo
 	desc: str
 

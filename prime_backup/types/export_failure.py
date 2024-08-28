@@ -1,5 +1,6 @@
 import contextlib
-from typing import NamedTuple, List, Iterator
+import dataclasses
+from typing import List, Iterator
 
 from mcdreforged.api.all import *
 
@@ -7,7 +8,8 @@ from prime_backup.db import schema
 from prime_backup.types.file_info import FileInfo
 
 
-class ExportFailure(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class ExportFailure:
 	file: FileInfo
 	error: Exception
 

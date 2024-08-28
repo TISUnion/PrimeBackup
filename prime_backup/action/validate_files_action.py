@@ -1,6 +1,6 @@
 import collections
 import dataclasses
-from typing import List, NamedTuple, Dict
+from typing import List, Dict
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
@@ -8,7 +8,8 @@ from prime_backup.db.session import DbSession
 from prime_backup.types.file_info import FileInfo
 
 
-class BadFileItem(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class BadFileItem:
 	file: FileInfo
 	desc: str
 

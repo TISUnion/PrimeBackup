@@ -1,4 +1,5 @@
 import contextlib
+import dataclasses
 import json
 import os
 import queue
@@ -11,7 +12,7 @@ import zipfile
 from abc import abstractmethod, ABC
 from io import BytesIO
 from pathlib import Path
-from typing import ContextManager, Optional, List, Tuple, IO, Any, NamedTuple
+from typing import ContextManager, Optional, List, Tuple, IO, Any
 
 from prime_backup import constants
 from prime_backup.action import Action
@@ -109,7 +110,8 @@ class _TrashBin:
 
 
 class ExportBackupToDirectoryAction(_ExportBackupActionBase):
-	class _ExportItem(NamedTuple):
+	@dataclasses.dataclass(frozen=True)
+	class _ExportItem:
 		file: schema.File
 		path: Path  # path to export, related to self.output_path
 		path_posix: str

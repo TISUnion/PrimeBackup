@@ -1,5 +1,6 @@
+import dataclasses
 import logging
-from typing import Optional, NamedTuple, List
+from typing import Optional, List
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
@@ -67,7 +68,8 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 		return s
 
 
-class DeleteBackupResult(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class DeleteBackupResult:
 	backup: BackupInfo
 	bls: BlobListSummary
 

@@ -1,10 +1,11 @@
-from typing import NamedTuple
+import dataclasses
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 
 
-class DbOverviewResult(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class DbOverviewResult:
 	db_version: int
 	hash_method: str
 

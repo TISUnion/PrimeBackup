@@ -1,4 +1,5 @@
-from typing import NamedTuple, Union, TYPE_CHECKING
+import dataclasses
+from typing import Union, TYPE_CHECKING
 
 from prime_backup import constants
 
@@ -20,7 +21,8 @@ class PrimeBackupOperatorNames:
 	test = _PrimeBackupOperatorName('test')
 
 
-class Operator(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class Operator:
 	type: str
 	name: str
 

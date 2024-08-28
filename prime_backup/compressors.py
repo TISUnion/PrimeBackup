@@ -1,8 +1,9 @@
 import contextlib
+import dataclasses
 import enum
 import shutil
 from abc import abstractmethod, ABC
-from typing import BinaryIO, Union, ContextManager, NamedTuple, Tuple
+from typing import BinaryIO, Union, ContextManager, Tuple
 
 from typing_extensions import Protocol
 
@@ -11,7 +12,8 @@ from prime_backup.utils.path_like import PathLike
 
 
 class Compressor(ABC):
-	class CopyCompressResult(NamedTuple):
+	@dataclasses.dataclass(frozen=True)
+	class CopyCompressResult:
 		read_size: int
 		read_hash: str
 		write_size: int

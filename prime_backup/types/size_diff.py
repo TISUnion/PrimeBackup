@@ -1,7 +1,8 @@
-from typing import NamedTuple
+import dataclasses
 
 
-class SizeDiff(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class SizeDiff:
 	before: int
 	after: int
 

@@ -1,10 +1,11 @@
-from typing import NamedTuple
+import dataclasses
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 
 
-class ObjectCounts(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class ObjectCounts:
 	blob_count: int
 	file_count: int
 	backup_count: int

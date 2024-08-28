@@ -1,6 +1,7 @@
+import dataclasses
 import json
 import re
-from typing import NamedTuple, Optional
+from typing import Optional
 
 from mcdreforged.api.all import *
 
@@ -26,7 +27,8 @@ class MultiIntegerNode(Integer):
 
 
 class IdRangeNode(ArgumentNode):
-	class Range(NamedTuple):
+	@dataclasses.dataclass(frozen=True)
+	class Range:
 		start: Optional[int]
 		end: Optional[int]
 

@@ -1,10 +1,12 @@
+import dataclasses
 import enum
-from typing import NamedTuple, Tuple, List
+from typing import Tuple, List
 
 from prime_backup.compressors import CompressMethod
 
 
-class _TarFormatItem(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class _TarFormatItem:
 	extension: str
 	extra_extensions: Tuple[str, ...]
 	mode_extra: str

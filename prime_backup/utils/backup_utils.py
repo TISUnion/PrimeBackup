@@ -1,5 +1,6 @@
+import dataclasses
 import re
-from typing import Optional, NamedTuple, Tuple
+from typing import Optional, Tuple
 
 _PATTERN_WORDS = re.compile(r'\w+')
 _PATTERN_EXTRACT = re.compile(r'__pb_translated__:(\w+)')
@@ -15,7 +16,8 @@ def create_translated_backup_comment(key: str, *args) -> str:
 	return comment
 
 
-class ExtractResult(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class ExtractResult:
 	key: str
 	args: Tuple[str, ...]
 

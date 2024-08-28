@@ -3,7 +3,7 @@ import json
 import re
 import unittest
 from abc import ABC, abstractmethod
-from typing import Union, Tuple, NamedTuple, Generic, Dict, TypeVar
+from typing import Union, Tuple, Generic, Dict, TypeVar, NamedTuple
 
 from prime_backup.utils import misc_utils
 
@@ -30,7 +30,7 @@ def _split_unit(s: str) -> Tuple[float, str]:
 	return _parse_number(match.group(1)), match.group(2)
 
 
-class UnitValuePair(NamedTuple):
+class ValueUnitPair(NamedTuple):
 	value: float
 	unit: str
 
@@ -79,17 +79,17 @@ class _UnitValueBase(Generic[_T], str, ABC):
 		return a / b
 
 	@classmethod
-	def _auto_format(cls, val: _T) -> UnitValuePair:
+	def _auto_format(cls, val: _T) -> ValueUnitPair:
 		if val < 0:
 			uvp = cls._auto_format(-val)
-			return UnitValuePair(-uvp.value, uvp.unit)
+			return ValueUnitPair(-uvp.value, uvp.unit)
 		ret = None
 		for unit, k in cls._get_formatting_unit_map().items():
 			x = cls.__precise_div(val, k)
 			if x >= 1 or ret is None:
 				if isinstance(x, float) and x.is_integer():
 					x = int(x)
-				ret = UnitValuePair(x, unit)
+				ret = ValueUnitPair(x, unit)
 			else:
 				break
 		if ret is None:
@@ -97,27 +97,27 @@ class _UnitValueBase(Generic[_T], str, ABC):
 		return ret
 
 	@classmethod
-	def _precise_format(cls, val: _T) -> UnitValuePair:
+	def _precise_format(cls, val: _T) -> ValueUnitPair:
 		if val < 0:
 			uvp = cls._auto_format(-val)
-			return UnitValuePair(-uvp.value, uvp.unit)
+			return ValueUnitPair(-uvp.value, uvp.unit)
 
 		units = list(reversed(cls._get_formatting_unit_map().items()))
 		if val == 0:
-			return UnitValuePair(val, units[-1][0])
+			return ValueUnitPair(val, units[-1][0])
 		for i, tp in enumerate(units):  # high -> low
 			unit, k = tp
 			x = cls.__precise_div(val, k)
 			if isinstance(x, int) or (isinstance(x, float) and x.is_integer()) or i == len(units) - 1:
 				if isinstance(x, float) and x.is_integer():
 					x = int(x)
-				return UnitValuePair(x, unit)
+				return ValueUnitPair(x, unit)
 		raise AssertionError()
 
-	def precise_format(self) -> UnitValuePair:
+	def precise_format(self) -> ValueUnitPair:
 		return self._precise_format(self._value)
 
-	def auto_format(self) -> UnitValuePair:
+	def auto_format(self) -> ValueUnitPair:
 		return self._auto_format(self._value)
 
 	def auto_str(self, **kwargs) -> str:
@@ -236,17 +236,17 @@ class ByteCount(Quantity):
 		return super().__new__(cls, s)
 
 	@classmethod
-	def _auto_format(cls, val) -> UnitValuePair:
+	def _auto_format(cls, val) -> ValueUnitPair:
 		uv = super()._auto_format(val)
 		if not uv.unit.endswith('B'):
-			uv = UnitValuePair(uv.value, uv.unit + 'B')
+			uv = ValueUnitPair(uv.value, uv.unit + 'B')
 		return uv
 
 	@classmethod
-	def _precise_format(cls, val) -> UnitValuePair:
+	def _precise_format(cls, val) -> ValueUnitPair:
 		uv = super()._precise_format(val)
 		if not uv.unit.endswith('B'):
-			uv = UnitValuePair(uv.value, uv.unit + 'B')
+			uv = ValueUnitPair(uv.value, uv.unit + 'B')
 		return uv
 
 
@@ -262,34 +262,34 @@ class UnitTests(unittest.TestCase):
 	def test_2_1_duration_format(self):
 		self.assertEqual(123, Duration(123).value)
 		self.assertEqual(123, Duration('123s').value)
-		self.assertEqual(UnitValuePair(2.05, 'm'), Duration('123s').auto_format())
-		self.assertEqual(UnitValuePair(123, 's'), Duration('123sec').precise_format())
+		self.assertEqual(ValueUnitPair(2.05, 'm'), Duration('123s').auto_format())
+		self.assertEqual(ValueUnitPair(123, 's'), Duration('123sec').precise_format())
 
 		self.assertEqual(1440, Duration(1440).value)
 		self.assertEqual('24m', str(Duration('1440s')))
-		self.assertEqual(UnitValuePair(24, 'm'), Duration('1440s').auto_format())
-		self.assertEqual(UnitValuePair(24, 'm'), Duration('1440s').precise_format())
+		self.assertEqual(ValueUnitPair(24, 'm'), Duration('1440s').auto_format())
+		self.assertEqual(ValueUnitPair(24, 'm'), Duration('1440s').precise_format())
 
 		self.assertEqual(12.3, Duration(12.3).value)
 		self.assertEqual(12.3, Duration('12.3s').value)
-		self.assertEqual(UnitValuePair(12.3, 's'), Duration('12.3s').auto_format())
-		self.assertEqual(UnitValuePair(12.3, 's'), Duration('12.3s').precise_format())
+		self.assertEqual(ValueUnitPair(12.3, 's'), Duration('12.3s').auto_format())
+		self.assertEqual(ValueUnitPair(12.3, 's'), Duration('12.3s').precise_format())
 
 		self.assertEqual(1234.5678, Duration(1234.5678).value)
 		self.assertEqual(1234.5678, Duration('1234.5678s').value)
-		self.assertEqual(UnitValuePair(1234.5678 / 60, 'm'), Duration('1234.5678s').auto_format())
-		self.assertEqual(UnitValuePair(1234.5678, 's'), Duration('1234.5678s').precise_format())
+		self.assertEqual(ValueUnitPair(1234.5678 / 60, 'm'), Duration('1234.5678s').auto_format())
+		self.assertEqual(ValueUnitPair(1234.5678, 's'), Duration('1234.5678s').precise_format())
 
 	def test_2_2_quantity_format(self):
 		self.assertEqual(1234, Quantity(1234).value)
 		self.assertEqual(1234, Quantity('1234').value)
-		self.assertEqual(UnitValuePair(1234 / 1024, 'Ki'), Quantity('1234').auto_format())
-		self.assertEqual(UnitValuePair(1234, ''), Quantity('1234').precise_format())
+		self.assertEqual(ValueUnitPair(1234 / 1024, 'Ki'), Quantity('1234').auto_format())
+		self.assertEqual(ValueUnitPair(1234, ''), Quantity('1234').precise_format())
 
 		self.assertEqual(4096, Quantity(4096).value)
 		self.assertEqual('4Ki', str(Quantity('4096')))
-		self.assertEqual(UnitValuePair(4, 'Ki'), Quantity('4096').auto_format())
-		self.assertEqual(UnitValuePair(4, 'Ki'), Quantity('4096').precise_format())
+		self.assertEqual(ValueUnitPair(4, 'Ki'), Quantity('4096').auto_format())
+		self.assertEqual(ValueUnitPair(4, 'Ki'), Quantity('4096').precise_format())
 
 	def test_2_3_byte_count_format(self):
 		self.assertEqual(1234, ByteCount(1234).value)

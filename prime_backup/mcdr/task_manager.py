@@ -1,9 +1,10 @@
 import contextlib
+import dataclasses
 import enum
 import sqlite3
 import threading
 from concurrent import futures
-from typing import Optional, Callable, NamedTuple, Any, TypeVar
+from typing import Optional, Callable, Any, TypeVar
 
 from mcdreforged.api.all import *
 from sqlalchemy.exc import OperationalError
@@ -26,7 +27,8 @@ class _SendEventStatus(enum.Enum):
 	failed = enum.auto()
 
 
-class _SendEventResult(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class _SendEventResult:
 	status: _SendEventStatus
 	holder: Optional[TaskHolder]
 

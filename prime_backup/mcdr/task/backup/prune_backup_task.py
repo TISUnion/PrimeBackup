@@ -3,7 +3,7 @@ import dataclasses
 import datetime
 import functools
 import time
-from typing import List, NamedTuple, Dict, Union, Optional, Callable
+from typing import List, Dict, Union, Optional, Callable
 
 import pytz
 from mcdreforged.api.all import *
@@ -28,7 +28,8 @@ class _PruneVerbose:
 	all = 2
 
 
-class PruneMark(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class PruneMark:
 	keep: bool
 	reason: str
 
@@ -48,7 +49,8 @@ class PruneMark(NamedTuple):
 		return PruneMark(False, reason)
 
 
-class PrunePlanItem(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class PrunePlanItem:
 	backup: BackupInfo
 	mark: PruneMark
 

@@ -10,7 +10,7 @@ import time
 import zipfile
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import ContextManager, IO, Optional, NamedTuple, List, Dict, Tuple
+from typing import ContextManager, IO, Optional, List, Dict, Tuple
 
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
@@ -40,12 +40,6 @@ class BackupMetadataNotFound(PrimeBackupError):
 
 class BackupMetadataInvalid(PrimeBackupError):
 	pass
-
-
-class _FileDescription(NamedTuple):
-	blob: Optional[schema.Blob]
-	hash: str
-	size: int
 
 
 class PackedBackupFileHandler(ABC):

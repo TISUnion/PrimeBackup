@@ -1,12 +1,13 @@
 import dataclasses
 import enum
-from typing import Optional, List, Any, NamedTuple
+from typing import Optional, List, Any
 
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.operator import Operator
 
 
-class BackupTagFilter(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class BackupTagFilter:
 	class Policy(enum.Enum):
 		equals = enum.auto()
 		not_equals = enum.auto()  # not equals, or not exists

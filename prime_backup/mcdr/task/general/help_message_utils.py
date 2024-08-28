@@ -1,12 +1,14 @@
+import dataclasses
 import re
-from typing import NamedTuple, List, Optional
+from typing import List, Optional
 
 from mcdreforged.api.all import *
 
 from prime_backup.config.config import Config
 
 
-class HelpMessageLine(NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class HelpMessageLine:
 	line: str
 	text: RTextBase
 	literal: Optional[str]

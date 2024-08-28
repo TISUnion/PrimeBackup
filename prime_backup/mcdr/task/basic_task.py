@@ -12,7 +12,7 @@ from prime_backup.types.units import Duration
 from prime_backup.utils import mcdr_utils
 from prime_backup.utils.mcdr_utils import TranslationContext
 
-T = TypeVar('T')
+_S = TypeVar('_S')
 _T = TypeVar('_T')
 
 
@@ -82,7 +82,7 @@ class _BasicTask(Task[_T], ABC):
 		finally:
 			self.is_waiting_confirm = False
 
-	def run_action(self, action: Action[T], auto_interrupt: bool = True) -> T:
+	def run_action(self, action: Action[_S], auto_interrupt: bool = True) -> _S:
 		self.__running_action = action
 		if auto_interrupt and self.aborted_event.is_set():
 			action.interrupt()
@@ -91,7 +91,7 @@ class _BasicTask(Task[_T], ABC):
 		finally:
 			self.__running_action = None
 
-	def run_subtask(self, task: Task[T]) -> T:
+	def run_subtask(self, task: Task[_S]) -> _S:
 		self.__running_subtask = task
 		try:
 			return task.run()

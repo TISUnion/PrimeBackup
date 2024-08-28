@@ -5,10 +5,10 @@ from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_tags import BackupTagName, BackupTags
 
-T = TypeVar('T')
+_T = TypeVar('_T')
 
 
-class _OperateBackupTagActionBase(Action[T], ABC):
+class _OperateBackupTagActionBase(Action[_T], ABC):
 	def __init__(self, backup_id: int, tag_name: BackupTagName):
 		super().__init__()
 		self.backup_id = backup_id

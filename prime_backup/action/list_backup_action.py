@@ -6,10 +6,10 @@ from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 
-T = TypeVar('T')
+_T = TypeVar('_T')
 
 
-class _ListBackupActionBase(Action[T], ABC):
+class _ListBackupActionBase(Action[_T], ABC):
 	def __init__(self, *, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None):
 		super().__init__()
 		self.backup_filter = backup_filter

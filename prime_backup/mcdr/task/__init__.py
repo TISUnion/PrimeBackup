@@ -6,7 +6,7 @@ from mcdreforged.api.all import *
 
 from prime_backup.utils import mcdr_utils
 
-T = TypeVar('T')
+_T = TypeVar('_T')
 
 
 class TaskEvent(enum.Enum):
@@ -17,7 +17,7 @@ class TaskEvent(enum.Enum):
 	operation_aborted = enum.auto()
 
 
-class Task(Generic[T], mcdr_utils.TranslationContext, ABC):
+class Task(Generic[_T], mcdr_utils.TranslationContext, ABC):
 	def __init__(self, source: CommandSource):
 		super().__init__(f'task.{self.id}')
 		from prime_backup.mcdr import mcdr_globals
@@ -36,7 +36,7 @@ class Task(Generic[T], mcdr_utils.TranslationContext, ABC):
 		...
 
 	@abstractmethod
-	def run(self) -> T:
+	def run(self) -> _T:
 		...
 
 	@abstractmethod

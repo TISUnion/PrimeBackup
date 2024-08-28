@@ -5,10 +5,10 @@ import threading
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic
 
-T = TypeVar('T')
+_T = TypeVar('_T')
 
 
-class Action(Generic[T], ABC):
+class Action(Generic[_T], ABC):
 	def __init__(self):
 		self.is_interrupted = threading.Event()
 
@@ -18,7 +18,7 @@ class Action(Generic[T], ABC):
 		self.config = Config.get()
 
 	@abstractmethod
-	def run(self) -> T:
+	def run(self) -> _T:
 		...
 
 	def is_interruptable(self) -> bool:

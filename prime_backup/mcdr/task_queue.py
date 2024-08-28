@@ -1,6 +1,8 @@
 import collections
+import dataclasses
 import threading
-from typing import NamedTuple, Generic, TypeVar, Deque, Union, TYPE_CHECKING, Callable, Optional, Any
+from concurrent import futures
+from typing import Generic, TypeVar, Deque, Union, TYPE_CHECKING, Callable, Optional, Any
 
 from mcdreforged.api.all import *
 
@@ -10,7 +12,8 @@ if TYPE_CHECKING:
 	from prime_backup.mcdr.task import Task
 
 
-TaskCallback = Callable[[Optional[Any], Optional[Exception]], Any]
+_T = TypeVar('_T')
+TaskCallback = Callable[[Optional[_T], Optional[Exception]], Any]
 
 
 class TaskHolder(NamedTuple):
@@ -26,13 +29,10 @@ class TaskHolder(NamedTuple):
 			self.callback(ret, err)
 
 
-T = TypeVar('T')
-
-
-class TaskQueue(Generic[T]):
+class TaskQueue(Generic[_T]):
 	class TooManyOngoingTask(PrimeBackupError):
-		def __init__(self, current_item: T):
-			self.current_item: T = current_item
+		def __init__(self, current_item: _T):
+			self.current_item: _T = current_item
 
 	class _NoneItem:
 		pass
@@ -40,26 +40,26 @@ class TaskQueue(Generic[T]):
 	NONE = _NoneItem()
 
 	def __init__(self, max_ongoing_task: int):
-		self.__queue: Deque[T] = collections.deque()
+		self.__queue: Deque[_T] = collections.deque()
 		self.__unfinished_size = 0
 		self.__lock = threading.Lock()
 		self.__not_empty = threading.Condition(self.__lock)
 		self.__semaphore = threading.Semaphore(max_ongoing_task)
 		self.__current_item = self.NONE
 
-	def put(self, task: T):
+	def put(self, task: _T):
 		if self.__semaphore.acquire(blocking=False):
 			self.put_direct(task)
 		else:
 			raise self.TooManyOngoingTask(self.__current_item)
 
-	def put_direct(self, task: T):
+	def put_direct(self, task: _T):
 		with self.__lock:
 			self.__queue.append(task)
 			self.__unfinished_size += 1
 			self.__not_empty.notify()
 
-	def get(self) -> T:
+	def get(self) -> _T:
 		with self.__not_empty:
 			while len(self.__queue) == 0:
 				self.__not_empty.wait()
@@ -84,7 +84,7 @@ class TaskQueue(Generic[T]):
 		with self.__lock:
 			return len(self.__queue)
 
-	def peek_first_unfinished_item(self) -> Union[T, _NoneItem]:
+	def peek_first_unfinished_item(self) -> Union[_T, _NoneItem]:
 		with self.__lock:
 			if self.__current_item is not self.NONE:
 				return self.__current_item
@@ -98,6 +98,6 @@ class TaskQueue(Generic[T]):
 			return self.__unfinished_size
 
 	@property
-	def current_item(self) -> Union[T, _NoneItem]:
+	def current_item(self) -> Union[_T, _NoneItem]:
 		with self.__lock:
 			return self.__current_item

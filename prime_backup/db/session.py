@@ -15,7 +15,7 @@ from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotF
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.utils import collection_utils, db_utils
 
-T = TypeVar('T')
+_T = TypeVar('_T')
 
 
 class UnsupportedDatabaseOperation(PrimeBackupError):
@@ -23,7 +23,7 @@ class UnsupportedDatabaseOperation(PrimeBackupError):
 
 
 # make type checker happy
-def _list_it(seq: Sequence[T]) -> List[T]:
+def _list_it(seq: Sequence[_T]) -> List[_T]:
 	if not isinstance(seq, list):
 		seq = list(seq)
 	return seq
@@ -313,7 +313,7 @@ class DbSession:
 		return True
 
 	@classmethod
-	def __sql_backup_tag_filter(cls, s: Select[T], backup_filter: BackupFilter) -> Select[T]:
+	def __sql_backup_tag_filter(cls, s: Select[_T], backup_filter: BackupFilter) -> Select[_T]:
 		for tf in backup_filter.tag_filters:
 			element = schema.Backup.tags[tf.name.name]
 			if tf.policy == BackupTagFilter.Policy.exists:
@@ -348,7 +348,7 @@ class DbSession:
 		return s
 
 	@classmethod
-	def __apply_backup_filter(cls, s: Select[T], backup_filter: BackupFilter) -> Select[T]:
+	def __apply_backup_filter(cls, s: Select[_T], backup_filter: BackupFilter) -> Select[_T]:
 		if backup_filter.id_start is not None:
 			s = s.where(schema.Backup.id >= backup_filter.id_start)
 		if backup_filter.id_end is not None:

@@ -97,7 +97,7 @@ def import_file(slot_path: Path, backup_format: str, timestamp: float, comment: 
 def import_slot(slot_path: Path):
 	try:
 		with open(slot_path / 'info.json', 'r', encoding='utf8') as f:
-			info = json.load(f)
+			info: dict = json.load(f)
 	except (ValueError, OSError):
 		print(f'Reading info.json failed, skipped slot {slot_path}')
 		raise

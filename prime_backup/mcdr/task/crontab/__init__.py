@@ -7,10 +7,10 @@ from prime_backup.mcdr.crontab_job import CrontabJobId, CrontabJob
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.basic_task import ImmediateTask
 
-T = TypeVar('T')
+_T = TypeVar('_T')
 
 
-class CrontabTaskBase(ImmediateTask[T], ABC):
+class CrontabTaskBase(ImmediateTask[_T], ABC):
 	def __init__(self, source: CommandSource, crontab_manager: CrontabManager, job_id: CrontabJobId):
 		super().__init__(source)
 		self.crontab_manager = crontab_manager

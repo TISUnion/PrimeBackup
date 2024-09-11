@@ -237,7 +237,7 @@ class DbSession:
 			if limit is not None:
 				st = st.limit(max(0, limit - len(result)))
 			result.extend(self.session.execute(st).scalars().all())
-			if len(result) >= limit:
+			if limit is not None and len(result) >= limit:
 				break
 		return result
 

@@ -5,6 +5,7 @@ from typing import List, Dict
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
+from prime_backup.types.blob_info import BlobInfo
 from prime_backup.types.file_info import FileInfo
 
 
@@ -62,16 +63,19 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 		for h, files in hash_to_file.items():
 			blob = hash_to_blob[h]
 			for file in files:
+				file_blob: BlobInfo = file.blob
+				if file_blob is None:
+					raise AssertionError(f'file.blob is None, hash={h}, file={file}')
 				if blob is None:
 					result.file_blob_mismatched.append(BadFileItem(file, f'file with missing blob {h}'))
-				elif file.blob.hash != blob.hash:
-					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob hash should be {blob.hash}, but file blob hash is {file.blob.hash}'))
-				elif file.blob.compress != blob.compress:
-					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob compress should be {blob.compress}, but file blob compress is {file.blob.compress}'))
-				elif file.blob.raw_size != blob.raw_size:
-					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob raw_size should be {blob.raw_size}, but file blob raw_size is {file.blob.raw_size}'))
-				elif file.blob.stored_size != blob.stored_size:
-					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob stored_size should be {blob.stored_size}, but file blob stored_size is {file.blob.stored_size}'))
+				elif file_blob.hash != blob.hash:
+					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob hash should be {blob.hash}, but file blob hash is {file_blob.hash}'))
+				elif file_blob.compress.name != blob.compress:
+					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob compress should be {blob.compress}, but file blob compress is {file_blob.compress.name}'))
+				elif file_blob.raw_size != blob.raw_size:
+					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob raw_size should be {blob.raw_size}, but file blob raw_size is {file_blob.raw_size}'))
+				elif file_blob.stored_size != blob.stored_size:
+					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob stored_size should be {blob.stored_size}, but file blob stored_size is {file_blob.stored_size}'))
 				else:
 					result.ok += 1
 

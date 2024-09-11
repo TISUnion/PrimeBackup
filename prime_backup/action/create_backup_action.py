@@ -550,6 +550,9 @@ class CreateBackupAction(CreateBackupActionBase):
 			with DbAccess.open_session() as session:
 				self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache)
 
+				self.logger.info('Scanning file for backup creation at path {!r}, targets: {}'.format(
+					self.__source_path.as_posix(), self.config.backup.targets,
+				))
 				scan_result = self.__scan_files()
 				backup = session.create_backup(
 					creator=str(self.creator),

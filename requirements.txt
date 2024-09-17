@@ -1,0 +1,8 @@
+APScheduler>=3.8,<4
+SQLAlchemy>=2
+mcdreforged>=2.12.0
+pathspec
+psutil
+pytz
+xxhash>=3
+zstandard

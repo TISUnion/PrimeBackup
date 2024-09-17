@@ -167,7 +167,7 @@ class TaskManager:
 
 	# ================================== Interfaces ==================================
 
-	def add_task(self, task: Task[_T], callback: Optional[TaskCallback[_T]] = None, *, handle_tmo_err: bool = True) -> futures.Future[_T]:
+	def add_task(self, task: Task[_T], callback: Optional[TaskCallback[_T]] = None, *, handle_tmo_err: bool = True) -> 'futures.Future[_T]':
 		source = task.source
 		holder = TaskHolder(task, source, callback)
 		if isinstance(task, HeavyTask):

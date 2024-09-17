@@ -21,7 +21,7 @@ class TaskHolder(Generic[_T]):
 	task: 'Task[_T]'
 	source: 'CommandSource'
 	callback: Optional[TaskCallback[_T]]
-	future: futures.Future[_T] = dataclasses.field(default_factory=futures.Future)
+	future: 'futures.Future[_T]' = dataclasses.field(default_factory=futures.Future)
 
 	def task_name(self) -> RTextBase:
 		return self.task.get_name_text()

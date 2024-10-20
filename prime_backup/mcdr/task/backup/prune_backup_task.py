@@ -219,7 +219,10 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 
 			prune_logger.info('============== Prune calculate result start ==============')
 			for pl in plan_list:
-				prune_logger.info('Backup #{} at {}: keep={} reason={}'.format(pl.backup.id, pl.backup.date_str, pl.mark.keep, pl.mark.reason))
+				prune_logger.info('Backup #{} (temp={}) at {}: keep={} reason={}'.format(
+					pl.backup.id, pl.backup.tags.is_temporary_backup(),
+					pl.backup.date_str, pl.mark.keep, pl.mark.reason
+				))
 			prune_logger.info('============== Prune calculate result end ==============')
 
 			if self.verbose >= _PruneVerbose.delete:

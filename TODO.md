@@ -10,6 +10,7 @@
 ## QOL
 
 - [x] More restrictive `!!pb confirm` and `!!pb abort`
+- [ ] Prune DB backups
 
 ## Documents
 

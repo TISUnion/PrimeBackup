@@ -102,8 +102,8 @@ class CommandManager:
 		self.task_manager.add_task(MigrateHashMethodTask(source, new_hash_method))
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
-		def callback(_, err):
-			if err is None:
+		def callback(backup_id: Optional[int], err: Optional[Exception]):
+			if err is None and backup_id is not None:
 				self.crontab_manager.send_event(CrontabJobEvent.manual_backup_created)
 
 		comment = context.get('comment', '')

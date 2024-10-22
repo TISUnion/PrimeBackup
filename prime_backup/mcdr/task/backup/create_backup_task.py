@@ -11,7 +11,7 @@ from prime_backup.types.operator import Operator
 from prime_backup.utils.timer import Timer
 
 
-class CreateBackupTask(HeavyTask[None]):
+class CreateBackupTask(HeavyTask[Optional[int]]):
 	def __init__(self, source: CommandSource, comment: str, operator: Optional[Operator] = None):
 		super().__init__(source)
 		self.comment = comment
@@ -28,7 +28,7 @@ class CreateBackupTask(HeavyTask[None]):
 	def is_abort_able(self) -> bool:
 		return self.__waiting_world_save
 
-	def run(self):
+	def run(self) -> Optional[int]:
 		self.broadcast(self.tr('start'))
 
 		cmds = self.config.server.commands
@@ -47,14 +47,14 @@ class CreateBackupTask(HeavyTask[None]):
 					self.__waiting_world_save = False
 					if self.aborted_event.is_set():
 						self.broadcast(self.get_aborted_text())
-						return
+						return None
 					if not ok:
 						self.broadcast(self.tr('abort.save_wait_time_out').set_color(RColor.red))
-						return
+						return None
 			cost_save_wait = timer.get_and_restart()
 			if self.plugin_unloaded_event.is_set():
 				self.broadcast(self.tr('abort.unloaded').set_color(RColor.red))
-				return
+				return None
 
 			action = CreateBackupAction(self.operator, self.comment)
 			backup = action.run()
@@ -75,6 +75,7 @@ class CreateBackupTask(HeavyTask[None]):
 				TextComponents.backup_size(backup),
 				TextComponents.blob_list_summary_store_size(bls),
 			))
+			return backup.id
 		finally:
 			if applied_auto_save_off and len(cmds.auto_save_on) > 0:
 				self.server.execute(cmds.auto_save_on)

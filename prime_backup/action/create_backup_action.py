@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, ContextManager
 
 import pathspec
+from typing_extensions import NoReturn
 
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
@@ -327,6 +328,10 @@ class CreateBackupAction(CreateBackupActionBase):
 				self._remove_file(temp_file_path, what='temp_file')
 
 		def attempt_once(last_chance: bool = False) -> Generator[Any, Any, schema.Blob]:
+			def log_and_raise_blob_file_changed(msg: str) -> NoReturn:
+				(self.logger.warning if last_chance else self.logger.debug)(msg)
+				raise _BlobFileChanged(msg)
+
 			compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(st.st_size)
 			can_copy_on_write = (
 					file_utils.HAS_COPY_FILE_RANGE and
@@ -353,8 +358,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					with open(src_path, 'rb') as f:
 						blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
 					if len(blob_content) > _READ_ALL_SIZE_THRESHOLD:
-						self.logger.warning('Read too many bytes for read_all policy, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
-						raise _BlobFileChanged()
+						log_and_raise_blob_file_changed('Read too many bytes for read_all policy, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					blob_hash = hash_utils.calc_bytes_hash(blob_content)
 				elif st.st_size > _HASH_ONCE_SIZE_THRESHOLD:
 					if (exist := self.__blob_by_size_cache.get(st.st_size)) is None:
@@ -387,11 +391,9 @@ class CreateBackupAction(CreateBackupActionBase):
 
 			def check_changes(new_size: int, new_hash: Optional[str]):
 				if new_size != st.st_size:
-					self.logger.warning('Blob size mismatch, previous: {}, current: {}'.format(st.st_size, new_size))
-					raise _BlobFileChanged()
+					log_and_raise_blob_file_changed('Blob size mismatch, previous: {}, current: {}'.format(st.st_size, new_size))
 				if blob_hash is not None and new_hash is not None and new_hash != blob_hash:
-					self.logger.warning('Blob hash mismatch, previous: {}, current: {}'.format(blob_hash, new_hash))
-					raise _BlobFileChanged()
+					log_and_raise_blob_file_changed('Blob hash mismatch, previous: {}, current: {}'.format(blob_hash, new_hash))
 
 			def bp_rba(h: str) -> Path:
 				"""
@@ -493,8 +495,9 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.__blob_by_hash_cache[blob.hash] = blob
 				return blob, st
 			except _BlobFileChanged:
-				next_action = 'No more retry' if is_last_attempt else 'Retrying'
-				self.logger.warning('Blob {} stat has changed, has someone modified it? {} (attempt {} / {})'.format(src_path_str, next_action, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT))
+				(self.logger.warning if is_last_attempt else self.logger.debug)('Blob {} stat has changed, has someone modified it? {} (attempt {} / {})'.format(
+					src_path_str, 'No more retry' if is_last_attempt else 'Retrying', retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT
+				))
 				st = src_path.lstat()
 			except Exception as e:
 				self.logger.error('Create blob for file {} failed (attempt {} / {}): {}'.format(src_path_str, e, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT))

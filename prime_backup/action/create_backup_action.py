@@ -477,10 +477,11 @@ class CreateBackupAction(CreateBackupActionBase):
 			)
 
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
-			last_attempt = i == _BLOB_FILE_CHANGED_RETRY_COUNT - 1
+			retry_cnt = i + 1  # [1, n]
+			is_last_attempt = retry_cnt == _BLOB_FILE_CHANGED_RETRY_COUNT
 			if i > 0:
-				self.logger.warning('Try to create blob {} (attempt {} / {})'.format(src_path_str, i + 1, _BLOB_FILE_CHANGED_RETRY_COUNT))
-			gen = attempt_once(last_chance=last_attempt)
+				self.logger.warning('Try to create blob {} (attempt {} / {})'.format(src_path_str, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT))
+			gen = attempt_once(last_chance=is_last_attempt)
 			try:
 				query = gen.send(None)
 				while True:
@@ -492,10 +493,11 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.__blob_by_hash_cache[blob.hash] = blob
 				return blob, st
 			except _BlobFileChanged:
-				self.logger.warning('Blob {} stat has changed, {}'.format(src_path_str, 'no more retry' if last_attempt else 'retrying'))
+				next_action = 'no more retry' if is_last_attempt else 'retrying'
+				self.logger.warning('Blob {} stat has changed, {} (attempt {} / {})'.format(src_path_str, next_action, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT))
 				st = src_path.lstat()
 			except Exception as e:
-				self.logger.error('Create blob for file {} failed: {}'.format(src_path_str, e))
+				self.logger.error('Create blob for file {} failed (attempt {} / {}): {}'.format(src_path_str, e, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT))
 				raise
 
 		self.logger.error('All blob copy attempts failed, is the file {} keeps changing?'.format(src_path_str))

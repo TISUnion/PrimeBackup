@@ -19,10 +19,14 @@ class CreateBackupTask(HeavyTask[None]):
 			operator = Operator.of(source)
 		self.operator = operator
 		self.world_saved_done = threading.Event()
+		self.__waiting_world_save = False
 
 	@property
 	def id(self) -> str:
 		return 'backup_create'
+
+	def is_abort_able(self) -> bool:
+		return self.__waiting_world_save
 
 	def run(self):
 		self.broadcast(self.tr('start'))
@@ -38,7 +42,12 @@ class CreateBackupTask(HeavyTask[None]):
 				if len(cmds.save_all_worlds) > 0:
 					self.server.execute(cmds.save_all_worlds)
 				if len(self.config.server.saved_world_regex) > 0:
+					self.__waiting_world_save = True
 					ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait.value)
+					self.__waiting_world_save = False
+					if self.aborted_event.is_set():
+						self.broadcast(self.get_aborted_text())
+						return
 					if not ok:
 						self.broadcast(self.tr('abort.save_wait_time_out').set_color(RColor.red))
 						return
@@ -72,6 +81,8 @@ class CreateBackupTask(HeavyTask[None]):
 
 	def on_event(self, event: TaskEvent):
 		super().on_event(event)
+		if event == TaskEvent.operation_aborted and self.__waiting_world_save:
+			self.world_saved_done.set()
 		if event == TaskEvent.plugin_unload:
 			self.world_saved_done.set()
 		elif event in [TaskEvent.world_save_done, TaskEvent.server_stopped]:

@@ -534,6 +534,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		return session.create_file(
 			path=related_path.as_posix(),
 			content=content,
+			role=schema.FileRole.unknown.value,
 
 			mode=st.st_mode,
 			uid=st.st_uid,
@@ -542,7 +543,6 @@ class CreateBackupAction(CreateBackupActionBase):
 			mtime_ns=st.st_mtime_ns,
 			atime_ns=st.st_atime_ns,
 
-			add_to_session=False,
 			blob=blob,
 		)
 

@@ -86,11 +86,17 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 			info = BackupInfo.of(backup)
 
 			hashes = []
-			for file in backup.files:
+			for file in session.get_backup_files(backup):
 				if file.blob_hash is not None:
 					hashes.append(file.blob_hash)
 				session.delete_file(file)
 			session.delete_backup(backup)
+
+			for fileset in [backup.fileset_base, backup.fileset_delta]:
+				ref_cnt = session.get_fileset_reference_count(fileset.id)
+				self.logger.info('FILESET: pruning file set {}, ref_cnt={}'.format(fileset.id, ref_cnt))
+				if ref_cnt == 0:
+					session.delete_fileset(fileset)
 
 		orphan_blob_cleaner = DeleteOrphanBlobsAction(hashes, quiet=True)
 		bls = orphan_blob_cleaner.run()

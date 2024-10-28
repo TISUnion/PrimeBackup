@@ -15,10 +15,16 @@ class BackupNotFound(PrimeBackupError):
 
 
 class BackupFileNotFound(PrimeBackupError):
-	def __init__(self, backup_id: int, path: str):
+	def __init__(self, file_set_id: int, path: str):
 		super().__init__()
-		self.backup_id = backup_id
+		self.file_set_id = file_set_id
 		self.path = path
+
+
+class FileSetNotFound(PrimeBackupError):
+	def __init__(self, file_set_id: int):
+		super().__init__()
+		self.file_set_id = file_set_id
 
 
 class BlobNotFound(PrimeBackupError):

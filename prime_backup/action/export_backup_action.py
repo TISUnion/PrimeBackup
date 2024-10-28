@@ -219,11 +219,11 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		export_items: List[ExportBackupToDirectoryAction._ExportItem] = []
 		if self.child_to_export is None:
 			self.logger.info('Exporting {} to directory {}'.format(backup, self.output_path))
-			for file in backup.files:
+			for file in session.get_backup_files(backup):
 				add_export_item(file, Path(file.path))
 		else:
 			self.logger.info('Exporting child {!r} in {} to directory {}, recursively = {}'.format(self.child_to_export.as_posix(), backup, self.output_path, self.recursively_export_child))
-			for file in backup.files:
+			for file in session.get_backup_files(backup):
 				try:
 					rel_path = Path(file.path).relative_to(self.child_to_export)
 				except ValueError:
@@ -413,7 +413,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 
 		try:
 			with self.__open_tar() as tar:
-				for file in backup.files:
+				for file in session.get_backup_files(backup):
 					if self.is_interrupted.is_set():
 						self.logger.info('Export to tarfile interrupted')
 						raise _ExportInterrupted()
@@ -494,7 +494,7 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 
 		try:
 			with zipfile.ZipFile(self.output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-				for file in backup.files:
+				for file in session.get_backup_files(backup):
 					if self.is_interrupted.is_set():
 						self.logger.info('Export to zipfile interrupted')
 						raise _ExportInterrupted()

@@ -339,6 +339,7 @@ class ImportBackupAction(CreateBackupActionBase):
 		return session.create_file(
 			path=self.__format_path(member.path),
 			content=content,
+			role=schema.FileRole.unknown.value,
 
 			mode=member.mode,
 			uid=member.uid,
@@ -347,7 +348,6 @@ class ImportBackupAction(CreateBackupActionBase):
 			mtime_ns=mtime_ns,
 			atime_ns=mtime_ns,
 
-			add_to_session=False,
 			blob=blob,
 		)
 

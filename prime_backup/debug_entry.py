@@ -83,7 +83,7 @@ def main():
 	# list_()
 	# export()
 	# delete()
-	migrate()
+	# migrate()
 
 
 if __name__ == '__main__':

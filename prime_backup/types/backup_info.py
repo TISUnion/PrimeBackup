@@ -24,6 +24,9 @@ class BackupInfo:
 	targets: List[str]
 	tags: BackupTags
 
+	fileset_id_base: int
+	fileset_id_delta: int
+
 	raw_size: int  # uncompressed size
 	stored_size: int  # actual size
 
@@ -38,7 +41,7 @@ class BackupInfo:
 		return conversion_utils.timestamp_to_local_date_str(self.timestamp_ns)
 
 	@classmethod
-	def of(cls, backup: schema.Backup, *, with_files: bool = False) -> 'Self':
+	def of(cls, backup: schema.Backup, *, backup_files: List[schema.File] = None) -> 'Self':
 		"""
 		Notes: should be inside a session
 		"""
@@ -50,7 +53,9 @@ class BackupInfo:
 			comment=backup.comment,
 			targets=list(backup.targets),
 			tags=BackupTags(backup.tags),
+			fileset_id_base=backup.fileset_id_base,
+			fileset_id_delta=backup.fileset_id_delta,
 			raw_size=backup.file_raw_size_sum or 0,
 			stored_size=backup.file_stored_size_sum or 0,
-			files=list(map(FileInfo.of, backup.files)) if with_files else [],
+			files=[FileInfo.of(file) for file in backup_files] if backup_files is not None else [],
 		)

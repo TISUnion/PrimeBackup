@@ -6,6 +6,7 @@ from typing import Optional
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
+from prime_backup.db.schema import FileRole
 from prime_backup.types.blob_info import BlobInfo
 
 
@@ -18,8 +19,9 @@ class FileType(enum.Enum):
 
 @dataclasses.dataclass(frozen=True)
 class FileInfo:
-	backup_id: int
+	fileset_id: int
 	path: str
+	role: FileRole
 
 	mode: int
 	content: Optional[bytes] = None
@@ -48,9 +50,14 @@ class FileInfo:
 					raw_size=file.blob_raw_size,
 					stored_size=file.blob_stored_size,
 				)
+		try:
+			role = FileRole[file.role]
+		except KeyError:
+			role = FileRole.unknown
 		return FileInfo(
-			backup_id=file.backup_id,
+			fileset_id=file.fileset_id,
 			path=file.path,
+			role=role,
 			mode=file.mode,
 			content=file.content,
 			blob=blob,

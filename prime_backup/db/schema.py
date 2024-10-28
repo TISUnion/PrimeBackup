@@ -1,6 +1,7 @@
+import enum
 from typing import Optional, List, get_type_hints, Dict, Any
 
-from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary
+from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 BackupTagDict = Dict[str, Any]
@@ -36,14 +37,21 @@ class Blob(Base):
 
 	__fields_end__: bool
 
-	files: Mapped[List['File']] = relationship(back_populates='blob', viewonly=True)
+
+class FileRole(enum.IntEnum):
+	unknown = 0
+	standalone = 1
+	delta_override = 2
+	delta_add = 3
+	delta_remove = 4
 
 
 class File(Base):
 	__tablename__ = 'file'
 
-	backup_id: Mapped[int] = mapped_column(ForeignKey('backup.id'), primary_key=True, index=True)
+	fileset_id: Mapped[int] = mapped_column(ForeignKey('backup.id'), primary_key=True, index=True)
 	path: Mapped[str] = mapped_column(String, primary_key=True)
+	role: Mapped[str] = mapped_column(Integer)  # see enum FileRole
 
 	mode: Mapped[int] = mapped_column(Integer)
 
@@ -64,8 +72,19 @@ class File(Base):
 
 	__fields_end__: bool
 
-	blob: Mapped[Optional['Blob']] = relationship(back_populates='files', viewonly=True)
-	backup: Mapped[List['Backup']] = relationship(back_populates='files', viewonly=True)
+
+class Fileset(Base):
+	__tablename__ = 'fileset'
+	__table_args__ = {'sqlite_autoincrement': True}
+
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
+	base: Mapped[bool] = mapped_column(Boolean)
+
+	# Store common statistics data of backup files
+	file_raw_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
+	file_stored_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
+
+	__fields_end__: bool
 
 
 class Backup(Base):
@@ -79,10 +98,15 @@ class Backup(Base):
 	targets: Mapped[List[str]] = mapped_column(JSON)
 	tags: Mapped[BackupTagDict] = mapped_column(JSON)
 
+	# fileset ids
+	fileset_id_base: Mapped[int] = mapped_column(ForeignKey('fileset.id'))
+	fileset_id_delta: Mapped[int] = mapped_column(ForeignKey('fileset.id'))
+
 	# Store common statistics data of backup files
 	file_raw_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
 	file_stored_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 	__fields_end__: bool
 
-	files: Mapped[List['File']] = relationship(back_populates='backup', viewonly=True)
+	fileset_base: Mapped['Fileset'] = relationship(viewonly=True, foreign_keys=[fileset_id_base])
+	fileset_delta: Mapped['Fileset'] = relationship(viewonly=True, foreign_keys=[fileset_id_delta])

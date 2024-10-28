@@ -28,7 +28,7 @@ class DiffBackupAction(Action[DiffResult]):
 	@classmethod
 	def __get_files_from_backup(cls, session: DbSession, backup_id: int) -> Dict[str, FileInfo]:
 		files = {}
-		for file in session.get_backup(backup_id).files:
+		for file in session.get_backup_files(backup_id):
 			files[file.path] = FileInfo.of(file)
 		return files
 

@@ -22,6 +22,7 @@ class DbMigration:
 		self.engine = engine
 		self.migrations: Dict[int, Callable[[Session], Any]] = {
 			2: self.__migrate_1_2,  # 1 -> 2
+			3: self.__migrate_2_3,  # 2 -> 3
 		}
 
 	def check_and_migrate(self, *, create: bool, migrate: bool):
@@ -88,3 +89,6 @@ class DbMigration:
 				self.logger.info('Renaming tag {!r} to {!r} for backup #{}, new tags: {}'.format(
 					src_tag, dst_tag, backup.id, backup.tags,
 				))
+
+	def __migrate_2_3(self , session: Session):
+		raise NotImplementedError('TODO')

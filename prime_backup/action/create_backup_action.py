@@ -541,7 +541,6 @@ class CreateBackupAction(CreateBackupActionBase):
 			gid=st.st_gid,
 			ctime_ns=st.st_ctime_ns,
 			mtime_ns=st.st_mtime_ns,
-			atime_ns=st.st_atime_ns,
 
 			blob=blob,
 		)

@@ -27,6 +27,7 @@ class BackupInfo:
 	fileset_id_base: int
 	fileset_id_delta: int
 
+	file_count: int
 	raw_size: int  # uncompressed size
 	stored_size: int  # actual size
 
@@ -55,6 +56,7 @@ class BackupInfo:
 			tags=BackupTags(backup.tags),
 			fileset_id_base=backup.fileset_id_base,
 			fileset_id_delta=backup.fileset_id_delta,
+			file_count=backup.file_count or 0,
 			raw_size=backup.file_raw_size_sum or 0,
 			stored_size=backup.file_stored_size_sum or 0,
 			files=[FileInfo.of(file) for file in backup_files] if backup_files is not None else [],

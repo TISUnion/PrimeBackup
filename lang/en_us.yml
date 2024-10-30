@@ -207,7 +207,6 @@ prime_backup:
       gid.simple: 'Gid: {}'
       ctime: 'create time: {} ({})'
       mtime: 'modify time: {} ({})'
-      atime: 'access time: {} ({})'
     db_inspect_object_base:
       hover:
         backup_id: Click to inspect backup {}

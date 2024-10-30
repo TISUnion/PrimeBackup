@@ -13,7 +13,7 @@ from typing_extensions import overload, Union
 
 from prime_backup.db import schema, db_constants
 from prime_backup.db.schema import FileRole
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, PrimeBackupError, FileSetNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, PrimeBackupError, FileSetNotFound, FilesetFileNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.utils import collection_utils, db_utils
 
@@ -218,14 +218,32 @@ class DbSession:
 	def get_file_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.File)).scalar_one())
 
-	# TODO: FIX
+	# TODO: review usages
 	def get_file_opt(self, fileset_id: int, path: str) -> Optional[schema.File]:
 		return self.session.get(schema.File, dict(fileset_id=fileset_id, path=path))
 
+	# TODO: review usages
 	def get_file(self, fileset_id: int, path: str) -> schema.File:
 		file = self.get_file_opt(fileset_id, path)
 		if file is None:
-			raise BackupFileNotFound(fileset_id, path)
+			raise FilesetFileNotFound(fileset_id, path)
+		return file
+
+	def get_file_in_backup_opt(self, backup_id: int, path: str) -> Optional[schema.File]:
+		backup = self.get_backup(backup_id)
+
+		file_delta = self.get_file_opt(backup.fileset_id_delta, path)
+		if file_delta is not None:
+			if file_delta.role not in [FileRole.delta_add.value, FileRole.delta_override.value]:
+				return None
+			return file_delta
+
+		return self.get_file_opt(backup.fileset_id_base, path)
+
+	def get_file_in_backup(self, backup_id: int, path: str) -> schema.File:
+		file = self.get_file_in_backup_opt(backup_id, path)
+		if file is None:
+			raise BackupFileNotFound(backup_id, path)
 		return file
 
 	def get_file_raw_size_sum(self) -> int:
@@ -287,18 +305,18 @@ class DbSession:
 	# ==================================== File Set ====================================
 
 	def create_and_add_fileset(self, **kwargs) -> schema.Fileset:
-		file_set = schema.Fileset(**kwargs)
-		self.add(file_set)
-		return file_set
+		fileset = schema.Fileset(**kwargs)
+		self.add(fileset)
+		return fileset
 
 	def get_fileset_opt(self, fileset_id: int) -> Optional[schema.Fileset]:
 		return self.session.get(schema.Fileset, fileset_id)
 
 	def get_fileset(self, fileset_id: int) -> schema.Fileset:
-		file_set = self.get_fileset_opt(fileset_id)
-		if file_set is None:
+		fileset = self.get_fileset_opt(fileset_id)
+		if fileset is None:
 			raise FileSetNotFound(fileset_id)
-		return file_set
+		return fileset
 
 	def get_fileset_reference_count(self, fileset_id: int) -> int:
 		"""How many backups uses this fileset"""
@@ -309,13 +327,37 @@ class DbSession:
 			))
 		).scalar_one())
 
+	def get_fileset_delta_file_count_sum(self, base_fileset_id: int) -> int:
+		"""For those backups whose base fileset is the given one, sum up the file_count of their delta filesets"""
+		delta_fileset_ids = self.session.execute(
+			select(schema.Backup.fileset_id_delta).
+			where(schema.Backup.fileset_id_base == base_fileset_id).
+			distinct()
+		).scalars().all()
+
+		count_sum = 0
+		for view in collection_utils.slicing_iterate(_list_it(delta_fileset_ids), self.__safe_var_limit):
+			count_sum += _int_or_0(self.session.execute(
+				select(func.sum(schema.Fileset.file_count)).
+				select_from(schema.Fileset).
+				where(schema.Fileset.id.in_(view))
+			).scalar_one())
+		return count_sum
+
 	def get_last_n_base_fileset(self, limit: int) -> List[schema.Fileset]:
-		s = select(schema.Fileset).where(schema.Fileset.base.is_(True)).order_by(desc(schema.Fileset.id)).limit(limit)
-		return _list_it(self.session.execute(s).scalars().all())
-	
-	def get_fileset_files(self, fileset_id: int) -> List[schema.File]:
 		return _list_it(self.session.execute(
-			select(schema.File).where(schema.File.fileset_id == fileset_id)
+			select(schema.Fileset).
+			where(schema.Fileset.is_base.is_(True)).
+			order_by(desc(schema.Fileset.id)).
+			limit(limit)
+		).scalars().all())
+	
+	def get_fileset_files(self, fileset_id: Optional[int]) -> List[schema.File]:
+		if fileset_id is None:
+			return []
+		return _list_it(self.session.execute(
+			select(schema.File).
+			where(schema.File.fileset_id == fileset_id)
 		).scalars().all())
 
 	def delete_fileset(self, fileset: schema.Fileset):

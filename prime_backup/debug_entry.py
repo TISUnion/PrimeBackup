@@ -1,3 +1,4 @@
+import logging
 import time
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from prime_backup.types.tar_format import TarFormat
 def main():
 	DbAccess.init(create=True, migrate=True)
 	backup_id = 1
+	logger.get().setLevel(logging.DEBUG)
 	logger.get().info('debug entry start')
 
 	def create(n: int = 1):
@@ -43,12 +45,12 @@ def main():
 		t = time.time()
 
 		_ = [ExportBackupToDirectoryAction, ExportBackupToTarAction, ExportBackupToZipAction, TarFormat]
-		# ExportBackupToTarAction(bid, Path('export.tar'), TarFormat.plain).run()
+		ExportBackupToTarAction(bid, Path('export.tar'), TarFormat.plain).run()
 		# ExportBackupToTarAction(bid, Path('export.tar.gz'), TarFormat.gzip).run()
 		# ExportBackupToTarAction(bid, Path('export.tar.zst'), TarFormat.zstd).run()
 		# ExportBackupToTarAction(bid, Path('export.tar.xz'), TarFormat.lzma).run()
 		# ExportBackupToZipAction(bid, Path('export.zip')).run()
-		ExportBackupToDirectoryAction(bid, Path('export')).run()
+		# ExportBackupToDirectoryAction(bid, Path('export')).run()
 
 		print('cost', round(time.time() - t, 2), 's')
 
@@ -81,7 +83,7 @@ def main():
 	create(1)
 	# import_()
 	# list_()
-	# export()
+	export()
 	# delete()
 	# migrate()
 

@@ -207,7 +207,6 @@ prime_backup:
       gid.simple: 'Gid: {}'
       ctime: '创建时间: {} ({})'
       mtime: '修改时间: {} ({})'
-      atime: '访问时间: {} ({})'
     db_inspect_object_base:
       hover:
         backup_id: 点击以审查备份{}

@@ -15,4 +15,4 @@ class GetFileAction(Action[FileInfo]):
 	def run(self) -> FileInfo:
 		with DbAccess.open_session() as session:
 			session.get_backup(self.backup_id)  # ensure backup exists first
-			return FileInfo.of(session.get_file(self.backup_id, self.file_path))
+			return FileInfo.of(session.get_file_in_backup(self.backup_id, self.file_path))

@@ -31,7 +31,6 @@ class FileInfo:
 	gid: Optional[int] = None
 	ctime_ns: Optional[int] = None
 	mtime_ns: Optional[int] = None
-	atime_ns: Optional[int] = None
 
 	@classmethod
 	def of(cls, file: schema.File) -> 'FileInfo':
@@ -51,8 +50,8 @@ class FileInfo:
 					stored_size=file.blob_stored_size,
 				)
 		try:
-			role = FileRole[file.role]
-		except KeyError:
+			role = FileRole(file.role)
+		except (KeyError, ValueError):
 			role = FileRole.unknown
 		return FileInfo(
 			fileset_id=file.fileset_id,
@@ -65,7 +64,6 @@ class FileInfo:
 			gid=file.gid,
 			ctime_ns=file.ctime_ns,
 			mtime_ns=file.mtime_ns,
-			atime_ns=file.atime_ns,
 		)
 
 	@functools.cached_property

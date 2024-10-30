@@ -1,3 +1,4 @@
+import collections
 import dataclasses
 import functools
 from abc import ABC
@@ -28,6 +29,7 @@ def _sum_file_sizes(files: Iterable[schema.File]) -> Tuple[int, int]:
 
 class _FilesetAllocator:
 	def __init__(self, session: DbSession, files: List[schema.File]):
+		self.logger = logger.get()
 		self.session = session
 		self.files = files
 
@@ -45,18 +47,12 @@ class _FilesetAllocator:
 		def size(self) -> int:
 			return len(self.added) + len(self.removed) + len(self.changed)
 
-	@dataclasses.dataclass(frozen=True)
-	class SelectResult:
-		fileset_base: schema.Fileset
-		fileset_delta: schema.Fileset
-
 	@classmethod
 	def __get_file_by_path(cls, files: List[schema.File]) -> Dict[str, schema.File]:
 		return {f.path: f for f in files}
 
 	@classmethod
 	def __is_file_equaled(cls, a: schema.File, b: schema.File):
-		# TODO: discard atime?
 		return (
 			a.path == b.path and a.mode == b.mode and
 			a.content == b.content and a.blob_hash == b.blob_hash and
@@ -79,7 +75,19 @@ class _FilesetAllocator:
 				delta.added.append(new[path])
 		return delta
 
-	def calc(self, max_changes_ratio: float, last_n: int) -> SelectResult:
+	@dataclasses.dataclass(frozen=True)
+	class CalcArgs:
+		candidate_select_count: int
+		candidate_max_changes_ratio: float
+		max_delta_ratio: float
+		max_base_reuse_count: int
+
+	@dataclasses.dataclass(frozen=True)
+	class CalcResult:
+		fileset_base: schema.Fileset
+		fileset_delta: schema.Fileset
+
+	def calc(self, args: CalcArgs) -> CalcResult:
 		@dataclasses.dataclass(frozen=True)
 		class Candidate:
 			fileset: schema.Fileset
@@ -90,70 +98,107 @@ class _FilesetAllocator:
 		c: Optional[Candidate] = None
 		file_by_path = self.__get_file_by_path(self.files)
 
-		for c_fileset in self.session.get_last_n_base_fileset(limit=last_n):
+		for c_fileset in self.session.get_last_n_base_fileset(limit=args.candidate_select_count):
 			c_fileset_files = self.session.get_fileset_files(c_fileset.id)
 			c_file_by_path = self.__get_file_by_path(c_fileset_files)
 			delta = self.__calc_delta(c_file_by_path, file_by_path)
-			logger.get().info('FILESET allocate candidate {} {}'.format(c_fileset.id, delta.size()))
-			if delta.size() < len(file_by_path) * max_changes_ratio and (c is None or delta.size() < c.delta_size):
+			self.logger.debug('Selecting fileset base candidate: id={} delta_size={}'.format(c_fileset.id, delta.size()))
+			if delta.size() < len(file_by_path) * args.candidate_max_changes_ratio and (c is None or delta.size() < c.delta_size):
 				c = Candidate(c_fileset, c_file_by_path, delta, delta.size())
 
-		logger.get().info('FILESET allocate candidate decided {}'.format(c.fileset.id))
+		if c is not None:
+			ref_cnt = self.session.get_fileset_reference_count(c.fileset.id)
+			delta_file_count_sum = self.session.get_fileset_delta_file_count_sum(c.fileset.id)
+			delta_ratio = delta_file_count_sum / c.fileset.file_count if c.fileset.file_count > 0 else 0
+			self.logger.debug('Fileset base candidate selected, id {}, ref_cnt {}, delta_file_count_sum {} (r={:.2f})'.format(
+				c.fileset.id, ref_cnt, delta_file_count_sum, delta_ratio,
+			))
+
+			if c is not None and ref_cnt >= args.max_base_reuse_count:
+				self.logger.debug('Fileset base candidate {} has its ref_cnt {} > {}, create a new fileset'.format(
+					c.fileset.id, ref_cnt, args.max_base_reuse_count
+				))
+				c = None
+			if c is not None and delta_ratio > args.max_delta_ratio:
+				self.logger.info('Fileset base candidate {} has its delta_ratio {:.2f} > {:.2f}, create a new fileset'.format(
+					c.fileset.id, delta_ratio, args.max_delta_ratio
+				))
+				c = None
+		else:
+			self.logger.debug('FilesetAllocator base fileset not found')
+
 		if c is None:
-			# create a new base fileset
-			fileset_base = self.session.create_and_add_fileset(base=True)
-			fileset_delta = self.session.create_and_add_fileset(base=False)
-			self.session.flush()
+			rss, sss = _sum_file_sizes(self.files)
+			fileset_base = self.session.create_and_add_fileset(
+				is_base=True,
+				file_count=len(self.files),
+				file_raw_size_sum=rss,
+				file_stored_size_sum=sss,
+			)
+			fileset_delta = self.session.create_and_add_fileset(
+				is_base=False,
+				file_count=0,
+				file_raw_size_sum=0,
+				file_stored_size_sum=0,
+			)
+			self.session.flush()  # this generates fileset.id
 
 			for file in self.files:
 				file.fileset_id = fileset_base.id
 				file.role = FileRole.standalone.value
 				self.session.add(file)
 
-			fileset_base.file_raw_size_sum, fileset_base.file_stored_size_sum = _sum_file_sizes(self.files)
-			fileset_delta.file_raw_size_sum, fileset_delta.file_stored_size_sum = 0, 0
-			return self.SelectResult(fileset_base, fileset_delta)
+			return self.CalcResult(fileset_base, fileset_delta)
 		else:
 			# reuse the existing base fileset
-			fileset_delta = self.session.create_and_add_fileset(base=False)
-			self.session.flush()
-
 			delta_files: List[schema.File] = []
 
 			# these sum are deltas
+			file_count = 0
 			file_raw_size_sum = 0
 			file_stored_size_sum = 0
 			for new_file in c.delta.added:
-				new_file.fileset_id = fileset_delta.id
 				new_file.role = FileRole.delta_add.value
-				file_raw_size_sum += new_file.blob_raw_size
-				file_stored_size_sum += new_file.blob_stored_size
+				file_count += 1
+				file_raw_size_sum += (new_file.blob_raw_size or 0)
+				file_stored_size_sum += (new_file.blob_stored_size or 0)
 				delta_files.append(new_file)
 
 			for old_new in c.delta.changed:
-				old_new.new.fileset_id = fileset_delta.id
 				old_new.new.role = FileRole.delta_override.value
-				file_raw_size_sum += old_new.new.blob_raw_size - old_new.old.blob_raw_size
-				file_stored_size_sum += old_new.old.blob_stored_size - old_new.old.blob_stored_size
+				file_raw_size_sum += (old_new.new.blob_raw_size or 0) - (old_new.old.blob_raw_size or 0)
+				file_stored_size_sum += (old_new.old.blob_stored_size or 0) - (old_new.old.blob_stored_size or 0)
 				delta_files.append(old_new.new)
 
 			for old_file in c.delta.removed:
 				file = self.session.create_file(
 					path=old_file.path,
-					fileset_id=fileset_delta.id,
 					role=FileRole.delta_remove.value,
 					mode=0,
 				)
-				self.session.add(file)
-				file_raw_size_sum -= old_file.blob_raw_size
-				file_stored_size_sum -= old_file.blob_stored_size
+				file_count -= 1
+				file_raw_size_sum -= (old_file.blob_raw_size or 0)
+				file_stored_size_sum -= (old_file.blob_stored_size or 0)
 				delta_files.append(file)
 
+			fileset_delta = self.session.create_and_add_fileset(
+				is_base=False,
+				file_count=file_count,
+				file_raw_size_sum=file_raw_size_sum,
+				file_stored_size_sum=file_stored_size_sum,
+			)
+			self.session.flush()  # this generates fileset.id
+
+			role_counter: Dict[FileRole, int] = collections.defaultdict(int)
 			for file in delta_files:
+				file.fileset_id = fileset_delta.id
+				role_counter[FileRole(file.role)] += 1
 				self.session.add(file)
 
-			fileset_delta.file_raw_size_sum, fileset_delta.file_stored_size_sum = file_raw_size_sum, file_stored_size_sum
-			return self.SelectResult(c.fileset, fileset_delta)
+			self.logger.debug('Creating delta fileset {}, len(delta_files)={}, role counts={}'.format(
+				fileset_delta, len(delta_files), {k.name: v for k, v in role_counter.items()},
+			))
+			return self.CalcResult(c.fileset, fileset_delta)
 
 
 class CreateBackupActionBase(Action[BackupInfo], ABC):
@@ -192,17 +237,23 @@ class CreateBackupActionBase(Action[BackupInfo], ABC):
 	@classmethod
 	def _finalize_backup_and_files(cls, session: DbSession, backup: schema.Backup, files: List[schema.File]):
 		allocator = _FilesetAllocator(session, files)
-		alloc_result = allocator.calc(max_changes_ratio=0.2, last_n=3)
+		fs_result = allocator.calc(_FilesetAllocator.CalcArgs(
+			candidate_select_count=3,
+			candidate_max_changes_ratio=0.2,
+			max_delta_ratio=1.5,
+			max_base_reuse_count=50,
+		))
 
-		fs_base, fs_delta = alloc_result.fileset_base, alloc_result.fileset_delta
+		fs_base, fs_delta = fs_result.fileset_base, fs_result.fileset_delta
 
 		backup.fileset_id_base = fs_base.id
 		backup.fileset_id_delta = fs_delta.id
+		backup.file_count = fs_base.file_count + fs_delta.file_count
 		backup.file_raw_size_sum = fs_base.file_raw_size_sum + fs_delta.file_raw_size_sum
 		backup.file_stored_size_sum = fs_base.file_stored_size_sum + fs_delta.file_stored_size_sum
 
 		session.add(backup)
-		session.flush()  # generates backup.id
+		session.flush()  # this generates backup.id
 
 	def run(self) -> None:
 		self.__new_blobs.clear()

@@ -122,8 +122,6 @@ class InspectFileTask(_InspectObjectTaskBase):
 			self.reply_tr('ctime', TextComponents.number(file.ctime_ns), TextComponents.date(file.ctime_ns))
 		if file.mtime_ns is not None:
 			self.reply_tr('mtime', TextComponents.number(file.mtime_ns), TextComponents.date(file.mtime_ns))
-		if file.atime_ns is not None:
-			self.reply_tr('atime', TextComponents.number(file.atime_ns), TextComponents.date(file.atime_ns))
 
 
 class InspectBlobTask(_InspectObjectTaskBase):

@@ -84,6 +84,9 @@ def _i_am_root():
 	return hasattr(os, 'geteuid') and os.geteuid() == 0
 
 
+LOG_FILE_CREATION = False
+
+
 class _TrashBin:
 	def __init__(self, trash_bin_path: Path):
 		file_utils.rm_rf(trash_bin_path, missing_ok=True)
@@ -150,8 +153,8 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		if not is_link:
 			os.chmod(file_path, file.mode)
 
-		if file.atime_ns is not None and file.mtime_ns is not None:
-			times = (file.atime_ns / 1e9, file.mtime_ns / 1e9)
+		if file.mtime_ns is not None:
+			times = (file.mtime_ns / 1e9, file.mtime_ns / 1e9)
 			if is_link:
 				if os.utime in os.supports_follow_symlinks:
 					os.utime(file_path, times, follow_symlinks=False)
@@ -169,7 +172,8 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		file_path = self.output_path / item.path
 
 		if stat.S_ISREG(file.mode):
-			self.logger.debug('write file {}'.format(file.path))
+			if LOG_FILE_CREATION:
+				self.logger.debug('write file {}'.format(file.path))
 			blob_path = blob_utils.get_blob_path(file.blob_hash)
 			compressor = Compressor.create(file.blob_compress)
 			if compressor.get_method() == CompressMethod.plain:
@@ -190,14 +194,16 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 					self._verify_exported_blob(file, reader.get_read_len(), reader.get_hash())
 
 		elif stat.S_ISDIR(file.mode):
-			self.logger.debug('write dir {}'.format(file.path))
+			if LOG_FILE_CREATION:
+				self.logger.debug('write dir {}'.format(file.path))
 			file_path.mkdir(parents=True, exist_ok=True)
 			exported_directories.put((file, file_path))
 
 		elif stat.S_ISLNK(file.mode):
 			link_target = file.content.decode('utf8')
 			os.symlink(link_target, file_path)
-			self.logger.debug('write symbolic link {} -> {}'.format(file_path, link_target))
+			if LOG_FILE_CREATION:
+				self.logger.debug('write symbolic link {} -> {}'.format(file_path, link_target))
 		else:
 			self._on_unsupported_file_mode(file)
 
@@ -365,7 +371,8 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		if file.mtime_ns is not None:
 			info.mtime = int(file.mtime_ns / 1e9)
 		if stat.S_ISREG(file.mode):
-			self.logger.debug('add file {} to tarfile'.format(file.path))
+			if LOG_FILE_CREATION:
+				self.logger.debug('add file {} to tarfile'.format(file.path))
 			info.type = tarfile.REGTYPE
 			info.size = file.blob_raw_size
 			blob_path = blob_utils.get_blob_path(file.blob_hash)
@@ -389,11 +396,13 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 				self._verify_exported_blob(file, reader.get_read_len(), reader.get_hash())
 
 		elif stat.S_ISDIR(file.mode):
-			self.logger.debug('add dir {} to tarfile'.format(file.path))
+			if LOG_FILE_CREATION:
+				self.logger.debug('add dir {} to tarfile'.format(file.path))
 			info.type = tarfile.DIRTYPE
 			tar.addfile(tarinfo=info)
 		elif stat.S_ISLNK(file.mode):
-			self.logger.debug('add symlink {} to tarfile'.format(file.path))
+			if LOG_FILE_CREATION:
+				self.logger.debug('add symlink {} to tarfile'.format(file.path))
 			link_target = file.content.decode('utf8')
 			info.type = tarfile.SYMTYPE
 			info.linkname = link_target
@@ -461,7 +470,8 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 		info.compress_type = zipf.compression
 
 		if stat.S_ISREG(file.mode):
-			self.logger.debug('add file {} to zipfile'.format(file.path))
+			if LOG_FILE_CREATION:
+				self.logger.debug('add file {} to zipfile'.format(file.path))
 			info.file_size = file.blob_raw_size
 			blob_path = blob_utils.get_blob_path(file.blob_hash)
 
@@ -477,11 +487,13 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 				self._verify_exported_blob(file, reader.get_read_len(), reader.get_hash())
 
 		elif stat.S_ISDIR(file.mode):
-			self.logger.debug('add dir {} to zipfile'.format(file.path))
+			if LOG_FILE_CREATION:
+				self.logger.debug('add dir {} to zipfile'.format(file.path))
 			info.external_attr |= 0x10
 			zipf.writestr(info, b'')
 		elif stat.S_ISLNK(file.mode):
-			self.logger.debug('add symlink {} to zipfile'.format(file.path))
+			if LOG_FILE_CREATION:
+				self.logger.debug('add symlink {} to zipfile'.format(file.path))
 			with zipf.open(info, 'w') as zip_item:
 				zip_item.write(file.content)
 		else:

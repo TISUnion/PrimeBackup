@@ -49,7 +49,7 @@ class FileRole(enum.IntEnum):
 class File(Base):
 	__tablename__ = 'file'
 
-	fileset_id: Mapped[int] = mapped_column(ForeignKey('backup.id'), primary_key=True, index=True)
+	fileset_id: Mapped[int] = mapped_column(ForeignKey('fileset.id'), primary_key=True, index=True)
 	path: Mapped[str] = mapped_column(String, primary_key=True)
 	role: Mapped[str] = mapped_column(Integer)  # see enum FileRole
 
@@ -68,9 +68,10 @@ class File(Base):
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
 	ctime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
 	mtime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
-	atime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 	__fields_end__: bool
+
+	fileset: Mapped['Fileset'] = relationship(viewonly=True, foreign_keys=[fileset_id])
 
 
 class Fileset(Base):
@@ -78,11 +79,13 @@ class Fileset(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
-	base: Mapped[bool] = mapped_column(Boolean)
+	is_base: Mapped[bool] = mapped_column(Boolean)  # True: is base fileset; False: is delta fileset
 
 	# Store common statistics data of backup files
-	file_raw_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
-	file_stored_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
+	# These fields are deltas if is_base == False
+	file_count: Mapped[int] = mapped_column(BigInteger)
+	file_raw_size_sum: Mapped[int] = mapped_column(BigInteger)
+	file_stored_size_sum: Mapped[int] = mapped_column(BigInteger)
 
 	__fields_end__: bool
 
@@ -103,8 +106,9 @@ class Backup(Base):
 	fileset_id_delta: Mapped[int] = mapped_column(ForeignKey('fileset.id'))
 
 	# Store common statistics data of backup files
-	file_raw_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
-	file_stored_size_sum: Mapped[Optional[int]] = mapped_column(BigInteger)
+	file_count: Mapped[int] = mapped_column(BigInteger)
+	file_raw_size_sum: Mapped[int] = mapped_column(BigInteger)
+	file_stored_size_sum: Mapped[int] = mapped_column(BigInteger)
 
 	__fields_end__: bool
 

@@ -29,7 +29,6 @@ class FileInfo:
 
 	uid: Optional[int] = None
 	gid: Optional[int] = None
-	ctime_ns: Optional[int] = None
 	mtime_ns: Optional[int] = None
 
 	@classmethod
@@ -62,7 +61,6 @@ class FileInfo:
 			blob=blob,
 			uid=file.uid,
 			gid=file.gid,
-			ctime_ns=file.ctime_ns,
 			mtime_ns=file.mtime_ns,
 		)
 

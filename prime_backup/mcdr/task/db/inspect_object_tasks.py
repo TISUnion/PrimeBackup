@@ -118,8 +118,6 @@ class InspectFileTask(_InspectObjectTaskBase):
 			else:
 				self.reply_tr('gid.simple', TextComponents.number(file.gid))
 
-		if file.ctime_ns is not None:
-			self.reply_tr('ctime', TextComponents.number(file.ctime_ns), TextComponents.date(file.ctime_ns))
 		if file.mtime_ns is not None:
 			self.reply_tr('mtime', TextComponents.number(file.mtime_ns), TextComponents.date(file.mtime_ns))
 

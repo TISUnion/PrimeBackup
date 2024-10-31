@@ -205,7 +205,6 @@ prime_backup:
       uid.simple: 'Uid: {}'
       gid.full: 'Gid: {} / {}'
       gid.simple: 'Gid: {}'
-      ctime: 'create time: {} ({})'
       mtime: 'modify time: {} ({})'
     db_inspect_object_base:
       hover:

@@ -344,7 +344,6 @@ class ImportBackupAction(CreateBackupActionBase):
 			mode=member.mode,
 			uid=member.uid,
 			gid=member.gid,
-			ctime_ns=now_ns,
 			mtime_ns=mtime_ns,
 
 			blob=blob,

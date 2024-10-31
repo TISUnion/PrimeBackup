@@ -16,9 +16,10 @@ from prime_backup.types.tar_format import TarFormat
 
 
 def main():
+	logger.get().setLevel(logging.DEBUG)
+
 	DbAccess.init(create=True, migrate=True)
 	backup_id = 1
-	logger.get().setLevel(logging.DEBUG)
 	logger.get().info('debug entry start')
 
 	def create(n: int = 1):
@@ -80,10 +81,10 @@ def main():
 		print(MigrateCompressMethodAction(CompressMethod.gzip).run())
 		# print(MigrateCompressMethodAction(CompressMethod.lzma).run())
 
-	create(1)
+	# create(1)
 	# import_()
 	# list_()
-	export()
+	# export()
 	# delete()
 	# migrate()
 

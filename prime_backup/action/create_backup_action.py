@@ -539,7 +539,6 @@ class CreateBackupAction(CreateBackupActionBase):
 			mode=st.st_mode,
 			uid=st.st_uid,
 			gid=st.st_gid,
-			ctime_ns=st.st_ctime_ns,
 			mtime_ns=st.st_mtime_ns,
 
 			blob=blob,

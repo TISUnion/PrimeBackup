@@ -1,6 +1,6 @@
 from typing import Dict, Callable, Any, Optional
 
-from sqlalchemy import Engine, Inspector, select
+from sqlalchemy import Engine, Inspector, text
 from sqlalchemy.orm import Session
 
 from prime_backup import logger
@@ -36,15 +36,15 @@ class DbMigration:
 				current_version = dbm.version
 				target_version = self.DB_VERSION
 
-				if current_version != target_version:
-					if not migrate:
-						raise BadDbVersion('DB version mismatch (expect {}, found {}), please migrate in the MCDR', self.DB_VERSION, dbm.version)
+			if current_version != target_version:
+				if not migrate:
+					raise BadDbVersion('DB version mismatch (expect {}, found {}), please migrate in the MCDR', self.DB_VERSION, dbm.version)
 
-					if current_version > target_version:
-						self.logger.error('The current DB version {} is larger than expected {}'.format(current_version, target_version))
-						raise ValueError('existing db version {} too large'.format(current_version))
+				if current_version > target_version:
+					self.logger.error('The current DB version {} is larger than expected {}'.format(current_version, target_version))
+					raise ValueError('existing db version {} too large'.format(current_version))
 
-					self.__migrate_db(session, dbm, current_version, target_version)
+				self.__migrate_db(current_version, target_version)
 		else:
 			if not create:
 				raise BadDbVersion('DbMeta table not found')
@@ -62,13 +62,22 @@ class DbMigration:
 				hash_method=config.backup.hash_method.name,
 			))
 
-	def __migrate_db(self, session: Session, dbm: schema.DbMeta, current_version, target_version):
+	def __migrate_db(self, current_version: int, target_version: int):
 		self.logger.info('DB migration starts. current DB version: {}, target version: {}'.format(current_version, target_version))
 
 		for i in range(current_version, target_version):
 			self.logger.info('Migrating database from version {} to version {}'.format(i, i + 1))
-			self.migrations[i + 1](session)
-		dbm.version = target_version
+			with Session(self.engine) as session, session.begin():
+				self.migrations[i + 1](session)
+
+		with Session(self.engine) as session, session.begin():
+			dbm: Optional[schema.DbMeta] = session.get(schema.DbMeta, self.DB_MAGIC_INDEX)
+			if dbm is None:
+				raise ValueError('table DbMeta is empty')
+			dbm.version = target_version
+
+		with Session(self.engine) as session, session.begin():
+			session.execute(text('VACUUM'))
 
 		self.logger.info('DB migration done, new db version: {}'.format(target_version))
 
@@ -76,19 +85,12 @@ class DbMigration:
 		"""
 		v1.7.0 changes: renamed backup tag "pre_restore_backup" to tag "temporary"
 		"""
-		from prime_backup.types.backup_tags import BackupTagName
+		from prime_backup.db.migrations.migration_1_2 import MigrationImpl1To2
+		MigrationImpl1To2(self.engine, session).migrate()
 
-		backups = session.execute(select(schema.Backup)).scalars().all()
-		src_tag = 'pre_restore_backup'
-		dst_tag = BackupTagName.temporary.name
-		for backup in backups:
-			tags = dict(backup.tags)
-			if src_tag in tags:
-				tags[dst_tag] = tags.pop(src_tag)
-				backup.tags = tags
-				self.logger.info('Renaming tag {!r} to {!r} for backup #{}, new tags: {}'.format(
-					src_tag, dst_tag, backup.id, backup.tags,
-				))
-
-	def __migrate_2_3(self , session: Session):
-		raise NotImplementedError('TODO')
+	def __migrate_2_3(self, session: Session):
+		"""
+		v1.9.0 changes: fileset-based file reusing
+		"""
+		from prime_backup.db.migrations.migration_2_3 import MigrationImpl2To3
+		MigrationImpl2To3(self.engine, session).migrate()

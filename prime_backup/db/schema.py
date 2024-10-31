@@ -66,7 +66,6 @@ class File(Base):
 
 	uid: Mapped[Optional[int]] = mapped_column(Integer)
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
-	ctime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
 	mtime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 	__fields_end__: bool
@@ -80,6 +79,7 @@ class Fileset(Base):
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
 	is_base: Mapped[bool] = mapped_column(Boolean)  # True: is base fileset; False: is delta fileset
+	file_object_count: Mapped[int] = mapped_column(BigInteger)
 
 	# Store common statistics data of backup files
 	# These fields are deltas if is_base == False

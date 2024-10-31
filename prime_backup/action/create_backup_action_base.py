@@ -57,7 +57,7 @@ class _FilesetAllocator:
 			a.path == b.path and a.mode == b.mode and
 			a.content == b.content and a.blob_hash == b.blob_hash and
 			a.uid == b.uid and a.gid == b.gid and
-			a.ctime_ns == b.ctime_ns and a.mtime_ns == b.mtime_ns
+			a.mtime_ns == b.mtime_ns
 		)
 
 	@classmethod
@@ -76,18 +76,18 @@ class _FilesetAllocator:
 		return delta
 
 	@dataclasses.dataclass(frozen=True)
-	class CalcArgs:
-		candidate_select_count: int
-		candidate_max_changes_ratio: float
-		max_delta_ratio: float
-		max_base_reuse_count: int
+	class AllocateArgs:
+		candidate_select_count: int = 2
+		candidate_max_changes_ratio: float = 0.2
+		max_delta_ratio: float = 1.5
+		max_base_reuse_count: int = 100
 
 	@dataclasses.dataclass(frozen=True)
-	class CalcResult:
+	class AllocateResult:
 		fileset_base: schema.Fileset
 		fileset_delta: schema.Fileset
 
-	def calc(self, args: CalcArgs) -> CalcResult:
+	def allocate(self, args: AllocateArgs) -> AllocateResult:
 		@dataclasses.dataclass(frozen=True)
 		class Candidate:
 			fileset: schema.Fileset
@@ -108,19 +108,19 @@ class _FilesetAllocator:
 
 		if c is not None:
 			ref_cnt = self.session.get_fileset_reference_count(c.fileset.id)
-			delta_file_count_sum = self.session.get_fileset_delta_file_count_sum(c.fileset.id)
-			delta_ratio = delta_file_count_sum / c.fileset.file_count if c.fileset.file_count > 0 else 0
-			self.logger.debug('Fileset base candidate selected, id {}, ref_cnt {}, delta_file_count_sum {} (r={:.2f})'.format(
-				c.fileset.id, ref_cnt, delta_file_count_sum, delta_ratio,
+			delta_file_object_count_sum = self.session.get_fileset_delta_file_object_count_sum(c.fileset.id)
+			delta_ratio = delta_file_object_count_sum / c.fileset.file_object_count if c.fileset.file_object_count > 0 else 0
+			self.logger.debug('Fileset base candidate selected, id {}, ref_cnt {}, delta_file_object_count_sum {} (r={:.2f})'.format(
+				c.fileset.id, ref_cnt, delta_file_object_count_sum, delta_ratio,
 			))
 
 			if c is not None and ref_cnt >= args.max_base_reuse_count:
-				self.logger.debug('Fileset base candidate {} has its ref_cnt {} > {}, create a new fileset'.format(
+				self.logger.debug('Fileset base candidate {} has its ref_cnt {} >= {}, create a new fileset'.format(
 					c.fileset.id, ref_cnt, args.max_base_reuse_count
 				))
 				c = None
-			if c is not None and delta_ratio > args.max_delta_ratio:
-				self.logger.info('Fileset base candidate {} has its delta_ratio {:.2f} > {:.2f}, create a new fileset'.format(
+			if c is not None and delta_ratio >= args.max_delta_ratio:
+				self.logger.info('Fileset base candidate {} has its delta_ratio {:.2f} >= {:.2f}, create a new fileset'.format(
 					c.fileset.id, delta_ratio, args.max_delta_ratio
 				))
 				c = None
@@ -131,12 +131,14 @@ class _FilesetAllocator:
 			rss, sss = _sum_file_sizes(self.files)
 			fileset_base = self.session.create_and_add_fileset(
 				is_base=True,
+				file_object_count=len(self.files),
 				file_count=len(self.files),
 				file_raw_size_sum=rss,
 				file_stored_size_sum=sss,
 			)
 			fileset_delta = self.session.create_and_add_fileset(
 				is_base=False,
+				file_object_count=0,
 				file_count=0,
 				file_raw_size_sum=0,
 				file_stored_size_sum=0,
@@ -148,7 +150,8 @@ class _FilesetAllocator:
 				file.role = FileRole.standalone.value
 				self.session.add(file)
 
-			return self.CalcResult(fileset_base, fileset_delta)
+			self.logger.debug('Created base fileset {}, len(files)={}'.format(fileset_base, len(self.files)))
+			return self.AllocateResult(fileset_base, fileset_delta)
 		else:
 			# reuse the existing base fileset
 			delta_files: List[schema.File] = []
@@ -183,6 +186,7 @@ class _FilesetAllocator:
 
 			fileset_delta = self.session.create_and_add_fileset(
 				is_base=False,
+				file_object_count=len(delta_files),
 				file_count=file_count,
 				file_raw_size_sum=file_raw_size_sum,
 				file_stored_size_sum=file_stored_size_sum,
@@ -195,10 +199,10 @@ class _FilesetAllocator:
 				role_counter[FileRole(file.role)] += 1
 				self.session.add(file)
 
-			self.logger.debug('Creating delta fileset {}, len(delta_files)={}, role counts={}'.format(
+			self.logger.debug('Created delta fileset {}, len(delta_files)={}, role counts={}'.format(
 				fileset_delta, len(delta_files), {k.name: v for k, v in role_counter.items()},
 			))
-			return self.CalcResult(c.fileset, fileset_delta)
+			return self.AllocateResult(c.fileset, fileset_delta)
 
 
 class CreateBackupActionBase(Action[BackupInfo], ABC):
@@ -237,12 +241,7 @@ class CreateBackupActionBase(Action[BackupInfo], ABC):
 	@classmethod
 	def _finalize_backup_and_files(cls, session: DbSession, backup: schema.Backup, files: List[schema.File]):
 		allocator = _FilesetAllocator(session, files)
-		fs_result = allocator.calc(_FilesetAllocator.CalcArgs(
-			candidate_select_count=3,
-			candidate_max_changes_ratio=0.2,
-			max_delta_ratio=1.5,
-			max_base_reuse_count=50,
-		))
+		fs_result = allocator.allocate(_FilesetAllocator.AllocateArgs())
 
 		fs_base, fs_delta = fs_result.fileset_base, fs_result.fileset_delta
 

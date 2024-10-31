@@ -327,8 +327,8 @@ class DbSession:
 			))
 		).scalar_one())
 
-	def get_fileset_delta_file_count_sum(self, base_fileset_id: int) -> int:
-		"""For those backups whose base fileset is the given one, sum up the file_count of their delta filesets"""
+	def get_fileset_delta_file_object_count_sum(self, base_fileset_id: int) -> int:
+		"""For those backups whose base fileset is the given one, sum up the file_object_count of their delta filesets"""
 		delta_fileset_ids = self.session.execute(
 			select(schema.Backup.fileset_id_delta).
 			where(schema.Backup.fileset_id_base == base_fileset_id).
@@ -338,7 +338,7 @@ class DbSession:
 		count_sum = 0
 		for view in collection_utils.slicing_iterate(_list_it(delta_fileset_ids), self.__safe_var_limit):
 			count_sum += _int_or_0(self.session.execute(
-				select(func.sum(schema.Fileset.file_count)).
+				select(func.sum(schema.Fileset.file_object_count)).
 				select_from(schema.Fileset).
 				where(schema.Fileset.id.in_(view))
 			).scalar_one())

@@ -6,6 +6,7 @@ from sqlalchemy import text, inspect
 
 from prime_backup.db import schema
 from prime_backup.db.migrations import MigrationImplBase
+from prime_backup.utils.lru_dict import LruDict
 
 
 class MigrationImpl2To3(MigrationImplBase):
@@ -43,8 +44,14 @@ class MigrationImpl2To3(MigrationImplBase):
 		files: List[schema.File] = []
 		processed_backup_count = 0
 
+		# FIXME: This might not work if impl is updated in the future
+		# noinspection PyProtectedMember
+		from prime_backup.action.create_backup_action_base import _FilesetAllocator
+		allocate_args = _FilesetAllocator.AllocateArgs()
+		fileset_files_cache = LruDict(max_size=allocate_args.max_base_reuse_count)
+
 		def finalize_files(backup_id: int):
-			self.logger.info('Processing backup {} with {} files'.format(backup_id, len(files)))
+			self.logger.debug('Processing backup {} with {} files'.format(backup_id, len(files)))
 			old_backup_row = self.session.execute(
 				text('SELECT * FROM old_backup_2to3 where id = :backup_id').bindparams(backup_id=backup_id)
 			).one()
@@ -52,10 +59,9 @@ class MigrationImpl2To3(MigrationImplBase):
 			# noinspection PyProtectedMember
 			old_backup = old_backup_row._asdict()
 
-			# noinspection PyProtectedMember
-			from prime_backup.action.create_backup_action_base import _FilesetAllocator
 			allocator = _FilesetAllocator(db_session, files)
-			fs_result = allocator.allocate(_FilesetAllocator.AllocateArgs())
+			allocator.enable_fileset_files_cache(fileset_files_cache)
+			fs_result = allocator.allocate(allocate_args)
 
 			fs_base, fs_delta = fs_result.fileset_base, fs_result.fileset_delta
 			new_backup = schema.Backup(
@@ -77,8 +83,10 @@ class MigrationImpl2To3(MigrationImplBase):
 			nonlocal processed_backup_count
 			processed_backup_count += 1
 			percent = 100.0 * processed_backup_count / old_backup_count
-			self.logger.info('Processed backup {} with {} files ({} / {}, {:.2f}%)'.format(
+			elapsed_sec = time.time() - t
+			self.logger.info('Processed backup {} with {} files ({} / {}, {:.2f}%, elapsed {}s, eta {}s)'.format(
 				new_backup.id, new_backup.file_count, processed_backup_count, old_backup_count, percent,
+				round(elapsed_sec), round(elapsed_sec / processed_backup_count * max(0, old_backup_count - processed_backup_count)),
 			))
 
 			files.clear()

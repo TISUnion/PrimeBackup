@@ -12,6 +12,7 @@ from prime_backup.db.schema import FileRole
 from prime_backup.db.session import DbSession
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobInfo, BlobListSummary
+from prime_backup.utils.lru_dict import LruDict
 
 
 def _sum_file_sizes(files: Iterable[schema.File]) -> Tuple[int, int]:
@@ -32,6 +33,7 @@ class _FilesetAllocator:
 		self.logger = logger.get()
 		self.session = session
 		self.files = files
+		self.__fileset_files_cache: Optional[LruDict[int, List[schema.File]]] = None
 
 	@dataclasses.dataclass(frozen=True)
 	class Delta:
@@ -75,6 +77,18 @@ class _FilesetAllocator:
 				delta.added.append(new[path])
 		return delta
 
+	def enable_fileset_files_cache(self, cache: LruDict[int, List[schema.File]]):
+		self.__fileset_files_cache = cache
+
+	def __get_fileset_files(self, fileset_id: int) -> List[schema.File]:
+		if self.__fileset_files_cache is not None:
+			if (files := self.__fileset_files_cache.get(fileset_id, None)) is not None:
+				return files
+		files = self.session.get_fileset_files(fileset_id)
+		if self.__fileset_files_cache is not None:
+			self.__fileset_files_cache.set(fileset_id, files)
+		return files
+
 	@dataclasses.dataclass(frozen=True)
 	class AllocateArgs:
 		candidate_select_count: int = 2
@@ -99,7 +113,7 @@ class _FilesetAllocator:
 		file_by_path = self.__get_file_by_path(self.files)
 
 		for c_fileset in self.session.get_last_n_base_fileset(limit=args.candidate_select_count):
-			c_fileset_files = self.session.get_fileset_files(c_fileset.id)
+			c_fileset_files = self.__get_fileset_files(c_fileset.id)
 			c_file_by_path = self.__get_file_by_path(c_fileset_files)
 			delta = self.__calc_delta(c_file_by_path, file_by_path)
 			self.logger.debug('Selecting fileset base candidate: id={} delta_size={}'.format(c_fileset.id, delta.size()))

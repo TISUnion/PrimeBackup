@@ -65,16 +65,21 @@ class DbMigration:
 	def __migrate_db(self, current_version: int, target_version: int):
 		self.logger.info('DB migration starts. current DB version: {}, target version: {}'.format(current_version, target_version))
 
-		for i in range(current_version, target_version):
-			self.logger.info('Migrating database from version {} to version {}'.format(i, i + 1))
-			with Session(self.engine) as session, session.begin():
-				self.migrations[i + 1](session)
-
-		with Session(self.engine) as session, session.begin():
+		def update_dbm_version(v: int):
 			dbm: Optional[schema.DbMeta] = session.get(schema.DbMeta, self.DB_MAGIC_INDEX)
 			if dbm is None:
 				raise ValueError('table DbMeta is empty')
-			dbm.version = target_version
+			dbm.version = v
+
+		for i in range(current_version, target_version):
+			next_version = i + 1
+			self.logger.info('Migrating database from version {} to version {}'.format(i, next_version))
+			with Session(self.engine) as session, session.begin():
+				self.migrations[i + 1](session)
+				update_dbm_version(next_version)
+
+		with Session(self.engine) as session, session.begin():
+			update_dbm_version(target_version)
 
 		with Session(self.engine) as session, session.begin():
 			session.execute(text('VACUUM'))

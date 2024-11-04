@@ -10,7 +10,7 @@ from mcdreforged.api.all import *
 from sqlalchemy.exc import OperationalError
 
 from prime_backup import logger
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, BlobHashNotUnique
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.mcdr.task.basic_task import HeavyTask, LightTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
@@ -59,6 +59,10 @@ class _TaskWorker:
 			lines = [tr('error.backup_not_found', e.backup_id)]
 		elif isinstance(e, BackupFileNotFound):
 			lines = [tr('error.backup_file_not_found', e.backup_id, e.path)]
+		elif isinstance(e, FilesetNotFound):
+			lines = [tr('error.fileset_not_found', e.fileset_id)]
+		elif isinstance(e, FilesetFileNotFound):
+			lines = [tr('error.fileset_file_not_found', e.fileset_id, e.path)]
 		elif isinstance(e, BlobNotFound):
 			lines = [tr('error.blob_not_found', e.blob_hash)]
 		elif isinstance(e, BlobHashNotUnique):

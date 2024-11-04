@@ -13,7 +13,7 @@ from prime_backup.action.export_backup_action import ExportBackupToDirectoryActi
 	ExportBackupToZipAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
-from prime_backup.action.get_file_action import GetFileAction
+from prime_backup.action.get_file_action import GetBackupFileAction
 from prime_backup.action.import_backup_action import ImportBackupAction, BackupMetadataNotFound
 from prime_backup.action.list_backup_action import ListBackupIdAction
 from prime_backup.config.config import Config, set_config_instance
@@ -144,7 +144,7 @@ class CliHandler:
 		logger.info('Blob count: %s', result.blob_count)
 		logger.info('Blob stored size sum: %s (%s)', result.blob_stored_size_sum, ByteCount(result.blob_stored_size_sum).auto_str())
 		logger.info('Blob raw size sum: %s (%s)', result.blob_raw_size_sum, ByteCount(result.blob_raw_size_sum).auto_str())
-		logger.info('File count: %s', result.file_count)
+		logger.info('File count: %s (total %s)', result.file_object_count, result.file_total_count)
 		logger.info('File raw size sum: %s (%s)', result.file_raw_size_sum, ByteCount(result.file_raw_size_sum).auto_str())
 
 	def cmd_show(self):
@@ -243,7 +243,7 @@ class CliHandler:
 		backup_id = self.__parse_backup_id(self.args.backup_id)
 
 		if file_path != Path('.'):
-			file = GetFileAction(backup_id, file_path).run()
+			file = GetBackupFileAction(backup_id, file_path).run()
 			logger.info('Found file {}'.format(file))
 
 		failures = ExportBackupToDirectoryAction(

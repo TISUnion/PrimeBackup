@@ -10,6 +10,7 @@ from prime_backup.compressors import CompressMethod
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.fileset_info import FilesetInfo
 from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount, Duration
@@ -255,6 +256,25 @@ class TextComponents:
 		if not isinstance(byte_cnt, ByteCount):
 			byte_cnt = ByteCount(byte_cnt)
 		return RText(byte_cnt.auto_str(ndigits=ndigits, always_sign=always_sign), color=color)
+
+	@classmethod
+	def fileset_id(cls, fileset_id: int) -> RTextBase:
+		return RText(fileset_id, TextColors.file)
+
+	@classmethod
+	def fileset_id_list(cls, fileset_ids: Iterable[int]) -> RTextBase:
+		return RTextList(
+			'[',
+			RTextBase.join(', ', [cls.fileset_id(fileset_id) for fileset_id in fileset_ids]),
+			']',
+		)
+
+	@classmethod
+	def fileset_kind(cls, fileset: FilesetInfo) -> RTextBase:
+		if fileset.is_base:
+			return cls.tr('fileset_kind.base')
+		else:
+			return cls.tr('fileset_kind.delta')
 
 	@classmethod
 	def hash_method(cls, hash_method: Union[str, HashMethod]) -> RTextBase:

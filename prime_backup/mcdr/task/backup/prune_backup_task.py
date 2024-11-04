@@ -326,7 +326,8 @@ def __main():
 		from prime_backup.types.operator import Operator
 		backups.append(BackupInfo(
 			id=id_counter, timestamp_ns=int(dt.timestamp() * 1e9),
-			creator=Operator.pb(PrimeBackupOperatorNames.test), comment='', targets=[], tags=BackupTags(), raw_size=0, stored_size=0,
+			creator=Operator.pb(PrimeBackupOperatorNames.test), comment='', targets=[], tags=BackupTags(),
+			fileset_id_base=0, fileset_id_delta=0, file_count=0, raw_size=0, stored_size=0,
 			files=[],
 		))
 

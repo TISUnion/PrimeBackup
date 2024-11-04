@@ -19,7 +19,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 		super().__init__()
 		self.new_compress_method = new_compress_method
 		self.__migrated_blob_hashes: List[str] = []
-		self.__affected_backup_ids: Set[int] = set()
+		self.__affected_fileset_ids: Set[int] = set()
 
 	@classmethod
 	def __get_blob_paths(cls, h: str) -> Tuple[Path, Path]:
@@ -61,14 +61,21 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 			blob = blob_mapping[file.blob_hash]
 			file.blob_compress = blob.compress
 			file.blob_stored_size = blob.stored_size
-			self.__affected_backup_ids.add(file.backup_id)
+			self.__affected_fileset_ids.add(file.fileset_id)
 
-	def __update_backups(self, session: DbSession):
-		backup_ids = list(sorted(self.__affected_backup_ids))
-		backups = session.get_backups(backup_ids)
-		for backup_id in backup_ids:
-			backup = backups[backup_id]
-			backup.file_stored_size_sum = session.calc_file_stored_size_sum(backup.id)
+	def __update_fileset_and_backups(self, session: DbSession):
+		fileset_ids = list(self.__affected_fileset_ids)
+		backup_ids = session.get_backup_ids_by_fileset_ids(fileset_ids)
+		self.logger.info('Syncing {} affected filesets and {} associated backups'.format(len(fileset_ids), len(backup_ids)))
+
+		filesets = session.get_filesets(fileset_ids)
+		for fileset in filesets.values():
+			fileset.file_stored_size_sum = session.calc_file_stored_size_sum(fileset.id)
+
+		for backup in session.get_backups(backup_ids).values():
+			fs_base = filesets[backup.fileset_id_base]
+			fs_delta = filesets[backup.fileset_id_delta]
+			backup.file_stored_size_sum = fs_base.file_stored_size_sum + fs_delta.file_stored_size_sum
 
 	def __erase_old_blobs(self):
 		for h in self.__migrated_blob_hashes:
@@ -111,8 +118,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 					self.logger.info('Migrated {} blobs and related files'.format(len(self.__migrated_blob_hashes)))
 
 					# 3. migrate backup data
-					self.logger.info('Syncing {} affected backups'.format(len(self.__affected_backup_ids)))
-					self.__update_backups(session)
+					self.__update_fileset_and_backups(session)
 					session.flush_and_expunge_all()
 
 				# 4. output

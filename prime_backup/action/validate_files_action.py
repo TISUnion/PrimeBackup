@@ -84,14 +84,14 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 		result = ValidateFilesResult()
 
 		with DbAccess.open_session() as session:
-			result.total = session.get_file_count()
+			result.total = session.get_file_object_count()
 			cnt = 0
 			for files in session.iterate_file_batch():
 				if self.is_interrupted.is_set():
 					break
 				cnt += len(files)
 				if cnt % 50000 == 0 or cnt == result.total:
-					self.logger.info('Validating {} / {} files'.format(cnt, result.total))
+					self.logger.info('Validating {} / {} file objects'.format(cnt, result.total))
 				self.__validate(session, result, [FileInfo.of(file) for file in files])
 
 		self.logger.info('File validation done: total {}, validated {}, ok {}, bad {}'.format(

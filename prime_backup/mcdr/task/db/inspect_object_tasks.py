@@ -1,5 +1,5 @@
 import json
-from abc import ABC
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Any
 
@@ -7,7 +7,8 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.get_blob_action import GetBlobByHashPrefixAction
-from prime_backup.action.get_file_action import GetFileAction
+from prime_backup.action.get_file_action import GetBackupFileAction, GetFilesetFileAction
+from prime_backup.action.get_fileset_action import GetFilesetAction
 from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.file_info import FileInfo
@@ -25,6 +26,15 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 			t_bid.copy()
 			.h(cls.__base_tr.tr('hover.backup_id', t_bid))
 			.c(RAction.run_command, mkcmd(f'database inspect backup {backup_id}'))
+		)
+
+	@classmethod
+	def _gt_fileset_id(cls, fileset_id: int) -> RTextBase:
+		t_fsid = RText(str(fileset_id), TextColors.backup_id)
+		return (
+			t_fsid.copy()
+			.h(cls.__base_tr.tr('hover.fileset_id', t_fsid))
+			.c(RAction.run_command, mkcmd(f'database inspect fileset {fileset_id}'))
 		)
 
 	@classmethod
@@ -82,21 +92,24 @@ class InspectBackupTask(_InspectObjectTaskBase):
 		reply_count('file_count.symlink', FileInfo.is_link)
 
 
-class InspectFileTask(_InspectObjectTaskBase):
-	def __init__(self, source: CommandSource, backup_id: int, file_path: str):
+class _InspectFileTaskBase(_InspectObjectTaskBase, ABC):
+	def __init__(self, source: CommandSource, file_path: str):
 		super().__init__(source)
-		self.backup_id = backup_id
-		self.file_path = Path(file_path).as_posix().rstrip('/')
+		self.file_path = Path(file_path).as_posix()
 
 	@property
 	def id(self) -> str:
 		return 'db_inspect_file'
 
-	def run(self) -> None:
-		file = GetFileAction(self.backup_id, self.file_path).run()
-		self.reply(TextComponents.title(self.tr('title', self._gt_backup_id(file.backup_id, True), self._gt_file_name(file.path))))
+	@abstractmethod
+	def _get_file(self) -> FileInfo:
+		raise NotImplementedError()
 
-		self.reply_tr('backup_id', self._gt_backup_id(file.backup_id, True))
+	def run(self) -> None:
+		file = self._get_file()
+		self.reply(TextComponents.title(self.tr('title', self._gt_fileset_id(file.fileset_id), self._gt_file_name(file.path))))
+
+		self.reply_tr('fileset_id', self._gt_fileset_id(file.fileset_id))
 		self.reply_tr('path', RText(file.path, TextColors.file))
 		self.reply_tr('mode', TextComponents.number(file.mode), TextComponents.file_mode(file.mode))
 		if file.content is not None:
@@ -120,6 +133,51 @@ class InspectFileTask(_InspectObjectTaskBase):
 
 		if file.mtime_ns is not None:
 			self.reply_tr('mtime', TextComponents.number(file.mtime_ns), TextComponents.date(file.mtime_ns))
+
+
+class InspectBackupFileTask(_InspectFileTaskBase):
+	def __init__(self, source: CommandSource, backup_id: int, file_path: str):
+		super().__init__(source, file_path)
+		self.backup_id = backup_id
+
+	def _get_file(self) -> FileInfo:
+		return GetBackupFileAction(self.backup_id, self.file_path).run()
+
+
+class InspectFilesetFileTask(_InspectFileTaskBase):
+	def __init__(self, source: CommandSource, fileset_id: int, file_path: str):
+		super().__init__(source, file_path)
+		self.fileset_id = fileset_id
+
+	def _get_file(self) -> FileInfo:
+		return GetFilesetFileAction(self.fileset_id, self.file_path).run()
+
+
+class InspectFilesetTask(_InspectObjectTaskBase):
+	def __init__(self, source: CommandSource, fileset_id: int):
+		super().__init__(source)
+		self.fileset_id = fileset_id
+
+	@property
+	def id(self) -> str:
+		return 'db_inspect_fileset'
+
+	def run(self) -> None:
+		fileset = GetFilesetAction(self.fileset_id, count_backups=True).run()
+		self.reply(TextComponents.title(self.tr('title', self._gt_fileset_id(fileset.id))))
+
+		self.reply_tr('id', self._gt_fileset_id(fileset.id))
+		self.reply_tr('kind', TextComponents.fileset_kind(fileset))
+		self.reply_tr('file_object_count', TextComponents.number(fileset.file_object_count))
+
+		def bdk(tr_key: str) -> str:  # base-delta key
+			return tr_key + '.' + ('base' if fileset.is_base else 'delta')
+
+		self.reply_tr(bdk('file_count'), TextComponents.number(fileset.file_count))
+		self.reply_tr(bdk('raw_size'), RText(fileset.raw_size, TextColors.byte_count), TextComponents.file_size(fileset.raw_size))
+		self.reply_tr(bdk('stored_size'), RText(fileset.stored_size, TextColors.byte_count), TextComponents.file_size(fileset.stored_size))
+
+		self.reply_tr('used_by', TextComponents.number(fileset.backup_count))
 
 
 class InspectBlobTask(_InspectObjectTaskBase):

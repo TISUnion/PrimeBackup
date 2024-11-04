@@ -191,9 +191,9 @@ prime_backup:
       stored_size: '储存大小: {} ({})'
       used_by: '关联文件数: {}'
     db_inspect_file:
-      name: 审查备份文件
-      title: '备份{0}的文件{1}'
-      backup_id: '所属备份: {}'
+      name: 审查文件
+      title: '文件集{0}的文件{1}'
+      fileset_id: '所属文件集: {}'
       path: '路径: {}'
       mode: '模式: {} ({})'
       content: '内容: {}'
@@ -206,9 +206,22 @@ prime_backup:
       gid.full: 'Gid: {} / {}'
       gid.simple: 'Gid: {}'
       mtime: '修改时间: {} ({})'
+    db_inspect_fileset:
+      name: 审查文件集
+      id: 'ID: {}'
+      kind: '类型: {}'
+      file_object_count: '文件对象数: {}'
+      file_count.base: '文件数: {}'
+      file_count.delta: '文件数 (增量): {}'
+      raw_size.base: '原始大小: {} ({})'
+      raw_size.delta: '原始大小 (增量): {} ({})'
+      stored_size.base: '储存大小: {} ({})'
+      stored_size.delta: '储存大小 (增量): {} ({})'
+      used_by: '关联备份数: {}'
     db_inspect_object_base:
       hover:
         backup_id: 点击以审查备份{}
+        fileset_id: 点击以审查文件集{}
         blob_hash: 点击以审查数据对象{}
     db_migrate_compress_method:
       name: 压缩方法迁移
@@ -258,7 +271,7 @@ prime_backup:
         corrupted: '文件损坏的数据对象: {}个'
         mismatched: '信息不匹配的数据对象: {}个'
         orphan: '孤儿数据对象: {}个'
-        affected: '影响范围: {}/{}个文件对象, {}/{}个备份'
+        affected: '影响范围: {}/{}个文件对象, {}/{}个文件集, {}/{}个备份'
         see_log: '见日志文件 {} 以了解这些数据对象的详细信息及影响范围'
       validate_files:
         .: 正在验证所有文件对象 (包括文件、文件夹、符号链接), 请稍等...
@@ -330,6 +343,7 @@ prime_backup:
           §7{prefix} database overview§r: 查看数据库信息概览
           §7{prefix} database inspect backup §6<备份ID>§r: 审查给定备份的原始信息
           §7{prefix} database inspect file §6<备份ID> §3<文件路径>§r: 审查给定文件的原始信息
+          §7{prefix} database inspect fileset §3<文件集ID>§r: 审查给定文件集的原始信息
           §7{prefix} database inspect blob §d<哈希值>§r: 审查给定数据对象的原始信息
           §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
           §7{prefix} database vacuum§r: 手动执行SQLite数据库的整理操作，减少数据库文件的体积
@@ -439,8 +453,10 @@ prime_backup:
       name_titled: 整理数据库
 
   error:
-    backup_file_not_found: 备份{}不存在文件{}
     backup_not_found: ID为{}的备份不存在
+    backup_file_not_found: 备份{}不存在文件{}
+    fileset_not_found: ID为{}的文件集不存在
+    fileset_file_not_found: 文件集{}不存在文件{}
     blob_hash_not_unique: '给定的哈希值{}无法唯一确定一个数据对象'
     blob_hash_not_unique.candidates: '找到了至少{}个可能的数据对象: {}'
     blob_not_found: 哈希值为{}的数据对象不存在
@@ -505,6 +521,9 @@ prime_backup:
       h: 小时
       d: 天
       plural_suffix: ''
+    fileset_kind:
+      base: 基础文件集
+      delta: 增量文件集
     operator:
       player: 玩家{}
       console: 控制台

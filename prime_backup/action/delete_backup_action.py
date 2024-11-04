@@ -3,6 +3,7 @@ import logging
 from typing import Optional, List
 
 from prime_backup.action import Action
+from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobInfo, BlobListSummary
@@ -92,9 +93,10 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 				session.delete_file(file)
 			session.delete_backup(backup)
 
+			fileset: schema.Fileset
 			for fileset in [backup.fileset_base, backup.fileset_delta]:
 				ref_cnt = session.get_fileset_reference_count(fileset.id)
-				self.logger.info('FILESET: pruning file set {}, ref_cnt={}'.format(fileset.id, ref_cnt))
+				self.logger.info('Pruning fileset {}, ref_cnt={}'.format(fileset.id, ref_cnt))
 				if ref_cnt == 0:
 					session.delete_fileset(fileset)
 

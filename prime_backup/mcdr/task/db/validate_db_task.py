@@ -70,7 +70,7 @@ class ValidateDbTask(HeavyTask[None]):
 
 		counts = GetObjectCountsAction().run()
 
-		vlogger.info('Affected file / total files: {} / {}'.format(result.affected_file_count, counts.file_count))
+		vlogger.info('Affected file objects / total file objects: {} / {}'.format(result.affected_file_count, counts.file_object_count))
 		vlogger.info('Affected file samples (len={}):'.format(len(result.affected_file_samples)))
 		for file in result.affected_file_samples:
 			vlogger.info('- {!r}'.format(file))
@@ -78,10 +78,18 @@ class ValidateDbTask(HeavyTask[None]):
 		vlogger.info('Affected backup IDs: {}'.format(result.affected_backup_ids))
 
 		sampled_backup_ids = result.affected_backup_ids[:100]
+		sampled_fileset_ids = result.affected_fileset_ids[:100]
 		self.reply_tr(
 			'validate_blobs.affected',
+
 			TextComponents.number(result.affected_file_count),
-			TextComponents.number(counts.file_count),
+			TextComponents.number(counts.file_object_count),
+
+			TextComponents.number(len(result.affected_fileset_ids)).
+			h(TextComponents.fileset_id_list(sampled_fileset_ids)).
+			c(RAction.copy_to_clipboard, ', '.join(map(str, sampled_fileset_ids))),
+			TextComponents.number(counts.fileset_count),
+
 			TextComponents.number(len(result.affected_backup_ids)).
 			h(TextComponents.backup_id_list(sampled_backup_ids)).
 			c(RAction.copy_to_clipboard, ', '.join(map(str, sampled_backup_ids))),
@@ -104,7 +112,7 @@ class ValidateDbTask(HeavyTask[None]):
 				self.reply_tr(f'validate_files.{what}', TextComponents.number(len(lst)))
 				item: BadFileItem
 				for i, item in enumerate(lst):
-					text = RTextBase.format('{}. #{} {!r}: {}', i + 1, item.file.backup_id, item.file.path, item.desc)
+					text = RTextBase.format('{}. fileset={} path={!r}: {}', i + 1, item.file.fileset_id, item.file.path, item.desc)
 					vlogger.info('%s. %s', i + 1, text.to_plain_text())
 					self.reply(text)
 

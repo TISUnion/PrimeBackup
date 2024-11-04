@@ -98,7 +98,7 @@ class FileInfo:
 	@functools.cached_property
 	def __cmp_key(self) -> tuple:
 		parts = [(part.lower(), part) for part in self.path.split('/')]
-		return self.backup_id, *parts
+		return self.fileset_id, *parts
 
 	def __lt__(self, other: 'FileInfo') -> bool:
 		return self.__cmp_key < other.__cmp_key

@@ -31,7 +31,7 @@ class FilesetFileNotFound(BaseFileNotFound):
 		self.fileset_id = fileset_id
 
 
-class FileSetNotFound(PrimeBackupError):
+class FilesetNotFound(PrimeBackupError):
 	def __init__(self, fileset_id: int):
 		super().__init__()
 		self.fileset_id = fileset_id

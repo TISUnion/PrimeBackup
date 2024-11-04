@@ -10,7 +10,9 @@ class DbOverviewResult:
 	hash_method: str
 
 	blob_count: int
-	file_count: int
+	file_object_count: int
+	file_total_count: int
+	fileset_count: int
 	backup_count: int
 
 	blob_stored_size_sum: int
@@ -30,12 +32,14 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 				hash_method=meta.hash_method,
 
 				blob_count=session.get_blob_count(),
-				file_count=session.get_file_count(),
+				file_object_count=session.get_file_object_count(),
+				file_total_count=session.get_file_total_count(),
+				fileset_count=session.get_fileset_count(),
 				backup_count=session.get_backup_count(),
 
 				blob_stored_size_sum=session.get_blob_stored_size_sum(),
 				blob_raw_size_sum=session.get_blob_raw_size_sum(),
-				file_raw_size_sum=session.get_file_raw_size_sum(),
+				file_raw_size_sum=session.get_file_total_raw_size_sum(),
 
 				db_file_size=db_file_size,
 			)

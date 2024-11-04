@@ -15,8 +15,10 @@ class FilesetInfo:
 	raw_size: int  # uncompressed size
 	stored_size: int  # actual size
 
+	backup_count: int
+
 	@classmethod
-	def of(cls, file_set: schema.Fileset) -> Self:
+	def of(cls, file_set: schema.Fileset, *, backup_count: int = 0) -> Self:
 		return cls(
 			id=file_set.id,
 			is_base=file_set.is_base,
@@ -24,4 +26,5 @@ class FilesetInfo:
 			file_count=file_set.file_count,
 			raw_size=file_set.file_raw_size_sum,
 			stored_size=file_set.file_stored_size_sum,
+			backup_count=backup_count,
 		)

@@ -27,7 +27,7 @@ from prime_backup.mcdr.task.backup.show_backup_task import ShowBackupTask
 from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
-from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectFileTask, InspectBlobTask
+from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask
 from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompressMethodTask
 from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
 from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
@@ -81,7 +81,11 @@ class CommandManager:
 	def cmd_db_inspect_file(self, source: CommandSource, context: CommandContext):
 		backup_id = context['backup_id']
 		file_path = context['file_path']
-		self.task_manager.add_task(InspectFileTask(source, backup_id, file_path))
+		self.task_manager.add_task(InspectBackupFileTask(source, backup_id, file_path))
+
+	def cmd_db_inspect_fileset(self, source: CommandSource, context: CommandContext):
+		fileset_id = context['fileset_id']
+		self.task_manager.add_task(InspectFilesetTask(source, fileset_id))
 
 	def cmd_db_inspect_blob(self, source: CommandSource, context: CommandContext):
 		blob_hash = context['blob_hash']
@@ -291,6 +295,7 @@ class CommandManager:
 		builder.command('database overview', self.cmd_db_overview)
 		builder.command('database inspect backup <backup_id>', self.cmd_db_inspect_backup)
 		builder.command('database inspect file <backup_id> <file_path>', self.cmd_db_inspect_file)
+		builder.command('database inspect fileset <fileset_id>', self.cmd_db_inspect_fileset)
 		builder.command('database inspect blob <blob_hash>', self.cmd_db_inspect_blob)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidateParts.all()))
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidateParts.blobs))
@@ -300,6 +305,7 @@ class CommandManager:
 		builder.command('database migrate_hash_method <hash_method>', self.cmd_db_migrate_hash_method)
 
 		builder.arg('file_path', QuotableText)  # Notes: it's actually a redefine
+		builder.arg('fileset_id', Integer)  # not that necessary to provide suggestion here
 		builder.arg('blob_hash', HexStringNode)
 		builder.arg('compress_method', lambda n: Enumeration(n, CompressMethod))
 		builder.arg('hash_method', lambda n: Enumeration(n, HashMethod))

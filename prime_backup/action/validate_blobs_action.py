@@ -30,7 +30,8 @@ class ValidateBlobsResult:
 
 	affected_file_count: int = 0
 	affected_file_samples: List[FileInfo] = dataclasses.field(default_factory=list)
-	affected_backup_ids: List[int] = 0
+	affected_fileset_ids: List[int] = dataclasses.field(default_factory=list)
+	affected_backup_ids: List[int] = dataclasses.field(default_factory=list)
 
 
 class ValidateBlobsAction(Action[ValidateBlobsResult]):
@@ -114,7 +115,8 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 			if len(bad_blob_hashes) > 0:
 				result.affected_file_count = session.get_file_count_by_blob_hashes(bad_blob_hashes)
 				result.affected_file_samples = [FileInfo.of(file) for file in session.get_file_by_blob_hashes(bad_blob_hashes, limit=1000)]
-				result.affected_backup_ids = session.get_backup_ids_by_blob_hashes(bad_blob_hashes)
+				result.affected_fileset_ids = session.get_fileset_ids_by_blob_hashes(bad_blob_hashes)
+				result.affected_backup_ids = session.get_backup_ids_by_fileset_ids(result.affected_fileset_ids)
 
 		self.logger.info('Blob validation done: total {}, validated {}, ok {}, bad {}'.format(
 			result.total, result.validated, result.ok, len(bad_blob_hashes),

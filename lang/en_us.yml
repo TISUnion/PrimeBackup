@@ -192,8 +192,8 @@ prime_backup:
       used_by: 'Associated file count: {}'
     db_inspect_file:
       name: inspect file
-      title: 'File {1} in backup {0}'
-      backup_id: 'Associated Backup: {}'
+      title: 'File {1} in fileset {0}'
+      fileset_id: 'Associated fileset: {}'
       path: 'Path: {}'
       mode: 'Mode: {} ({})'
       content: 'Content: {}'
@@ -205,10 +205,23 @@ prime_backup:
       uid.simple: 'Uid: {}'
       gid.full: 'Gid: {} / {}'
       gid.simple: 'Gid: {}'
-      mtime: 'modify time: {} ({})'
+      mtime: 'Modify time: {} ({})'
+    db_inspect_fileset:
+      name: inspect fileset
+      id: 'ID: {}'
+      kind: 'Kind: {}'
+      file_object_count: 'File object count: {}'
+      file_count.base: 'File count: {}'
+      file_count.delta: 'File count (delta): {}'
+      raw_size.base: 'Raw size: {} ({})'
+      raw_size.delta: 'Raw size (delta): {} ({})'
+      stored_size.base: 'Stored size: {} ({})'
+      stored_size.delta: 'Stored size (delta): {} ({})'
+      used_by: 'Associated backup count: {}'
     db_inspect_object_base:
       hover:
         backup_id: Click to inspect backup {}
+        fileset_id: Click to inspect fileset {}
         blob_hash: Click to inspect blob {}
     db_migrate_compress_method:
       name: migrate compress method
@@ -258,7 +271,7 @@ prime_backup:
         corrupted: 'Corrupted blob amount: {}'
         mismatched: 'Mismatched blob amount: {}'
         orphan: 'Orphan blob amount: {}'
-        affected: 'Affected range: {} / {} files, {} / {} backups'
+        affected: 'Affected range: {} / {} file objects, {} / {} filesets, {} / {} backups'
         see_log: 'See log file {} for details and affected stuffs of these bad blobs'
       validate_files:
         .: Start validating files (including file, directory and symlink), please wait...
@@ -330,6 +343,7 @@ prime_backup:
           §7{prefix} database overview§r: Report an overview of the database
           §7{prefix} database inspect backup §6<backup_id>§r: Inspect the internal data of the given backup
           §7{prefix} database inspect file §6<backup_id> §3<file_path>§r: Inspect the internal data of the given file
+          §7{prefix} database inspect fileset §3<fileset_id>§r: Inspect the internal data of the given fileset
           §7{prefix} database inspect blob §d<blob_hash>§r: Inspect the internal data of the given blob
           §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database. Might take a long time
           §7{prefix} database vacuum§r: Compact the SQLite database manually, to reduce the size of the database file
@@ -439,8 +453,10 @@ prime_backup:
       name_titled: Compact database
 
   error:
-    backup_file_not_found: Backup {} does not have file {}
     backup_not_found: Backup with ID {} does not exist
+    backup_file_not_found: Backup {} does not have file {}
+    fileset_not_found: Fileset with ID {} does not exist
+    fileset_file_not_found: Fileset {} does not have file {}
     blob_hash_not_unique: 'The given hash {} cannot uniquely identify a blob'
     blob_hash_not_unique.candidates: 'Found at least {} candidates: {}'
     blob_not_found: Blob with hash {} does not exist
@@ -505,6 +521,9 @@ prime_backup:
       h: hour{}
       d: day{}
       plural_suffix: s
+    fileset_kind:
+      base: Base fileset
+      delta: Delta fileset
     operator:
       player: Player {}
       console: Console

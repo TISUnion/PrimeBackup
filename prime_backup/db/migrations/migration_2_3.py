@@ -45,9 +45,8 @@ class MigrationImpl2To3(MigrationImplBase):
 		processed_backup_count = 0
 
 		# FIXME: This might not work if impl is updated in the future
-		# noinspection PyProtectedMember
-		from prime_backup.action.create_backup_action_base import _FilesetAllocator
-		allocate_args = _FilesetAllocator.AllocateArgs()
+		from prime_backup.action.helpers.fileset_allocator import FilesetAllocator, FilesetAllocateArgs
+		allocate_args = FilesetAllocateArgs()
 		fileset_files_cache = LruDict(max_size=allocate_args.max_base_reuse_count)
 
 		def finalize_files(backup_id: int):
@@ -57,9 +56,9 @@ class MigrationImpl2To3(MigrationImplBase):
 			).one()
 
 			# noinspection PyProtectedMember
-			old_backup = old_backup_row._asdict()
+			old_backup = old_backup_row._mapping
 
-			allocator = _FilesetAllocator(db_session, files)
+			allocator = FilesetAllocator(db_session, files)
 			allocator.enable_fileset_files_cache(fileset_files_cache)
 			fs_result = allocator.allocate(allocate_args)
 
@@ -91,9 +90,9 @@ class MigrationImpl2To3(MigrationImplBase):
 
 			files.clear()
 
-		for file_row in self.session.execute(text('SELECT * FROM old_file_2to3 ORDER BY backup_id')):
+		for file_row in self.session.execute(text('SELECT * FROM old_file_2to3 ORDER BY backup_id')).yield_per(1000):
 			# noinspection PyProtectedMember
-			old_file = file_row._asdict()
+			old_file = file_row._mapping
 
 			while len(remaining_backup_ids) > 0 and remaining_backup_ids[0] != old_file['backup_id']:
 				finalize_files(remaining_backup_ids.popleft())
@@ -127,4 +126,7 @@ class MigrationImpl2To3(MigrationImplBase):
 		cnt_f = self.session.execute(text(f'SELECT COUNT(*) FROM {schema.File.__tablename__}')).scalar_one()
 		cnt_fs = self.session.execute(text(f'SELECT COUNT(*) FROM {schema.Fileset.__tablename__}')).scalar_one()
 		cnt_b = self.session.execute(text(f'SELECT COUNT(*) FROM {schema.Backup.__tablename__}')).scalar_one()
-		self.logger.info('Done. Constructed {} files, {} filesets, {} backups'.format(cnt_f, cnt_fs, cnt_b))
+		self.logger.info('Done. Constructed {} files (decreased from {}, {:.1f}%), {} filesets, {} backups'.format(
+			cnt_f, old_file_count, (cnt_f - old_file_count) / old_file_count * 100,
+			cnt_fs, cnt_b,
+		))

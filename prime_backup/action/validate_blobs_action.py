@@ -8,7 +8,7 @@ from prime_backup.db.session import DbSession
 from prime_backup.types.blob_info import BlobInfo
 from prime_backup.types.file_info import FileInfo
 from prime_backup.utils import blob_utils, hash_utils
-from prime_backup.utils.thread_pool import FailFastThreadPool
+from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 
 
 @dataclasses.dataclass(frozen=True)
@@ -78,7 +78,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 			# it's a good blob
 			hash_to_blobs[blob.hash] = blob
 
-		with FailFastThreadPool('validator') as pool:
+		with FailFastBlockingThreadPool('validator') as pool:
 			for b in blobs:
 				if self.is_interrupted.is_set():
 					break

@@ -27,7 +27,7 @@ from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils
-from prime_backup.utils.thread_pool import FailFastThreadPool
+from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 
 
 class VolatileBlobFile(PrimeBackupError):
@@ -300,7 +300,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			with hash_dict_lock:
 				hashes[pth] = h
 
-		with FailFastThreadPool(name='hasher') as pool:
+		with FailFastBlockingThreadPool(name='hasher') as pool:
 			for file_entry in scan_result.all_files:
 				if file_entry.is_file():
 					if existence[file_entry.stat.st_size]:

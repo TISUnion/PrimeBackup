@@ -27,7 +27,7 @@ from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils import file_utils, blob_utils, misc_utils, hash_utils, path_utils, platform_utils, collection_utils
 from prime_backup.utils.bypass_io import BypassReader
-from prime_backup.utils.thread_pool import FailFastThreadPool
+from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 
 
 class _ExportInterrupted(PrimeBackupError):
@@ -273,7 +273,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 					self.__prepare_for_export(item, trash_bin)
 
 			directories: 'queue.Queue[Tuple[schema.File, Path]]' = queue.Queue()
-			with FailFastThreadPool('export') as pool:
+			with FailFastBlockingThreadPool('export') as pool:
 				def export_worker(item_: ExportBackupToDirectoryAction._ExportItem):
 					with failures.handling_exception(item_.file):
 						try:

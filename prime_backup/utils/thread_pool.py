@@ -6,11 +6,12 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from prime_backup.utils import misc_utils
 
 
-class FailFastThreadPool(ThreadPoolExecutor):
+class FailFastBlockingThreadPool(ThreadPoolExecutor):
 	"""
 	A thread pool that:
-	- makes exception raise as soon as possible
-	- no more task will be submitted after an exception raises
+	1. submit() calls will be blocked if there's no free worker
+	2. makes exception raise as soon as possible
+	3. no more task will be submitted after an exception raises
 	"""
 	def __init__(self, name: str):
 		from prime_backup.config.config import Config

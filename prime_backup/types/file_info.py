@@ -6,7 +6,7 @@ from typing import Optional
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
-from prime_backup.db.schema import FileRole
+from prime_backup.db.values import FileRole
 from prime_backup.types.blob_info import BlobInfo
 
 

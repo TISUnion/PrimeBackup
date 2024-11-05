@@ -4,8 +4,8 @@ from typing import List, Optional, Dict, Tuple, Iterable
 
 from prime_backup import logger
 from prime_backup.db import schema
-from prime_backup.db.schema import FileRole
 from prime_backup.db.session import DbSession
+from prime_backup.db.values import FileRole
 from prime_backup.utils.lru_dict import LruDict
 
 

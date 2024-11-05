@@ -6,7 +6,7 @@ from mcdreforged.api.all import RText, RTextBase, RColor
 from prime_backup.utils import misc_utils
 
 if TYPE_CHECKING:
-	from prime_backup.db.schema import BackupTagDict
+	from prime_backup.db.values import BackupTagDict
 
 
 class BackupTagValue:

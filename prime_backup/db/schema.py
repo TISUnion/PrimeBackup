@@ -1,10 +1,9 @@
-import enum
-from typing import Optional, List, get_type_hints, Dict, Any
+from typing import Optional, List, get_type_hints
 
 from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-BackupTagDict = Dict[str, Any]
+from prime_backup.db.values import BackupTagDict
 
 
 class Base(DeclarativeBase):
@@ -36,14 +35,6 @@ class Blob(Base):
 	stored_size: Mapped[int] = mapped_column(BigInteger)
 
 	__fields_end__: bool
-
-
-class FileRole(enum.IntEnum):
-	unknown = 0
-	standalone = 1
-	delta_override = 2
-	delta_add = 3
-	delta_remove = 4
 
 
 class File(Base):

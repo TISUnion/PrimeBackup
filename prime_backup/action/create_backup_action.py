@@ -20,6 +20,7 @@ from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
+from prime_backup.db.values import FileRole
 from prime_backup.exceptions import PrimeBackupError, UnsupportedFileFormat
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags
@@ -534,7 +535,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		return session.create_file(
 			path=related_path.as_posix(),
 			content=content,
-			role=schema.FileRole.unknown.value,
+			role=FileRole.unknown.value,
 
 			mode=st.st_mode,
 			uid=st.st_uid,

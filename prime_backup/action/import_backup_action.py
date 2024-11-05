@@ -19,6 +19,7 @@ from prime_backup.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
+from prime_backup.db.values import FileRole
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_meta import BackupMeta
@@ -339,7 +340,7 @@ class ImportBackupAction(CreateBackupActionBase):
 		return session.create_file(
 			path=self.__format_path(member.path),
 			content=content,
-			role=schema.FileRole.unknown.value,
+			role=FileRole.unknown.value,
 
 			mode=member.mode,
 			uid=member.uid,

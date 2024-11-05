@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from typing_extensions import overload, Union
 
 from prime_backup.db import schema, db_constants
-from prime_backup.db.schema import FileRole
+from prime_backup.db.values import FileRole, BackupTagDict
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
 from prime_backup.utils import collection_utils, db_utils
@@ -240,7 +240,6 @@ class DbSession:
 			raise BackupFileNotFound(backup_id, path)
 		return file
 
-	# TODO: FIX?
 	def get_file_object_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.File)).scalar_one())
 
@@ -403,7 +402,7 @@ class DbSession:
 
 	@classmethod
 	def __manual_backup_tag_filter(cls, backup: schema.Backup, backup_filter: BackupFilter) -> bool:
-		tags: schema.BackupTagDict = backup.tags
+		tags: BackupTagDict = backup.tags
 		for tf in backup_filter.tag_filters:
 			def check_one() -> bool:
 				if tf.policy == BackupTagFilter.Policy.exists:

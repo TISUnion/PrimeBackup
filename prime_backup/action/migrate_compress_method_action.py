@@ -64,15 +64,23 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 			self.__affected_fileset_ids.add(file.fileset_id)
 
 	def __update_fileset_and_backups(self, session: DbSession):
-		fileset_ids = list(self.__affected_fileset_ids)
-		backup_ids = session.get_backup_ids_by_fileset_ids(fileset_ids)
+		fileset_ids = set(self.__affected_fileset_ids)
+		backup_ids = session.get_backup_ids_by_fileset_ids(list(fileset_ids))
 		self.logger.info('Syncing {} affected filesets and {} associated backups'.format(len(fileset_ids), len(backup_ids)))
 
-		filesets = session.get_filesets(fileset_ids)
+		filesets = session.get_filesets(list(fileset_ids))
 		for fileset in filesets.values():
 			fileset.file_stored_size_sum = session.calc_file_stored_size_sum(fileset.id)
 
-		for backup in session.get_backups(backup_ids).values():
+		all_backup_fileset_ids: Set[int] = set()
+		backups = list(session.get_backups(backup_ids).values())
+		for backup in backups:
+			all_backup_fileset_ids.add(backup.fileset_id_base)
+			all_backup_fileset_ids.add(backup.fileset_id_delta)
+		more_filesets = session.get_filesets(list(all_backup_fileset_ids.difference(fileset_ids)))
+		filesets.update(more_filesets)  # batch query, faster
+
+		for backup in backups:
 			fs_base = filesets[backup.fileset_id_base]
 			fs_delta = filesets[backup.fileset_id_delta]
 			backup.file_stored_size_sum = fs_base.file_stored_size_sum + fs_delta.file_stored_size_sum

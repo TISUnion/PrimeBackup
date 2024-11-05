@@ -1,20 +1,12 @@
-import contextlib
-import functools
 import json
-import os
 import shutil
-import stat
-import tarfile
-import threading
 import time
-import zipfile
-from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import ContextManager, IO, Optional, List, Dict, Tuple
+from typing import IO, Optional, List, Dict, Tuple
 
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
+from prime_backup.action.helpers.packed_backup_file_reader import PackedBackupFileReader, TarBackupReader, ZipBackupReader, PackedBackupFileMember, PackedBackupFileHolder
 from prime_backup.compressors import Compressor, CompressMethod
-from prime_backup.config.config import Config
 from prime_backup.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
@@ -43,233 +35,6 @@ class BackupMetadataInvalid(PrimeBackupError):
 	pass
 
 
-class PackedBackupFileHandler(ABC):
-	class Member(ABC):
-		@property
-		@abstractmethod
-		def mode(self) -> int:
-			...
-
-		@property
-		@abstractmethod
-		def path(self) -> str:
-			...
-
-		@property
-		@abstractmethod
-		def uid(self) -> Optional[int]:
-			...
-
-		@property
-		@abstractmethod
-		def gid(self) -> Optional[int]:
-			...
-
-		@property
-		@abstractmethod
-		def mtime_ns(self) -> int:
-			...
-
-		@abstractmethod
-		def is_file(self) -> bool:
-			...
-
-		@abstractmethod
-		def is_dir(self) -> bool:
-			...
-
-		@abstractmethod
-		def is_link(self) -> bool:
-			...
-
-		@abstractmethod
-		def open(self) -> ContextManager[IO[bytes]]:
-			...
-
-		@abstractmethod
-		def read_link(self) -> str:
-			...
-
-	class FileHolder(ABC):
-		@abstractmethod
-		def get_member(self, path: str) -> Optional['PackedBackupFileHandler.Member']:
-			...
-
-		@abstractmethod
-		def list_member(self) -> List['PackedBackupFileHandler.Member']:
-			...
-
-	@abstractmethod
-	def open_file(self, path: Path) -> ContextManager[FileHolder]:
-		...
-
-
-class TarBackupHandler(PackedBackupFileHandler):
-	class TarMember(PackedBackupFileHandler.Member):
-		def __init__(self, tar: tarfile.TarFile, member: tarfile.TarInfo):
-			self.tar = tar
-			self.member = member
-
-		@property
-		def mode(self) -> int:
-			mode = self.member.mode & 0xFFFF
-			if self.member.isfile():
-				mode |= stat.S_IFREG
-			elif self.member.isdir():
-				mode |= stat.S_IFDIR
-			elif self.member.issym():
-				mode |= stat.S_IFLNK
-			else:
-				raise NotImplementedError('not implemented for type {}'.format(self.member.type))
-			return mode
-
-		@property
-		def path(self) -> str:
-			return self.member.path
-
-		@property
-		def uid(self) -> int:
-			return self.member.uid
-
-		@property
-		def gid(self) -> int:
-			return self.member.gid
-
-		@property
-		def mtime_ns(self) -> int:
-			return self.member.mtime * 10 ** 9
-
-		def is_file(self) -> bool:
-			return self.member.isfile()
-
-		def is_dir(self) -> bool:
-			return self.member.isdir()
-
-		def is_link(self) -> bool:
-			return self.member.issym()
-
-		def read_link(self) -> str:
-			return self.member.linkpath
-
-		@contextlib.contextmanager
-		def open(self) -> ContextManager[IO[bytes]]:
-			yield self.tar.extractfile(self.member)
-
-	class TarFileHolder(PackedBackupFileHandler.FileHolder):
-		def __init__(self, tar: tarfile.TarFile):
-			self.tar = tar
-
-		def get_member(self, path: str) -> Optional['TarBackupHandler.TarMember']:
-			try:
-				member = self.tar.getmember(path)
-			except KeyError:
-				return None
-			else:
-				return TarBackupHandler.TarMember(self.tar, member)
-
-		def list_member(self) -> List['TarBackupHandler.TarMember']:
-			return [TarBackupHandler.TarMember(self.tar, member) for member in self.tar.getmembers()]
-
-	def __init__(self, tar_format: TarFormat):
-		self.tar_format = tar_format
-
-	@contextlib.contextmanager
-	def open_file(self, path: Path) -> ContextManager[TarFileHolder]:
-		compress_method = self.tar_format.value.compress_method
-		if compress_method == CompressMethod.plain:
-			with tarfile.open(path, mode=self.tar_format.value.mode_r) as tar:
-				yield self.TarFileHolder(tar)
-		else:
-			# zstd stream does not support seek operation, sowe need to extract the tar into a temp path first,
-			# then operate on it. requires extra spaces tho
-
-			temp_file = Config.get().temp_path / 'import_{}_{}.tmp'.format(os.getpid(), threading.current_thread().ident)
-			temp_file.parent.mkdir(parents=True, exist_ok=True)
-			with contextlib.ExitStack() as exit_stack:
-				exit_stack.callback(functools.partial(temp_file.unlink, missing_ok=True))
-				Compressor.create(compress_method).copy_decompressed(path, temp_file)
-
-				with tarfile.open(temp_file, mode=self.tar_format.value.mode_r) as tar:
-					yield self.TarFileHolder(tar)
-
-
-class ZipBackupHandler(PackedBackupFileHandler):
-	class ZipMember(PackedBackupFileHandler.Member):
-		def __init__(self, zipf: zipfile.ZipFile, member: zipfile.ZipInfo):
-			self.zipf = zipf
-			self.member = member
-
-			mode = (self.member.external_attr >> 16) & 0xFFFF
-			if mode == 0:
-				if self.path.endswith('/'):
-					mode = stat.S_IFDIR | 0o755
-				else:
-					mode = stat.S_IFREG | 0o644
-			self.__mode = mode
-
-		@property
-		def mode(self) -> int:
-			return self.__mode
-
-		@property
-		def path(self) -> str:
-			return self.member.filename
-
-		@property
-		def uid(self) -> Optional[int]:
-			return None
-
-		@property
-		def gid(self) -> Optional[int]:
-			return None
-
-		@property
-		def mtime_ns(self) -> int:
-			return int(time.mktime(self.member.date_time + (0, 0, -1)) * 1e9)
-
-		def is_file(self) -> bool:
-			return not self.is_dir() and stat.S_ISREG(self.mode)
-
-		def is_dir(self) -> bool:
-			return self.member.is_dir()
-
-		def is_link(self) -> bool:
-			return not self.is_dir() and stat.S_ISLNK(self.mode)
-
-		def read_link(self) -> str:
-			max_link_size = 10240
-			with self.open() as f:
-				buf = f.read(max_link_size)
-				if len(buf) == max_link_size:
-					raise ValueError('symlink too large, read {} bytes, peek: {}'.format(len(buf), buf[:20]))
-				return buf.decode('utf8')
-
-		@contextlib.contextmanager
-		def open(self) -> ContextManager[IO[bytes]]:
-			with self.zipf.open(self.member, 'r') as f:
-				yield f
-
-	class ZipFileHolder(PackedBackupFileHandler.FileHolder):
-		def __init__(self, zipf: zipfile.ZipFile):
-			self.zipf = zipf
-
-		def get_member(self, path: str) -> Optional['ZipBackupHandler.ZipMember']:
-			try:
-				member = self.zipf.getinfo(path)
-			except KeyError:
-				return None
-			else:
-				return ZipBackupHandler.ZipMember(self.zipf, member)
-
-		def list_member(self) -> List['ZipBackupHandler.ZipMember']:
-			return [ZipBackupHandler.ZipMember(self.zipf, member) for member in self.zipf.infolist()]
-
-	@contextlib.contextmanager
-	def open_file(self, path: Path) -> ContextManager[ZipFileHolder]:
-		with zipfile.ZipFile(path, 'r') as f:
-			yield self.ZipFileHolder(f)
-
-
 class ImportBackupAction(CreateBackupActionBase):
 	def __init__(
 			self, file_path: Path, backup_format: Optional[StandaloneBackupFormat] = None, *,
@@ -280,7 +45,7 @@ class ImportBackupAction(CreateBackupActionBase):
 		if backup_format is None:
 			backup_format = StandaloneBackupFormat.from_file_name(file_path)
 			if backup_format is None:
-				raise ValueError('cannot infer backup format from {}'.format(file_path))
+				raise UnsupportedFormat('cannot infer backup format from {!r}'.format(file_path))
 
 		self.file_path = file_path
 		self.backup_format = backup_format
@@ -318,7 +83,7 @@ class ImportBackupAction(CreateBackupActionBase):
 
 	def __import_member(
 			self, session: DbSession,
-			member: PackedBackupFileHandler.Member, now_ns: int,
+			member: PackedBackupFileMember, now_ns: int,
 			file_sah: Optional[SizeAndHash],
 	):
 		blob: Optional[schema.Blob] = None
@@ -350,7 +115,7 @@ class ImportBackupAction(CreateBackupActionBase):
 			blob=blob,
 		)
 
-	def __import_packed_backup_file(self, session: DbSession, file_holder: PackedBackupFileHandler.FileHolder) -> schema.Backup:
+	def __import_packed_backup_file(self, session: DbSession, file_holder: PackedBackupFileHolder) -> schema.Backup:
 		meta: Optional[BackupMeta] = None
 
 		if self.meta_override is not None:
@@ -374,7 +139,7 @@ class ImportBackupAction(CreateBackupActionBase):
 			if self.ensure_meta:
 				raise BackupMetadataNotFound('{} does not exist'.format(BACKUP_META_FILE_NAME))
 
-		members: List[PackedBackupFileHandler.Member] = list(filter(
+		members: List[PackedBackupFileMember] = list(filter(
 			lambda m: m.path != BACKUP_META_FILE_NAME,
 			file_holder.list_member(),
 		))
@@ -437,11 +202,11 @@ class ImportBackupAction(CreateBackupActionBase):
 
 		try:
 			with DbAccess.open_session() as session:
-				handler: PackedBackupFileHandler
+				handler: PackedBackupFileReader
 				if tar_format is not None:
-					handler = TarBackupHandler(tar_format)
+					handler = TarBackupReader(tar_format)
 				else:  # zip
-					handler = ZipBackupHandler()
+					handler = ZipBackupReader()
 
 				with handler.open_file(self.file_path) as file_holder:
 					backup = self.__import_packed_backup_file(session, file_holder)

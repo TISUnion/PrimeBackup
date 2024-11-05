@@ -1,12 +1,10 @@
 import enum
-from typing import Optional, TYPE_CHECKING, Any, Type
+from typing import Optional, Any, Type
 
 from mcdreforged.api.all import RText, RTextBase, RColor
 
+from prime_backup.db.values import BackupTagDict
 from prime_backup.utils import misc_utils
-
-if TYPE_CHECKING:
-	from prime_backup.db.values import BackupTagDict
 
 
 class BackupTagValue:
@@ -43,36 +41,41 @@ __check_backup_tag_keys()
 
 
 class BackupTags:
-	data: 'BackupTagDict'
 	NONE = object()
 
-	def __init__(self, data: Optional['BackupTagDict'] = None):
-		self.data = {}
+	def __init__(self, data: Optional[BackupTagDict] = None):
+		self.__data: BackupTagDict = {}
 		if data is not None:
-			self.data.update(data)
+			self.__data.update(data)
 
 	def get(self, name: BackupTagName) -> Any:
-		return self.data.get(name.name) if name.name in self.data else self.NONE
+		return self.__data.get(name.name) if name.name in self.__data else self.NONE
 
 	def set(self, name: BackupTagName, value: Any) -> 'BackupTags':
-		self.data[name.name] = misc_utils.ensure_type(value, name.value.type)
+		self.__data[name.name] = misc_utils.ensure_type(value, name.value.type)
 		return self
 
 	def clear(self, name: BackupTagName) -> bool:
 		try:
-			self.data.pop(name.name)
+			self.__data.pop(name.name)
 			return True
 		except KeyError:
 			return False
 
 	def to_dict(self) -> 'BackupTagDict':
-		return self.data.copy()
+		return self.__data.copy()
 
 	def __len__(self) -> int:
-		return len(self.data)
+		return len(self.__data)
+
+	def __repr__(self) -> str:
+		return f'BackupTags({self.__data!r})'
+
+	def __str__(self) -> str:
+		return str(self.__data)
 
 	def items(self):
-		return self.data.items()
+		return self.__data.items()
 
 	# ============ accessors ============
 

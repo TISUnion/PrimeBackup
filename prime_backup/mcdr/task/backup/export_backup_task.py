@@ -2,7 +2,8 @@ from pathlib import Path
 
 from mcdreforged.api.all import *
 
-from prime_backup.action.export_backup_action import ExportBackupToZipAction, ExportBackupToTarAction
+from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
+from prime_backup.action.export_backup_action_zip import ExportBackupToZipAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents

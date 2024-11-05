@@ -5,7 +5,9 @@ from pathlib import Path
 from prime_backup import logger
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.delete_backup_action import DeleteBackupAction
-from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction, ExportBackupToTarAction, ExportBackupToZipAction
+from prime_backup.action.export_backup_action_directory import ExportBackupToDirectoryAction
+from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
+from prime_backup.action.export_backup_action_zip import ExportBackupToZipAction
 from prime_backup.action.import_backup_action import ImportBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.action.migrate_compress_method_action import MigrateCompressMethodAction

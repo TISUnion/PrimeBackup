@@ -9,8 +9,9 @@ from pathlib import Path
 from typing import Type
 
 from prime_backup import constants
-from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction, ExportBackupToTarAction, \
-	ExportBackupToZipAction
+from prime_backup.action.export_backup_action_directory import ExportBackupToDirectoryAction
+from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
+from prime_backup.action.export_backup_action_zip import ExportBackupToZipAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.get_file_action import GetBackupFileAction

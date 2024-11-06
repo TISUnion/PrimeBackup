@@ -249,7 +249,7 @@ prime_backup:
       db_file_size: '数据库文件大小: {}'
       hash_method: '哈希算法: {}'
       backup_count: '备份数: {}'
-      file_count: '文件数: {}'
+      file_count: '文件数: {} ({} 个对象)'
       file_raw_size: '文件总大小: {}'
       blob_count: '数据对象数: {}'
       blob_stored_size: '数据对象总储存大小: {} ({})'

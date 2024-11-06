@@ -244,10 +244,22 @@ class DbSession:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.File)).scalar_one())
 
 	def get_file_total_count(self) -> int:
-		return _int_or_0(self.session.execute(func.sum(schema.Fileset.file_count).select()).scalar_one())
+		total_count = 0
+		for col in [schema.Backup.fileset_id_base, schema.Backup.fileset_id_delta]:
+			total_count += _int_or_0(self.session.execute(
+			    func.sum(schema.Fileset.file_count).select().
+			    join(schema.Backup, schema.Fileset.id == col)
+			).scalar_one())
+		return total_count
 
 	def get_file_total_raw_size_sum(self) -> int:
-		return _int_or_0(self.session.execute(func.sum(schema.Fileset.file_raw_size_sum).select()).scalar_one())
+		raw_size_sum = 0
+		for col in [schema.Backup.fileset_id_base, schema.Backup.fileset_id_delta]:
+			raw_size_sum += _int_or_0(self.session.execute(
+			    func.sum(schema.Fileset.file_raw_size_sum).select().
+			    join(schema.Backup, schema.Fileset.id == col)
+			).scalar_one())
+		return raw_size_sum
 
 	def get_file_by_blob_hashes(self, hashes: List[str], *, limit: Optional[int] = None) -> List[schema.File]:
 		hashes = collection_utils.deduplicated_list(hashes)

@@ -145,7 +145,7 @@ class CliHandler:
 		logger.info('Blob count: %s', result.blob_count)
 		logger.info('Blob stored size sum: %s (%s)', result.blob_stored_size_sum, ByteCount(result.blob_stored_size_sum).auto_str())
 		logger.info('Blob raw size sum: %s (%s)', result.blob_raw_size_sum, ByteCount(result.blob_raw_size_sum).auto_str())
-		logger.info('File count: %s (total %s)', result.file_object_count, result.file_total_count)
+		logger.info('File count: %s (%s objects)', result.file_total_count, result.file_object_count)
 		logger.info('File raw size sum: %s (%s)', result.file_raw_size_sum, ByteCount(result.file_raw_size_sum).auto_str())
 
 	def cmd_show(self):

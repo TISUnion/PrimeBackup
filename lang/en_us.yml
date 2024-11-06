@@ -249,7 +249,7 @@ prime_backup:
       db_file_size: 'Database file size: {}'
       hash_method: 'Hash method: {}'
       backup_count: 'Backup count: {}'
-      file_count: 'File count: {}'
+      file_count: 'File count: {} ({} objects)'
       file_raw_size: 'File raw size sum: {}'
       blob_count: 'Blob count: {}'
       blob_stored_size: 'Blob stored size sum: {} ({})'

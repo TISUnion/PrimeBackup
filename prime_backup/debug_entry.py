@@ -59,8 +59,8 @@ def main():
 
 	def import_():
 		t = time.time()
-		# bi = ImportBackupAction(Path('export.tar')).run()
-		bi = ImportBackupAction(Path(r'export.tar.zst')).run()
+		bi = ImportBackupAction(Path('export.tar')).run()
+		# bi = ImportBackupAction(Path(r'export.tar.zst')).run()
 		print('cost', round(time.time() - t, 2), 's')
 		nonlocal backup_id
 		backup_id = bi.id
@@ -84,10 +84,10 @@ def main():
 		# print(MigrateCompressMethodAction(CompressMethod.lzma).run())
 
 	create(1)
-	# import_()
-	# list_()
-	# export()
-	# delete()
+	export()
+	import_()
+	list_()
+	delete()
 	migrate()
 
 

@@ -30,7 +30,7 @@ class DbAccess:
 		cls.__engine = create_engine('sqlite:///' + str(db_path))
 		cls.__db_file_path = db_path
 
-		migration = DbMigration(cls.__engine)
+		migration = DbMigration(cls.__engine, db_dir, db_path)
 		migration.check_and_migrate(create=create, migrate=migrate)
 
 		cls.sync_hash_method()

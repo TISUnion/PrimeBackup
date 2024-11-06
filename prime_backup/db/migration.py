@@ -1,3 +1,5 @@
+import time
+from pathlib import Path
 from typing import Dict, Callable, Any, Optional
 
 from sqlalchemy import Engine, Inspector, text
@@ -6,6 +8,7 @@ from sqlalchemy.orm import Session
 from prime_backup import logger
 from prime_backup.config.config import Config
 from prime_backup.db import schema, db_constants
+from prime_backup.db.db_file_backup import _DbFileBackupHelper
 from prime_backup.exceptions import PrimeBackupError
 
 
@@ -17,9 +20,11 @@ class DbMigration:
 	DB_MAGIC_INDEX = db_constants.DB_MAGIC_INDEX
 	DB_VERSION = db_constants.DB_VERSION
 
-	def __init__(self, engine: Engine):
+	def __init__(self, engine: Engine, db_dir: Path, db_file: Path):
 		self.logger = logger.get()
 		self.engine = engine
+		self.db_dir = db_dir
+		self.db_file = db_file
 		self.migrations: Dict[int, Callable[[Session], Any]] = {
 			2: self.__migrate_1_2,  # 1 -> 2
 			3: self.__migrate_2_3,  # 2 -> 3
@@ -63,28 +68,41 @@ class DbMigration:
 			))
 
 	def __migrate_db(self, current_version: int, target_version: int):
+		start_ts = time.time()
 		self.logger.info('DB migration starts. current DB version: {}, target version: {}'.format(current_version, target_version))
 
-		def update_dbm_version(v: int):
-			dbm: Optional[schema.DbMeta] = session.get(schema.DbMeta, self.DB_MAGIC_INDEX)
-			if dbm is None:
-				raise ValueError('table DbMeta is empty')
-			dbm.version = v
+		backup_helper = _DbFileBackupHelper(self.db_file, self.db_dir / 'db_backup', 'pre_migration_{}to{}_{}'.format(current_version, target_version, time.strftime('%Y%m%d')), db_constants.DB_FILE_NAME)
+		self.logger.info('Creating DB pre migration backup at {}'.format(str(backup_helper.backup_file)))
+		backup_helper.create(skip_existing=True)
 
-		for i in range(current_version, target_version):
-			next_version = i + 1
-			self.logger.info('Migrating database from version {} to version {}'.format(i, next_version))
+		try:
+			def update_dbm_version(v: int):
+				dbm: Optional[schema.DbMeta] = session.get(schema.DbMeta, self.DB_MAGIC_INDEX)
+				if dbm is None:
+					raise ValueError('table DbMeta is empty')
+				dbm.version = v
+
+			for i in range(current_version, target_version):
+				next_version = i + 1
+				self.logger.info('Migrating database from version {} to version {}'.format(i, next_version))
+				with Session(self.engine) as session, session.begin():
+					self.migrations[i + 1](session)
+					update_dbm_version(next_version)
+
 			with Session(self.engine) as session, session.begin():
-				self.migrations[i + 1](session)
-				update_dbm_version(next_version)
+				update_dbm_version(target_version)
 
-		with Session(self.engine) as session, session.begin():
-			update_dbm_version(target_version)
+			with Session(self.engine) as session, session.begin():
+				session.execute(text('VACUUM'))
+		except Exception:
+			self.logger.error('DB migration failed, restoring pre migration backup {}'.format(str(backup_helper.backup_file)))
+			try:
+				backup_helper.restore()
+			except Exception:
+				self.logger.exception('Pre migration backup restored failed')
+			raise
 
-		with Session(self.engine) as session, session.begin():
-			session.execute(text('VACUUM'))
-
-		self.logger.info('DB migration done, new db version: {}'.format(target_version))
+		self.logger.info('DB migration done, new db version: {}, total cost {:.1f}s'.format(target_version, time.time() - start_ts))
 
 	def __migrate_1_2(self, session: Session):
 		"""

@@ -1,4 +1,5 @@
 import collections
+import json
 import time
 from typing import List, Deque
 
@@ -68,8 +69,8 @@ class MigrationImpl2To3(MigrationImplBase):
 				timestamp=old_backup['timestamp'],
 				creator=old_backup['creator'],
 				comment=old_backup['comment'],
-				targets=old_backup['targets'],
-				tags=old_backup['tags'],
+				targets=json.loads(old_backup['targets']),
+				tags=json.loads(old_backup['tags']),
 				fileset_id_base=fs_base.id,
 				fileset_id_delta=fs_delta.id,
 				file_count=fs_base.file_count + fs_delta.file_count,

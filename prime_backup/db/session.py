@@ -154,7 +154,7 @@ class DbSession:
 		s = select(schema.Blob).where(schema.Blob.hash.startswith(hash_prefix, autoescape=True)).limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
 
-	def iterate_blob_batch(self, *, batch_size: int = 5000) -> Iterator[List[schema.Blob]]:
+	def iterate_blob_batch(self, *, batch_size: int) -> Iterator[List[schema.Blob]]:
 		limit, offset = batch_size, 0
 		while True:
 			blobs = self.list_blobs(limit=limit, offset=offset)

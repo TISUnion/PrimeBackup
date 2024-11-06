@@ -99,7 +99,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 		with DbAccess.open_session() as session:
 			result.total = session.get_blob_count()
 			cnt = 0
-			for blobs in session.iterate_blob_batch():
+			for blobs in session.iterate_blob_batch(batch_size=3000):
 				if self.is_interrupted.is_set():
 					break
 				cnt += len(blobs)

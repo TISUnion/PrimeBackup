@@ -346,14 +346,28 @@ class DbSession:
 				raise FilesetNotFound(fileset_id)
 		return result
 
-	def get_fileset_reference_count(self, fileset_id: int) -> int:
-		"""How many backups uses this fileset"""
+	def get_fileset_associated_backup_count(self, fileset_id: int) -> int:
 		return _int_or_0(self.session.execute(
-			select(func.count()).select_from(schema.Backup).where(or_(
+			select(func.count()).
+			select_from(schema.Backup).
+			where(or_(
 				schema.Backup.fileset_id_base == fileset_id,
 				schema.Backup.fileset_id_delta == fileset_id,
 			))
 		).scalar_one())
+
+	def get_fileset_associated_backup_ids(self, fileset_id: int, limit: Optional[int]) -> List[int]:
+		if limit is not None and limit <= 0:
+			return []
+		return _list_it(self.session.execute(
+			select(schema.Backup.id).
+			where(or_(
+				schema.Backup.fileset_id_base == fileset_id,
+				schema.Backup.fileset_id_delta == fileset_id,
+			)).
+			order_by(desc(schema.Backup.id)).
+			limit(limit)
+		).scalars().all())
 
 	def get_fileset_delta_file_object_count_sum(self, base_fileset_id: int) -> int:
 		"""For those backups whose base fileset is the given one, sum up the file_object_count of their delta filesets"""

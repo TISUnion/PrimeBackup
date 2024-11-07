@@ -95,7 +95,7 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 
 			fileset: schema.Fileset
 			for fileset in [backup.fileset_base, backup.fileset_delta]:
-				ref_cnt = session.get_fileset_reference_count(fileset.id)
+				ref_cnt = session.get_fileset_associated_backup_count(fileset.id)
 				self.logger.info('Pruning fileset {}, ref_cnt={}'.format(fileset.id, ref_cnt))
 				if ref_cnt == 0:
 					session.delete_fileset(fileset)

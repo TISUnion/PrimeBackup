@@ -132,7 +132,7 @@ class _InspectFileTaskBase(_InspectObjectTaskBase, ABC):
 				self.reply_tr('gid.simple', TextComponents.number(file.gid))
 
 		if file.mtime_ns is not None:
-			self.reply_tr('mtime', TextComponents.number(file.mtime_ns), TextComponents.date(file.mtime_ns))
+			self.reply_tr('mtime', TextComponents.number(file.mtime_ns), TextComponents.date(file.mtime_ns, decimal=True))
 
 
 class InspectBackupFileTask(_InspectFileTaskBase):
@@ -163,7 +163,7 @@ class InspectFilesetTask(_InspectObjectTaskBase):
 		return 'db_inspect_fileset'
 
 	def run(self) -> None:
-		fileset = GetFilesetAction(self.fileset_id, count_backups=True).run()
+		fileset = GetFilesetAction(self.fileset_id, count_backups=True, sample_backup_limit=3).run()
 		self.reply(TextComponents.title(self.tr('title', self._gt_fileset_id(fileset.id))))
 
 		self.reply_tr('id', self._gt_fileset_id(fileset.id))
@@ -177,7 +177,7 @@ class InspectFilesetTask(_InspectObjectTaskBase):
 		self.reply_tr(bdk('raw_size'), RText(fileset.raw_size, TextColors.byte_count), TextComponents.file_size(fileset.raw_size))
 		self.reply_tr(bdk('stored_size'), RText(fileset.stored_size, TextColors.byte_count), TextComponents.file_size(fileset.stored_size))
 
-		self.reply_tr('used_by', TextComponents.number(fileset.backup_count))
+		self.reply_tr('used_by', TextComponents.number(fileset.backup_count), TextComponents.backup_id_list(fileset.sampled_backup_ids, with_brackets=False))
 
 
 class InspectBlobTask(_InspectObjectTaskBase):

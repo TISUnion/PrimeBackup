@@ -120,7 +120,7 @@ class FilesetAllocator:
 				c = Candidate(c_fileset, c_file_by_path, delta, delta.size())
 
 		if c is not None:
-			ref_cnt = self.session.get_fileset_reference_count(c.fileset.id)
+			ref_cnt = self.session.get_fileset_associated_backup_count(c.fileset.id)
 			delta_file_object_count_sum = self.session.get_fileset_delta_file_object_count_sum(c.fileset.id)
 			delta_ratio = delta_file_object_count_sum / c.fileset.file_object_count if c.fileset.file_object_count > 0 else 0
 			self.logger.debug('Fileset base candidate selected, id {}, ref_cnt {}, delta_file_object_count_sum {} (r={:.2f})'.format(

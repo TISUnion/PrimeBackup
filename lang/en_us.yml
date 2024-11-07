@@ -208,6 +208,7 @@ prime_backup:
       mtime: 'Modify time: {} ({})'
     db_inspect_fileset:
       name: inspect fileset
+      title: 'Fileset {}'
       id: 'ID: {}'
       kind: 'Kind: {}'
       file_object_count: 'File object count: {}'
@@ -217,7 +218,7 @@ prime_backup:
       raw_size.delta: 'Raw size (delta): {} ({})'
       stored_size.base: 'Stored size: {} ({})'
       stored_size.delta: 'Stored size (delta): {} ({})'
-      used_by: 'Associated backup count: {}'
+      used_by: 'Associated backup count: {} (samples: {})'
     db_inspect_object_base:
       hover:
         backup_id: Click to inspect backup {}

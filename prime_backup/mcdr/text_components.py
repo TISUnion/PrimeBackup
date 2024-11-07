@@ -130,11 +130,11 @@ class TextComponents:
 		return text
 
 	@classmethod
-	def backup_id_list(cls, backup_ids: Iterable[Any], **kwargs) -> RTextBase:
+	def backup_id_list(cls, backup_ids: Iterable[Any], *, with_brackets: bool = True, **kwargs) -> RTextBase:
 		return RTextList(
-			'[',
+			'[' if with_brackets else '',
 			RTextBase.join(', ', [cls.backup_id(backup_id, **kwargs) for backup_id in backup_ids]),
-			']',
+			']' if with_brackets else '',
 		)
 
 	@classmethod
@@ -198,10 +198,10 @@ class TextComponents:
 			return cls.tr('date_diff.ago', cls.duration(-diff))
 
 	@classmethod
-	def date(cls, date: Union[datetime.datetime, int]) -> RTextBase:
+	def date(cls, date: Union[datetime.datetime, int], *, decimal: bool = False) -> RTextBase:
 		if isinstance(date, int):
 			date = conversion_utils.timestamp_to_local_date(date)
-		return RText(conversion_utils.datetime_to_str(date), TextColors.date).h(cls.date_diff(date))
+		return RText(conversion_utils.datetime_to_str(date, decimal=decimal), TextColors.date).h(cls.date_diff(date))
 
 	@classmethod
 	def dual_size_hover(cls, raw_size: int, stored_size: int, *, ndigits: int = 2) -> RTextBase:

@@ -10,6 +10,13 @@ from prime_backup.db.migrations import MigrationImplBase
 from prime_backup.utils.lru_dict import LruDict
 
 
+class _V3:
+	Base = schema.Base
+	File = schema.File
+	Fileset = schema.Fileset
+	Backup = schema.Backup
+
+
 class MigrationImpl2To3(MigrationImplBase):
 	def migrate(self):
 		inspector = inspect(self.engine)
@@ -28,9 +35,7 @@ class MigrationImpl2To3(MigrationImplBase):
 		# FIXME: This might not work if schema is updated in the future
 		# temp workaround to make it running first
 		self.logger.info('Creating the new File and Fileset tables')
-		schema.File.metadata.create_all(self.engine)
-		schema.Fileset.metadata.create_all(self.engine)
-		schema.Backup.metadata.create_all(self.engine)
+		_V3.Base.metadata.create_all(self.engine, tables=[_V3.Base.metadata.tables[table_name] for table_name in ['file', 'fileset', 'backup']])
 
 		old_file_count: int = self.session.execute(text('SELECT COUNT(*) FROM old_file_2to3')).scalar_one() or 0
 		old_backup_ids: List[int] = sorted(set(self.session.execute(text('SELECT id FROM old_backup_2to3')).scalars()))
@@ -42,7 +47,7 @@ class MigrationImpl2To3(MigrationImplBase):
 		db_session = DbSession(self.session)
 
 		t = time.time()
-		files: List[schema.File] = []
+		files: List[_V3.File] = []
 		processed_backup_count = 0
 
 		# FIXME: This might not work if impl is updated in the future
@@ -64,7 +69,7 @@ class MigrationImpl2To3(MigrationImplBase):
 			fs_result = allocator.allocate(allocate_args)
 
 			fs_base, fs_delta = fs_result.fileset_base, fs_result.fileset_delta
-			new_backup = schema.Backup(
+			new_backup = _V3.Backup(
 				id=old_backup['id'],
 				timestamp=old_backup['timestamp'],
 				creator=old_backup['creator'],
@@ -100,7 +105,7 @@ class MigrationImpl2To3(MigrationImplBase):
 			if len(remaining_backup_ids) == 0:
 				raise AssertionError('Unexpected drained remaining_backup_ids, {} {}'.format(old_file['backup_id'], old_backup_ids))
 
-			files.append(schema.File(**{
+			files.append(_V3.File(**{
 				key: old_file[key]
 				for key in [
 					'path',
@@ -124,9 +129,9 @@ class MigrationImpl2To3(MigrationImplBase):
 		self.session.execute(text('DROP TABLE old_file_2to3'))
 		self.session.execute(text('DROP TABLE old_backup_2to3'))
 
-		cnt_f = self.session.execute(text(f'SELECT COUNT(*) FROM {schema.File.__tablename__}')).scalar_one()
-		cnt_fs = self.session.execute(text(f'SELECT COUNT(*) FROM {schema.Fileset.__tablename__}')).scalar_one()
-		cnt_b = self.session.execute(text(f'SELECT COUNT(*) FROM {schema.Backup.__tablename__}')).scalar_one()
+		cnt_f = self.session.execute(text(f'SELECT COUNT(*) FROM {_V3.File.__tablename__}')).scalar_one()
+		cnt_fs = self.session.execute(text(f'SELECT COUNT(*) FROM {_V3.Fileset.__tablename__}')).scalar_one()
+		cnt_b = self.session.execute(text(f'SELECT COUNT(*) FROM {_V3.Backup.__tablename__}')).scalar_one()
 		self.logger.info('Done. Constructed {} files (decreased from {}, {:.1f}%), {} filesets, {} backups'.format(
 			cnt_f, old_file_count, (cnt_f - old_file_count) / old_file_count * 100,
 			cnt_fs, cnt_b,

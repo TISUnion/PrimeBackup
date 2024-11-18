@@ -4,5 +4,6 @@ mcdreforged>=2.12.0
 pathspec
 psutil
 pytz
+typing_extensions
 xxhash>=3
 zstandard

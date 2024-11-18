@@ -29,7 +29,7 @@ class ExportFailures:
 					file = FileInfo.of(file)
 				self.failures.append(ExportFailure(file, e))
 			else:
-				raise e from None
+				raise
 
 	def __len__(self) -> int:
 		return len(self.failures)

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.export_backup_action_zip import ExportBackupToZipAction
@@ -33,9 +34,11 @@ class ExportBackupTask(HeavyTask[None]):
 		self.create_meta = create_meta
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_export'
 
+	@override
 	def run(self) -> None:
 		backup = GetBackupAction(self.backup_id).run()
 

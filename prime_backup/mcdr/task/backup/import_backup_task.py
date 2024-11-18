@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.import_backup_action import ImportBackupAction, BackupMetadataNotFound
 from prime_backup.mcdr import mcdr_globals
@@ -22,9 +23,11 @@ class ImportBackupTask(HeavyTask[None]):
 		self.meta_override = meta_override
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_import'
 
+	@override
 	def run(self) -> None:
 		t_fp = TextComponents.file_name(self.file_path)
 		if not self.file_path.exists():

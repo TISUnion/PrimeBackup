@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 from typing import Optional, List, Tuple
 
+from typing_extensions import override
+
 from prime_backup import constants
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
@@ -147,6 +149,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		if not stat.S_ISDIR(file.mode):
 			self.__set_attrs(file, file_path)
 
+	@override
 	def _export_backup(self, session: DbSession, backup: schema.Backup) -> ExportFailures:
 		failures = ExportFailures(self.fail_soft)
 

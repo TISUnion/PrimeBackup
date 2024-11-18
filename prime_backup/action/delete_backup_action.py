@@ -2,6 +2,8 @@ import dataclasses
 import logging
 from typing import Optional, List
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
@@ -37,6 +39,7 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 			self.blob_hash_to_check = collection_utils.deduplicated_list(self.blob_hash_to_check)
 		self.quiet = quiet
 
+	@override
 	def run(self) -> BlobListSummary:
 		trash_bin = BlobTrashBin(self.logger)
 
@@ -80,6 +83,7 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 		super().__init__()
 		self.backup_id = misc_utils.ensure_type(backup_id, int)
 
+	@override
 	def run(self) -> DeleteBackupResult:
 		self.logger.info('Deleting backup #{}'.format(self.backup_id))
 		with DbAccess.open_session() as session:

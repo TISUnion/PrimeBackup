@@ -2,7 +2,7 @@ import time
 from typing import List, TYPE_CHECKING, Type, Any, Dict
 
 from mcdreforged.api.all import Serializable
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from prime_backup.types.operator import Operator
 
@@ -31,6 +31,7 @@ class BackupMeta(Serializable):
 		return cls.deserialize(dt)
 
 	@classmethod
+	@override
 	def get_default(cls: Type[Self]) -> Self:
 		obj = super().get_default()
 		obj.timestamp_ns = time.time_ns()

@@ -1,5 +1,7 @@
 import dataclasses
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 
@@ -14,6 +16,7 @@ class ObjectCounts:
 
 
 class GetObjectCountsAction(Action[ObjectCounts]):
+	@override
 	def run(self) -> ObjectCounts:
 		with DbAccess.open_session() as session:
 			return ObjectCounts(

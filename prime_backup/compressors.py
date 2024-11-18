@@ -5,7 +5,7 @@ import shutil
 from abc import abstractmethod, ABC
 from typing import BinaryIO, Union, ContextManager, Tuple
 
-from typing_extensions import Protocol
+from typing_extensions import Protocol, override
 
 from prime_backup.utils.bypass_io import BypassReader, BypassWriter
 from prime_backup.utils.path_like import PathLike
@@ -128,14 +128,17 @@ class Compressor(ABC):
 
 class PlainCompressor(Compressor):
 	@classmethod
+	@override
 	def ensure_lib(cls):
 		pass
 
 	@contextlib.contextmanager
+	@override
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
 		yield f_out
 
 	@contextlib.contextmanager
+	@override
 	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
 		yield f_in
 
@@ -151,15 +154,18 @@ class _GzipLikeCompressorBase(Compressor, ABC):
 		...
 
 	@classmethod
+	@override
 	def ensure_lib(cls):
 		cls._lib()
 
 	@contextlib.contextmanager
+	@override
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
 		with self._lib().open(f_out, 'wb') as compressed_out:
 			yield compressed_out
 
 	@contextlib.contextmanager
+	@override
 	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
 		with self._lib().open(f_in, 'rb') as compressed_in:
 			yield compressed_in
@@ -167,6 +173,7 @@ class _GzipLikeCompressorBase(Compressor, ABC):
 
 class GzipCompressor(_GzipLikeCompressorBase):
 	@classmethod
+	@override
 	def _lib(cls):
 		import gzip
 		return gzip
@@ -174,6 +181,7 @@ class GzipCompressor(_GzipLikeCompressorBase):
 
 class LzmaCompressor(_GzipLikeCompressorBase):
 	@classmethod
+	@override
 	def _lib(cls):
 		import lzma
 		return lzma
@@ -181,6 +189,7 @@ class LzmaCompressor(_GzipLikeCompressorBase):
 
 class ZstdCompressor(_GzipLikeCompressorBase):
 	@classmethod
+	@override
 	def _lib(cls):
 		import zstandard
 		return zstandard
@@ -188,6 +197,7 @@ class ZstdCompressor(_GzipLikeCompressorBase):
 
 class Lz4Compressor(_GzipLikeCompressorBase):
 	@classmethod
+	@override
 	def _lib(cls):
 		# noinspection PyPackageRequirements
 		import lz4.frame

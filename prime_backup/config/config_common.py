@@ -2,6 +2,7 @@ from typing import Optional, Any
 
 from apscheduler.triggers.cron import CronTrigger
 from mcdreforged.api.utils import Serializable
+from typing_extensions import override
 
 from prime_backup.types.units import Duration
 
@@ -20,10 +21,12 @@ class CrontabJobSetting(Serializable):
 	crontab: Optional[str]
 	jitter: Duration
 
+	@override
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
 		if attr_name == 'crontab':
 			_validate_crontab_str(attr_value)
 
+	@override
 	def on_deserialization(self, **kwargs):
 		if self.enabled:
 			if self.interval is None and self.crontab is None:

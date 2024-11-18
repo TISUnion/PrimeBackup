@@ -1,6 +1,7 @@
 import enum
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.mcdr.crontab_job import CrontabJobId, CrontabJob
 from prime_backup.mcdr.crontab_manager import CrontabManager
@@ -17,9 +18,11 @@ class OperateCrontabJobTask(CrontabTaskBase[None]):
 		self.operation = operation
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'crontab_operate'
 
+	@override
 	def run(self) -> None:
 		job = self.get_job()
 		if not job.is_enabled():

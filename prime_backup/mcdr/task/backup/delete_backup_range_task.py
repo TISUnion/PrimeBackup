@@ -1,6 +1,7 @@
 from typing import Optional, Iterable
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
@@ -19,9 +20,11 @@ class DeleteBackupRangeTask(HeavyTask[None]):
 		self.id_end = id_end
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_delete_range'
 
+	@override
 	def is_abort_able(self) -> bool:
 		return True
 
@@ -29,6 +32,7 @@ class DeleteBackupRangeTask(HeavyTask[None]):
 		for backup in backups:
 			self.reply(TextComponents.backup_full(backup, operation_buttons=False))
 
+	@override
 	def run(self) -> None:
 		backup_filter = BackupFilter()
 		backup_filter.id_start = self.id_start

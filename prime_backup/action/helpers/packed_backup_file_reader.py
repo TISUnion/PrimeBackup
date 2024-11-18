@@ -10,6 +10,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import ContextManager, IO, Optional, List
 
+from typing_extensions import override
+
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.config.config import Config
 from prime_backup.types.tar_format import TarFormat
@@ -85,6 +87,7 @@ class TarBackupReader(PackedBackupFileReader):
 			self.member = member
 
 		@property
+		@override
 		def mode(self) -> int:
 			mode = self.member.mode & 0xFFFF
 			if self.member.isfile():
@@ -98,34 +101,43 @@ class TarBackupReader(PackedBackupFileReader):
 			return mode
 
 		@property
+		@override
 		def path(self) -> str:
 			return self.member.path
 
 		@property
+		@override
 		def uid(self) -> int:
 			return self.member.uid
 
 		@property
+		@override
 		def gid(self) -> int:
 			return self.member.gid
 
 		@property
+		@override
 		def mtime_ns(self) -> int:
 			return self.member.mtime * 10 ** 9
 
+		@override
 		def is_file(self) -> bool:
 			return self.member.isfile()
 
+		@override
 		def is_dir(self) -> bool:
 			return self.member.isdir()
 
+		@override
 		def is_link(self) -> bool:
 			return self.member.issym()
 
+		@override
 		def read_link(self) -> str:
 			return self.member.linkpath
 
 		@contextlib.contextmanager
+		@override
 		def open(self) -> ContextManager[IO[bytes]]:
 			yield self.tar.extractfile(self.member)
 
@@ -133,6 +145,7 @@ class TarBackupReader(PackedBackupFileReader):
 		def __init__(self, tar: tarfile.TarFile):
 			self.tar = tar
 
+		@override
 		def get_member(self, path: str) -> Optional['TarBackupReader.TarMember']:
 			try:
 				member = self.tar.getmember(path)
@@ -141,6 +154,7 @@ class TarBackupReader(PackedBackupFileReader):
 			else:
 				return TarBackupReader.TarMember(self.tar, member)
 
+		@override
 		def list_member(self) -> List['TarBackupReader.TarMember']:
 			return [TarBackupReader.TarMember(self.tar, member) for member in self.tar.getmembers()]
 
@@ -148,6 +162,7 @@ class TarBackupReader(PackedBackupFileReader):
 		self.tar_format = tar_format
 
 	@contextlib.contextmanager
+	@override
 	def open_file(self, path: Path) -> ContextManager[TarFileHolder]:
 		compress_method = self.tar_format.value.compress_method
 		if compress_method == CompressMethod.plain:
@@ -182,34 +197,43 @@ class ZipBackupReader(PackedBackupFileReader):
 			self.__mode = mode
 
 		@property
+		@override
 		def mode(self) -> int:
 			return self.__mode
 
 		@property
+		@override
 		def path(self) -> str:
 			return self.member.filename
 
 		@property
+		@override
 		def uid(self) -> Optional[int]:
 			return None
 
 		@property
+		@override
 		def gid(self) -> Optional[int]:
 			return None
 
 		@property
+		@override
 		def mtime_ns(self) -> int:
 			return int(time.mktime(self.member.date_time + (0, 0, -1)) * 1e9)
 
+		@override
 		def is_file(self) -> bool:
 			return not self.is_dir() and stat.S_ISREG(self.mode)
 
+		@override
 		def is_dir(self) -> bool:
 			return self.member.is_dir()
 
+		@override
 		def is_link(self) -> bool:
 			return not self.is_dir() and stat.S_ISLNK(self.mode)
 
+		@override
 		def read_link(self) -> str:
 			max_link_size = 10240
 			with self.open() as f:
@@ -219,6 +243,7 @@ class ZipBackupReader(PackedBackupFileReader):
 				return buf.decode('utf8')
 
 		@contextlib.contextmanager
+		@override
 		def open(self) -> ContextManager[IO[bytes]]:
 			with self.zipf.open(self.member, 'r') as f:
 				yield f
@@ -227,6 +252,7 @@ class ZipBackupReader(PackedBackupFileReader):
 		def __init__(self, zipf: zipfile.ZipFile):
 			self.zipf = zipf
 
+		@override
 		def get_member(self, path: str) -> Optional['ZipBackupReader.ZipMember']:
 			try:
 				member = self.zipf.getinfo(path)
@@ -235,10 +261,12 @@ class ZipBackupReader(PackedBackupFileReader):
 			else:
 				return ZipBackupReader.ZipMember(self.zipf, member)
 
+		@override
 		def list_member(self) -> List['ZipBackupReader.ZipMember']:
 			return [ZipBackupReader.ZipMember(self.zipf, member) for member in self.zipf.infolist()]
 
 	@contextlib.contextmanager
+	@override
 	def open_file(self, path: Path) -> ContextManager[ZipFileHolder]:
 		with zipfile.ZipFile(path, 'r') as f:
 			yield self.ZipFileHolder(f)

@@ -4,6 +4,8 @@ import time
 from pathlib import Path
 from typing import IO, Optional, List, Dict, Tuple
 
+from typing_extensions import override
+
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.action.helpers.packed_backup_file_reader import PackedBackupFileReader, TarBackupReader, ZipBackupReader, PackedBackupFileMember, PackedBackupFileHolder
 from prime_backup.compressors import Compressor, CompressMethod
@@ -191,6 +193,7 @@ class ImportBackupAction(CreateBackupActionBase):
 		self._finalize_backup_and_files(session, backup, files)
 		return backup
 
+	@override
 	def run(self) -> BackupInfo:
 		if isinstance(self.backup_format.value, TarFormat):
 			tar_format = self.backup_format.value

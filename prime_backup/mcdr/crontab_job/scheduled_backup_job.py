@@ -3,6 +3,7 @@ import threading
 from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
+from typing_extensions import override
 
 from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.config.scheduled_backup_config import ScheduledBackupConfig
@@ -28,10 +29,12 @@ class ScheduledBackupJob(BasicCrontabJob):
 		self.found_created_backup = threading.Event()
 
 	@property
+	@override
 	def id(self) -> CrontabJobId:
 		return CrontabJobId.schedule_backup
 
 	@property
+	@override
 	def job_config(self) -> CrontabJobSetting:
 		return self.config
 
@@ -47,6 +50,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 	def __backups_without_players(self, value: int):
 		self.__store['backups_without_players'] = value
 
+	@override
 	def run(self):
 		if not self.config.enabled:
 			return
@@ -84,6 +88,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 			self.found_created_backup.clear()
 			self.run_task_with_retry(task, True, requirement=lambda: not self.found_created_backup.is_set(), broadcast=True).report()
 
+	@override
 	def on_event(self, event: CrontabJobEvent):
 		super().on_event(event)
 

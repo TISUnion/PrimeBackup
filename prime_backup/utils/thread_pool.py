@@ -3,6 +3,8 @@ import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor, Future
 
+from typing_extensions import override
+
 from prime_backup.utils import misc_utils
 
 
@@ -23,6 +25,7 @@ class FailFastBlockingThreadPool(ThreadPoolExecutor):
 		self.__all_futures: 'queue.Queue[Future]' = queue.Queue()
 		self.__error_futures: 'queue.Queue[Future]' = queue.Queue()
 
+	@override
 	def submit(self, __fn, *args, **kwargs):
 		func = functools.partial(__fn, *args, **kwargs)
 
@@ -47,6 +50,7 @@ class FailFastBlockingThreadPool(ThreadPoolExecutor):
 		self.__all_futures.put(future)
 		return future
 
+	@override
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		if exc_type is None:
 			# check task exception if no error occurs

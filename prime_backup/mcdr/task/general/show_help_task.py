@@ -1,6 +1,7 @@
 from typing import Optional, Union
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup import constants
 from prime_backup.compressors import CompressMethod
@@ -29,9 +30,11 @@ class ShowHelpTask(ImmediateTask[None]):
 		self.what = what
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'help'
 
+	@override
 	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = False):
 		super().reply(msg, with_prefix=with_prefix)
 
@@ -48,6 +51,7 @@ class ShowHelpTask(ImmediateTask[None]):
 	def __has_permission(self, literal: str) -> bool:
 		return self.source.has_permission(self.config.command.permission.get(literal))
 
+	@override
 	def run(self) -> None:
 		def get_standalone_formats() -> str:
 			from prime_backup.types.standalone_backup_format import StandaloneBackupFormat

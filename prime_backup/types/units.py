@@ -5,6 +5,8 @@ import unittest
 from abc import ABC, abstractmethod
 from typing import Union, Tuple, Generic, Dict, TypeVar, NamedTuple
 
+from typing_extensions import override
+
 from prime_backup.utils import misc_utils
 
 _T = TypeVar('_T')
@@ -149,6 +151,7 @@ class Duration(_UnitValueBase[float]):
 
 	@classmethod
 	@functools.lru_cache
+	@override
 	def _get_unit_map(cls) -> Dict[str, float]:
 		ret = {}
 		for units, v in cls.__units.items():
@@ -158,12 +161,14 @@ class Duration(_UnitValueBase[float]):
 
 	@classmethod
 	@functools.lru_cache
+	@override
 	def _get_formatting_unit_map(cls) -> Dict[str, float]:
 		ret = {}
 		for u in ['s', 'm', 'h', 'd']:
 			ret[u] = cls._get_unit_map()[u]
 		return ret
 
+	@override
 	def __new__(cls, s: Union[int, float, str]):
 		if isinstance(s, str):
 			value, unit = _split_unit(s)
@@ -180,6 +185,7 @@ class Duration(_UnitValueBase[float]):
 		return obj
 
 	@property
+	@override
 	def value(self) -> Union[float, int]:
 		"""
 		Duration in second
@@ -200,12 +206,14 @@ class Quantity(_UnitValueBase[Union[float, int]]):
 
 	@classmethod
 	@functools.lru_cache
+	@override
 	def _get_unit_map(cls) -> Dict[str, float]:
 		si = cls._bsi.copy()
 		for k, v in cls._dsi.items():
 			si[k] = int(v)
 		return {k: v for k, v in si.items()}
 
+	@override
 	def __new__(cls, s: Union[int, float, str]):
 		if isinstance(s, str):
 			value, unit = _split_unit(s)
@@ -222,6 +230,7 @@ class Quantity(_UnitValueBase[Union[float, int]]):
 		return obj
 
 	@property
+	@override
 	def value(self) -> Union[int, float]:
 		"""
 		Byte count
@@ -230,12 +239,14 @@ class Quantity(_UnitValueBase[Union[float, int]]):
 
 
 class ByteCount(Quantity):
+	@override
 	def __new__(cls, s: Union[int, float, str]):
 		if isinstance(s, str) and len(s) > 0 and s[-1].lower() == 'b':
 			s = s[:-1]
 		return super().__new__(cls, s)
 
 	@classmethod
+	@override
 	def _auto_format(cls, val) -> ValueUnitPair:
 		uv = super()._auto_format(val)
 		if not uv.unit.endswith('B'):
@@ -243,6 +254,7 @@ class ByteCount(Quantity):
 		return uv
 
 	@classmethod
+	@override
 	def _precise_format(cls, val) -> ValueUnitPair:
 		uv = super()._precise_format(val)
 		if not uv.unit.endswith('B'):

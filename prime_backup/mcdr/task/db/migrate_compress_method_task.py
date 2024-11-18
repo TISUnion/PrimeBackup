@@ -1,4 +1,5 @@
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup import constants
 from prime_backup.action.migrate_compress_method_action import MigrateCompressMethodAction
@@ -13,9 +14,11 @@ class MigrateCompressMethodTask(HeavyTask[None]):
 		self.new_compress_method = new_compress_method
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_migrate_compress_method'
 
+	@override
 	def run(self):
 		try:
 			self.new_compress_method.value.ensure_lib()

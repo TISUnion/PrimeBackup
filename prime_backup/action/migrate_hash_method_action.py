@@ -2,6 +2,8 @@ import shutil
 import time
 from typing import List, Dict, Set
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor
 from prime_backup.db.access import DbAccess
@@ -53,7 +55,8 @@ class MigrateHashMethodAction(Action[None]):
 		for file in session.get_file_by_blob_hashes(list(hash_mapping.keys())):
 			file.blob_hash = hash_mapping[file.blob_hash]
 
-	def run(self):
+	@override
+	def run(self) -> None:
 		processed_hash_mapping: Dict[str, str] = {}  # old -> new
 		try:
 			t = time.time()

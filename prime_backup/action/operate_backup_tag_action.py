@@ -1,6 +1,8 @@
 from abc import ABC
 from typing import Any, TypeVar
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_tags import BackupTagName, BackupTags
@@ -20,6 +22,7 @@ class SetBackupTagAction(_OperateBackupTagActionBase[None]):
 		super().__init__(backup_id, tag_name)
 		self.value = value
 
+	@override
 	def run(self) -> None:
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
@@ -30,6 +33,7 @@ class SetBackupTagAction(_OperateBackupTagActionBase[None]):
 
 
 class ClearBackupTagAction(_OperateBackupTagActionBase[bool]):
+	@override
 	def run(self) -> bool:
 		"""
 		:return: True tag_name existed, and got deleted; False: tag_name does not exist

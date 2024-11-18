@@ -1,6 +1,7 @@
 from typing import Dict, Union
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.mcdr import mcdr_globals
@@ -17,9 +18,11 @@ class ShowWelcomeTask(LightTask[None]):
 	COMMON_COMMANDS = ['', 'help', 'make', 'back', 'list', 'show', 'rename', 'delete', 'confirm', 'abort']
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'welcome'
 
+	@override
 	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = False):
 		super().reply(msg, with_prefix=with_prefix)
 
@@ -32,6 +35,7 @@ class ShowWelcomeTask(LightTask[None]):
 		with self.source.preferred_language_context():
 			return {h.literal: h.text for h in help_message_utils.parse_help_message(msg)}
 
+	@override
 	def run(self) -> None:
 		self.reply(TextComponents.title(self.tr(
 			'title',

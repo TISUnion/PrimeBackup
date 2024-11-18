@@ -2,6 +2,7 @@ import copy
 import json
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.count_backup_action import CountBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
@@ -27,6 +28,7 @@ class ListBackupTask(LightTask[None]):
 			self.backup_filter.filter_non_hidden_backup()
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_list'
 
@@ -48,6 +50,7 @@ class ListBackupTask(LightTask[None]):
 
 		return cmd
 
+	@override
 	def run(self):
 		total_count = CountBackupAction(self.backup_filter).run()
 		backups = ListBackupAction(backup_filter=self.backup_filter, limit=self.per_page, offset=(self.page - 1) * self.per_page).run()

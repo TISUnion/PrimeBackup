@@ -1,14 +1,17 @@
+from typing_extensions import override
+
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.mcdr.task.basic_task import LightTask
-
 from prime_backup.mcdr.text_components import TextComponents
 
 
 class ShowDbOverviewTask(LightTask[None]):
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_overview'
 
+	@override
 	def run(self) -> None:
 		def make_size(size: int):
 			return TextComponents.file_size(size).h(f'{size} bytes')

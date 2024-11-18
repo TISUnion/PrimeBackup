@@ -2,6 +2,7 @@ import threading
 from typing import Optional
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.mcdr.task import TaskEvent
@@ -22,12 +23,15 @@ class CreateBackupTask(HeavyTask[Optional[int]]):
 		self.__waiting_world_save = False
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_create'
 
+	@override
 	def is_abort_able(self) -> bool:
 		return self.__waiting_world_save
 
+	@override
 	def run(self) -> Optional[int]:
 		self.broadcast(self.tr('start'))
 
@@ -80,6 +84,7 @@ class CreateBackupTask(HeavyTask[Optional[int]]):
 			if applied_auto_save_off and len(cmds.auto_save_on) > 0:
 				self.server.execute(cmds.auto_save_on)
 
+	@override
 	def on_event(self, event: TaskEvent):
 		super().on_event(event)
 		if event == TaskEvent.operation_aborted and self.__waiting_world_save:

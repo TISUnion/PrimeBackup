@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
+from typing_extensions import override
 
 from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.config.database_config import CompactDatabaseConfig
@@ -18,12 +19,15 @@ class VacuumSqliteJob(BasicCrontabJob):
 		self.config: CompactDatabaseConfig = self._root_config.database.compact
 
 	@property
+	@override
 	def id(self) -> CrontabJobId:
 		return CrontabJobId.vacuum_sqlite
 
 	@property
+	@override
 	def job_config(self) -> CrontabJobSetting:
 		return self.config
 
+	@override
 	def run(self):
 		self.run_task_with_retry(VacuumSqliteTask(self.get_command_source()), True).report()

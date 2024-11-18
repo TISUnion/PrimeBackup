@@ -6,6 +6,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import ContextManager, Optional, IO, Any
 
+from typing_extensions import override
+
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase
 from prime_backup.compressors import Compressor
 from prime_backup.constants import BACKUP_META_FILE_NAME
@@ -56,6 +58,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		super().__init__(backup_id, output_path, **kwargs)
 		self.tar_format = tar_format
 
+	@override
 	def is_interruptable(self) -> bool:
 		return True
 
@@ -121,6 +124,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		else:
 			self._on_unsupported_file_mode(file)
 
+	@override
 	def _export_backup(self, session, backup: schema.Backup) -> ExportFailures:
 		failures = ExportFailures(self.fail_soft)
 		if not self.output_path.name.endswith(self.tar_format.value.extension):

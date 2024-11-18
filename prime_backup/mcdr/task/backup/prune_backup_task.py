@@ -7,6 +7,7 @@ from typing import List, Dict, Union, Optional, Callable
 
 import pytz
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
@@ -94,9 +95,11 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 		self.verbose = verbose
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_prune'
 
+	@override
 	def is_abort_able(self) -> bool:
 		return True
 
@@ -185,11 +188,13 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 	def __msg_header(self) -> RTextBase:
 		return RTextList('(', self.what_to_prune, ') ').set_color(RColor.gray)
 
+	@override
 	def reply(self, msg: Union[str, RTextBase], *, with_prefix: bool = True):
 		if self.what_to_prune is not None:
 			msg = self.__msg_header() + msg
 		super().reply(msg, with_prefix=with_prefix)
 
+	@override
 	def run(self) -> PruneBackupResult:
 		backups = ListBackupAction(backup_filter=self.backup_filter).run()
 		backup_ids = {backup.id for backup in backups}
@@ -274,12 +279,15 @@ class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 		self.verbose = verbose
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_prune_all'
 
+	@override
 	def is_abort_able(self) -> bool:
 		return True
 
+	@override
 	def run(self) -> PruneAllBackupResult:
 		config = self.config.prune
 		result = PruneAllBackupResult()

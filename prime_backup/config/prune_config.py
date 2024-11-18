@@ -2,6 +2,7 @@ from typing import Optional, Any
 
 import pytz
 from mcdreforged.api.utils import Serializable
+from typing_extensions import override
 
 from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.types.units import Duration
@@ -39,6 +40,7 @@ class PruneConfig(CrontabJobSetting):
 		max_lifetime=Duration('30d'),
 	)
 
+	@override
 	def validate_attribute(self, attr_name: str, attr_value: Any, **kwargs):
 		super().validate_attribute(attr_name, attr_value, **kwargs)
 		if attr_name == 'timezone_override' and attr_value is not None:

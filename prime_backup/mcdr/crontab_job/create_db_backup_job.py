@@ -2,6 +2,7 @@ import threading
 from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
+from typing_extensions import override
 
 from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.config.database_config import BackUpDatabaseConfig
@@ -20,13 +21,16 @@ class CreateDbBackupJob(BasicCrontabJob):
 		self.config: BackUpDatabaseConfig = self._root_config.database.backup
 
 	@property
+	@override
 	def id(self) -> CrontabJobId:
 		return CrontabJobId.create_db_backup
 
 	@property
+	@override
 	def job_config(self) -> CrontabJobSetting:
 		return self.config
 
+	@override
 	def run(self):
 		result = self.run_task_with_retry(CreateDbBackupTask(self.get_command_source()), True)
 		if result.ret is not None:

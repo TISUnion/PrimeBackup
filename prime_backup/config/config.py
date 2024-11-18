@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional, Type
 
 from mcdreforged.api.all import Serializable
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from prime_backup.config.backup_config import BackupConfig
 from prime_backup.config.command_config import CommandConfig
@@ -71,6 +71,7 @@ class Config(Serializable):
 		return Path(self.backup.source_root)
 
 	@classmethod
+	@override
 	def deserialize(cls: Type[Self], data: dict, **kwargs) -> Self:
 		from prime_backup.config.migration import ConfigMigrator
 		from prime_backup import logger

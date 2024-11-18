@@ -1,4 +1,5 @@
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup import constants
 from prime_backup.action.get_db_meta_action import GetDbMetaAction
@@ -14,9 +15,11 @@ class MigrateHashMethodTask(HeavyTask[None]):
 		self.new_hash_method = new_hash_method
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_migrate_hash_method'
 
+	@override
 	def run(self):
 		try:
 			self.new_hash_method.value.create_hasher()

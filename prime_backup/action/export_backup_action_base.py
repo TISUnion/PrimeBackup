@@ -2,6 +2,8 @@ import json
 from abc import abstractmethod, ABC
 from pathlib import Path
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
@@ -29,6 +31,7 @@ class _ExportBackupActionBase(Action[ExportFailures], ABC):
 		self.verify_blob = verify_blob
 		self.create_meta = create_meta
 
+	@override
 	def run(self) -> ExportFailures:
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)

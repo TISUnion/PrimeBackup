@@ -2,6 +2,7 @@ from abc import ABC
 from typing import Any
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.operate_backup_tag_action import SetBackupTagAction, ClearBackupTagAction
 from prime_backup.mcdr.task.basic_task import LightTask
@@ -22,9 +23,11 @@ class SetBackupTagTask(_OperateBackupTagTaskBase):
 		self.value = value
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_set_tag'
 
+	@override
 	def run(self) -> None:
 		SetBackupTagAction(self.backup_id, self.tag_name, self.value).run()
 		self.reply_tr('set', TextComponents.backup_id(self.backup_id), TextComponents.tag_name(self.tag_name), TextComponents.auto(self.value))
@@ -32,9 +35,11 @@ class SetBackupTagTask(_OperateBackupTagTaskBase):
 
 class ClearBackupTagTask(_OperateBackupTagTaskBase):
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_clear_tag'
 
+	@override
 	def run(self) -> None:
 		ok = ClearBackupTagAction(self.backup_id, self.tag_name).run()
 		if ok:

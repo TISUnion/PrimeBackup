@@ -10,7 +10,7 @@ from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from mcdreforged.api.all import *
-from typing_extensions import final
+from typing_extensions import final, override
 
 from prime_backup import logger
 from prime_backup.config.config import Config
@@ -66,6 +66,7 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 		...
 
 	@final
+	@override
 	def is_enabled(self) -> bool:
 		return self.job_config.enabled
 
@@ -86,6 +87,7 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 	# ================================== Overrides ===================================
 
+	@override
 	def enable(self):
 		if self.aps_job is not None:
 			raise RuntimeError('double-enable a job')
@@ -93,10 +95,12 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			trigger = self._create_trigger()
 			self.aps_job = self.scheduler.add_job(func=self.run, trigger=trigger, id=self.id.name)
 
+	@override
 	def pause(self):
 		self.__ensure_aps_job()
 		self.aps_job.pause()
 
+	@override
 	def resume(self):
 		self.__ensure_aps_job()
 		self.aps_job.resume()
@@ -107,9 +111,11 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			return True
 		return False
 
+	@override
 	def is_running(self) -> bool:
 		return self.aps_job is not None and self.aps_job.next_run_time is not None
 
+	@override
 	def is_pause(self) -> bool:
 		return not self.is_running()
 
@@ -118,10 +124,12 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 		nrt = self.aps_job.next_run_time
 		return (nrt - datetime.datetime.now(nrt.tzinfo)).total_seconds()
 
+	@override
 	def get_duration_until_next_run_text(self) -> RTextBase:
 		self.__ensure_running()
 		return TextComponents.date_diff(self.aps_job.next_run_time)
 
+	@override
 	def get_next_run_date(self) -> RTextBase:
 		self.__ensure_aps_job()
 		if (nrt := self.aps_job.next_run_time) is not None:
@@ -129,12 +137,14 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 		else:
 			return self.__base_tr('next_run_date_paused').set_color(RColor.gray)
 
+	@override
 	def get_name_text(self) -> RTextBase:
 		return self.tr('name').set_color(TextColors.job_id).h(self.id.name)
 
 	def get_name_text_titled(self) -> RTextBase:
 		return self.tr('name_titled').set_color(TextColors.job_id).h(self.id.name)
 
+	@override
 	def on_event(self, event: CrontabJobEvent):
 		if event == CrontabJobEvent.plugin_unload:
 			self.abort_event.set()
@@ -192,6 +202,7 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 		this, base_tr = self, self.__base_tr
 
 		class RunTaskWithRetryResultImpl(self.RunTaskWithRetryResult):
+			@override
 			def report(self):
 				if self.executed:
 					if self.error is None:

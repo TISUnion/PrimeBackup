@@ -3,6 +3,8 @@ from abc import ABC
 from pathlib import Path
 from typing import List, Callable, Optional
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.action.helpers.fileset_allocator import FilesetAllocator
 from prime_backup.db import schema
@@ -58,6 +60,7 @@ class CreateBackupActionBase(Action[BackupInfo], ABC):
 		session.add(backup)
 		session.flush()  # this generates backup.id
 
+	@override
 	def run(self) -> None:
 		self.__new_blobs.clear()
 		self.__new_blobs_summary = None

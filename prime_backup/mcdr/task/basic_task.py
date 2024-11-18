@@ -3,7 +3,7 @@ from abc import ABC
 from typing import Union, Optional, TypeVar
 
 from mcdreforged.api.all import *
-from typing_extensions import final
+from typing_extensions import final, override
 
 from prime_backup.action import Action
 from prime_backup.mcdr.task import Task, TaskEvent
@@ -38,6 +38,7 @@ class _BasicTask(Task[_T], ABC):
 
 	# ================================== Overrides ==================================
 
+	@override
 	def is_abort_able(self) -> bool:
 		return (
 				self.is_waiting_confirm
@@ -45,9 +46,11 @@ class _BasicTask(Task[_T], ABC):
 				or ((action := self.__running_action) is not None and action.is_interruptable())
 		)
 
+	@override
 	def get_abort_permission(self) -> int:
 		return max(PermissionLevel.ADMIN, self.source.get_permission_level())
 
+	@override
 	def on_event(self, event: TaskEvent):
 		self._confirm_helper.on_event(event)
 		if event in [TaskEvent.plugin_unload, TaskEvent.operation_aborted]:
@@ -134,5 +137,6 @@ class ImmediateTask(_BasicTask[_T], ABC):
 	Executes immediately
 	"""
 	@final
+	@override
 	def is_abort_able(self) -> bool:
 		return super().is_abort_able()

@@ -1,6 +1,7 @@
 from typing import Any
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_task import LightTask
@@ -17,9 +18,11 @@ class ShowBackupSingleTagTask(LightTask[None]):
 		self.tag_name = tag_name
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_show_tag_single'
 
+	@override
 	def run(self) -> None:
 		backup = GetBackupAction(self.backup_id).run()
 		value = backup.tags.get(self.tag_name)
@@ -44,6 +47,7 @@ class ShowBackupTagTask(LightTask[None]):
 		self.backup_id = backup_id
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_show_tag'
 
@@ -71,6 +75,7 @@ class ShowBackupTagTask(LightTask[None]):
 
 		self.reply(RTextBase.format('{} {}: {}', RTextBase.join(' ', buttons), t_key, t_value))
 
+	@override
 	def run(self) -> None:
 		backup = GetBackupAction(self.backup_id).run()
 		self.reply(TextComponents.title(self.tr('title', TextComponents.backup_id(backup.id, backup_data=backup))))

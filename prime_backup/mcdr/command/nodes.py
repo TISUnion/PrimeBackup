@@ -4,12 +4,14 @@ import re
 from typing import Optional
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.utils import conversion_utils
 from prime_backup.utils.mcdr_utils import tr
 
 
 class DateNode(ArgumentNode):
+	@override
 	def parse(self, text: str) -> ParseResult:
 		result = QuotableText('temp').parse(text)
 		try:
@@ -20,6 +22,7 @@ class DateNode(ArgumentNode):
 
 
 class MultiIntegerNode(Integer):
+	@override
 	def _on_visited(self, context: CommandContext, parsed_result: ParseResult):
 		if self.get_name() not in context:
 			context[self.get_name()] = []
@@ -43,6 +46,7 @@ class IdRangeNode(ArgumentNode):
 		r'\[ *(?P<start>\d+) *, *(?P<end>\d+) *\]',
 	]))
 
+	@override
 	def parse(self, text: str) -> ParseResult:
 		result = QuotableText('temp').parse(text)
 		text: str = result.value.strip()
@@ -63,6 +67,7 @@ class IdRangeNode(ArgumentNode):
 class HexStringNode(Text):
 	__pattern = re.compile('[a-f0-9]+')
 
+	@override
 	def parse(self, text: str) -> ParseResult:
 		result = super().parse(text)
 		h: str = result.value.lower()
@@ -76,6 +81,7 @@ class InvalidJson(IllegalArgument):
 
 
 class JsonObjectNode(ArgumentNode):
+	@override
 	def parse(self, text: str) -> ParseResult:
 		if len(text) == 0:
 			raise InvalidJson(tr('error.node.invalid_json.empty'), 0)

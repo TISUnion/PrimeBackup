@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Callable, Any
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.get_blob_action import GetBlobByHashPrefixAction
@@ -60,9 +61,11 @@ class InspectBackupTask(_InspectObjectTaskBase):
 		self.backup_id = backup_id
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_inspect_backup'
 
+	@override
 	def run(self) -> None:
 		backup = GetBackupAction(self.backup_id, with_files=True).run()
 		self.reply(TextComponents.title(self.tr('title', self._gt_backup_id(backup.id, True))))
@@ -98,6 +101,7 @@ class _InspectFileTaskBase(_InspectObjectTaskBase, ABC):
 		self.file_path = Path(file_path).as_posix()
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_inspect_file'
 
@@ -105,6 +109,7 @@ class _InspectFileTaskBase(_InspectObjectTaskBase, ABC):
 	def _get_file(self) -> FileInfo:
 		raise NotImplementedError()
 
+	@override
 	def run(self) -> None:
 		file = self._get_file()
 		self.reply(TextComponents.title(self.tr('title', self._gt_fileset_id(file.fileset_id), self._gt_file_name(file.path))))
@@ -140,6 +145,7 @@ class InspectBackupFileTask(_InspectFileTaskBase):
 		super().__init__(source, file_path)
 		self.backup_id = backup_id
 
+	@override
 	def _get_file(self) -> FileInfo:
 		return GetBackupFileAction(self.backup_id, self.file_path).run()
 
@@ -149,6 +155,7 @@ class InspectFilesetFileTask(_InspectFileTaskBase):
 		super().__init__(source, file_path)
 		self.fileset_id = fileset_id
 
+	@override
 	def _get_file(self) -> FileInfo:
 		return GetFilesetFileAction(self.fileset_id, self.file_path).run()
 
@@ -159,9 +166,11 @@ class InspectFilesetTask(_InspectObjectTaskBase):
 		self.fileset_id = fileset_id
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_inspect_fileset'
 
+	@override
 	def run(self) -> None:
 		fileset = GetFilesetAction(self.fileset_id, count_backups=True, sample_backup_limit=3).run()
 		self.reply(TextComponents.title(self.tr('title', self._gt_fileset_id(fileset.id))))
@@ -186,9 +195,11 @@ class InspectBlobTask(_InspectObjectTaskBase):
 		self.blob_hash = blob_hash
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_inspect_blob'
 
+	@override
 	def run(self) -> None:
 		blob = GetBlobByHashPrefixAction(self.blob_hash, count_files=True).run()
 		self.reply(TextComponents.title(self.tr('title', self._gt_blob_hash(blob.hash, shorten_hash=True))))

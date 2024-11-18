@@ -1,3 +1,5 @@
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 
@@ -8,6 +10,7 @@ class RenameBackupAction(Action[None]):
 		self.backup_id = backup_id
 		self.comment = comment
 
+	@override
 	def run(self) -> None:
 		with DbAccess.open_session() as session:
 			session.get_backup(self.backup_id).comment = self.comment

@@ -1,3 +1,5 @@
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.exceptions import BlobNotFound, BlobHashNotUnique
@@ -10,6 +12,7 @@ class GetBlobAction(Action[BlobInfo]):
 		self.blob_hash = blob_hash
 		self.count_files = count_files
 
+	@override
 	def run(self) -> BlobInfo:
 		"""
 		:raise: BlobNotFound
@@ -26,6 +29,7 @@ class GetBlobByHashPrefixAction(Action[BlobInfo]):
 		self.blob_hash_prefix = blob_hash_prefix
 		self.count_files = count_files
 
+	@override
 	def run(self) -> BlobInfo:
 		"""
 		:raise: BlobNotFound or BlobHashNotUnique

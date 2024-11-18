@@ -1,4 +1,5 @@
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_task import LightTask
@@ -14,9 +15,11 @@ class ShowBackupTask(LightTask[None]):
 		self.backup_id = backup_id
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_show'
 
+	@override
 	def run(self):
 		backup = GetBackupAction(self.backup_id).run()
 

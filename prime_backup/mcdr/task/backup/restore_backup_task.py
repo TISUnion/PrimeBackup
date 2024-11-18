@@ -1,6 +1,7 @@
 from typing import Optional
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.export_backup_action_directory import ExportBackupToDirectoryAction
@@ -27,12 +28,15 @@ class RestoreBackupTask(HeavyTask[None]):
 		self.__can_abort = False
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_restore'
 
+	@override
 	def is_abort_able(self) -> bool:
 		return super().is_abort_able() or self.__can_abort
 
+	@override
 	def get_abort_permission(self) -> int:
 		return 0
 
@@ -53,6 +57,7 @@ class RestoreBackupTask(HeavyTask[None]):
 		self.server.wait_until_stop()
 		return True
 
+	@override
 	def run(self):
 		if self.backup_id is None:
 			backup_filter = BackupFilter()

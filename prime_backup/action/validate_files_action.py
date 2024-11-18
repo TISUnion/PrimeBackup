@@ -2,6 +2,8 @@ import collections
 import dataclasses
 from typing import List, Dict
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
@@ -26,6 +28,7 @@ class ValidateFilesResult:
 
 
 class ValidateFilesAction(Action[ValidateFilesResult]):
+	@override
 	def is_interruptable(self) -> bool:
 		return True
 
@@ -79,6 +82,7 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 				else:
 					result.ok += 1
 
+	@override
 	def run(self) -> ValidateFilesResult:
 		self.logger.info('File validation start')
 		result = ValidateFilesResult()

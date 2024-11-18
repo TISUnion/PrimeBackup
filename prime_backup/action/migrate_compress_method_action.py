@@ -3,6 +3,8 @@ import time
 from pathlib import Path
 from typing import List, Tuple, Set
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.compressors import CompressMethod, Compressor
 from prime_backup.db import schema
@@ -96,6 +98,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 			if old_trash_path.is_file():
 				old_trash_path.replace(blob_path)
 
+	@override
 	def run(self) -> SizeDiff:
 		# Notes: requires 2x disk usage of the blob store, stores all blob hashes in memory
 		self.__migrated_blob_hashes.clear()

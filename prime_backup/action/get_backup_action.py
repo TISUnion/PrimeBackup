@@ -1,3 +1,5 @@
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_info import BackupInfo
@@ -10,6 +12,7 @@ class GetBackupAction(Action[BackupInfo]):
 		self.backup_id = misc_utils.ensure_type(backup_id, int)
 		self.with_files = with_files
 
+	@override
 	def run(self) -> BackupInfo:
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)

@@ -1,6 +1,8 @@
 from abc import ABC
 from typing import Optional, List, TypeVar
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_filter import BackupFilter
@@ -18,6 +20,7 @@ class _ListBackupActionBase(Action[_T], ABC):
 
 
 class ListBackupAction(_ListBackupActionBase[List[BackupInfo]]):
+	@override
 	def run(self) -> List[BackupInfo]:
 		with DbAccess.open_session() as session:
 			backups = session.list_backup(backup_filter=self.backup_filter, limit=self.limit, offset=self.offset)
@@ -25,6 +28,7 @@ class ListBackupAction(_ListBackupActionBase[List[BackupInfo]]):
 
 
 class ListBackupIdAction(_ListBackupActionBase[List[int]]):
+	@override
 	def run(self) -> List[int]:
 		with DbAccess.open_session() as session:
 			backups = session.list_backup(backup_filter=self.backup_filter, limit=self.limit, offset=self.offset)

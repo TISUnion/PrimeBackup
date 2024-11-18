@@ -1,6 +1,7 @@
 import json
 
 from mcdreforged.api.all import CommandSource
+from typing_extensions import override
 
 from prime_backup.action.rename_backup_action import RenameBackupAction
 from prime_backup.mcdr.task.basic_task import LightTask
@@ -14,9 +15,11 @@ class RenameBackupTask(LightTask[None]):
 		self.comment = comment
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_rename'
 
+	@override
 	def run(self) -> None:
 		RenameBackupAction(self.backup_id, self.comment).run()
 		self.reply_tr('modified', TextComponents.backup_id(self.backup_id), json.dumps(self.comment, ensure_ascii=False))

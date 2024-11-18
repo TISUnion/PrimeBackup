@@ -1,3 +1,5 @@
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.types.fileset_info import FilesetInfo
@@ -10,6 +12,7 @@ class GetFilesetAction(Action[FilesetInfo]):
 		self.count_backups = count_backups
 		self.sample_backup_limit = sample_backup_limit
 
+	@override
 	def run(self) -> FilesetInfo:
 		with DbAccess.open_session() as session:
 			backup_count = session.get_fileset_associated_backup_count(self.fileset_id) if self.count_backups else 0

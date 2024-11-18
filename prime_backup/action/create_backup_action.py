@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, ContextManager
 
 import pathspec
-from typing_extensions import NoReturn
+from typing_extensions import NoReturn, override
 
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
@@ -104,6 +104,7 @@ class BlobBySizeFetcher(BatchFetcherBase):
 		self.sizes.add(query.size)
 		self._post_query()
 
+	@override
 	def _batch_run(self):
 		existence = self.session.has_blob_with_size_batched(list(self.sizes))
 		self.result_cache.update(existence)
@@ -137,6 +138,7 @@ class BlobByHashFetcher(BatchFetcherBase):
 		self.hashes.add(query.hash)
 		self._post_query()
 
+	@override
 	def _batch_run(self):
 		blobs = self.session.get_blobs(list(self.hashes))
 		self.result_cache.update(blobs)
@@ -545,6 +547,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			blob=blob,
 		)
 
+	@override
 	def run(self) -> BackupInfo:
 		super().run()
 		self.__blob_by_size_cache.clear()

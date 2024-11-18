@@ -1,6 +1,8 @@
 import dataclasses
 from typing import List, Dict
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.compressors import Compressor
 from prime_backup.db.access import DbAccess
@@ -35,6 +37,7 @@ class ValidateBlobsResult:
 
 
 class ValidateBlobsAction(Action[ValidateBlobsResult]):
+	@override
 	def is_interruptable(self) -> bool:
 		return True
 
@@ -92,6 +95,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 			else:
 				result.ok += 1
 
+	@override
 	def run(self) -> ValidateBlobsResult:
 		self.logger.info('Blob validation start')
 		result = ValidateBlobsResult()

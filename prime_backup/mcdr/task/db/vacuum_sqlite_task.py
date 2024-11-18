@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
 from prime_backup.mcdr.task.basic_task import HeavyTask
@@ -15,9 +16,11 @@ class VacuumSqliteTask(HeavyTask[None]):
 		self.target_path = target_path
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_vacuum'
 
+	@override
 	def run(self) -> None:
 		self.reply_tr('start')
 		t = time.time()

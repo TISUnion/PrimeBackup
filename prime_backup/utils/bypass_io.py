@@ -1,6 +1,8 @@
 import io
 from typing import Union, TYPE_CHECKING, Optional
 
+from typing_extensions import override
+
 if TYPE_CHECKING:
 	from prime_backup.types.hash_method import HashMethod
 
@@ -17,6 +19,7 @@ class BypassReader(io.BytesIO):
 		else:
 			self.hasher = None
 
+	@override
 	def read(self, *args, **kwargs):
 		data = self.file_obj.read(*args, **kwargs)
 		self.read_len += len(data)
@@ -27,6 +30,7 @@ class BypassReader(io.BytesIO):
 	def readall(self):
 		raise NotImplementedError()
 
+	@override
 	def readinto(self, b: Union[bytearray, memoryview]):
 		n = self.file_obj.readinto(b)
 		if n:
@@ -57,6 +61,7 @@ class BypassWriter(io.BytesIO):
 		self.file_obj: io.BytesIO = file_obj
 		self.write_len = 0
 
+	@override
 	def write(self, __buffer):
 		n = self.file_obj.write(__buffer)
 		self.write_len += n

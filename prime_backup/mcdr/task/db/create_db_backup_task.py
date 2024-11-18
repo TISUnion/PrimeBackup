@@ -4,6 +4,8 @@ import time
 from pathlib import Path
 from typing import Optional
 
+from typing_extensions import override
+
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
 from prime_backup.db import db_constants
 from prime_backup.mcdr.task.basic_task import HeavyTask
@@ -15,9 +17,11 @@ class CreateDbBackupTask(HeavyTask[None]):
 	__task_sem = threading.Semaphore(1)
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_backup'
 
+	@override
 	def run(self) -> Optional[threading.Thread]:
 		if not self.__task_sem.acquire(blocking=False):
 			self.logger.warning('Another {} is running, skipped'.format(self.__class__.__name__))

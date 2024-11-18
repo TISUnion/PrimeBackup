@@ -1,6 +1,8 @@
 import dataclasses
 from typing import List, Dict, Tuple
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
@@ -47,6 +49,7 @@ class DiffBackupAction(Action[DiffResult]):
 				))
 		)
 
+	@override
 	def run(self) -> DiffResult:
 		with DbAccess.open_session() as session:
 			files_old = self.__get_files_from_backup(session, self.backup_id_old)

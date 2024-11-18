@@ -1,6 +1,7 @@
 from typing import Callable, List
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.diff_backup_action import DiffBackupAction
 from prime_backup.mcdr.task.basic_task import LightTask
@@ -16,9 +17,11 @@ class DiffBackupTask(LightTask[None]):
 		self.backup_id_new = backup_id_new
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_diff'
 
+	@override
 	def run(self) -> None:
 		result = DiffBackupAction(self.backup_id_old, self.backup_id_new, compare_status=False).run()
 		

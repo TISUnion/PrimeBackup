@@ -1,6 +1,7 @@
 from typing import List
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.get_backup_action import GetBackupAction
@@ -17,9 +18,11 @@ class DeleteBackupTask(HeavyTask[None]):
 			raise ValueError()
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_delete'
 
+	@override
 	def run(self):
 		if len(self.backup_ids) > 1:
 			self.reply_tr(

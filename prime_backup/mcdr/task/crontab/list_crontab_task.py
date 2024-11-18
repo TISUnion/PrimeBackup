@@ -1,4 +1,5 @@
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.basic_task import ImmediateTask
@@ -12,9 +13,11 @@ class ListCrontabJobTask(ImmediateTask[None]):
 		self.crontab_manager = crontab_manager
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'crontab_list_job'
 
+	@override
 	def run(self) -> None:
 		self.reply(TextComponents.title(self.tr('title')))
 		for job in self.crontab_manager.list_jobs():

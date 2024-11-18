@@ -1,4 +1,5 @@
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
 from prime_backup.mcdr.task.crontab import CrontabTaskBase
@@ -8,9 +9,11 @@ from prime_backup.utils.mcdr_utils import mkcmd
 
 class ShowCrontabJobTask(CrontabTaskBase[None]):
 	@property
+	@override
 	def id(self) -> str:
 		return 'crontab_show'
 
+	@override
 	def run(self) -> None:
 		job = self.get_job()
 

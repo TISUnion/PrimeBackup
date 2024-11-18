@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Optional
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.types.size_diff import SizeDiff
@@ -11,6 +13,7 @@ class VacuumSqliteAction(Action[SizeDiff]):
 		super().__init__()
 		self.target_path = target_path
 
+	@override
 	def run(self) -> SizeDiff:
 		db_file_path = DbAccess.get_db_file_path()
 		prev_size = db_file_path.stat().st_size

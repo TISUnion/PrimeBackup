@@ -4,6 +4,7 @@ import time
 from typing import List, Optional, TypeVar
 
 from mcdreforged.api.all import *
+from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.action.get_object_counts_action import GetObjectCountsAction
@@ -36,9 +37,11 @@ class ValidateDbTask(HeavyTask[None]):
 		self.__current_action: Optional[Action] = None
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'db_validate'
 
+	@override
 	def is_abort_able(self) -> bool:
 		return True
 
@@ -121,6 +124,7 @@ class ValidateDbTask(HeavyTask[None]):
 		show('bad_blob_relation', result.bad_blob_relation)
 		show('file_blob_mismatched', result.file_blob_mismatched)
 
+	@override
 	def run(self) -> None:
 		if not self.parts:
 			self.reply_tr('nothing_to_validate')

@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
+from typing_extensions import override
 
 from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.config.prune_config import PruneConfig
@@ -18,13 +19,16 @@ class PruneBackupJob(BasicCrontabJob):
 		self.config: PruneConfig = self._root_config.prune
 
 	@property
+	@override
 	def id(self) -> CrontabJobId:
 		return CrontabJobId.prune_backup
 
 	@property
+	@override
 	def job_config(self) -> CrontabJobSetting:
 		return self.config
 
+	@override
 	def run(self):
 		self.logger.info('Prune backup job started')
 

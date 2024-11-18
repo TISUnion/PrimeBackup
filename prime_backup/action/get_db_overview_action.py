@@ -1,5 +1,7 @@
 import dataclasses
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 
@@ -23,6 +25,7 @@ class DbOverviewResult:
 
 
 class GetDbOverviewAction(Action[DbOverviewResult]):
+	@override
 	def run(self) -> DbOverviewResult:
 		db_file_size = DbAccess.get_db_file_path().stat().st_size
 		with DbAccess.open_session() as session:

@@ -4,6 +4,7 @@ from typing import Optional
 from mcdreforged.api.all import *
 
 from prime_backup.action.create_backup_action import CreateBackupAction
+from prime_backup.mcdr.events import BACKUP_DONE_EVENT
 from prime_backup.mcdr.task import TaskEvent
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
@@ -66,6 +67,8 @@ class CreateBackupTask(HeavyTask[None]):
 				TextComponents.backup_size(backup),
 				TextComponents.blob_list_summary_store_size(bls),
 			))
+
+			self.server.dispatch_event(BACKUP_DONE_EVENT, (self.source, backup.id))
 		finally:
 			if applied_auto_save_off and len(cmds.auto_save_on) > 0:
 				self.server.execute(cmds.auto_save_on)

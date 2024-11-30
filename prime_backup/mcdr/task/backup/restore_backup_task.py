@@ -6,6 +6,7 @@ from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.export_backup_action import ExportBackupToDirectoryAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
+from prime_backup.mcdr.events import RESTORE_DONE_EVENT
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
@@ -117,3 +118,5 @@ class RestoreBackupTask(HeavyTask[None]):
 			logger.info('{} restored world to backup #{} (date={}, comment={!r}), pre-restore temp backup: {}'.format(
 				self.source, backup.id, backup.date_str, backup.comment, pre_restore_backup_id,
 			))
+
+		self.server.dispatch_event(RESTORE_DONE_EVENT, (self.source, backup.id))

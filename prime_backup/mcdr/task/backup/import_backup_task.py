@@ -4,6 +4,7 @@ from typing import Optional
 from mcdreforged.api.all import *
 
 from prime_backup.action.import_backup_action import ImportBackupAction, BackupMetadataNotFound
+from prime_backup.mcdr.events import IMPORT_DONE_EVENT
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
@@ -49,3 +50,5 @@ class ImportBackupTask(HeavyTask[None]):
 			self.reply_tr('backup_metadata_not_found.suggestion', name=mcdr_globals.metadata.name)
 		else:
 			self.reply_tr('done', t_fp, TextComponents.backup_id(backup))
+
+		self.server.dispatch_event(IMPORT_DONE_EVENT, (self.source, backup.id))

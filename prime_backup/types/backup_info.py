@@ -37,6 +37,9 @@ class BackupInfo:
 	def date_str(self) -> str:
 		return conversion_utils.timestamp_to_local_date_str(self.timestamp_ns)
 
+	def to_dict(self) -> dict:
+		return dataclasses.asdict(self)
+
 	@classmethod
 	def of(cls, backup: schema.Backup, *, with_files: bool = False) -> 'Self':
 		"""

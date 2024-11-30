@@ -4,6 +4,7 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.get_backup_action import GetBackupAction
+from prime_backup.mcdr.events import DELETE_DONE_EVENT
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.utils import collection_utils
@@ -42,3 +43,5 @@ class DeleteBackupTask(HeavyTask[None]):
 				TextComponents.backup_id(backup_id, hover=False, click=False),
 				TextComponents.blob_list_summary_store_size(dr.bls),
 			)
+		
+		self.server.dispatch_event(DELETE_DONE_EVENT, (self.source, self.backup_ids))

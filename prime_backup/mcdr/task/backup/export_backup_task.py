@@ -4,6 +4,7 @@ from mcdreforged.api.all import *
 
 from prime_backup.action.export_backup_action import ExportBackupToZipAction, ExportBackupToTarAction
 from prime_backup.action.get_backup_action import GetBackupAction
+from prime_backup.mcdr.events import EXPORT_DONE_EVENT
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.standalone_backup_format import ZipFormat, StandaloneBackupFormat
@@ -78,3 +79,5 @@ class ExportBackupTask(HeavyTask[None]):
 			self.reply_tr('failures', len(failures))
 			for line in failures.to_lines():
 				self.reply(line)
+
+		self.server.dispatch_event(EXPORT_DONE_EVENT, (self.source, backup.id, path.absolute().as_posix()))

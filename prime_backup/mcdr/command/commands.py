@@ -36,6 +36,13 @@ from prime_backup.mcdr.task.db.validate_db_task import ValidateDbTask, ValidateP
 from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task.general.show_welcome_task import ShowWelcomeTask
 from prime_backup.mcdr.task_manager import TaskManager
+from prime_backup.mcdr.events import (
+    TRIGGER_BACKUP_EVENT,
+    TRIGGER_RESTORE_EVENT,
+    TRIGGER_DELETE_EVENT,
+    TRIGGER_IMPORT_EVENT,
+    TRIGGER_EXPORT_EVENT,
+)
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.hash_method import HashMethod
@@ -44,7 +51,6 @@ from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.utils import misc_utils
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 from prime_backup.utils.waitable_value import WaitableValue
-
 
 class CommandManager:
 	def __init__(self, server: PluginServerInterface, task_manager: TaskManager, crontab_manager: CrontabManager):
@@ -424,3 +430,47 @@ class CommandManager:
 		# --------------- register ---------------
 
 		self.server.register_command(root)
+
+	def register_event_listeners(self, server: PluginServerInterface):
+		server.register_event_listener(
+			TRIGGER_BACKUP_EVENT, 
+			lambda svr, source, comment, operator: self.task_manager.add_task(CreateBackupTask(source, comment=comment, operator=operator))
+		)
+		server.register_event_listener(
+			TRIGGER_RESTORE_EVENT,
+			lambda svr, source, backup_id, needs_confirm=False, fail_soft=False, verify_blob=True: self.task_manager.add_task(
+				RestoreBackupTask(source, backup_id, needs_confirm=needs_confirm, fail_soft=fail_soft, verify_blob=verify_blob)
+			)
+		)
+		server.register_event_listener(
+			TRIGGER_DELETE_EVENT,
+			lambda svr, source, backup_ids: self.task_manager.add_task(
+			DeleteBackupTask(source, backup_ids)
+			),
+		)
+		server.register_event_listener(
+			TRIGGER_IMPORT_EVENT,
+			lambda svr, source, file_path, backup_format, ensure_meta, meta_override: self.task_manager.add_task(
+			ImportBackupTask(
+				source,
+				file_path,
+				backup_format=backup_format,
+				ensure_meta=ensure_meta,
+				meta_override=meta_override,
+			)
+			),
+		)
+		server.register_event_listener(
+			TRIGGER_EXPORT_EVENT,
+			lambda svr, source, backup_id, export_format, fail_soft, verify_blob, overwrite_existing, create_meta: self.task_manager.add_task(
+			ExportBackupTask(
+				source,
+				backup_id,
+				export_format=export_format,
+				fail_soft=fail_soft,
+				verify_blob=verify_blob,
+				overwrite_existing=overwrite_existing,
+				create_meta=create_meta,
+			)
+			),
+		)

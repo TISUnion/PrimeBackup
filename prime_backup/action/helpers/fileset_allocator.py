@@ -114,7 +114,7 @@ class FilesetAllocator:
 		for c_fileset in self.session.get_last_n_base_fileset(limit=args.candidate_select_count):
 			c_fileset_files = self.__get_fileset_files(c_fileset.id)
 			c_file_by_path = self.__get_file_by_path(c_fileset_files)
-			delta = self.__calc_delta(c_file_by_path, file_by_path)
+			delta = self.__calc_delta(old=c_file_by_path, new=file_by_path)
 			self.logger.debug('Selecting fileset base candidate: id={} delta_size={}'.format(c_fileset.id, delta.size()))
 			if delta.size() < len(file_by_path) * args.candidate_max_changes_ratio and (c is None or delta.size() < c.delta_size):
 				c = Candidate(c_fileset, c_file_by_path, delta, delta.size())
@@ -173,6 +173,9 @@ class FilesetAllocator:
 			file_count = 0
 			file_raw_size_sum = 0
 			file_stored_size_sum = 0
+
+			# NOTES: We can only manipulate new files (which are references from self.files),
+			#        DO NOT manipulate old files (which are files in existing fileset)
 			for new_file in c.delta.added:
 				new_file.role = FileRole.delta_add.value
 				file_count += 1

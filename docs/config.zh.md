@@ -216,6 +216,7 @@ Prime Backup 在创建备份时的操作时序如下：
        "**/session.lock"
     ],
     "follow_target_symlink": false,
+    "reuse_stat_unchanged_file": false,
     "hash_method": "xxh128",
     "compress_method": "zstd",
     "compress_threshold": 64
@@ -301,6 +302,28 @@ world --> foo --> bar
 ```
 
 Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 符号链接，和最终的的 `bar` 文件夹
+
+- 类型：`bool`
+- 默认值：`false`
+
+#### reuse_stat_unchanged_file
+
+启用时，在创建备份过程中，Prime Backup 将尝试直接复用之前备份中那些未改变（如大小、修改时间、权限等）的文件信息。
+对于这些未改变文件的统计信息，将不会进行文件哈希检查。
+
+如果你想获得尽可能快的备份创建速度，可以尝试启用此选项，但这会引入潜在的备份不完整的风险。
+除非你确实需要这一备份速度增益，或者系统磁盘读取性能过低，否则不建议启用此选项
+
+!!! warning
+
+    请在确保服务器的操作系统和文件系统正常且稳定运行后，再启用此选项。
+    否则，如果出现系统时间回退或文件系统元数据异常等问题，可能会造成某些文件的内容变化但 stat 保持不变的情况，
+    从而导致 Prime Backup 创建出了一个不完整的备份
+
+!!! tip
+
+    除非你确实需要这一备份速度增益，或者系统磁盘读取性能过低，否则不建议启用此选项。
+    Prime Backup 的速度已经足够快了
 
 - 类型：`bool`
 - 默认值：`false`

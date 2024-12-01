@@ -17,6 +17,7 @@ class BackupConfig(Serializable):
 		'**/session.lock',
 	]
 	follow_target_symlink: bool = False
+	reuse_stat_unchanged_file: bool = False
 	hash_method: HashMethod = HashMethod.xxh128
 	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 64

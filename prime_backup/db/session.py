@@ -589,6 +589,11 @@ class DbSession:
 		fileset_ids = self.get_fileset_ids_by_blob_hashes(hashes)
 		return self.get_backup_ids_by_fileset_ids(fileset_ids)
 
+	def get_last_backup(self) -> Optional[schema.Backup]:
+		s = select(schema.Backup).order_by(desc(schema.Backup.id)).limit(1)
+		backups = _list_it(self.session.execute(s).scalars().all())
+		return backups[0] if backups else None
+
 	def list_backup(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Backup]:
 		s = select(schema.Backup)
 		if backup_filter is not None:

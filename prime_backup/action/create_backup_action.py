@@ -198,6 +198,7 @@ class _ScanResult:
 class _PreCalculationResult:
 	stats: Dict[Path, os.stat_result] = dataclasses.field(default_factory=dict)
 	hashes: Dict[Path, str] = dataclasses.field(default_factory=dict)
+	reused_files: Dict[Path, schema.File] = dataclasses.field(default_factory=dict)
 
 
 class CreateBackupAction(CreateBackupActionBase):
@@ -220,6 +221,9 @@ class CreateBackupAction(CreateBackupActionBase):
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
 
 		self.__source_path: Path = source_path or self.config.source_path
+
+	def __file_path_to_db_path(self, path: Path) -> str:
+		return path.relative_to(self.__source_path).as_posix()
 
 	def __scan_files(self) -> _ScanResult:
 		ignore_patterns = pathspec.GitIgnoreSpec.from_lines(self.config.backup.ignore_patterns)
@@ -284,32 +288,70 @@ class CreateBackupAction(CreateBackupActionBase):
 		for file_entry in scan_result.all_files:
 			stats[file_entry.path] = file_entry.stat
 
+	def __reuse_unchanged_files(self, session: DbSession, scan_result: _ScanResult):
+		backup = session.get_last_backup()
+		if backup is None:
+			return
+
+		@dataclasses.dataclass(frozen=True)
+		class StatKey:
+			path: str
+			size: Optional[int]  # it shouldn't be None, but just in case
+			mode: int
+			uid: int
+			gid: int
+			mtime: int
+
+		stat_to_files: Dict[StatKey, schema.File] = {}
+		for file in session.get_backup_files(backup.id):
+			if stat.S_ISREG(file.mode):
+				key = StatKey(
+					path=file.path,
+					size=file.blob_raw_size,
+					mode=file.mode,
+					uid=file.uid,
+					gid=file.gid,
+					mtime=file.mtime_ns,
+				)
+				stat_to_files[key] = file
+
+		for file_entry in scan_result.all_files:
+			if file_entry.is_file():
+				key = StatKey(
+					path=self.__file_path_to_db_path(file_entry.path),
+					size=file_entry.stat.st_size,
+					mode=file_entry.stat.st_mode,
+					uid=file_entry.stat.st_uid,
+					gid=file_entry.stat.st_gid,
+					mtime=file_entry.stat.st_mtime_ns
+				)
+				if (file := stat_to_files.get(key)) is not None:
+					self.__pre_calc_result.reused_files[file_entry.path] = file
+
 	def __pre_calculate_hash(self, session: DbSession, scan_result: _ScanResult):
 		hashes = self.__pre_calc_result.hashes
 		hashes.clear()
 
-		sizes: Set[int] = set()
-		for file_entry in scan_result.all_files:
-			if file_entry.is_file():
-				sizes.add(file_entry.stat.st_size)
+		file_entries_to_hash: List[_ScanResultEntry] = [
+			file_entry
+			for file_entry in scan_result.all_files
+			if file_entry.is_file() and file_entry.path not in self.__pre_calc_result.reused_files
+		]
 
-		hash_dict_lock = threading.Lock()
-		existence = session.has_blob_with_size_batched(list(sizes))
-		self.__blob_by_size_cache.update(existence)
+		all_sizes: Set[int] = {file_entry.stat.st_size for file_entry in file_entries_to_hash}
+		existed_sizes = session.has_blob_with_size_batched(list(all_sizes))
+		self.__blob_by_size_cache.update(existed_sizes)
 
 		def hash_worker(pth: Path):
-			h = hash_utils.calc_file_hash(pth)
-			with hash_dict_lock:
-				hashes[pth] = h
+			hashes[pth] = hash_utils.calc_file_hash(pth)
 
 		with FailFastBlockingThreadPool(name='hasher') as pool:
-			for file_entry in scan_result.all_files:
-				if file_entry.is_file():
-					if existence[file_entry.stat.st_size]:
-						# we need to hash the file, sooner or later
-						pool.submit(hash_worker, file_entry.path)
-					else:
-						pass  # will use hash_once policy
+			for file_entry in file_entries_to_hash:
+				if existed_sizes[file_entry.stat.st_size]:
+					# we need to hash the file, sooner or later
+					pool.submit(hash_worker, file_entry.path)
+				else:
+					pass  # will use hash_once policy
 
 	@functools.cached_property
 	def __temp_path(self) -> Path:
@@ -510,7 +552,21 @@ class CreateBackupAction(CreateBackupActionBase):
 		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path_str))
 
 	def __create_file(self, session: DbSession, path: Path) -> Generator[Any, Any, schema.File]:
-		related_path = path.relative_to(self.__source_path)
+		if (reused_file := self.__pre_calc_result.reused_files.get(path)) is not None:
+			# make a copy
+			return session.create_file(
+				path=reused_file.path,
+				role=FileRole.unknown.value,
+				mode=reused_file.mode,
+				content=reused_file.content,
+				blob_hash=reused_file.blob_hash,
+				blob_compress=reused_file.blob_compress,
+				blob_raw_size=reused_file.blob_raw_size,
+				blob_stored_size=reused_file.blob_stored_size,
+				uid=reused_file.uid,
+				gid=reused_file.gid,
+				mtime_ns=reused_file.mtime_ns,
+			)
 
 		if (st := self.__pre_calc_result.stats.pop(path, None)) is None:
 			st = path.lstat()
@@ -530,16 +586,16 @@ class CreateBackupAction(CreateBackupActionBase):
 		elif stat.S_ISDIR(st.st_mode):
 			pass
 		elif stat.S_ISLNK(st.st_mode):
-			content = path.readlink().as_posix().encode('utf8')
+			content = os.readlink(path).encode('utf8')
 		else:
 			raise UnsupportedFileFormat(st.st_mode)
 
 		return session.create_file(
-			path=related_path.as_posix(),
-			content=content,
+			path=self.__file_path_to_db_path(path),
 			role=FileRole.unknown.value,
 
 			mode=st.st_mode,
+			content=content,
 			uid=st.st_uid,
 			gid=st.st_gid,
 			mtime_ns=st.st_mtime_ns,
@@ -573,6 +629,9 @@ class CreateBackupAction(CreateBackupActionBase):
 				))
 
 				self.__pre_calculate_stats(scan_result)
+				if self.config.backup.reuse_stat_unchanged_file:
+					self.__reuse_unchanged_files(session, scan_result)
+					self.logger.info('Reused {} / {} unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
 				if self.config.get_effective_concurrency() > 1:
 					self.__pre_calculate_hash(session, scan_result)
 					self.logger.info('Pre-calculate all file hash done')

@@ -216,6 +216,7 @@ Configs on how the backup is made
        "**/session.lock"
     ],
     "follow_target_symlink": false,
+    "reuse_stat_unchanged_file": false,
     "hash_method": "xxh128",
     "compress_method": "zstd",
     "compress_threshold": 64
@@ -301,6 +302,28 @@ backup target
 ```
 
 Prime Backup will save not only the `world` symbolic link, but also the `foo` symbolic link and the final `bar` directory
+
+- Type: `bool`
+- Default: `false`
+
+#### reuse_stat_unchanged_file
+
+When enabled, during backup creation, Prime Backup will try to directly reuse file information from the previous backup 
+for files whose stat (size, mtime, mode, etc.) have not changed. No file hash checking will be done on these stat-unchanged files
+
+If you want the maximum possible backup creation speed, you can try enabling this option.
+However, this also introduces the potential risk of incomplete backups
+
+!!! warning
+
+    Please only enable this option after ensuring that the server's operating system and file system are functioning properly and stably. 
+    Otherwise, if issues such as system time rollback or abnormal file system metadata occur, some of the files might 
+    have their content changed but keep their stat unchanged, and then Prime Backup will create an incomplete backup
+
+!!! tip
+
+    Unless you really need this backup speed boost or the system disk read performance is too low, it is not recommended to enable this option.
+    Prime Backup is already fast enough
 
 - Type: `bool`
 - Default: `false`

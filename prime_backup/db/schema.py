@@ -42,7 +42,7 @@ class File(Base):
 
 	fileset_id: Mapped[int] = mapped_column(ForeignKey('fileset.id'), primary_key=True, index=True)
 	path: Mapped[str] = mapped_column(String, primary_key=True)
-	role: Mapped[str] = mapped_column(Integer)  # see enum FileRole
+	role: Mapped[int] = mapped_column(Integer)  # see enum FileRole
 
 	mode: Mapped[int] = mapped_column(Integer)
 

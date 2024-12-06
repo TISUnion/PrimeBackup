@@ -417,6 +417,23 @@ class DbSession:
 	def delete_fileset(self, fileset: schema.Fileset):
 		self.session.delete(fileset)
 
+	def list_fileset(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Fileset]:
+		s = select(schema.Fileset)
+		if limit is not None:
+			s = s.limit(limit)
+		if offset is not None:
+			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
+
+	def iterate_fileset_batch(self, *, batch_size: int = 1000) -> Iterator[List[schema.Fileset]]:
+		limit, offset = batch_size, 0
+		while True:
+			filesets = self.list_fileset(limit=limit, offset=offset)
+			if len(filesets) == 0:
+				break
+			yield filesets
+			offset += limit
+
 	# ==================================== Backup ====================================
 
 	@classmethod
@@ -614,7 +631,7 @@ class DbSession:
 				s = s.limit(limit)
 			return _list_it(self.session.execute(s).scalars().all())
 
-	def iterate_backup_batch(self, *, batch_size: int = 5000) -> Iterator[List[schema.Backup]]:
+	def iterate_backup_batch(self, *, batch_size: int = 1000) -> Iterator[List[schema.Backup]]:
 		limit, offset = batch_size, 0
 		while True:
 			backups = self.list_backup(limit=limit, offset=offset)

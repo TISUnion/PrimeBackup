@@ -1,12 +1,12 @@
-import collections
 import dataclasses
-from typing import List, Dict
+from typing import List, Set, Tuple
 
 from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
+from prime_backup.db.values import FileRole
 from prime_backup.types.blob_info import BlobInfo
 from prime_backup.types.file_info import FileInfo
 
@@ -24,6 +24,7 @@ class ValidateFilesResult:
 	ok: int = 0
 	invalid: List[BadFileItem] = dataclasses.field(default_factory=list)
 	bad_blob_relation: List[BadFileItem] = dataclasses.field(default_factory=list)
+	bad_fileset_relation: List[BadFileItem] = dataclasses.field(default_factory=list)
 	file_blob_mismatched: List[BadFileItem] = dataclasses.field(default_factory=list)
 
 
@@ -33,44 +34,56 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 		return True
 
 	def __validate(self, session: DbSession, result: ValidateFilesResult, files: List[FileInfo]):
-		hash_to_file: Dict[str, List[FileInfo]] = collections.defaultdict(list)
+		def mark_bad(file_: FileInfo):
+			bad_files.add((file_.fileset_id, file_.path))
+		bad_files: Set[Tuple[int, str]] = set()  # set of (fileset_id, path)
+		blob_hashes: Set[str] = set()
+		fileset_ids: Set[int] = set()
 		for file in files:
-			if self.is_interrupted.is_set():
-				break
-
-			result.validated += 1
-
 			if file.is_file():
 				if file.blob is not None:
-					hash_to_file[file.blob.hash].append(file)
+					blob_hashes.add(file.blob.hash)
 				else:
 					result.bad_blob_relation.append(BadFileItem(file, 'file without blob'))
-					continue
+					mark_bad(file)
 			elif file.is_dir():
 				if file.blob is not None:
 					result.bad_blob_relation.append(BadFileItem(file, 'dir with blob'))
-					continue
-				result.ok += 1
+					mark_bad(file)
 			elif file.is_link():
 				if file.blob is not None:
 					result.bad_blob_relation.append(BadFileItem(file, 'symlink with blob'))
-					continue
+					mark_bad(file)
 				if len(file.content) == 0:
 					result.invalid.append(BadFileItem(file, 'symlink without content'))
-					continue
-				result.ok += 1
-			else:
-				result.ok += 1
+					mark_bad(file)
 
-		hash_to_blob = session.get_blobs(list(hash_to_file.keys()))
-		for h, files in hash_to_file.items():
-			blob = hash_to_blob[h]
-			for file in files:
-				file_blob: BlobInfo = file.blob
-				if file_blob is None:
-					raise AssertionError(f'file.blob is None, hash={h}, file={file}')
+		hash_to_blob = session.get_blobs(sorted(blob_hashes))
+		if self.is_interrupted.is_set():
+			return
+		filesets = session.get_filesets(sorted(fileset_ids))
+		if self.is_interrupted.is_set():
+			return
+
+		for file in files:
+			if (fileset := filesets.get(file.fileset_id)) is None:
+				result.bad_fileset_relation.append(BadFileItem(file, f'fileset {file.fileset_id} does not exist'))
+				mark_bad(file)
+			elif fileset.is_base:
+				if file.role != FileRole.standalone:
+					result.bad_fileset_relation.append(BadFileItem(file, f'bad file role. fileset {file.fileset_id} is a base fileset, but file role is {file.role}'))
+					mark_bad(file)
+			else:  # fileset is not base, i.e. is a delta filesets
+				if file.role not in [FileRole.delta_override, FileRole.delta_add, FileRole.delta_remove]:
+					result.bad_fileset_relation.append(BadFileItem(file, f'bad file role. fileset {file.fileset_id} is a delta fileset, but file role is {file.role}'))
+					mark_bad(file)
+
+			file_blob: BlobInfo = file.blob
+			if file.is_file() and file_blob is not None:
+				blob = hash_to_blob.get(file_blob.hash)
+				good_blob = False
 				if blob is None:
-					result.file_blob_mismatched.append(BadFileItem(file, f'file with missing blob {h}'))
+					result.file_blob_mismatched.append(BadFileItem(file, f'file with missing blob {file_blob.hash}'))
 				elif file_blob.hash != blob.hash:
 					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob hash should be {blob.hash}, but file blob hash is {file_blob.hash}'))
 				elif file_blob.compress.name != blob.compress:
@@ -80,7 +93,12 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 				elif file_blob.stored_size != blob.stored_size:
 					result.file_blob_mismatched.append(BadFileItem(file, f'mismatched blob data, blob stored_size should be {blob.stored_size}, but file blob stored_size is {file_blob.stored_size}'))
 				else:
-					result.ok += 1
+					good_blob = True
+				if not good_blob:
+					mark_bad(file)
+
+		result.validated += len(files)
+		result.ok += len(files) - len(bad_files)
 
 	@override
 	def run(self) -> ValidateFilesResult:

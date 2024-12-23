@@ -282,6 +282,16 @@ prime_backup:
         invalid: '非法文件对象: {}个'
         bad_blob_relation: '与数据对象错误关联: {}个'
         file_blob_mismatched: '文件与数据对象间信息不匹配: {}个'
+      validate_filesets:
+        .: 正在验证所有文件集, 请稍等...
+        done: 已验证{}/{}个文件集
+        all_ok: 全部{}个文件集都是健康的
+        found_bad_filesets: 发现了{}/{}个异常文件集
+      validate_backups:
+        .: 正在验证所有备份, 请稍等...
+        done: 已验证{}/{}个备份
+        all_ok: 全部{}个备份都是健康的
+        found_bad_backups: 发现了{}/{}个异常备份
       done: 验证完成, 耗时{}
     help:
       name: 展示帮助
@@ -359,6 +369,8 @@ prime_backup:
           §a<组件>§r: 
           - §ablobs§r: 验证数据对象的正确性，如数据大小、哈希值
           - §afiles§r: 验证文件对象的正确性，如文件与数据的关联
+          - §afilesets§r: 验证文件集对象的正确性，如文件集与其文件的关联
+          - §abackups§r: 验证备份对象的正确性，如备份与文件集的关联
           - §aall§r: 验证上述全部
         database.scheduled_compact.on: '注意: 在当前配置下，{name}会定期执行数据库整理操作。详见{cmd}'
         database.scheduled_compact.off: '注意: 在当前配置下，定时数据库整理操作已被禁用'

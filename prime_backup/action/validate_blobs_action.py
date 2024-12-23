@@ -35,6 +35,10 @@ class ValidateBlobsResult:
 	affected_fileset_ids: List[int] = dataclasses.field(default_factory=list)
 	affected_backup_ids: List[int] = dataclasses.field(default_factory=list)
 
+	@property
+	def bad(self) -> int:
+		return self.validated - self.ok
+
 
 class ValidateBlobsAction(Action[ValidateBlobsResult]):
 	@override

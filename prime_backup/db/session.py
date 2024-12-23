@@ -389,7 +389,7 @@ class DbSession:
 	def get_last_n_base_fileset(self, limit: int) -> List[schema.Fileset]:
 		return _list_it(self.session.execute(
 			select(schema.Fileset).
-			where(schema.Fileset.is_base.is_(True)).
+			where(schema.Fileset.base_id == 0).
 			order_by(desc(schema.Fileset.id)).
 			limit(limit)
 		).scalars().all())

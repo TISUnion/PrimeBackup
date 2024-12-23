@@ -282,6 +282,16 @@ prime_backup:
         invalid: 'Invalid blob amount: {}'
         bad_blob_relation: 'Bad blob relationship: {}'
         file_blob_mismatched: 'File-blob mismatch: {}'
+      validate_filesets:
+        .: Start validating filesets, please wait...
+        done: Validated {} / {} filesets
+        all_ok: All {} filesets are healthy
+        found_bad_filesets: Found {} / {} bad filesets in total
+      validate_backups:
+        .: Start validating backups, please wait...
+        done: Validated {} / {} backups
+        all_ok: All {} backups are healthy
+        found_bad_backups: Found {} / {} bad backups in total
       done: Validation done, cost {}
     help:
       name: show help
@@ -359,6 +369,8 @@ prime_backup:
           §a<part>§r: 
           - §ablobs§r: Validate the correctness of blobs, e.g. data size, hash value
           - §afiles§r: Validate the correctness of file objects, e.g. the association between files and blobs
+          - §afilesets§r: Validate the correctness of fileset objects, e.g. the association between filesets and their files
+          - §abackups§r: Validate the correctness of backup objects, e.g. the association between backups and filesets
           - §aall§r: Validate all of the above
         database.scheduled_compact.on: 'Notes: With the current config, {name} will automatically prune the database. See {cmd}'
         database.scheduled_compact.off: 'Notes: With the current config, scheduled database prune is disabled'

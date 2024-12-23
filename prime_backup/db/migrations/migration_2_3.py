@@ -46,7 +46,7 @@ class MigrationImpl2To3(MigrationImplBase):
 		from prime_backup.db.session import DbSession
 		db_session = DbSession(self.session)
 
-		t = time.time()
+		start_ts = time.time()
 		files: List[_V3.File] = []
 		processed_backup_count = 0
 
@@ -88,7 +88,7 @@ class MigrationImpl2To3(MigrationImplBase):
 			nonlocal processed_backup_count
 			processed_backup_count += 1
 			percent = 100.0 * processed_backup_count / old_backup_count
-			elapsed_sec = time.time() - t
+			elapsed_sec = time.time() - start_ts
 			self.logger.info('Processed backup {} with {} files ({} / {}, {:.2f}%, elapsed {}s, eta {}s)'.format(
 				new_backup.id, new_backup.file_count, processed_backup_count, old_backup_count, percent,
 				round(elapsed_sec), round(elapsed_sec / processed_backup_count * max(0, old_backup_count - processed_backup_count)),
@@ -124,7 +124,7 @@ class MigrationImpl2To3(MigrationImplBase):
 		while len(remaining_backup_ids) > 0:
 			finalize_files(remaining_backup_ids.popleft())
 
-		self.logger.info('Rebuild done, cost {}s'.format(round(time.time() - t, 2)))
+		self.logger.info('Rebuild done, cost {}s'.format(round(time.time() - start_ts, 2)))
 		self.logger.info('Cleaning up')
 		self.session.execute(text('DROP TABLE old_file_2to3'))
 		self.session.execute(text('DROP TABLE old_backup_2to3'))

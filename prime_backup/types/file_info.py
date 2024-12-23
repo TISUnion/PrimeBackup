@@ -2,7 +2,7 @@ import dataclasses
 import enum
 import functools
 import stat
-from typing import Optional
+from typing import Optional, Tuple
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
@@ -15,6 +15,9 @@ class FileType(enum.Enum):
 	directory = enum.auto()
 	symlink = enum.auto()
 	unknown = enum.auto()
+
+
+FileUniqueKey = Tuple[int, str]  # (fileset_id, path)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -102,3 +105,7 @@ class FileInfo:
 
 	def __lt__(self, other: 'FileInfo') -> bool:
 		return self.__cmp_key < other.__cmp_key
+
+	@property
+	def unique_key(self) -> FileUniqueKey:
+		return self.fileset_id, self.path

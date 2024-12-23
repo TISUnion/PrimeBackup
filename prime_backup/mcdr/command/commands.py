@@ -32,7 +32,7 @@ from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompre
 from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
 from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
 from prime_backup.mcdr.task.db.vacuum_sqlite_task import VacuumSqliteTask
-from prime_backup.mcdr.task.db.validate_db_task import ValidateDbTask, ValidateParts
+from prime_backup.mcdr.task.db.validate_db_task import ValidateDbTask, ValidatePart
 from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task.general.show_welcome_task import ShowWelcomeTask
 from prime_backup.mcdr.task_manager import TaskManager
@@ -91,7 +91,7 @@ class CommandManager:
 		blob_hash = context['blob_hash']
 		self.task_manager.add_task(InspectBlobTask(source, blob_hash))
 
-	def cmd_db_validate(self, source: CommandSource, _: CommandContext, parts: ValidateParts):
+	def cmd_db_validate(self, source: CommandSource, _: CommandContext, parts: ValidatePart):
 		self.task_manager.add_task(ValidateDbTask(source, parts))
 
 	def cmd_db_vacuum(self, source: CommandSource, _: CommandContext):
@@ -297,9 +297,11 @@ class CommandManager:
 		builder.command('database inspect file <backup_id> <file_path>', self.cmd_db_inspect_file)
 		builder.command('database inspect fileset <fileset_id>', self.cmd_db_inspect_fileset)
 		builder.command('database inspect blob <blob_hash>', self.cmd_db_inspect_blob)
-		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidateParts.all()))
-		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidateParts.blobs))
-		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidateParts.files))
+		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))
+		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidatePart.blobs))
+		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidatePart.files))
+		builder.command('database validate filesets', functools.partial(self.cmd_db_validate, parts=ValidatePart.filesets))
+		builder.command('database validate backups', functools.partial(self.cmd_db_validate, parts=ValidatePart.backups))
 		builder.command('database vacuum', self.cmd_db_vacuum)
 		builder.command('database migrate_compress_method <compress_method>', self.cmd_db_migrate_compress_method)
 		builder.command('database migrate_hash_method <hash_method>', self.cmd_db_migrate_hash_method)

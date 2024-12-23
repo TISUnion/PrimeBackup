@@ -1,6 +1,6 @@
 from typing import Optional, List, get_type_hints
 
-from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary, Boolean
+from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from prime_backup.db.values import BackupTagDict
@@ -69,7 +69,7 @@ class Fileset(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
-	is_base: Mapped[bool] = mapped_column(Boolean)  # True: is base fileset; False: is delta fileset
+	base_id: Mapped[int] = mapped_column(Integer)  # 0: is base fileset; >0: is delta fileset, and the value is the associated base fileset
 	file_object_count: Mapped[int] = mapped_column(BigInteger)
 
 	# Store common statistics data of backup files

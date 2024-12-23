@@ -116,6 +116,10 @@ class FilesetAllocator:
 			c_file_by_path = self.__get_file_by_path(c_fileset_files)
 			delta = self.__calc_delta(old=c_file_by_path, new=file_by_path)
 			self.logger.debug('Selecting fileset base candidate: id={} delta_size={}'.format(c_fileset.id, delta.size()))
+			if c_fileset.id <= 0 or c_fileset.base_id < 0:
+				# should never happen, but just in case
+				self.logger.error('Skipping corrupt fileset with id {}. Please validate the healthiness of the database'.format(c_fileset.id))
+				continue
 			if delta.size() < len(file_by_path) * args.candidate_max_changes_ratio and (c is None or delta.size() < c.delta_size):
 				c = Candidate(c_fileset, c_file_by_path, delta, delta.size())
 
@@ -143,20 +147,22 @@ class FilesetAllocator:
 		if c is None:
 			rss, sss = _sum_file_sizes(self.files)
 			fileset_base = self.session.create_and_add_fileset(
-				is_base=True,
+				base_id=0,
 				file_object_count=len(self.files),
 				file_count=len(self.files),
 				file_raw_size_sum=rss,
 				file_stored_size_sum=sss,
 			)
+			self.session.flush()  # this generates fileset_base.id
+
 			fileset_delta = self.session.create_and_add_fileset(
-				is_base=False,
+				base_id=fileset_base.id,
 				file_object_count=0,
 				file_count=0,
 				file_raw_size_sum=0,
 				file_stored_size_sum=0,
 			)
-			self.session.flush()  # this generates fileset.id
+			self.session.flush()  # this generates fileset_delta.id
 
 			for file in self.files:
 				file.fileset_id = fileset_base.id
@@ -164,6 +170,7 @@ class FilesetAllocator:
 				self.session.add(file)
 
 			self.logger.debug('Created base fileset {}, len(files)={}'.format(fileset_base, len(self.files)))
+			self.logger.debug('Created empty delta fileset {}'.format(fileset_delta))
 			return FilesetAllocateResult(fileset_base, fileset_delta)
 		else:
 			# reuse the existing base fileset
@@ -186,7 +193,7 @@ class FilesetAllocator:
 			for old_new in c.delta.changed:
 				old_new.new.role = FileRole.delta_override.value
 				file_raw_size_sum += (old_new.new.blob_raw_size or 0) - (old_new.old.blob_raw_size or 0)
-				file_stored_size_sum += (old_new.old.blob_stored_size or 0) - (old_new.old.blob_stored_size or 0)
+				file_stored_size_sum += (old_new.new.blob_stored_size or 0) - (old_new.old.blob_stored_size or 0)
 				delta_files.append(old_new.new)
 
 			for old_file in c.delta.removed:
@@ -201,7 +208,7 @@ class FilesetAllocator:
 				delta_files.append(file)
 
 			fileset_delta = self.session.create_and_add_fileset(
-				is_base=False,
+				base_id=c.fileset.id,
 				file_object_count=len(delta_files),
 				file_count=file_count,
 				file_raw_size_sum=file_raw_size_sum,

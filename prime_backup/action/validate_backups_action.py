@@ -19,8 +19,18 @@ class BadBackupItem:
 class ValidateBackupsResult:
 	total: int = 0
 	validated: int = 0
-	ok: int = 0
 	bad_backups: List[BadBackupItem] = dataclasses.field(default_factory=list)
+
+	@property
+	def ok(self) -> int:
+		return self.validated - len(self.bad_backups)
+
+	@property
+	def bad(self) -> int:
+		return len(self.bad_backups)
+	
+	def add_bad(self, backup: BackupInfo, msg: str):
+		self.bad_backups.append(BadBackupItem(backup, msg))
 
 
 class ValidateBackupsAction(Action[ValidateBackupsResult]):
@@ -40,23 +50,21 @@ class ValidateBackupsAction(Action[ValidateBackupsResult]):
 		for backup in backups:
 			result.validated += 1
 			if (fileset_base := filesets.get(backup.fileset_id_base)) is None:
-				result.bad_backups.append(BadBackupItem(backup, 'base fileset {} does not exist'.format(backup.fileset_id_base)))
+				result.add_bad(backup, 'base fileset {} does not exist'.format(backup.fileset_id_base))
 			elif (fileset_delta := filesets.get(backup.fileset_id_delta)) is None:
-				result.bad_backups.append(BadBackupItem(backup, 'delta fileset {} does not exist'.format(backup.fileset_id_delta)))
+				result.add_bad(backup, 'delta fileset {} does not exist'.format(backup.fileset_id_delta))
 			elif backup.file_count != fileset_base.file_count + fileset_delta.file_count:
-				result.bad_backups.append(BadBackupItem(backup, 'mismatched file count, backup {} != {} + {} (base + delta)'.format(
+				result.add_bad(backup, 'mismatched file count, backup {} != {} + {} (base + delta)'.format(
 					backup.file_count, fileset_base.file_count, fileset_delta.file_count,
-				)))
+				))
 			elif backup.raw_size != fileset_base.file_raw_size_sum + fileset_delta.file_raw_size_sum:
-				result.bad_backups.append(BadBackupItem(backup, 'mismatched raw size, backup {} != {} + {} (base + delta)'.format(
+				result.add_bad(backup, 'mismatched raw size, backup {} != {} + {} (base + delta)'.format(
 					backup.raw_size, fileset_base.file_raw_size_sum, fileset_delta.file_raw_size_sum,
-				)))
+				))
 			elif backup.stored_size != fileset_base.file_stored_size_sum + fileset_delta.file_stored_size_sum:
-				result.bad_backups.append(BadBackupItem(backup, 'mismatched stored size, backup {} != {} + {} (base + delta)'.format(
+				result.add_bad(backup, 'mismatched stored size, backup {} != {} + {} (base + delta)'.format(
 					backup.stored_size, fileset_base.file_stored_size_sum, fileset_delta.file_stored_size_sum,
-				)))
-			else:
-				result.ok += 1
+				))
 
 	def run(self) -> ValidateBackupsResult:
 		self.logger.info('Backup validation start')

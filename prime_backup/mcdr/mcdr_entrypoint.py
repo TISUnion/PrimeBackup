@@ -1,3 +1,5 @@
+import contextlib
+import functools
 import threading
 import time
 from typing import Optional
@@ -21,6 +23,7 @@ crontab_manager: Optional[CrontabManager] = None
 online_player_counter: Optional[OnlinePlayerCounter] = None
 mcdr_globals.load()
 init_ok = False
+init_thread: Optional[threading.Thread] = None
 
 
 def __check_config(server: PluginServerInterface):
@@ -39,35 +42,51 @@ def is_enabled() -> bool:
 
 
 def on_load(server: PluginServerInterface, old):
+	@contextlib.contextmanager
+	def handle_init_error():
+		try:
+			yield
+		except Exception:
+			server.logger.error('{} initialization failed and will be disabled'.format(server.get_self_metadata().name))
+			server.schedule_task(functools.partial(on_unload, server))
+			raise
+
+	def init():
+		"""
+		The init progress might be costly, don't block the task executor thread
+		"""
+		with handle_init_error():
+			DbAccess.init(create=True, migrate=True)
+			__check_config(server)
+
+			task_manager.start()
+			crontab_manager.start()
+			command_manager.construct_command_tree()
+			online_player_counter.on_load(getattr(old, 'online_player_counter', None))
+
+		global init_ok
+		init_ok = is_enabled()
+
 	global config, task_manager, command_manager, crontab_manager, online_player_counter
-	try:
+	with handle_init_error():
 		config = server.load_config_simple(target_class=Config, failure_policy='raise')
 		set_config_instance(config)
 		if not is_enabled():
 			server.logger.warning('{} is disabled by config'.format(mcdr_globals.metadata.name))
 			return
 
-		DbAccess.init(create=True, migrate=True)
-		__check_config(server)
-
 		task_manager = TaskManager()
 		crontab_manager = CrontabManager(task_manager)
 		command_manager = CommandManager(server, task_manager, crontab_manager)
 		online_player_counter = OnlinePlayerCounter(server)
 
-		task_manager.start()
-		crontab_manager.start()
-		command_manager.register_commands()
-		online_player_counter.on_load(getattr(old, 'online_player_counter', None))
-
+		# registrations need to be done in the on_load() function
+		command_manager.register_command_node()
 		server.register_help_message(config.command.prefix, mcdr_globals.metadata.get_description_rtext())
-	except Exception:
-		server.logger.error('{} initialization failed and will be disabled'.format(server.get_self_metadata().name))
-		on_unload(server)
-		raise
-	else:
-		global init_ok
-		init_ok = is_enabled()
+
+		global init_thread
+		init_thread = threading.Thread(target=init, name=misc_utils.make_thread_name('init'), daemon=True)
+		init_thread.start()
 
 
 _has_unload = False
@@ -87,6 +106,8 @@ def on_unload(server: PluginServerInterface):
 	def shutdown():
 		global task_manager, crontab_manager
 		try:
+			if init_thread is not None:
+				init_thread.join()
 			if command_manager is not None:
 				command_manager.close_the_door()
 			if crontab_manager is not None:
@@ -108,7 +129,9 @@ def on_unload(server: PluginServerInterface):
 		elapsed = time.time() - start_time
 		if i > 0:
 			server.logger.info(f'Waiting for manager shutdown ... time elapsed {elapsed:.1f}s')
-			if (cm := crontab_manager) is not None:
+			if init_thread is not None and init_thread.is_alive():
+				server.logger.info('init_thread is still running')
+			elif (cm := crontab_manager) is not None:
 				server.logger.info('crontab_manager is still alive')
 			elif (tm := task_manager) is not None:
 				server.logger.info('task_manager is still alive')

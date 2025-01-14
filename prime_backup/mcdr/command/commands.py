@@ -1,3 +1,4 @@
+import enum
 import functools
 import typing
 from pathlib import Path
@@ -46,6 +47,13 @@ from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 from prime_backup.utils.waitable_value import WaitableValue
 
 
+class CommandManagerState(enum.Enum):
+	INITIAL = enum.auto()
+	HOOKED = enum.auto()
+	READY = enum.auto()
+	DISABLED = enum.auto()
+
+
 class CommandManager:
 	def __init__(self, server: PluginServerInterface, task_manager: TaskManager, crontab_manager: CrontabManager):
 		self.server = server
@@ -53,10 +61,11 @@ class CommandManager:
 		self.crontab_manager = crontab_manager
 		self.backup_id_suggestor = BackupIdSuggestor(task_manager)
 		self.config = Config.get()
-		self.plugin_disabled = False
+		self.__state = CommandManagerState.INITIAL
+		self.__root_node = Literal(self.config.command.prefix)
 
 	def close_the_door(self):
-		self.plugin_disabled = True
+		self.__state = CommandManagerState.DISABLED
 
 	# =============================== Command Callback ===============================
 
@@ -237,7 +246,21 @@ class CommandManager:
 			return []
 		return list(map(str, wv.get()))
 
-	def register_commands(self):
+	def register_command_node(self):
+		if self.__state != CommandManagerState.INITIAL:
+			raise AssertionError(self.__state)
+
+		self.__root_node.requires(
+			lambda: self.__state == CommandManagerState.READY,
+			lambda: tr('error.disabled' if self.__state == CommandManagerState.DISABLED else 'error.initializing').set_color(RColor.red),
+		)
+		self.server.register_command(self.__root_node)
+		self.__state = CommandManagerState.HOOKED
+
+	def construct_command_tree(self):
+		if self.__state != CommandManagerState.HOOKED:
+			raise AssertionError(self.__state)
+
 		# --------------- common utils ---------------
 
 		permissions = self.config.command.permission
@@ -321,8 +344,7 @@ class CommandManager:
 			builder.literal(name).requires(get_permission_checker(name), get_permission_denied_text)
 
 		root = (
-			Literal(self.config.command.prefix).
-			requires(lambda: not self.plugin_disabled, lambda: tr('error.disabled').set_color(RColor.red)).
+			self.__root_node.
 			requires(get_permission_checker('root'), get_permission_denied_text).
 			runs(self.cmd_welcome)
 		)
@@ -429,6 +451,6 @@ class CommandManager:
 		root.then(make_list_cmd())
 		root.then(make_tag_cmd())
 
-		# --------------- register ---------------
+		# --------------- done ---------------
 
-		self.server.register_command(root)
+		self.__state = CommandManagerState.READY

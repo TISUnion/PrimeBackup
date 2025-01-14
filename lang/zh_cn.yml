@@ -474,6 +474,7 @@ prime_backup:
     blob_hash_not_unique.candidates: '找到了至少{}个可能的数据对象: {}'
     blob_not_found: 哈希值为{}的数据对象不存在
     db_locked: 任务{}执行失败, 数据库已被锁定。请稍候再试
+    initializing: 插件初始化中
     disabled: 插件已禁用
     generic: 任务{}执行失败, 见控制台以了解错误详情
     missing_backup_id: 请提供备份ID

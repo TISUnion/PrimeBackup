@@ -474,6 +474,7 @@ prime_backup:
     blob_hash_not_unique.candidates: 'Found at least {} candidates: {}'
     blob_not_found: Blob with hash {} does not exist
     db_locked: Task {} execution error cuz the database is locked. Please retry later
+    initializing: Plugin initializing
     disabled: Plugin disabled
     generic: Task {} execution error, see console for more error
     missing_backup_id: Please supply the backup ID

@@ -27,10 +27,12 @@ init_thread: Optional[threading.Thread] = None
 
 
 def __check_config(server: PluginServerInterface):
-	db_hash = DbAccess.get_hash_method().name
-	cfg_hash = config.backup.hash_method.name
-	if cfg_hash != db_hash:
-		server.logger.warning('WARN: Hash method mismatched! config: {}, database: {}. Use the database one'.format(cfg_hash, db_hash))
+	db_hash_method = DbAccess.get_hash_method()
+	db_hash_str = db_hash_method.name
+	cfg_hash_str = config.backup.hash_method.name
+	if cfg_hash_str != db_hash_str:
+		server.logger.warning('WARN: Hash method mismatched! config: {}, database: {}. Use the database one'.format(cfg_hash_str, db_hash_str))
+	db_hash_method.value.create_hasher()  # ensure lib exists
 
 	if (cm := config.backup.compress_method) == CompressMethod.lzma:
 		server.logger.warning('WARN: Using {} as the compress method might significantly increase the backup time'.format(cm.name))

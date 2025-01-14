@@ -175,6 +175,7 @@ prime_backup:
       comment.translated: '注释: {} ({})'
       targets: '备份目标: {}'
       tags: '标签: {}'
+      fileset: '基础文件集: {}, 增量文件集: {}'
       raw_size: '原始大小: {} ({})'
       stored_size: '储存大小: {} ({})'
       file_count:

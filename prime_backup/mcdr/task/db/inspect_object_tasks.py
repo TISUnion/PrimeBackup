@@ -83,6 +83,7 @@ class InspectBackupTask(_InspectObjectTaskBase):
 
 		self.reply_tr('targets', RTextBase.join(', ', [RText(t, TextColors.file) for t in backup.targets]))
 		self.reply_tr('tags', self._jsonfy(backup.tags.to_dict()))
+		self.reply_tr('fileset', TextComponents.fileset_id(backup.fileset_id_base), TextComponents.fileset_id(backup.fileset_id_delta))
 		self.reply_tr('raw_size', RText(backup.raw_size, TextColors.byte_count), TextComponents.file_size(backup.raw_size))
 		self.reply_tr('stored_size', RText(backup.stored_size, TextColors.byte_count), TextComponents.file_size(backup.stored_size))
 		self.reply_tr('file_count.all', TextComponents.number(len(backup.files)))

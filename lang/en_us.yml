@@ -175,6 +175,7 @@ prime_backup:
       comment.translated: 'Comment: {} ({})'
       targets: 'Backup targets: {}'
       tags: 'Tags: {}'
+      fileset: 'Fileset: base {}, delta {}'
       raw_size: 'Raw size: {} ({})'
       stored_size: 'Stored size: {} ({})'
       file_count:

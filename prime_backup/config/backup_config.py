@@ -21,6 +21,7 @@ class BackupConfig(Serializable):
 	hash_method: HashMethod = HashMethod.xxh128
 	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 64
+	fileset_allocate_lookback_count: int = 2
 
 	def get_compress_method_from_size(self, file_size: int, *, compress_method_override: Optional[CompressMethod] = None) -> CompressMethod:
 		if file_size < self.compress_threshold:

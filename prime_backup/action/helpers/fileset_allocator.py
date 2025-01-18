@@ -1,12 +1,17 @@
 import collections
 import dataclasses
-from typing import List, Optional, Dict, Tuple, Iterable
+from typing import List, Optional, Dict, Tuple, Iterable, TYPE_CHECKING
+
+from typing_extensions import Self
 
 from prime_backup import logger
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.db.values import FileRole
 from prime_backup.utils.lru_dict import LruDict
+
+if TYPE_CHECKING:
+	from prime_backup.config.config import Config
 
 
 def _sum_file_sizes(files: Iterable[schema.File]) -> Tuple[int, int]:
@@ -28,6 +33,12 @@ class FilesetAllocateArgs:
 	candidate_max_changes_ratio: float = 0.2
 	max_delta_ratio: float = 1.5
 	max_base_reuse_count: int = 100
+
+	@classmethod
+	def from_config(cls, config: 'Config') -> Self:
+		return cls(
+			candidate_select_count=max(0, config.backup.fileset_allocate_lookback_count),
+		)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -97,10 +108,7 @@ class FilesetAllocator:
 			self.__fileset_files_cache.set(fileset_id, files)
 		return files
 
-	def allocate(self, args: Optional[FilesetAllocateArgs] = None) -> FilesetAllocateResult:
-		if args is None:
-			args = FilesetAllocateArgs()
-
+	def allocate(self, args: FilesetAllocateArgs) -> FilesetAllocateResult:
 		@dataclasses.dataclass(frozen=True)
 		class Candidate:
 			fileset: schema.Fileset

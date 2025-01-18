@@ -6,7 +6,7 @@ from typing import List, Callable, Optional
 from typing_extensions import override, Unpack
 
 from prime_backup.action import Action
-from prime_backup.action.helpers.fileset_allocator import FilesetAllocator
+from prime_backup.action.helpers.fileset_allocator import FilesetAllocator, FilesetAllocateArgs
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.types.backup_info import BackupInfo
@@ -46,9 +46,9 @@ class CreateBackupActionBase(Action[BackupInfo], ABC):
 			self.__new_blobs_summary = BlobListSummary.of(self.__new_blobs)
 		return self.__new_blobs_summary
 
-	@classmethod
-	def _finalize_backup_and_files(cls, session: DbSession, backup: schema.Backup, files: List[schema.File]):
-		allocate_result = FilesetAllocator(session, files).allocate()
+	def _finalize_backup_and_files(self, session: DbSession, backup: schema.Backup, files: List[schema.File]):
+		allocate_args = FilesetAllocateArgs.from_config(self.config)
+		allocate_result = FilesetAllocator(session, files).allocate(allocate_args)
 		fs_base, fs_delta = allocate_result.fileset_base, allocate_result.fileset_delta
 
 		backup.fileset_id_base = fs_base.id

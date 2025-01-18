@@ -26,7 +26,7 @@ from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils
+from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, sqlalchemy_utils
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 
 
@@ -555,17 +555,17 @@ class CreateBackupAction(CreateBackupActionBase):
 		if (reused_file := self.__pre_calc_result.reused_files.get(path)) is not None:
 			# make a copy
 			return session.create_file(
-				path=reused_file.path,
+				path=sqlalchemy_utils.mapped_cast(reused_file.path),
 				role=FileRole.unknown.value,
-				mode=reused_file.mode,
-				content=reused_file.content,
-				blob_hash=reused_file.blob_hash,
-				blob_compress=reused_file.blob_compress,
-				blob_raw_size=reused_file.blob_raw_size,
-				blob_stored_size=reused_file.blob_stored_size,
-				uid=reused_file.uid,
-				gid=reused_file.gid,
-				mtime=reused_file.mtime,
+				mode=sqlalchemy_utils.mapped_cast(reused_file.mode),
+				content=sqlalchemy_utils.mapped_cast(reused_file.content),
+				blob_hash=sqlalchemy_utils.mapped_cast(reused_file.blob_hash),
+				blob_compress=sqlalchemy_utils.mapped_cast(reused_file.blob_compress),
+				blob_raw_size=sqlalchemy_utils.mapped_cast(reused_file.blob_raw_size),
+				blob_stored_size=sqlalchemy_utils.mapped_cast(reused_file.blob_stored_size),
+				uid=sqlalchemy_utils.mapped_cast(reused_file.uid),
+				gid=sqlalchemy_utils.mapped_cast(reused_file.gid),
+				mtime=sqlalchemy_utils.mapped_cast(reused_file.mtime),
 			)
 
 		if (st := self.__pre_calc_result.stats.pop(path, None)) is None:

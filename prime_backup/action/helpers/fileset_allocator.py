@@ -201,6 +201,10 @@ class FilesetAllocator:
 					path=old_file.path,
 					role=FileRole.delta_remove.value,
 					mode=0,
+					content=None,
+					uid=None,
+					gid=None,
+					mtime=None,
 				)
 				file_count -= 1
 				file_raw_size_sum -= (old_file.blob_raw_size or 0)

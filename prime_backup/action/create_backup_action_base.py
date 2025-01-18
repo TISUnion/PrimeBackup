@@ -3,7 +3,7 @@ from abc import ABC
 from pathlib import Path
 from typing import List, Callable, Optional
 
-from typing_extensions import override
+from typing_extensions import override, Unpack
 
 from prime_backup.action import Action
 from prime_backup.action.helpers.fileset_allocator import FilesetAllocator
@@ -36,7 +36,7 @@ class CreateBackupActionBase(Action[BackupInfo], ABC):
 				rollback_func()
 			self.__blobs_rollbackers.clear()
 
-	def _create_blob(self, session: DbSession, **kwargs) -> schema.Blob:
+	def _create_blob(self, session: DbSession, **kwargs: Unpack[DbSession.CreateBlobKwargs]) -> schema.Blob:
 		blob = session.create_and_add_blob(**kwargs)
 		self.__new_blobs.append(BlobInfo.of(blob))
 		return blob

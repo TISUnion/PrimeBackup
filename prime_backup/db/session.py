@@ -9,7 +9,7 @@ from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_
 from sqlalchemy.orm import Session
-from typing_extensions import overload, Union
+from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
 from prime_backup.db.values import FileRole, BackupTagDict
@@ -121,7 +121,13 @@ class DbSession:
 
 	# ===================================== Blob =====================================
 
-	def create_and_add_blob(self, **kwargs) -> schema.Blob:
+	class CreateBlobKwargs(TypedDict):
+		hash: str
+		compress: str
+		raw_size: int
+		stored_size: int
+
+	def create_and_add_blob(self, **kwargs: Unpack[CreateBlobKwargs]) -> schema.Blob:
 		blob = schema.Blob(**kwargs)
 		self.__validate_int64_field_range(blob)
 		self.add(blob)
@@ -210,7 +216,21 @@ class DbSession:
 
 	# ===================================== File =====================================
 
-	def create_file(self, *, blob: Optional[schema.Blob] = None, **kwargs) -> schema.File:
+	class CreateFileKwargs(TypedDict):
+		fileset_id: NotRequired[int]
+		path: str
+		role: int
+		mode: int
+		content: Optional[bytes]
+		blob_hash: NotRequired[Optional[str]]
+		blob_compress: NotRequired[Optional[str]]
+		blob_raw_size: NotRequired[Optional[int]]
+		blob_stored_size: NotRequired[Optional[int]]
+		uid: Optional[int]
+		gid: Optional[int]
+		mtime: Optional[int]
+
+	def create_file(self, *, blob: Optional[schema.Blob] = None, **kwargs: Unpack[CreateFileKwargs]) -> schema.File:
 		if blob is not None:
 			kwargs.update(
 				blob_hash=blob.hash,
@@ -324,7 +344,14 @@ class DbSession:
 
 	# ==================================== Fileset ====================================
 
-	def create_and_add_fileset(self, **kwargs) -> schema.Fileset:
+	class CreateFilesetKwargs(TypedDict):
+		base_id: int
+		file_object_count: int
+		file_count: int
+		file_raw_size_sum: int
+		file_stored_size_sum: int
+
+	def create_and_add_fileset(self, **kwargs: Unpack[CreateFilesetKwargs]) -> schema.Fileset:
 		fileset = schema.Fileset(**kwargs)
 		self.__validate_int64_field_range(fileset)
 		self.add(fileset)
@@ -524,7 +551,19 @@ class DbSession:
 			s = cls.__sql_backup_tag_filter(s, backup_filter)
 		return s
 
-	def create_backup(self, **kwargs) -> schema.Backup:
+	class CreateBackupKwargs(TypedDict):
+		timestamp: NotRequired[int]
+		creator: str
+		comment: str
+		targets: List[str]
+		tags: BackupTagDict
+		fileset_id_base: NotRequired[int]
+		fileset_id_delta: NotRequired[int]
+		file_count: NotRequired[int]
+		file_raw_size_sum: NotRequired[int]
+		file_stored_size_sum: NotRequired[int]
+
+	def create_backup(self, **kwargs: Unpack[CreateBackupKwargs]) -> schema.Backup:
 		"""
 		Notes: the backup id is not generated yet. Invoke :meth:`flush` to generate the backup id
 		"""

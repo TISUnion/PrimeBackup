@@ -8,6 +8,7 @@ from prime_backup.types.operator import Operator
 
 if TYPE_CHECKING:
 	from prime_backup.db import schema
+	from prime_backup.db.session import DbSession
 
 
 class BackupMeta(Serializable):
@@ -47,7 +48,7 @@ class BackupMeta(Serializable):
 			tags=dict(backup.tags),
 		)
 
-	def to_backup_kwargs(self) -> dict:
+	def to_backup_kwargs(self) -> 'DbSession.CreateBackupKwargs':
 		return dict(
 			creator=self.creator,
 			comment=self.comment,

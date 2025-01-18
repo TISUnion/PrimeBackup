@@ -64,7 +64,7 @@ class FileInfo:
 			blob=blob,
 			uid=file.uid,
 			gid=file.gid,
-			mtime_ns=file.mtime_ns,
+			mtime_ns=file.mtime,
 		)
 
 	@functools.cached_property

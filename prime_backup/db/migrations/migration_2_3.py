@@ -105,7 +105,7 @@ class MigrationImpl2To3(MigrationImplBase):
 			if len(remaining_backup_ids) == 0:
 				raise AssertionError('Unexpected drained remaining_backup_ids, {} {}'.format(old_file['backup_id'], old_backup_ids))
 
-			files.append(_V3.File(**{
+			fields = {
 				key: old_file[key]
 				for key in [
 					'path',
@@ -119,7 +119,9 @@ class MigrationImpl2To3(MigrationImplBase):
 					'gid',
 					'mtime_ns',
 				]
-			}))
+			}
+			fields['mtime'] = fields.pop('mtime_ns')
+			files.append(_V3.File(**fields))
 
 		while len(remaining_backup_ids) > 0:
 			finalize_files(remaining_backup_ids.popleft())

@@ -62,7 +62,7 @@ class File(Base):
 
 	uid: Mapped[Optional[int]] = mapped_column(Integer)
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
-	mtime_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
+	mtime: Mapped[Optional[int]] = mapped_column(BigInteger)  # timestamp in nanosecond
 
 	__fields_end__: bool
 

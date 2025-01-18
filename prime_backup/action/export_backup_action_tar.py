@@ -82,8 +82,8 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 			info.gid = file.gid
 			if (gid_name := platform_utils.gid_to_name(int(file.gid))) is not None:
 				info.gname = gid_name
-		if file.mtime_ns is not None:
-			info.mtime = int(file.mtime_ns / 1e9)
+		if file.mtime is not None:
+			info.mtime = int(file.mtime / 1e9)
 		if stat.S_ISREG(file.mode):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('add file {} to tarfile'.format(file.path))

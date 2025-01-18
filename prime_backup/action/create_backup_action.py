@@ -300,7 +300,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			mode: int
 			uid: int
 			gid: int
-			mtime: int
+			mtime_ns: int
 
 		stat_to_files: Dict[StatKey, schema.File] = {}
 		for file in session.get_backup_files(backup.id):
@@ -311,7 +311,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					mode=file.mode,
 					uid=file.uid,
 					gid=file.gid,
-					mtime=file.mtime_ns,
+					mtime_ns=file.mtime,
 				)
 				stat_to_files[key] = file
 
@@ -323,7 +323,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					mode=file_entry.stat.st_mode,
 					uid=file_entry.stat.st_uid,
 					gid=file_entry.stat.st_gid,
-					mtime=file_entry.stat.st_mtime_ns
+					mtime_ns=file_entry.stat.st_mtime_ns
 				)
 				if (file := stat_to_files.get(key)) is not None:
 					self.__pre_calc_result.reused_files[file_entry.path] = file
@@ -565,7 +565,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				blob_stored_size=reused_file.blob_stored_size,
 				uid=reused_file.uid,
 				gid=reused_file.gid,
-				mtime_ns=reused_file.mtime_ns,
+				mtime=reused_file.mtime,
 			)
 
 		if (st := self.__pre_calc_result.stats.pop(path, None)) is None:
@@ -598,7 +598,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			content=content,
 			uid=st.st_uid,
 			gid=st.st_gid,
-			mtime_ns=st.st_mtime_ns,
+			mtime=st.st_mtime_ns,
 
 			blob=blob,
 		)

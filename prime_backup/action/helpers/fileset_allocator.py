@@ -67,7 +67,7 @@ class FilesetAllocator:
 			a.path == b.path and a.mode == b.mode and
 			a.content == b.content and a.blob_hash == b.blob_hash and
 			a.uid == b.uid and a.gid == b.gid and
-			a.mtime_ns == b.mtime_ns
+			a.mtime == b.mtime
 		)
 
 	@classmethod

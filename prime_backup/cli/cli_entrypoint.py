@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Type
 
 from prime_backup import constants
+from prime_backup.action.export_backup_action_base import ExportBackupActionCommonInitKwargs
 from prime_backup.action.export_backup_action_directory import ExportBackupToDirectoryAction
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.export_backup_action_zip import ExportBackupToZipAction
@@ -219,7 +220,7 @@ class CliHandler:
 		backup_id = self.__parse_backup_id(self.args.backup_id)
 		backup = GetBackupAction(backup_id).run()
 		logger.info('Exporting backup #{} to {}, format {}'.format(backup.id, str(output_path.as_posix()), fmt.name))
-		kwargs = dict(
+		kwargs: ExportBackupActionCommonInitKwargs = dict(
 			fail_soft=self.args.fail_soft,
 			verify_blob=not self.args.no_verify,
 			create_meta=not self.args.no_meta,

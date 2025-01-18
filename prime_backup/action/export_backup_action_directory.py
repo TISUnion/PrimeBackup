@@ -8,10 +8,10 @@ import time
 from pathlib import Path
 from typing import Optional, List, Tuple
 
-from typing_extensions import override
+from typing_extensions import override, Unpack
 
 from prime_backup import constants
-from prime_backup.action.export_backup_action_base import _ExportBackupActionBase
+from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
@@ -63,7 +63,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			restore_mode: bool = False,
 			child_to_export: Optional[Path] = None,
 			recursively_export_child: bool = False,
-			**kwargs,
+			**kwargs: Unpack[ExportBackupActionCommonInitKwargs],
 	):
 		"""
 		:param restore_mode: recover what it was like -- delete all backup targets before export

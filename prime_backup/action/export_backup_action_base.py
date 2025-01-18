@@ -2,7 +2,7 @@ import json
 from abc import abstractmethod, ABC
 from pathlib import Path
 
-from typing_extensions import override
+from typing_extensions import override, TypedDict, NotRequired
 
 from prime_backup.action import Action
 from prime_backup.db import schema
@@ -12,6 +12,12 @@ from prime_backup.exceptions import PrimeBackupError, VerificationError
 from prime_backup.types.backup_meta import BackupMeta
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.utils import misc_utils
+
+
+class ExportBackupActionCommonInitKwargs(TypedDict):
+	fail_soft: NotRequired[bool]
+	verify_blob: NotRequired[bool]
+	create_meta: NotRequired[bool]
 
 
 class _ExportBackupActionBase(Action[ExportFailures], ABC):

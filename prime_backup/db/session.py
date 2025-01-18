@@ -63,6 +63,12 @@ class DbSession:
 	def __supports_vacuum_into(cls) -> bool:
 		return cls.__check_support(db_utils.check_sqlite_vacuum_into_support, 'SQLite backend does not support VACUUM INTO statement. Insecure manual file copy is used as the fallback')
 
+	@classmethod
+	def __validate_int64_field_range(cls, obj: schema.Base):
+		for key, value in obj.to_dict().items():
+			if isinstance(value, int) and not (- 2 ** 63 <= value < 2 ** 63):
+				raise OverflowError(f'Object {obj!r} has its field {key}={value!r} out of int64 range')
+
 	# ========================= General Database Operations =========================
 
 	def add(self, obj: schema.Base):
@@ -117,6 +123,7 @@ class DbSession:
 
 	def create_and_add_blob(self, **kwargs) -> schema.Blob:
 		blob = schema.Blob(**kwargs)
+		self.__validate_int64_field_range(blob)
 		self.add(blob)
 		return blob
 
@@ -212,6 +219,7 @@ class DbSession:
 				blob_stored_size=blob.stored_size,
 			)
 		file = schema.File(**kwargs)
+		self.__validate_int64_field_range(file)
 		return file
 
 	def get_file_in_fileset_opt(self, fileset_id: int, path: str) -> Optional[schema.File]:
@@ -318,6 +326,7 @@ class DbSession:
 
 	def create_and_add_fileset(self, **kwargs) -> schema.Fileset:
 		fileset = schema.Fileset(**kwargs)
+		self.__validate_int64_field_range(fileset)
 		self.add(fileset)
 		return fileset
 
@@ -526,7 +535,9 @@ class DbSession:
 			from prime_backup import logger
 			logger.get().warning('Backup tag "pre_restore_backup" is not used anymore, use tag "temporary" instead')
 
-		return schema.Backup(**kwargs)
+		backup = schema.Backup(**kwargs)
+		self.__validate_int64_field_range(backup)
+		return backup
 
 	def get_backup_count(self, backup_filter: Optional[BackupFilter] = None) -> int:
 		if self.__needs_manual_backup_tag_filter(backup_filter):

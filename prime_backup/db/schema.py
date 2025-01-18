@@ -8,14 +8,19 @@ from prime_backup.db.values import BackupTagDict
 
 class Base(DeclarativeBase):
 	def __repr__(self) -> str:
-		cls = self.__class__
+		return '{}({})'.format(
+			self.__class__.__name__,
+			', '.join(f'{k}={v!r}' for k, v in self.to_dict().items()),
+		)
+
+	def to_dict(self) -> dict:
 		values = {}
-		for name, type_ in get_type_hints(cls).items():
+		for name, type_ in get_type_hints(self.__class__).items():
 			if name == '__fields_end__':
 				break
 			if not name.startswith('_') and getattr(type_, '__origin__') == Mapped:
 				values[name] = getattr(self, name)
-		return '{}({})'.format(cls.__name__, ', '.join([f'{k}={v!r}' for k, v in values.items()]))
+		return values
 
 
 class DbMeta(Base):

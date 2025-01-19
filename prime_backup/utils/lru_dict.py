@@ -28,3 +28,6 @@ class LruDict(Generic[_K, _V]):
 		with contextlib.suppress(KeyError):
 			self.__dict.move_to_end(key)
 		return ret
+
+	def clear(self):
+		self.__dict.clear()

@@ -45,6 +45,7 @@ class FilesetAllocateArgs:
 class FilesetAllocateResult:
 	fileset_base: schema.Fileset
 	fileset_delta: schema.Fileset
+	new_file_object_count: int
 
 
 class FilesetAllocator:
@@ -179,7 +180,7 @@ class FilesetAllocator:
 
 			self.logger.debug('Created base fileset {}, len(files)={}'.format(fileset_base, len(self.files)))
 			self.logger.debug('Created empty delta fileset {}'.format(fileset_delta))
-			return FilesetAllocateResult(fileset_base, fileset_delta)
+			return FilesetAllocateResult(fileset_base, fileset_delta, new_file_object_count=len(self.files))
 		else:
 			# reuse the existing base fileset
 			delta_files: List[schema.File] = []
@@ -237,4 +238,4 @@ class FilesetAllocator:
 			self.logger.debug('Created delta fileset {}, len(delta_files)={}, role counts={}'.format(
 				fileset_delta, len(delta_files), {k.name: v for k, v in role_counter.items()},
 			))
-			return FilesetAllocateResult(c.fileset, fileset_delta)
+			return FilesetAllocateResult(c.fileset, fileset_delta, new_file_object_count=len(delta_files))

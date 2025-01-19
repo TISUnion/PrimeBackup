@@ -1,15 +1,15 @@
 import contextlib
+import os
 import shutil
 from pathlib import Path
 from typing import ContextManager, IO
 
 
 class _DbFileBackupHelper:
-	def __init__(self, src_file: Path, backup_dir: Path, backup_base_name: str, arc_name: str):
+	def __init__(self, src_file: Path, backup_dir: Path, backup_base_name: str):
 		self.src_file = src_file
 		self.backup_dir = backup_dir
 		self.backup_base_name = backup_base_name
-		self.arc_name = arc_name
 		try:
 			import zstandard
 			self.__has_zstd = True
@@ -50,3 +50,9 @@ class _DbFileBackupHelper:
 	def restore(self):
 		with open(self.src_file, 'wb') as f_dst, self.__open_backup_for_read() as f_src:
 			shutil.copyfileobj(f_src, f_dst)
+
+	def delete_all(self):
+		self.backup_file.unlink(missing_ok=True)
+		# TODO: auto delete backups once migration done
+		for file_name in os.listdir(self.backup_dir):
+			file_path = self.backup_dir / file_name

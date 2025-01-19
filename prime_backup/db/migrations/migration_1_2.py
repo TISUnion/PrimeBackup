@@ -2,12 +2,14 @@ import json
 from typing import List, Tuple
 
 from sqlalchemy import text
+from typing_extensions import override
 
 from prime_backup.db.migrations import MigrationImplBase
 
 
 class MigrationImpl1To2(MigrationImplBase):
-	def migrate(self):
+	@override
+	def _migrate(self):
 		src_tag = 'pre_restore_backup'
 		dst_tag = 'temporary'
 		changes: List[Tuple[int, str]] = []  # list of (backup_id, tags_json_str)

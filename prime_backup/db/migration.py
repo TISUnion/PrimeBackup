@@ -20,11 +20,12 @@ class DbMigration:
 	DB_MAGIC_INDEX = db_constants.DB_MAGIC_INDEX
 	DB_VERSION = db_constants.DB_VERSION
 
-	def __init__(self, engine: Engine, db_dir: Path, db_file: Path):
+	def __init__(self, engine: Engine, db_dir: Path, db_file: Path, temp_dir: Path):
 		self.logger = logger.get()
 		self.engine = engine
 		self.db_dir = db_dir
 		self.db_file = db_file
+		self.temp_dir = temp_dir
 		self.migrations: Dict[int, Callable[[Session], Any]] = {
 			2: self.__migrate_1_2,  # 1 -> 2
 			3: self.__migrate_2_3,  # 2 -> 3
@@ -71,7 +72,7 @@ class DbMigration:
 		start_ts = time.time()
 		self.logger.info('DB migration starts. current DB version: {}, target version: {}'.format(current_version, target_version))
 
-		backup_helper = _DbFileBackupHelper(self.db_file, self.db_dir / 'db_backup', 'pre_migration_{}to{}_{}'.format(current_version, target_version, time.strftime('%Y%m%d')), db_constants.DB_FILE_NAME)
+		backup_helper = _DbFileBackupHelper(self.db_file, self.db_dir / 'db_backup', 'pre_migration_{}to{}_{}'.format(current_version, target_version, time.strftime('%Y%m%d')))
 		self.logger.info('Creating DB pre migration backup at {}'.format(str(backup_helper.backup_file)))
 		backup_helper.create(skip_existing=True)
 
@@ -81,6 +82,9 @@ class DbMigration:
 				if dbm is None:
 					raise ValueError('table DbMeta is empty')
 				dbm.version = v
+
+			with Session(self.engine) as session, session.begin():
+				session.execute(text('VACUUM'))
 
 			for i in range(current_version, target_version):
 				next_version = i + 1
@@ -101,6 +105,8 @@ class DbMigration:
 			except Exception:
 				self.logger.exception('Pre migration backup restored failed')
 			raise
+		else:
+			backup_helper.delete_all()
 
 		self.logger.info('DB migration done, new db version: {}, total cost {:.1f}s'.format(target_version, time.time() - start_ts))
 
@@ -109,11 +115,11 @@ class DbMigration:
 		v1.7.0 changes: renamed backup tag "pre_restore_backup" to tag "temporary"
 		"""
 		from prime_backup.db.migrations.migration_1_2 import MigrationImpl1To2
-		MigrationImpl1To2(self.engine, session).migrate()
+		MigrationImpl1To2(self.engine, self.temp_dir, session).migrate()
 
 	def __migrate_2_3(self, session: Session):
 		"""
 		v1.9.0 changes: fileset-based file reusing
 		"""
 		from prime_backup.db.migrations.migration_2_3 import MigrationImpl2To3
-		MigrationImpl2To3(self.engine, session).migrate()
+		MigrationImpl2To3(self.engine, self.temp_dir, session).migrate()

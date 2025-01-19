@@ -22,7 +22,8 @@ class DbAccess:
 	def init(cls, create: bool, migrate: bool):
 		"""
 		"""
-		db_dir = Config.get().storage_path
+		config = Config.get()
+		db_dir = config.storage_path
 		if create:
 			db_dir.mkdir(parents=True, exist_ok=True)
 
@@ -30,7 +31,7 @@ class DbAccess:
 		cls.__engine = create_engine('sqlite:///' + str(db_path))
 		cls.__db_file_path = db_path
 
-		migration = DbMigration(cls.__engine, db_dir, db_path)
+		migration = DbMigration(cls.__engine, db_dir, db_path, config.temp_path)
 		migration.check_and_migrate(create=create, migrate=migrate)
 
 		cls.sync_hash_method()

@@ -49,11 +49,18 @@ class FilesetAllocateResult:
 
 
 class FilesetAllocator:
-	def __init__(self, session: DbSession, files: List[schema.File]):
+	FilesetFilesCache = LruDict[int, List[schema.File]]
+
+	def __init__(
+			self, session: DbSession, files: List[schema.File], *,
+			migration2to3_mode: bool = False,
+			fileset_files_cache: Optional[FilesetFilesCache] = None,
+	):
 		self.logger = logger.get()
 		self.session = session
 		self.files = files
-		self.__fileset_files_cache: Optional[LruDict[int, List[schema.File]]] = None
+		self.__migration2to3_mode = migration2to3_mode
+		self.__fileset_files_cache = fileset_files_cache
 
 	@dataclasses.dataclass(frozen=True)
 	class Delta:

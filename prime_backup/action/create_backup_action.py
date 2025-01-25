@@ -294,7 +294,11 @@ class CreateBackupAction(CreateBackupActionBase):
 		self.__blob_by_size_cache.update(existence)
 
 		def hash_worker(pth: Path):
-			h = hash_utils.calc_file_hash(pth)
+			try:
+				h = hash_utils.calc_file_hash(pth)
+			except Exception as e:
+				self.logger.error('Failed to calculate hash for {!r}: {}'.format(str(pth), e))
+				raise
 			with hash_dict_lock:
 				hashes[pth] = h
 

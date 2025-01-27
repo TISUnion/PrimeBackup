@@ -318,7 +318,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		src_path_md5 = hashlib.md5(src_path_str.encode('utf8')).hexdigest()
 
 		@contextlib.contextmanager
-		def make_temp_file() -> ContextManager[Path]:
+		def make_temp_file(): # def make_temp_file() -> ContextManager[Path]:
 			temp_file_name = f'blob_{os.getpid()}_{threading.current_thread().ident}_{src_path_md5}.tmp'
 			temp_file_path = self.__temp_path / temp_file_name
 			try:

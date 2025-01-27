@@ -14,6 +14,7 @@ class MinecraftServerCommands(Serializable):
 
 class ServerConfig(Serializable):
 	turn_off_auto_save: bool = True
+	skip_save_worlds: bool = False
 	commands: MinecraftServerCommands = MinecraftServerCommands()
 	saved_world_regex: List[re.Pattern] = [
 		re.compile('Saved the game'),

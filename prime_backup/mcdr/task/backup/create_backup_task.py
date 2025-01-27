@@ -35,13 +35,13 @@ class CreateBackupTask(HeavyTask[None]):
 		try:
 			timer = Timer()
 			if self.server.is_server_running():
-				if len(cmds.save_all_worlds) > 0:
+				if not self.config.server.skip_save_worlds and len(cmds.save_all_worlds) > 0:
 					self.server.execute(cmds.save_all_worlds)
-				if len(self.config.server.saved_world_regex) > 0:
-					ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait.value)
-					if not ok:
-						self.broadcast(self.tr('abort.save_wait_time_out').set_color(RColor.red))
-						return
+					if len(self.config.server.saved_world_regex) > 0:
+						ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait.value)
+						if not ok:
+							self.broadcast(self.tr('abort.save_wait_time_out').set_color(RColor.red))
+							return
 			cost_save_wait = timer.get_and_restart()
 			if self.plugin_unloaded_event.is_set():
 				self.broadcast(self.tr('abort.unloaded').set_color(RColor.red))

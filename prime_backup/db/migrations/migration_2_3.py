@@ -40,7 +40,11 @@ class MigrationImpl2To3(MigrationImplBase):
 	def __init__(self, engine: Engine, temp_dir: Path, session: Session):
 		super().__init__(engine, temp_dir, session)
 		self.__stats = _Stats()
-		self.__fileset_files_cache = LruDict(max_size=8)
+
+		# FIXME: This might not work if impl is updated in the future
+		from prime_backup.action.helpers.fileset_allocator import FilesetAllocateArgs
+		self.allocate_args = FilesetAllocateArgs()
+		self.fileset_files_cache = LruDict(max_size=8)
 
 	@override
 	def _migrate(self):
@@ -138,14 +142,11 @@ class MigrationImpl2To3(MigrationImplBase):
 			files.append(_V3.File(**fields))
 
 		# FIXME: This might not work if impl is updated in the future
-		from prime_backup.action.helpers.fileset_allocator import FilesetAllocator, FilesetAllocateArgs
+		from prime_backup.action.helpers.fileset_allocator import FilesetAllocator
 		from prime_backup.db.session import DbSession
-		allocator = FilesetAllocator(
-			DbSession(self.session), files,
-			migration2to3_mode=True,
-			fileset_files_cache=self.__fileset_files_cache,
-		)
-		fs_result = allocator.allocate(FilesetAllocateArgs())
+		allocator = FilesetAllocator(DbSession(self.session), files)
+		allocator.enable_fileset_files_cache(self.fileset_files_cache)
+		fs_result = allocator.allocate(self.allocate_args)
 		self.logger.debug('Allocated fileset for the backup files, backup_id {}'.format(backup_id))
 
 		fs_base, fs_delta = fs_result.fileset_base, fs_result.fileset_delta

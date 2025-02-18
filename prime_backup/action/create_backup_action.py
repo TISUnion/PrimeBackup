@@ -631,7 +631,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.__pre_calculate_stats(scan_result)
 				if self.config.backup.reuse_stat_unchanged_file:
 					self.__reuse_unchanged_files(session, scan_result)
-					self.logger.info('Reused {} / {} unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
+					self.logger.info('Reused {} / {} stat unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
 				if self.config.get_effective_concurrency() > 1:
 					self.__pre_calculate_hash(session, scan_result)
 					self.logger.info('Pre-calculate all file hash done')

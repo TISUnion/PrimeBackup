@@ -66,7 +66,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 				base_msg = 'Scheduled backup player check: no valid data'
 			if online_players is not None and len(online_players.valid) == 0:
 				if self.__backups_without_players >= 1:
-					self.logger.info('{}, backup skipped'.format(base_msg))
+					self.logger.debug('{}, backup skipped'.format(base_msg))
 					return
 				self.__backups_without_players = self.__backups_without_players + 1
 				self.logger.info('{}, performing the last backup'.format(base_msg))

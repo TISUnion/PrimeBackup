@@ -15,7 +15,7 @@ from prime_backup.db import schema, db_constants
 from prime_backup.db.values import FileRole, BackupTagDict
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
-from prime_backup.utils import collection_utils, db_utils
+from prime_backup.utils import collection_utils, db_utils, validation_utils
 
 _T = TypeVar('_T')
 
@@ -64,10 +64,19 @@ class DbSession:
 		return cls.__check_support(db_utils.check_sqlite_vacuum_into_support, 'SQLite backend does not support VACUUM INTO statement. Insecure manual file copy is used as the fallback')
 
 	@classmethod
-	def __validate_int64_field_range(cls, obj: schema.Base):
-		for key, value in obj.to_dict().items():
-			if isinstance(value, int) and not (- 2 ** 63 <= value < 2 ** 63):
-				raise OverflowError(f'Object {obj!r} has its field {key}={value!r} out of int64 range')
+	def __validate_int_fields_range(cls, obj: schema.Base):
+		from sqlalchemy import Integer, BigInteger
+
+		for name, value in vars(obj).items():
+			def bad_msg() -> str:
+				return f'bad field {name} for {obj!r}'
+			
+			if not name.startswith('_') and isinstance(value, int):
+				cls_value = getattr(type(obj), name, None)
+				if isinstance(cls_value, Integer):
+					validation_utils.validate_int32(value, bad_msg)
+				elif isinstance(cls_value, BigInteger):
+					validation_utils.validate_int64(value, bad_msg)
 
 	# ========================= General Database Operations =========================
 
@@ -127,9 +136,14 @@ class DbSession:
 		raw_size: int
 		stored_size: int
 
-	def create_and_add_blob(self, **kwargs: Unpack[CreateBlobKwargs]) -> schema.Blob:
+	@classmethod
+	def create_blob(cls, **kwargs: Unpack[CreateBlobKwargs]) -> schema.Blob:
 		blob = schema.Blob(**kwargs)
-		self.__validate_int64_field_range(blob)
+		cls.__validate_int_fields_range(blob)
+		return blob
+
+	def create_and_add_blob(self, **kwargs: Unpack[CreateBlobKwargs]) -> schema.Blob:
+		blob = self.create_blob(**kwargs)
 		self.add(blob)
 		return blob
 
@@ -230,7 +244,8 @@ class DbSession:
 		gid: Optional[int]
 		mtime: Optional[int]
 
-	def create_file(self, *, blob: Optional[schema.Blob] = None, **kwargs: Unpack[CreateFileKwargs]) -> schema.File:
+	@classmethod
+	def create_file(cls, *, blob: Optional[schema.Blob] = None, **kwargs: Unpack[CreateFileKwargs]) -> schema.File:
 		if blob is not None:
 			kwargs.update(
 				blob_hash=blob.hash,
@@ -239,7 +254,7 @@ class DbSession:
 				blob_stored_size=blob.stored_size,
 			)
 		file = schema.File(**kwargs)
-		self.__validate_int64_field_range(file)
+		cls.__validate_int_fields_range(file)
 		return file
 
 	def get_file_in_fileset_opt(self, fileset_id: int, path: str) -> Optional[schema.File]:
@@ -353,7 +368,7 @@ class DbSession:
 
 	def create_and_add_fileset(self, **kwargs: Unpack[CreateFilesetKwargs]) -> schema.Fileset:
 		fileset = schema.Fileset(**kwargs)
-		self.__validate_int64_field_range(fileset)
+		self.__validate_int_fields_range(fileset)
 		self.add(fileset)
 		return fileset
 
@@ -575,7 +590,7 @@ class DbSession:
 			logger.get().warning('Backup tag "pre_restore_backup" is not used anymore, use tag "temporary" instead')
 
 		backup = schema.Backup(**kwargs)
-		self.__validate_int64_field_range(backup)
+		self.__validate_int_fields_range(backup)
 		return backup
 
 	def get_backup_count(self, backup_filter: Optional[BackupFilter] = None) -> int:

@@ -117,7 +117,7 @@ class OnlinePlayerCounter:
 			with self.data_lock:
 				self.data_is_correct = True
 				self.player_list = prev_player_list
-		elif should_update_from_api:
+		elif should_update_from_api and self.server.is_server_running():
 			self.__try_update_player_list_from_api(log_success=True)
 
 	def on_server_start(self):

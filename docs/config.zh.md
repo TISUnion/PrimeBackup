@@ -211,15 +211,23 @@ Prime Backup 在创建备份时的操作时序如下：
     "targets": [
         "world"
     ],
+
     "ignored_files": [],
     "ignore_patterns": [
        "**/session.lock"
     ],
     "follow_target_symlink": false,
     "reuse_stat_unchanged_file": false,
+	"creation_skip_missing_file": false,
+	"creation_skip_missing_file_patterns": [
+       "**"
+    ],
+
     "hash_method": "xxh128",
     "compress_method": "zstd",
-    "compress_threshold": 64
+    "compress_threshold": 64,
+
+	"fileset_allocate_lookback_count": 2
 }
 ```
 
@@ -327,6 +335,31 @@ Prime Backup 除了会保存 `world` 这个符号链接外，还会保存 `foo` 
 
 - 类型：`bool`
 - 默认值：`false`
+
+#### creation_skip_missing_file
+
+在某些场景下，服务端的插件 / mod 并不会遵从 /save off` 命令，
+在 PB 创建备份时仍可能执行删除文件的操作。
+这些缺失的文件会导致备份操作因找不到文件而失败
+
+若你希望在这种场景下忽略这些“文件不存在”的错误，那么你可以开启该选项
+
+另见：[creation_skip_missing_file_patterns](#creation_skip_missing_file_patterns) 选项，
+用于控制允许忽略“文件不存在”错误的文件范围
+
+- 类型：`bool`
+- 默认值：`false`
+
+#### creation_skip_missing_file_patterns
+
+一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，
+与 [creation_skip_missing_file_patterns](#creation_skip_missing_file_patterns) 选项配合使用
+
+在创建备份的过程中，该选项匹配中的文件发生的“文件不存在”错误将被忽略
+
+默认值为 `["**"]`，表示匹配所有文件。建议将其限制为仅针对那些易变的文件
+
+- 类型：`List[str]`
 
 #### hash_method
 

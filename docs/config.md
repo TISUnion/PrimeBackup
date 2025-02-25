@@ -211,15 +211,23 @@ Configs on how the backup is made
     "targets": [
         "world"
     ],
+
     "ignored_files": [],
     "ignore_patterns": [
        "**/session.lock"
     ],
     "follow_target_symlink": false,
     "reuse_stat_unchanged_file": false,
+	"creation_skip_missing_file": false,
+	"creation_skip_missing_file_patterns": [
+       "**"
+    ],
+
     "hash_method": "xxh128",
     "compress_method": "zstd",
-    "compress_threshold": 64
+    "compress_threshold": 64,
+
+	"fileset_allocate_lookback_count": 2
 }
 ```
 
@@ -327,6 +335,31 @@ However, this also introduces the potential risk of incomplete backups
 
 - Type: `bool`
 - Default: `false`
+
+#### creation_skip_missing_file
+
+In certain scenarios, server plugins / mods do not respect to the `/save off` command,
+and may still delete files when PB is creating a backup.
+These missing files can cause the backup operation to fail due to file not found errors
+
+If you want to ignore such "file not found" errors in this scenario, you can enable this option
+
+See also: the [creation_skip_missing_file_patterns](#creation_skip_missing_file_patterns) option,
+which controls the scope of files for which "file not found" errors can be ignored
+
+- Type: `bool`
+- Default: `false`
+
+#### creation_skip_missing_file_patterns
+
+A list of [gitignore flavor](http://git-scm.com/docs/gitignore) pattern strings
+used in combination with [creation_skip_missing_file](#creation_skip_missing_file) option
+
+During backup creation, any "file not found" errors occurring for files matched by this option will be ignored
+
+The default value is `["**"]`, which matches everything. It's suggested to limit it to those volatile files only
+
+- Type: `List[str]`
 
 #### hash_method
 

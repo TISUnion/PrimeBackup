@@ -3,7 +3,7 @@ import dataclasses
 import enum
 import shutil
 from abc import abstractmethod, ABC
-from typing import BinaryIO, Union, ContextManager, Tuple
+from typing import BinaryIO, Union, ContextManager, Tuple, Callable, Literal
 
 from typing_extensions import Protocol, override
 
@@ -40,21 +40,30 @@ class Compressor(ABC):
 	def ensure_lib(cls):
 		...
 
-	def copy_compressed(self, source_path: PathLike, dest_path: PathLike, *, calc_hash: bool = False) -> CopyCompressResult:
+	def copy_compressed(
+			self, source_path: PathLike, dest_path: PathLike, *,
+			calc_hash: bool = False,
+			open_r_func: Callable[[PathLike, Literal['rb']], BinaryIO] = open,
+			open_w_func: Callable[[PathLike, Literal['wb']], BinaryIO] = open,
+	) -> CopyCompressResult:
 		"""
 		source --[compress]--> destination
 		"""
-		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
+		with open_r_func(source_path, 'rb') as f_in, open_w_func(dest_path, 'wb') as f_out:
 			reader = BypassReader(f_in, calc_hash=calc_hash)
 			writer = BypassWriter(f_out)
 			self._copy_compressed(reader, writer)
 			return self.CopyCompressResult(reader.get_read_len(), reader.get_hash(), writer.get_write_len())
 
-	def copy_decompressed(self, source_path: PathLike, dest_path: PathLike):
+	def copy_decompressed(
+			self, source_path: PathLike, dest_path: PathLike, *,
+			open_r_func: Callable[[PathLike, Literal['rb']], BinaryIO] = open,
+			open_w_func: Callable[[PathLike, Literal['wb']], BinaryIO] = open,
+	):
 		"""
 		source --[decompress]--> destination
 		"""
-		with open(source_path, 'rb') as f_in, open(dest_path, 'wb') as f_out:
+		with open_r_func(source_path, 'rb') as f_in, open_w_func(dest_path, 'wb') as f_out:
 			self._copy_decompressed(f_in, f_out)
 
 	@contextlib.contextmanager

@@ -10,7 +10,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, ContextManager
+from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, ContextManager, Literal, BinaryIO
 
 import pathspec
 from typing_extensions import NoReturn, override
@@ -27,6 +27,7 @@ from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, sqlalchemy_utils
+from prime_backup.utils.path_like import PathLike
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 
 
@@ -36,6 +37,27 @@ class VolatileBlobFile(PrimeBackupError):
 
 class _BlobFileChanged(PrimeBackupError):
 	pass
+
+
+class _SourceFileNotFound(FileNotFoundError):
+	def __init__(self, e: FileNotFoundError, file_path: Path):
+		super().__init__(e)
+		self.file_path = file_path
+
+	@classmethod
+	@contextlib.contextmanager
+	def wrap(cls, path: Path) -> ContextManager:
+		try:
+			yield
+		except FileNotFoundError as e:
+			raise cls(e, path)
+
+	@classmethod
+	def open_rb(cls, path: PathLike, flag: Literal['rb']) -> BinaryIO:
+		if flag != 'rb':
+			raise ValueError('flag should be rb')
+		with cls.wrap(path):
+			return open(path, flag)
 
 
 class _BlobCreatePolicy(enum.Enum):
@@ -401,7 +423,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			elif not can_copy_on_write:  # do tricks iff. no COW copy
 				if st.st_size <= _READ_ALL_SIZE_THRESHOLD:
 					policy = _BlobCreatePolicy.read_all
-					with open(src_path, 'rb') as f:
+					with _SourceFileNotFound.open_rb(src_path, 'rb') as f:
 						blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
 					if len(blob_content) > _READ_ALL_SIZE_THRESHOLD:
 						log_and_raise_blob_file_changed('Read too many bytes for read_all policy, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
@@ -419,7 +441,8 @@ class CreateBackupAction(CreateBackupActionBase):
 						policy = _BlobCreatePolicy.hash_once
 			if policy is None:
 				policy = _BlobCreatePolicy.default
-				blob_hash = hash_utils.calc_file_hash(src_path)
+				with _SourceFileNotFound.wrap(src_path):
+					blob_hash = hash_utils.calc_file_hash(src_path)
 
 			# self.logger.info("%s %s %s", policy.name, compress_method.name, src_path)
 			if blob_hash is not None:
@@ -456,7 +479,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				# copy to temp file, calc hash, then compress to blob store
 				misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
 				with make_temp_file() as temp_file_path:
-					file_utils.copy_file_fast(src_path, temp_file_path)
+					file_utils.copy_file_fast(src_path, temp_file_path, open_r_func=_SourceFileNotFound.open_rb)
 					blob_hash = hash_utils.calc_file_hash(temp_file_path)
 
 					misc_utils.assert_true(last_chance, 'only last_chance=True is allowed for the copy_hash policy')
@@ -474,7 +497,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				# read once, compress+hash to temp file, then move
 				misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
 				with make_temp_file() as temp_file_path:
-					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True)
+					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True, open_r_func=_SourceFileNotFound.open_rb)
 					check_changes(cr.read_size, None)  # the size must be unchanged, to satisfy the uniqueness
 
 					raw_size, blob_hash, stored_size = cr.read_size, cr.read_hash, cr.write_size
@@ -501,13 +524,13 @@ class CreateBackupAction(CreateBackupActionBase):
 				elif policy == _BlobCreatePolicy.default:
 					if can_copy_on_write and compress_method == CompressMethod.plain:
 						# fast copy, then calc size and hash to verify
-						file_utils.copy_file_fast(src_path, blob_path)
+						file_utils.copy_file_fast(src_path, blob_path, open_r_func=_SourceFileNotFound.open_rb)
 						sah = hash_utils.calc_file_size_and_hash(blob_path)
 						raw_size = stored_size = sah.size
 						check_changes(sah.size, sah.hash)
 					else:
 						# copy+compress+hash to blob store
-						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True)
+						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True, open_r_func=_SourceFileNotFound.open_rb)
 						raw_size, stored_size = cr.read_size, cr.write_size
 						check_changes(cr.read_size, cr.read_hash)
 				else:
@@ -546,7 +569,7 @@ class CreateBackupAction(CreateBackupActionBase):
 				))
 				st = src_path.lstat()
 			except Exception as e:
-				self.logger.error('Create blob for file {} failed (attempt {} / {}): {}'.format(src_path_str, e, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT))
+				self.logger.error('Create blob for file {} failed (attempt {} / {}): {}'.format(src_path_str, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT, e))
 				raise
 
 		self.logger.error('All blob copy attempts failed since the file {} keeps changing'.format(src_path_str))
@@ -570,7 +593,8 @@ class CreateBackupAction(CreateBackupActionBase):
 			)
 
 		if (st := self.__pre_calc_result.stats.pop(path, None)) is None:
-			st = path.lstat()
+			with _SourceFileNotFound.wrap(path):
+				st = path.lstat()
 
 		blob: Optional[schema.Blob] = None
 		content: Optional[bytes] = None
@@ -587,7 +611,8 @@ class CreateBackupAction(CreateBackupActionBase):
 		elif stat.S_ISDIR(st.st_mode):
 			pass
 		elif stat.S_ISLNK(st.st_mode):
-			content = os.readlink(path).encode('utf8')
+			with _SourceFileNotFound.wrap(path):
+				content = os.readlink(path).encode('utf8')
 		else:
 			raise UnsupportedFileFormat(st.st_mode)
 
@@ -642,6 +667,20 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.__blob_store_st = bs_path.stat()
 				self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
 
+				@functools.lru_cache(None)
+				def get_skip_missing_source_file_patterns() -> pathspec.GitIgnoreSpec:
+					return pathspec.GitIgnoreSpec.from_lines(self.config.backup.creation_skip_missing_file_patterns)
+
+				def should_skip_missing_source_file(src_file_path: Path) -> bool:
+					if self.config.backup.creation_skip_missing_file:
+						try:
+							rel_path = src_file_path.relative_to(self.__source_path)
+						except ValueError:
+							self.logger.error("Path {!r} is not inside the source path {!r}".format(str(src_file_path), str(self.__source_path)))
+						else:
+							return get_skip_missing_source_file_patterns().match_file(rel_path)
+					return False
+
 				files = []
 				schedule_queue: Deque[Tuple[Generator, Any]] = collections.deque()
 				for file_entry in scan_result.all_files:
@@ -656,6 +695,11 @@ class CreateBackupAction(CreateBackupActionBase):
 						self.__batch_query_manager.query(query_req, callback)
 					except StopIteration as e:
 						files.append(misc_utils.ensure_type(e.value, schema.File))
+					except _SourceFileNotFound as e:
+						if should_skip_missing_source_file(e.file_path):
+							self.logger.warning('Backup source file {!r} not found, suppressed and skipped by config'.format(str(e.file_path)))
+						else:
+							raise
 
 					self.__batch_query_manager.flush_if_needed()
 					if len(schedule_queue) == 0:

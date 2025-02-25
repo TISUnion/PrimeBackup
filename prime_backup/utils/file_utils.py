@@ -2,8 +2,9 @@ import errno
 import os
 import shutil
 import stat
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal, BinaryIO
 
 import psutil
 
@@ -22,12 +23,16 @@ def __is_cow_not_supported_error(e: int) -> bool:
 	)
 
 
-def copy_file_fast(src_path: Path, dst_path: Path):
+def copy_file_fast(
+		src_path: Path, dst_path: Path, *,
+		open_r_func: Callable[[Path, Literal['rb']], BinaryIO] = open,
+		open_w_func: Callable[[Path, Literal['wb+']], BinaryIO] = open,
+):
 	# https://man7.org/linux/man-pages/man2/copy_file_range.2.html
 	if HAS_COPY_FILE_RANGE:
 		total_read = 0
 		try:
-			with open(src_path, 'rb') as f_src, open(dst_path, 'wb+') as f_dst:
+			with open_r_func(src_path, 'rb') as f_src, open_w_func(dst_path, 'wb+') as f_dst:
 				while n := os.copy_file_range(f_src.fileno(), f_dst.fileno(), 2 ** 30):
 					total_read += n
 			return

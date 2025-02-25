@@ -7,20 +7,31 @@ from prime_backup.types.hash_method import HashMethod
 
 
 class BackupConfig(Serializable):
+	# Source
 	source_root: str = './server'
 	source_root_use_mcdr_working_directory: bool = False
 	targets: List[str] = [
 		'world',
 	]
+
+	# Strategy
 	ignored_files: List[str] = []  # deprecated
 	ignore_patterns: List[str] = [
 		'**/session.lock',
 	]
 	follow_target_symlink: bool = False
 	reuse_stat_unchanged_file: bool = False
+	creation_skip_missing_file: bool = False
+	creation_skip_missing_file_patterns: List[str] = [
+		'world/test_file_keep_mutating/**',
+	]
+
+	# Storage
 	hash_method: HashMethod = HashMethod.xxh128
 	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 64
+
+	# Advanced
 	fileset_allocate_lookback_count: int = 2
 
 	def get_compress_method_from_size(self, file_size: int, *, compress_method_override: Optional[CompressMethod] = None) -> CompressMethod:

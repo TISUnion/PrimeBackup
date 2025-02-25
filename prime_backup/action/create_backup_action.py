@@ -90,7 +90,7 @@ class BlobBySizeFetcher(BatchFetcherBase):
 	class Rsp:
 		exists: bool
 
-	Callback = Callable[[Rsp], Any]
+	Callback = Callable[[Rsp], None]
 	tasks: Dict[int, List[Callback]]
 
 	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[int, bool]):
@@ -124,7 +124,7 @@ class BlobByHashFetcher(BatchFetcherBase):
 	class Rsp:
 		blob: Optional[schema.Blob]
 
-	Callback = Callable[[Rsp], Any]
+	Callback = Callable[[Rsp], None]
 	tasks: Dict[str, List[Callback]]
 
 	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[str, schema.Blob]):
@@ -151,18 +151,19 @@ class BlobByHashFetcher(BatchFetcherBase):
 
 class BatchQueryManager:
 	Reqs = Union[BlobBySizeFetcher.Req, BlobByHashFetcher.Req]
+	Rsps = Union[BlobBySizeFetcher.Rsp, BlobByHashFetcher.Rsp]
 
 	def __init__(self, session: DbSession, size_result_cache: dict, hash_result_cache: dict, max_batch_size: int = 100):
 		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size, size_result_cache)
 		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size, hash_result_cache)
 
-	def query(self, query: Reqs, callback: callable):
+	def query(self, query: Reqs, callback: Callable[[Rsps], None]):
 		if isinstance(query, BlobBySizeFetcher.Req):
 			self.fetcher_size.query(query, callback)
 		elif isinstance(query, BlobByHashFetcher.Req):
 			self.fetcher_hash.query(query, callback)
 		else:
-			raise ValueError('unexpected query: {!r} {!r}'.format(type(query), query))
+			raise TypeError('unexpected query: {!r} {!r}'.format(type(query), query))
 
 	def flush_if_needed(self):
 		self.fetcher_size.flush_if_needed()
@@ -648,11 +649,11 @@ class CreateBackupAction(CreateBackupActionBase):
 				while len(schedule_queue) > 0:
 					gen, value = schedule_queue.popleft()
 					try:
-						def callback(v, g=gen):
-							schedule_queue.appendleft((g, v))
+						def callback(query_rsp, g=gen):
+							schedule_queue.appendleft((g, query_rsp))
 
-						query = gen.send(value)
-						self.__batch_query_manager.query(query, callback)
+						query_req = gen.send(value)
+						self.__batch_query_manager.query(query_req, callback)
 					except StopIteration as e:
 						files.append(misc_utils.ensure_type(e.value, schema.File))
 

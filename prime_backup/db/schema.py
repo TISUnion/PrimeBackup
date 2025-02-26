@@ -62,7 +62,7 @@ class File(Base):
 
 	uid: Mapped[Optional[int]] = mapped_column(Integer)
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
-	mtime: Mapped[Optional[int]] = mapped_column(BigInteger)  # timestamp in nanosecond
+	mtime: Mapped[Optional[int]] = mapped_column(BigInteger)  # timestamp in us
 
 	__fields_end__: bool
 
@@ -91,7 +91,7 @@ class Backup(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
-	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in nanosecond
+	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in us
 	creator: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)
 	targets: Mapped[List[str]] = mapped_column(JSON)

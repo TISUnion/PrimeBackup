@@ -169,7 +169,7 @@ prime_backup:
       name: 审查备份
       title: '备份{}'
       id: 'ID: {}'
-      timestamp: '时间戳 (纳秒): {} (日期: {})'
+      timestamp: '时间戳 (微秒): {} (日期: {})'
       creator: '创建者: {} ({})'
       comment.regular: '注释: {}'
       comment.translated: '注释: {} ({})'

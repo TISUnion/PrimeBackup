@@ -7,7 +7,6 @@ from prime_backup.action.diff_backup_action import DiffBackupAction
 from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.file_info import FileInfo
-from prime_backup.utils import conversion_utils
 
 
 class DiffBackupTask(LightTask[None]):
@@ -99,9 +98,9 @@ class DiffBackupTask(LightTask[None]):
 					return RTextBase.format('uid={} gid={}', TextComponents.number(f.uid), TextComponents.number(f.gid))
 				t_change = self.tr('diff.owner')
 				make_hover(format_owner(old_file), format_owner(new_file))
-			elif old_file.mtime_ns != new_file.mtime_ns:
+			elif old_file.mtime_us != new_file.mtime_us:
 				t_change = self.tr('diff.mtime')
-				make_hover(old_file.mtime_ns, new_file.mtime_ns, lambda mt: TextComponents.date(conversion_utils.timestamp_to_local_date(mt)))
+				make_hover(old_file.mtime_us, new_file.mtime_us, TextComponents.date_us)
 			else:
 				t_change = self.tr('diff.other').set_color(RColor.gray)
 

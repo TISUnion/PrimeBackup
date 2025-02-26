@@ -25,8 +25,8 @@ class BackupFilter:
 	id_start: Optional[int] = None
 	id_end: Optional[int] = None
 	creator: Optional[Operator] = None
-	timestamp_start: Optional[int] = None
-	timestamp_end: Optional[int] = None
+	timestamp_us_start: Optional[int] = None
+	timestamp_us_end: Optional[int] = None
 	tag_filters: List[BackupTagFilter] = dataclasses.field(default_factory=list)
 
 	def filter_temporary_backup(self) -> 'BackupFilter':

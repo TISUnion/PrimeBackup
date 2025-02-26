@@ -198,10 +198,13 @@ class TextComponents:
 			return cls.tr('date_diff.ago', cls.duration(-diff))
 
 	@classmethod
-	def date(cls, date: Union[datetime.datetime, int], *, decimal: bool = False) -> RTextBase:
-		if isinstance(date, int):
-			date = conversion_utils.timestamp_to_local_date(date)
+	def date(cls, date: datetime.datetime, *, decimal: bool = False) -> RTextBase:
 		return RText(conversion_utils.datetime_to_str(date, decimal=decimal), TextColors.date).h(cls.date_diff(date))
+
+	@classmethod
+	def date_us(cls, timestamp_us: int, *, decimal: bool = False) -> RTextBase:
+		date = conversion_utils.timestamp_to_local_date_us(timestamp_us)
+		return cls.date(date, decimal=decimal)
 
 	@classmethod
 	def dual_size_hover(cls, raw_size: int, stored_size: int, *, ndigits: int = 2) -> RTextBase:

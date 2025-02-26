@@ -45,7 +45,7 @@ class DiffBackupAction(Action[DiffResult]):
 						True
 						and a.uid == b.uid
 						and a.gid == b.gid
-						and a.mtime_ns == b.mtime_ns
+						and a.mtime_us == b.mtime_us
 				))
 		)
 

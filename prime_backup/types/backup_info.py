@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 @dataclasses.dataclass(frozen=True)
 class BackupInfo:
 	id: int
-	timestamp_ns: int
+	timestamp_us: int
 	creator: Operator
 	comment: str
 	targets: List[str]
@@ -35,11 +35,11 @@ class BackupInfo:
 
 	@functools.cached_property
 	def date(self) -> datetime.datetime:
-		return conversion_utils.timestamp_to_local_date(self.timestamp_ns)
+		return conversion_utils.timestamp_to_local_date_us(self.timestamp_us)
 
 	@functools.cached_property
 	def date_str(self) -> str:
-		return conversion_utils.timestamp_to_local_date_str(self.timestamp_ns)
+		return conversion_utils.timestamp_to_local_date_str_us(self.timestamp_us)
 
 	@classmethod
 	def of(cls, backup: schema.Backup, *, backup_files: List[schema.File] = None) -> 'Self':
@@ -49,7 +49,7 @@ class BackupInfo:
 		from prime_backup.types.file_info import FileInfo
 		return cls(
 			id=backup.id,
-			timestamp_ns=backup.timestamp,
+			timestamp_us=backup.timestamp,
 			creator=Operator.of(backup.creator),
 			comment=backup.comment,
 			targets=list(backup.targets),

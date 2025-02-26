@@ -32,7 +32,7 @@ class FileInfo:
 
 	uid: Optional[int] = None
 	gid: Optional[int] = None
-	mtime_ns: Optional[int] = None
+	mtime_us: Optional[int] = None
 
 	@classmethod
 	def of(cls, file: schema.File) -> 'FileInfo':
@@ -64,7 +64,7 @@ class FileInfo:
 			blob=blob,
 			uid=file.uid,
 			gid=file.gid,
-			mtime_ns=file.mtime,
+			mtime_us=file.mtime,
 		)
 
 	@functools.cached_property

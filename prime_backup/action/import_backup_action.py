@@ -1,6 +1,5 @@
 import json
 import shutil
-import time
 from pathlib import Path
 from typing import IO, Optional, List, Dict, Tuple
 
@@ -85,7 +84,7 @@ class ImportBackupAction(CreateBackupActionBase):
 
 	def __import_member(
 			self, session: DbSession,
-			member: PackedBackupFileMember, now_ns: int,
+			member: PackedBackupFileMember,
 			file_sah: Optional[SizeAndHash],
 	):
 		blob: Optional[schema.Blob] = None
@@ -103,7 +102,6 @@ class ImportBackupAction(CreateBackupActionBase):
 		else:
 			raise NotImplementedError('member path={!r} mode={} is not supported yet'.format(member.path, member.mode))
 
-		mtime_ns = member.mtime_ns
 		return session.create_file(
 			path=self.__format_path(member.path),
 			content=content,
@@ -112,7 +110,7 @@ class ImportBackupAction(CreateBackupActionBase):
 			mode=member.mode,
 			uid=member.uid,
 			gid=member.gid,
-			mtime=mtime_ns,
+			mtime=member.mtime_us,
 
 			blob=blob,
 		)
@@ -167,7 +165,6 @@ class ImportBackupAction(CreateBackupActionBase):
 		backup = session.create_backup(**meta.to_backup_kwargs())
 
 		self.logger.info('Importing backup {} from {!r}'.format(backup, self.file_path.name))
-		now_ns = time.time_ns()
 
 		sah_dict: Dict[int, SizeAndHash] = {}
 		for i, member in enumerate(members):
@@ -183,7 +180,7 @@ class ImportBackupAction(CreateBackupActionBase):
 		blob_utils.prepare_blob_directories()
 		for i, member in enumerate(members):
 			try:
-				file = self.__import_member(session, member, now_ns, sah_dict.get(i))
+				file = self.__import_member(session, member, sah_dict.get(i))
 			except Exception as e:
 				self.logger.error('Import member {!r} (mode {}) failed: {}'.format(member.path, member.mode, e))
 				raise

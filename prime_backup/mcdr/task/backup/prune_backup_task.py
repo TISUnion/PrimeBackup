@@ -107,7 +107,7 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 	def calc_prune_backups(cls, backups: List[BackupInfo], settings: PruneSetting, *, timezone: Optional[datetime.tzinfo] = None) -> PrunePlan:
 		marks: Dict[int, PruneMark] = {}
 		fallback_marks: Dict[int, PruneMark] = {}
-		backups = list(sorted(backups, key=lambda b: b.timestamp_ns, reverse=True))  # new -> old
+		backups = list(sorted(backups, key=lambda b: b.timestamp_us, reverse=True))  # new -> old
 
 		def has_mark(backup: BackupInfo, keep: bool, protect: Optional[bool] = None) -> bool:
 			if (m := marks.get(backup.id)) is None:
@@ -142,9 +142,9 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 					handled_buckets[bucket] = backup
 					marks[backup.id] = PruneMark.create_keep(f'keep {policy} {len(handled_buckets)}')
 
-		def create_time_str_func(fmt: str):
+		def create_time_str_func(fmt: str) -> Callable[[BackupInfo], str]:
 			def func(backup: BackupInfo) -> str:
-				timestamp = backup.timestamp_ns / 1e9
+				timestamp = backup.timestamp_us / 1e6
 				dt = datetime.datetime.fromtimestamp(timestamp, tz=timezone)
 				return dt.strftime(fmt)
 			return func
@@ -165,7 +165,8 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 			mark_selections(settings.year, 'year', create_time_str_func('%Y'))
 
 		plan_list = PrunePlan()
-		now = time.time_ns()
+		now_us = time.time_ns() / 1000
+		max_lifetime_us = settings.max_lifetime.value * 1e6
 		regular_keep_count = 0
 		all_marks = collections.ChainMap(marks, fallback_marks)
 		default_mark = PruneMark.create_remove('unmarked')
@@ -177,7 +178,7 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 				if mark.keep:
 					if 0 < settings.max_amount <= regular_keep_count:
 						mark = PruneMark.create_remove('max_amount exceeded')
-					elif 0 < settings.max_lifetime.value_nano < (now - backup_info.timestamp_ns):
+					elif 0 < max_lifetime_us < now_us - backup_info.timestamp_us:
 						mark = PruneMark.create_remove('max_lifetime exceeded')
 
 				plan_list.append(PrunePlanItem(backup_info, mark))
@@ -333,7 +334,7 @@ def __main():
 		from prime_backup.types.backup_tags import BackupTags
 		from prime_backup.types.operator import Operator
 		backups.append(BackupInfo(
-			id=id_counter, timestamp_ns=int(dt.timestamp() * 1e9),
+			id=id_counter, timestamp_us=int(dt.timestamp() * 1e6),
 			creator=Operator.pb(PrimeBackupOperatorNames.test), comment='', targets=[], tags=BackupTags(),
 			fileset_id_base=0, fileset_id_delta=0, file_count=0, raw_size=0, stored_size=0,
 			files=[],

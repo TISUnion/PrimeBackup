@@ -132,7 +132,8 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 	@override
 	def get_next_run_date(self) -> RTextBase:
 		self.__ensure_aps_job()
-		if (nrt := self.aps_job.next_run_time) is not None:
+		nrt: datetime.datetime = self.aps_job.next_run_time
+		if nrt is not None:
 			return TextComponents.date(nrt)
 		else:
 			return self.__base_tr('next_run_date_paused').set_color(RColor.gray)

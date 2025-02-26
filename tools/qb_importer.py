@@ -18,7 +18,7 @@ def make_pb_meta(creator: str, timestamp: float, comment: str, targets: List[str
 	return json.dumps({
 		'creator': creator,
 		'comment': comment,
-		'timestamp_ns': int(timestamp * 1E9),
+		'timestamp_ns': int(timestamp * 1e9),
 		'targets': list(targets),
 		'tags': {},
 	}, ensure_ascii=False)

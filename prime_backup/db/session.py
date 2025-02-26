@@ -558,10 +558,10 @@ class DbSession:
 			s = s.where(schema.Backup.id <= backup_filter.id_end)
 		if backup_filter.creator is not None:
 			s = s.filter_by(creator=str(backup_filter.creator))
-		if backup_filter.timestamp_start is not None:
-			s = s.where(schema.Backup.timestamp >= backup_filter.timestamp_start)
-		if backup_filter.timestamp_end is not None:
-			s = s.where(schema.Backup.timestamp <= backup_filter.timestamp_end)
+		if backup_filter.timestamp_us_start is not None:
+			s = s.where(schema.Backup.timestamp >= backup_filter.timestamp_us_start)
+		if backup_filter.timestamp_us_end is not None:
+			s = s.where(schema.Backup.timestamp <= backup_filter.timestamp_us_end)
 		if cls.__supports_json_query():
 			s = cls.__sql_backup_tag_filter(s, backup_filter)
 		return s
@@ -578,19 +578,20 @@ class DbSession:
 		file_raw_size_sum: NotRequired[int]
 		file_stored_size_sum: NotRequired[int]
 
-	def create_backup(self, **kwargs: Unpack[CreateBackupKwargs]) -> schema.Backup:
+	@classmethod
+	def create_backup(cls, **kwargs: Unpack[CreateBackupKwargs]) -> schema.Backup:
 		"""
 		Notes: the backup id is not generated yet. Invoke :meth:`flush` to generate the backup id
 		"""
 		if 'timestamp' not in kwargs:
-			kwargs['timestamp'] = time.time_ns()
+			kwargs['timestamp'] = time.time_ns() // 1000
 
 		if kwargs.get('tags', {}).get('pre_restore_backup') is not None:
 			from prime_backup import logger
 			logger.get().warning('Backup tag "pre_restore_backup" is not used anymore, use tag "temporary" instead')
 
 		backup = schema.Backup(**kwargs)
-		self.__validate_int_fields_range(backup)
+		cls.__validate_int_fields_range(backup)
 		return backup
 
 	def get_backup_count(self, backup_filter: Optional[BackupFilter] = None) -> int:

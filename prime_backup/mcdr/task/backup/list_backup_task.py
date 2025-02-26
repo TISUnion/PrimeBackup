@@ -33,16 +33,16 @@ class ListBackupTask(LightTask[None]):
 		return 'backup_list'
 
 	def __make_command(self, page: int) -> str:
-		def date_str(ts_ns: int) -> str:
-			return json.dumps(conversion_utils.timestamp_to_local_date_str(ts_ns, decimal=ts_ns % 1000 != 0), ensure_ascii=False)
+		def date_str(ts_us: int) -> str:
+			return json.dumps(conversion_utils.timestamp_to_local_date_str_us(ts_us, decimal=ts_us % 1000 != 0), ensure_ascii=False)
 
 		cmd = mkcmd(f'list {page} --per-page {self.per_page}')
 		if self.backup_filter.creator is not None:
 			cmd += f' --creator {self.backup_filter.creator}'
-		if self.backup_filter.timestamp_start is not None:
-			cmd += f' --from {date_str(self.backup_filter.timestamp_start)}'
-		if self.backup_filter.timestamp_end is not None:
-			cmd += f' --to {date_str(self.backup_filter.timestamp_end)}'
+		if self.backup_filter.timestamp_us_start is not None:
+			cmd += f' --from {date_str(self.backup_filter.timestamp_us_start)}'
+		if self.backup_filter.timestamp_us_end is not None:
+			cmd += f' --to {date_str(self.backup_filter.timestamp_us_end)}'
 		if self.show_all:
 			cmd += f' --all'
 		if self.show_flags:

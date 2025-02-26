@@ -192,13 +192,6 @@ class Duration(_UnitValueBase[float]):
 		"""
 		return super().value
 
-	@property
-	def value_nano(self) -> Union[float, int]:
-		"""
-		Duration in nanosecond
-		"""
-		return self.value * 10 ** 9
-
 
 class Quantity(_UnitValueBase[Union[float, int]]):
 	_bsi = {'': 1, 'Ki': 2 ** 10, 'Mi': 2 ** 20, 'Gi': 2 ** 30, 'Ti': 2 ** 40, 'Pi': 2 ** 50, 'Ei': 2 ** 60}

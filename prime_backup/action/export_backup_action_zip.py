@@ -24,7 +24,7 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 	def __export_file(self, zipf: zipfile.ZipFile, file: schema.File):
 		# reference: zipf.writestr -> zipfile.ZipInfo.from_file
 		if file.mtime is not None:
-			date_time = time.localtime(file.mtime / 1e9)
+			date_time = time.localtime(file.mtime / 1e6)
 		else:
 			date_time = time.localtime()
 		arc_name = file.path

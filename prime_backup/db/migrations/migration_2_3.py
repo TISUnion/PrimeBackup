@@ -138,7 +138,7 @@ class MigrationImpl2To3(MigrationImplBase):
 					'mtime_ns',
 				]
 			}
-			fields['mtime'] = fields.pop('mtime_ns')
+			fields['mtime'] = fields.pop('mtime_ns') // 1000  # ns -> us
 			files.append(_V3.File(**fields))
 
 		# FIXME: This might not work if impl is updated in the future
@@ -152,7 +152,7 @@ class MigrationImpl2To3(MigrationImplBase):
 		fs_base, fs_delta = fs_result.fileset_base, fs_result.fileset_delta
 		new_backup = _V3.Backup(
 			id=old_backup['id'],
-			timestamp=old_backup['timestamp'],
+			timestamp=old_backup['timestamp'] // 1000,  # ns -> us
 			creator=old_backup['creator'],
 			comment=old_backup['comment'],
 			targets=json.loads(old_backup['targets']),

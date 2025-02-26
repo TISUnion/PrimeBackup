@@ -225,7 +225,7 @@ class _PreCalculationResult:
 
 
 class CreateBackupAction(CreateBackupActionBase):
-	def __init__(self, creator: Operator, comment: str, *, tags: Optional[BackupTags] = None, expire_timestamp_ns: Optional[int] = None, source_path: Optional[Path] = None):
+	def __init__(self, creator: Operator, comment: str, *, tags: Optional[BackupTags] = None, source_path: Optional[Path] = None):
 		super().__init__()
 		if tags is None:
 			tags = BackupTags()
@@ -233,7 +233,6 @@ class CreateBackupAction(CreateBackupActionBase):
 		self.creator = creator
 		self.comment = comment
 		self.tags = tags
-		self.expire_timestamp_ns = expire_timestamp_ns
 
 		self.__pre_calc_result = _PreCalculationResult()
 		self.__blob_store_st: Optional[os.stat_result] = None
@@ -323,7 +322,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			mode: int
 			uid: int
 			gid: int
-			mtime_ns: int
+			mtime_us: int
 
 		stat_to_files: Dict[StatKey, schema.File] = {}
 		for file in session.get_backup_files(backup.id):
@@ -334,7 +333,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					mode=file.mode,
 					uid=file.uid,
 					gid=file.gid,
-					mtime_ns=file.mtime,
+					mtime_us=file.mtime,
 				)
 				stat_to_files[key] = file
 
@@ -346,7 +345,7 @@ class CreateBackupAction(CreateBackupActionBase):
 					mode=file_entry.stat.st_mode,
 					uid=file_entry.stat.st_uid,
 					gid=file_entry.stat.st_gid,
-					mtime_ns=file_entry.stat.st_mtime_ns
+					mtime_us=file_entry.stat.st_mtime_ns // 1000
 				)
 				if (file := stat_to_files.get(key)) is not None:
 					self.__pre_calc_result.reused_files[file_entry.path] = file
@@ -624,7 +623,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			content=content,
 			uid=st.st_uid,
 			gid=st.st_gid,
-			mtime=st.st_mtime_ns,
+			mtime=st.st_mtime_ns // 1000,
 
 			blob=blob,
 		)

@@ -43,7 +43,7 @@ class BackupMeta(Serializable):
 		return cls(
 			creator=backup.creator,
 			comment=backup.comment,
-			timestamp_ns=backup.timestamp,
+			timestamp_ns=backup.timestamp * 1000,
 			targets=list(backup.targets),
 			tags=dict(backup.tags),
 		)
@@ -52,7 +52,7 @@ class BackupMeta(Serializable):
 		return dict(
 			creator=self.creator,
 			comment=self.comment,
-			timestamp=self.timestamp_ns,
+			timestamp=self.timestamp_ns // 1000,
 			targets=[t.rstrip('/') for t in self.targets],
 			tags=self.tags.copy(),
 		)

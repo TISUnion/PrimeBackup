@@ -135,9 +135,9 @@ class CommandManager:
 
 		backup_filter = BackupFilter()
 		if (start_date := context.get('start_date')) is not None:
-			backup_filter.timestamp_start = int(start_date)
+			backup_filter.timestamp_us_start = int(start_date)
 		if (end_date := context.get('end_date')) is not None:
-			backup_filter.timestamp_end = int(end_date)
+			backup_filter.timestamp_us_end = int(end_date)
 		if (creator_str := context.get('creator')) is not None:
 			if ':' in creator_str:
 				creator = Operator.of(creator_str)

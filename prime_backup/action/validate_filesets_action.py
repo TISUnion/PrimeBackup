@@ -142,7 +142,7 @@ class ValidateFilesetsAction(Action[ValidateFilesetsResult]):
 				if self.is_interrupted.is_set():
 					break
 				cnt += len(filesets)
-				self.logger.info('Validating {} / {} file objects'.format(cnt, result.total))
+				self.logger.info('Validating {} / {} fileset objects'.format(cnt, result.total))
 				self.__validate(session, result, [FilesetInfo.of(fileset) for fileset in filesets])
 
 		self.logger.info('Fileset validation done: total {}, validated {}, ok {}, bad {}'.format(

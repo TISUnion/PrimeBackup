@@ -363,7 +363,7 @@ The default value is `["**"]`, which matches everything. It's suggested to limit
 
 #### hash_method
 
-The algorithm to hash the files. Available options: `"xxh128"`、`"sha256"`、`"blake3"`
+The algorithm to hash the files. Available options: `"xxh128"`, `"sha256"`, `"blake3"`
 
 | Hash Method                                       | Description                                                                                                                                                       | Speed | cryptographically secure |
 |---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|--------------------------|

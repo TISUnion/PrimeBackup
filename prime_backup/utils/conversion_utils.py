@@ -36,6 +36,6 @@ def date_to_timestamp_us(s: str) -> int:
 		try:
 			dt = datetime.datetime.strptime(s, fmt)
 			return int(dt.timestamp() * 1e6)
-		except ValueError:
+		except (ValueError, OSError):
 			pass
 	raise ValueError('cannot parse date from string {!r}'.format(s))

@@ -203,7 +203,10 @@ class TextComponents:
 
 	@classmethod
 	def date_us(cls, timestamp_us: int, *, decimal: bool = False) -> RTextBase:
-		date = conversion_utils.timestamp_to_local_date_us(timestamp_us)
+		try:
+			date = conversion_utils.timestamp_to_local_date_us(timestamp_us)
+		except (OSError, ValueError) as e:
+			return RText(f'error: {timestamp_us}', TextColors.date).h(str(e))
 		return cls.date(date, decimal=decimal)
 
 	@classmethod

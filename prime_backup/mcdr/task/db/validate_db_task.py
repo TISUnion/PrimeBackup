@@ -174,7 +174,7 @@ class ValidateDbTask(HeavyTask[None]):
 				ValidatePart.backups: self.__validate_backups,
 			}
 			for part, func in validators.items():
-				if ValidatePart.blobs in self.parts and not self.aborted_event.is_set():
+				if part in self.parts and not self.aborted_event.is_set():
 					self.reply_tr(f'validate_{part.name}')
 					func(validate_logger)
 

@@ -25,8 +25,8 @@ def __is_cow_not_supported_error(e: int) -> bool:
 
 def copy_file_fast(
 		src_path: Path, dst_path: Path, *,
-		open_r_func: Callable[[Path, Literal['rb']], BinaryIO] = open,
-		open_w_func: Callable[[Path, Literal['wb+']], BinaryIO] = open,
+		open_r_func: Callable[[Path, "Literal['rb']"], BinaryIO] = open,
+		open_w_func: Callable[[Path, "Literal['wb+']"], BinaryIO] = open,
 ):
 	# https://man7.org/linux/man-pages/man2/copy_file_range.2.html
 	if HAS_COPY_FILE_RANGE:

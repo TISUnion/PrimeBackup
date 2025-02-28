@@ -43,8 +43,8 @@ class Compressor(ABC):
 	def copy_compressed(
 			self, source_path: PathLike, dest_path: PathLike, *,
 			calc_hash: bool = False,
-			open_r_func: Callable[[PathLike, Literal['rb']], BinaryIO] = open,
-			open_w_func: Callable[[PathLike, Literal['wb']], BinaryIO] = open,
+			open_r_func: Callable[[PathLike, "Literal['rb']"], BinaryIO] = open,
+			open_w_func: Callable[[PathLike, "Literal['wb']"], BinaryIO] = open,
 	) -> CopyCompressResult:
 		"""
 		source --[compress]--> destination
@@ -57,8 +57,8 @@ class Compressor(ABC):
 
 	def copy_decompressed(
 			self, source_path: PathLike, dest_path: PathLike, *,
-			open_r_func: Callable[[PathLike, Literal['rb']], BinaryIO] = open,
-			open_w_func: Callable[[PathLike, Literal['wb']], BinaryIO] = open,
+			open_r_func: Callable[[PathLike, "Literal['rb']"], BinaryIO] = open,
+			open_w_func: Callable[[PathLike, "Literal['wb']"], BinaryIO] = open,
 	):
 		"""
 		source --[decompress]--> destination

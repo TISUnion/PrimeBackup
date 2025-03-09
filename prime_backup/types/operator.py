@@ -43,6 +43,10 @@ class Operator:
 		return Operator('console', '')
 
 	@classmethod
+	def literal(cls, name: str) -> 'Operator':
+		return Operator('literal', name)
+
+	@classmethod
 	def of(cls, value: Union[str, 'CommandSource']) -> 'Operator':
 		from mcdreforged.api.all import CommandSource
 		if isinstance(value, CommandSource):
@@ -58,7 +62,7 @@ class Operator:
 				t, n = value.split(':', 1)
 				return Operator(type=t, name=n)
 			else:
-				return Operator(type=value, name='')
+				return Operator(type='literal', name=value)
 		else:
 			raise TypeError(value)
 

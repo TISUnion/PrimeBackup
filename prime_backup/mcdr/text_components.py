@@ -302,6 +302,8 @@ class TextComponents:
 
 	@classmethod
 	def operator(cls, op: Operator) -> RTextBase:
+		if op.type == 'literal':
+			return RText(op.name)
 		tr_key = f'operator.{op.type}'
 		if op.type in ['player', 'command_source']:
 			return cls.tr(tr_key, op.name)

@@ -37,6 +37,8 @@ class ListBackupTask(LightTask[None]):
 			return json.dumps(conversion_utils.timestamp_to_local_date_str_us(ts_us, decimal=ts_us % 1000 != 0), ensure_ascii=False)
 
 		cmd = mkcmd(f'list {page} --per-page {self.per_page}')
+		if self.backup_filter.sort_order is not None:
+			cmd += f' --sort {self.backup_filter.sort_order.name}'
 		if self.backup_filter.creator is not None:
 			cmd += f' --creator {self.backup_filter.creator}'
 		if self.backup_filter.timestamp_us_start is not None:

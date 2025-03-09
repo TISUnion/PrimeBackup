@@ -14,7 +14,7 @@ from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 from prime_backup.db import schema, db_constants
 from prime_backup.db.values import FileRole, BackupTagDict
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound
-from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter
+from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.utils import collection_utils, db_utils, validation_utils
 
 _T = TypeVar('_T')
@@ -564,6 +564,19 @@ class DbSession:
 			s = s.where(schema.Backup.timestamp <= backup_filter.timestamp_us_end)
 		if cls.__supports_json_query():
 			s = cls.__sql_backup_tag_filter(s, backup_filter)
+
+		sort_order = backup_filter.sort_order or BackupSortOrder.time_r
+		if sort_order == BackupSortOrder.time:
+			s = s.order_by(schema.Backup.timestamp, schema.Backup.id)
+		elif sort_order == BackupSortOrder.time_r:
+			s = s.order_by(desc(schema.Backup.timestamp), desc(schema.Backup.id))
+		elif sort_order == BackupSortOrder.id:
+			s = s.order_by(schema.Backup.id)
+		elif sort_order == BackupSortOrder.id_r:
+			s = s.order_by(desc(schema.Backup.id))
+		else:
+			raise ValueError(sort_order)
+
 		return s
 
 	class CreateBackupKwargs(TypedDict):
@@ -678,10 +691,11 @@ class DbSession:
 		return backups[0] if backups else None
 
 	def list_backup(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Backup]:
+		if backup_filter is None:
+			backup_filter = BackupFilter()
+
 		s = select(schema.Backup)
-		if backup_filter is not None:
-			s = self.__apply_backup_filter(s, backup_filter)
-		s = s.order_by(desc(schema.Backup.timestamp), desc(schema.Backup.id))
+		s = self.__apply_backup_filter(s, backup_filter)
 
 		if self.__needs_manual_backup_tag_filter(backup_filter):
 			backups = [backup for backup in self.session.execute(s).scalars().all() if self.__manual_backup_tag_filter(backup, backup_filter)]

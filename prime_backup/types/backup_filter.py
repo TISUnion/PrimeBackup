@@ -20,8 +20,17 @@ class BackupTagFilter:
 	policy: Policy
 
 
+
+class BackupSortOrder(enum.Enum):
+	id = enum.auto()
+	id_r = enum.auto()
+	time = enum.auto()
+	time_r = enum.auto()
+
+
 @dataclasses.dataclass
 class BackupFilter:
+	sort_order: Optional[BackupSortOrder] = None
 	id_start: Optional[int] = None
 	id_end: Optional[int] = None
 	creator: Optional[Operator] = None

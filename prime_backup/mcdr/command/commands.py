@@ -37,7 +37,7 @@ from prime_backup.mcdr.task.db.validate_db_task import ValidateDbTask, ValidateP
 from prime_backup.mcdr.task.general.show_help_task import ShowHelpTask
 from prime_backup.mcdr.task.general.show_welcome_task import ShowWelcomeTask
 from prime_backup.mcdr.task_manager import TaskManager
-from prime_backup.types.backup_filter import BackupFilter
+from prime_backup.types.backup_filter import BackupFilter, BackupSortOrder
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
@@ -134,6 +134,8 @@ class CommandManager:
 		per_page = context.get('per_page', 10)
 
 		backup_filter = BackupFilter()
+		if (sort_order := context.get('sort_order')) is not None:
+			backup_filter.sort_order = sort_order
 		if (start_date := context.get('start_date')) is not None:
 			backup_filter.timestamp_us_start = int(start_date)
 		if (end_date := context.get('end_date')) is not None:
@@ -413,6 +415,7 @@ class CommandManager:
 			node.runs(self.cmd_list)
 			node.then(Integer('page').at_min(1).redirects(node))
 			node.then(Literal('--per-page').then(Integer('per_page').in_range(1, 1000).redirects(node)))
+			node.then(Literal('--sort').then(Enumeration('sort_order', BackupSortOrder).redirects(node)))
 			node.then(Literal('--creator').then(QuotableText('creator').redirects(node)))
 			node.then(Literal('--from').then(DateNode('start_date').redirects(node)))
 			node.then(Literal('--to').then(DateNode('end_date').redirects(node)))

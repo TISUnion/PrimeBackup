@@ -412,6 +412,7 @@ prime_backup:
           §7{prefix} list [<page>] [--arg-key <arg-value>]§r
           §d[Optional arguments]§r
           §7--per-page §e<per_page>§r: Set number of backup displayed per page. Default: §e10§r
+          §7--sort §e<sort_order>§r: Set the sort order of the backups. Default: time (reversed)
           §7--creator §e<creator>§r: Show backup created by the given creator only
           §7--from §b<start_date>§r: Show backup after the given date only
           §7--to §b<end_date>§r: Show backup before the given date only

@@ -16,7 +16,7 @@ args: argparse.Namespace
 
 def make_pb_meta(creator: str, timestamp: float, comment: str, targets: List[str]) -> str:
 	return json.dumps({
-		'creator': creator,
+		'creator': f'player:{creator}',
 		'comment': comment,
 		'timestamp_ns': int(timestamp * 1e9),
 		'targets': list(targets),

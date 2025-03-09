@@ -94,13 +94,13 @@ def import_file(slot_path: Path, backup_format: str, timestamp: float, comment: 
 	print('Import ok')
 
 
-def import_slot(slot_path: Path):
+def import_slot(slot_path: Path) -> bool:
 	try:
 		with open(slot_path / 'info.json', 'r', encoding='utf8') as f:
 			info: dict = json.load(f)
 	except (ValueError, OSError):
 		print(f'Reading info.json failed, skipped slot {slot_path}')
-		raise
+		return False
 
 	try:
 		timestamp = info.get('time_stamp', None)
@@ -110,12 +110,14 @@ def import_slot(slot_path: Path):
 		backup_format: str = info.get('backup_format', '')
 	except Exception:
 		print(f'Parsing info.json failed, slot {slot_path}')
-		raise
+		return False
 
 	if backup_format in ['', 'plain']:
 		import_plain(slot_path, timestamp, comment)
 	else:
 		import_file(slot_path, backup_format, timestamp, comment)
+
+	return True
 
 
 HELP_MESSAGE = '''
@@ -162,8 +164,9 @@ def main():
 			continue
 
 		print(f'Importing slot {slot_path}')
-		import_slot(slot_path)
-		imported_cnt += 1
+		ok = import_slot(slot_path)
+		if ok:
+			imported_cnt += 1
 
 	print(f'All done, imported {imported_cnt} slots, cost {time.time() - t:.1f}s in total')
 

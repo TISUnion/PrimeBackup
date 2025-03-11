@@ -23,7 +23,7 @@ class BackupConfig(Serializable):
 	reuse_stat_unchanged_file: bool = False
 	creation_skip_missing_file: bool = False
 	creation_skip_missing_file_patterns: List[str] = [
-		'world/test_file_keep_mutating/**',
+		'**',
 	]
 
 	# Storage

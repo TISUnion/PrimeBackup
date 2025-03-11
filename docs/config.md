@@ -357,7 +357,7 @@ used in combination with [creation_skip_missing_file](#creation_skip_missing_fil
 
 During backup creation, any "file not found" errors occurring for files matched by this option will be ignored
 
-The default value is `["**"]`, which matches everything. It's suggested to limit it to those volatile files only
+The default value is `["**"]`, which matches everything. It's suggested to limit it to those volatile files only, e.g. `["trash/*.tmp"]`
 
 - Type: `List[str]`
 

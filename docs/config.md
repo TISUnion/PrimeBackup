@@ -316,8 +316,16 @@ Prime Backup will save not only the `world` symbolic link, but also the `foo` sy
 
 #### reuse_stat_unchanged_file
 
-When enabled, during backup creation, Prime Backup will try to directly reuse file information from the previous backup 
-for files whose stat (size, mtime, mode, etc.) have not changed. No file hash checking will be done on these stat-unchanged files
+When enabled, during backup creation, Prime Backup will try to directly reuse files from the previous backup 
+whose attributes (size, mtime, mode, etc.) have not changed. No file hash checking will be done on these attributes-unchanged files
+
+Prime Backup will check the following file attributes. Files with the exact same attributes will be considered unchanged:
+
+- File path
+- File size
+- File mode bits
+- File owner's UID and GID
+- File modification time (precision: microseconds)
 
 If you want the maximum possible backup creation speed, you can try enabling this option.
 However, this also introduces the potential risk of incomplete backups

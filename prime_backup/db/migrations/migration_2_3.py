@@ -89,7 +89,7 @@ class MigrationImpl2To3(MigrationImplBase):
 		start_ts = time.time()
 
 		for backup_id_batch in collection_utils.slicing_iterate(old_backup_ids, 10):
-			sql_in_arg = repr(tuple(map(int, backup_id_batch)))
+			sql_in_arg = '({})'.format(','.join(map(str, backup_id_batch)))
 			old_backup_rows = list(self.session.execute(text(f'SELECT * FROM old_backup_2to3 WHERE id IN {sql_in_arg}')))
 			old_file_rows = list(self.session.execute(text(f'SELECT * FROM old_file_2to3 WHERE backup_id IN {sql_in_arg}')))
 			self.logger.debug('Selected {} old backups with {} old file'.format(len(backup_id_batch), len(old_file_rows)))

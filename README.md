@@ -9,7 +9,7 @@ Document: https://tisunion.github.io/PrimeBackup/
 ## Features
 
 - Only stores files with changes with the hash-based file pool. Supports unlimited number of backup
-- Comprehensive backup operations, including backup/restore, listing/delete, import/export, etc
+- Comprehensive backup operations, including backup/restore, list/delete, import/export, etc
 - Smooth in-game interaction, with most operations achievable through mouse clicks
 - Highly customizable backup pruning strategies, similar to the strategy use by [PBS](https://pbs.proxmox.com/docs/prune-simulator/)
 - Crontab jobs, including automatic backup, automatic pruning, etc.
@@ -30,7 +30,7 @@ See the document: https://tisunion.github.io/PrimeBackup/
 ## How it works
 
 Prime Backup maintains a custom file pool to store the backup files. Every file in the pool is identified with the hash value of its content.
-With that, Prime Backup can deduplicate files with same content, and only stores 1 copy of them, greatly reduced the burden on disk usage. 
+With that, Prime Backup can deduplicate files with same content, and only stores 1 copy of them, greatly reduces the burden on disk usage. 
 
 Besides that, Prime Backup also supports compression on the stored files, which reduces the disk usage further more
 

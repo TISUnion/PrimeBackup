@@ -666,7 +666,7 @@ Configurations for the SQLite database, used by Prime Backup
     "compact": {
         "enabled": true,
         "interval": null,
-        "crontab": "0 7 * * *",
+        "crontab": "0 7 * * 0",
         "jitter": "1m"
     },
     "backup": {

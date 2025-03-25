@@ -667,7 +667,7 @@ Prime Backup 所使用的 SQLite 数据库的相关配置
     "compact": {
         "enabled": true,
         "interval": null,
-        "crontab": "0 7 * * *",
+        "crontab": "0 7 * * 0",
         "jitter": "1m"
     },
     "backup": {

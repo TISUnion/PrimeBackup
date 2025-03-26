@@ -183,7 +183,7 @@ class MigrationImpl2To3(MigrationImplBase):
 		cnt_f = self.session.execute(text(f'SELECT COUNT(*) FROM {_V3.File.__tablename__}')).scalar_one()
 		cnt_fs = self.session.execute(text(f'SELECT COUNT(*) FROM {_V3.Fileset.__tablename__}')).scalar_one()
 		cnt_b = self.session.execute(text(f'SELECT COUNT(*) FROM {_V3.Backup.__tablename__}')).scalar_one()
+		decrease_percent = (cnt_f - self.__stats.old_file_count) / max(1, self.__stats.old_file_count) * 100
 		self.logger.info('Done. Constructed {} files (decreased from {}, {:.1f}%), {} filesets, {} backups'.format(
-			cnt_f, self.__stats.old_file_count, (cnt_f - self.__stats.old_file_count) / self.__stats.old_file_count * 100,
-			cnt_fs, cnt_b,
+			cnt_f, self.__stats.old_file_count, decrease_percent, cnt_fs, cnt_b,
 		))

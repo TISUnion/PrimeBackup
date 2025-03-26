@@ -175,11 +175,11 @@ A set of Minecraft commands to be used by Prime Backup. Current they're only use
 
 Timing of what Prime Backup will do during a backup creation
 
-1. Turn off autosave with command stored in subconfig `auto_save_off`, if config [`turn_off_auto_save`](#turn_off_auto_save) is true
-2. Save all worlds with command stored in subconfig `save_all_worlds`
-3. Wait until all words are saved, i.e. the server outputs matches one of the regex in config [`saved_world_regex`](#saved_world_regex)
+1. Turn off autosave with command stored in subconfig `auto_save_off`, if config [`turn_off_auto_save`](#turn_off_auto_save) is true and `auto_save_off` is a non-empty string
+2. Save all worlds with command stored in subconfig `save_all_worlds`, if `save_all_worlds` is a non-empty string
+3. Wait until all words are saved, i.e. the server outputs matches one of the regex in config [`saved_world_regex`](#saved_world_regex). If `saved_world_regex` is empty, then not waiting will be performed 
 4. Create the backup
-5. Turn on autosave with command stored in subconfig `auto_save_on`, if config [`turn_off_auto_save`](#turn_off_auto_save) is true
+5. Turn on autosave with command stored in subconfig `auto_save_on`, if config [`turn_off_auto_save`](#turn_off_auto_save) is true and `auto_save_on` is a non-empty string
 
 #### saved_world_regex
 

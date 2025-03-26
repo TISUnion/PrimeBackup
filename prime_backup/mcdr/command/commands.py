@@ -140,6 +140,8 @@ class CommandManager:
 			backup_filter.timestamp_us_start = int(start_date)
 		if (end_date := context.get('end_date')) is not None:
 			backup_filter.timestamp_us_end = int(end_date)
+		if context.get('me', 0) > 0:
+			backup_filter.creator = Operator.of(source)
 		if (creator_str := context.get('creator')) is not None:
 			if ':' in creator_str:
 				creator = Operator.of(creator_str)
@@ -417,6 +419,7 @@ class CommandManager:
 			node.then(Literal('--per-page').then(Integer('per_page').in_range(1, 1000).redirects(node)))
 			node.then(Literal('--sort').then(Enumeration('sort_order', BackupSortOrder).redirects(node)))
 			node.then(Literal('--creator').then(QuotableText('creator').redirects(node)))
+			node.then(CountingLiteral('--me', 'me').redirects(node))
 			node.then(Literal('--from').then(DateNode('start_date').redirects(node)))
 			node.then(Literal('--to').then(DateNode('end_date').redirects(node)))
 			node.then(CountingLiteral('-a', 'all').redirects(node))

@@ -1,3 +1,4 @@
+import logging
 import os
 from abc import abstractmethod, ABC
 from pathlib import Path
@@ -12,7 +13,7 @@ from prime_backup.utils.temp_file_store import TempFileStore
 
 class MigrationImplBase(ABC):
 	def __init__(self, engine: Engine, temp_dir: Path, session: Session):
-		self.logger = logger.get()
+		self.logger: logging.Logger = logger.get()
 		self.engine = engine
 		self.temp_file_store = TempFileStore(temp_dir / f'migration_{os.getpid()}')
 		self.session = session

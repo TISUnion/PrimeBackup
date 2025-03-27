@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+import logging
 import threading
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List, Optional, Any, Callable
@@ -34,8 +35,8 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 	def __init__(self, scheduler: BaseScheduler, task_manager: 'TaskManager'):
 		CrontabJob.__init__(self, scheduler, task_manager)
 		TranslationContext.__init__(self, f'job.{self.id.name}')
-		self._root_config = Config.get()
-		self.logger = logger.get()
+		self._root_config: Config = Config.get()
+		self.logger: logging.Logger = logger.get()
 		self.aps_job: Optional[Job] = None
 		self.abort_event = threading.Event()
 

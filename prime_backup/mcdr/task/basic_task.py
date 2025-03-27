@@ -1,3 +1,4 @@
+import logging
 import threading
 from abc import ABC
 from typing import Union, Optional, TypeVar
@@ -24,8 +25,8 @@ class _BasicTask(Task[_T], ABC):
 
 		from prime_backup import logger
 		from prime_backup.config.config import Config
-		self.logger = logger.get()
-		self.config = Config.get()
+		self.logger: logging.Logger = logger.get()
+		self.config: Config = Config.get()
 
 		self.aborted_event = threading.Event()
 		self.plugin_unloaded_event = threading.Event()

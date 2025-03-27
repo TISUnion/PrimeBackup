@@ -12,6 +12,7 @@ from prime_backup.action.import_backup_action import ImportBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.action.migrate_compress_method_action import MigrateCompressMethodAction
 from prime_backup.compressors import CompressMethod
+from prime_backup.config.config import Config
 from prime_backup.db.access import DbAccess
 from prime_backup.types.operator import Operator
 from prime_backup.types.tar_format import TarFormat
@@ -19,6 +20,7 @@ from prime_backup.types.tar_format import TarFormat
 
 def main():
 	logger.get().setLevel(logging.DEBUG)
+	Config().get().debug = True
 
 	DbAccess.init(create=True, migrate=True)
 	backup_id = 1

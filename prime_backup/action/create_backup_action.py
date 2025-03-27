@@ -4,6 +4,7 @@ import dataclasses
 import enum
 import functools
 import hashlib
+import logging
 import os
 import stat
 import threading
@@ -13,7 +14,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, ContextManager, Literal, BinaryIO
 
 import pathspec
-from typing_extensions import NoReturn, override
+from typing_extensions import NoReturn, override, Self
 
 from prime_backup.action.create_backup_action_base import CreateBackupActionBase
 from prime_backup.compressors import Compressor, CompressMethod
@@ -29,6 +30,7 @@ from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, sqlalchemy_utils
 from prime_backup.utils.path_like import PathLike
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
+from prime_backup.utils.time_cost_stats import TimeCostStats
 
 
 class VolatileBlobFile(PrimeBackupError):
@@ -75,14 +77,34 @@ _READ_ALL_SIZE_THRESHOLD = 8 * 1024  # 8KiB
 _HASH_ONCE_SIZE_THRESHOLD = 10 * 1024 * 1024  # 10MiB
 
 
+class _TimeCostKey(enum.Enum):
+	kind_db = enum.auto()
+	kind_fs = enum.auto()
+	kind_io_read = enum.auto()
+	kind_io_write = enum.auto()
+	kind_io_copy = enum.auto()
+
+	stage_scan_files = enum.auto()
+	stage_reuse_unchanged_files = enum.auto()
+	stage_pre_calculate_hash = enum.auto()
+	stage_prepare_blob_store = enum.auto()
+	stage_create_files = enum.auto()
+	stage_finalize = enum.auto()
+	stage_flush_db = enum.auto()
+
+	def __lt__(self, other: Self) -> bool:
+		return self.name < other.name
+
+
 class BatchFetcherBase(ABC):
 	Callback = Callable
 	tasks: dict
 
-	def __init__(self, session: DbSession, max_batch_size: int):
+	def __init__(self, session: DbSession, max_batch_size: int, time_costs: TimeCostStats[_TimeCostKey]):
 		self.session = session
 		self.max_batch_size = max_batch_size
 		self.first_task_scheduled_time = time.time()
+		self.time_costs = time_costs
 
 	def _post_query(self):
 		now = time.time()
@@ -115,8 +137,8 @@ class BlobBySizeFetcher(BatchFetcherBase):
 	Callback = Callable[[Rsp], None]
 	tasks: Dict[int, List[Callback]]
 
-	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[int, bool]):
-		super().__init__(session, max_batch_size)
+	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[int, bool], time_costs: TimeCostStats[_TimeCostKey]):
+		super().__init__(session, max_batch_size, time_costs)
 		self.tasks: List[Tuple[int, BlobBySizeFetcher.Callback]] = []
 		self.sizes: Set[int] = set()
 		self.result_cache = result_cache
@@ -128,7 +150,8 @@ class BlobBySizeFetcher(BatchFetcherBase):
 
 	@override
 	def _batch_run(self):
-		existence = self.session.has_blob_with_size_batched(list(self.sizes))
+		with self.time_costs.measure_time_cost(_TimeCostKey.kind_db):
+			existence = self.session.has_blob_with_size_batched(list(self.sizes))
 		self.result_cache.update(existence)
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for sz, callback in reversed(self.tasks):
@@ -149,8 +172,8 @@ class BlobByHashFetcher(BatchFetcherBase):
 	Callback = Callable[[Rsp], None]
 	tasks: Dict[str, List[Callback]]
 
-	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[str, schema.Blob]):
-		super().__init__(session, max_batch_size)
+	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[str, schema.Blob], time_costs: TimeCostStats[_TimeCostKey]):
+		super().__init__(session, max_batch_size, time_costs)
 		self.tasks: List[Tuple[str, BlobByHashFetcher.Callback]] = []
 		self.hashes: Set[str] = set()
 		self.result_cache = result_cache
@@ -162,7 +185,8 @@ class BlobByHashFetcher(BatchFetcherBase):
 
 	@override
 	def _batch_run(self):
-		blobs = self.session.get_blobs(list(self.hashes))
+		with self.time_costs.measure_time_cost(_TimeCostKey.kind_db):
+			blobs = self.session.get_blobs(list(self.hashes))
 		self.result_cache.update(blobs)
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for h, callback in reversed(self.tasks):
@@ -175,9 +199,9 @@ class BatchQueryManager:
 	Reqs = Union[BlobBySizeFetcher.Req, BlobByHashFetcher.Req]
 	Rsps = Union[BlobBySizeFetcher.Rsp, BlobByHashFetcher.Rsp]
 
-	def __init__(self, session: DbSession, size_result_cache: dict, hash_result_cache: dict, max_batch_size: int = 100):
-		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size, size_result_cache)
-		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size, hash_result_cache)
+	def __init__(self, session: DbSession, size_result_cache: dict, hash_result_cache: dict, time_costs: TimeCostStats[_TimeCostKey], *, max_batch_size: int = 100):
+		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size, size_result_cache, time_costs)
+		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size, hash_result_cache, time_costs)
 
 	def query(self, query: Reqs, callback: Callable[[Rsps], None]):
 		if isinstance(query, BlobBySizeFetcher.Req):
@@ -243,6 +267,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
 
 		self.__source_path: Path = source_path or self.config.source_path
+		self.__time_costs: TimeCostStats[_TimeCostKey] = TimeCostStats()
 
 	def __file_path_to_db_path(self, path: Path) -> str:
 		return path.relative_to(self.__source_path).as_posix()
@@ -292,13 +317,13 @@ class CreateBackupAction(CreateBackupActionBase):
 				scan(symlink_target_full_path, True)
 
 		self.logger.debug(f'Scan file done start, targets: {self.config.backup.targets}')
-		start_time = time.time()
 
-		for target in self.config.backup.targets:
-			scan(self.__source_path / target, True)
+		with self.__time_costs.measure_time_cost(_TimeCostKey.kind_fs) as scan_cost:
+			for target in self.config.backup.targets:
+				scan(self.__source_path / target, True)
 
 		self.logger.debug('Scan file done, cost {:.2f}s, count {}, root_targets (len={}): {}, ignored_paths[:100] (len={}): {}'.format(
-			time.time() - start_time, len(result.all_files),
+			scan_cost(), len(result.all_files),
 			len(result.root_targets), result.root_targets,
 			len(ignored_paths), [p.as_posix() for p in ignored_paths][:100],
 		))
@@ -311,7 +336,8 @@ class CreateBackupAction(CreateBackupActionBase):
 			stats[file_entry.path] = file_entry.stat
 
 	def __reuse_unchanged_files(self, session: DbSession, scan_result: _ScanResult):
-		backup = session.get_last_backup()
+		with self.__time_costs.measure_time_cost(_TimeCostKey.kind_db):
+			backup = session.get_last_backup()
 		if backup is None:
 			return
 
@@ -324,8 +350,11 @@ class CreateBackupAction(CreateBackupActionBase):
 			gid: int
 			mtime_us: int
 
+		with self.__time_costs.measure_time_cost(_TimeCostKey.kind_db):
+			backup_files = session.get_backup_files(backup.id)
+
 		stat_to_files: Dict[StatKey, schema.File] = {}
-		for file in session.get_backup_files(backup.id):
+		for file in backup_files:
 			if stat.S_ISREG(file.mode):
 				key = StatKey(
 					path=file.path,
@@ -367,13 +396,14 @@ class CreateBackupAction(CreateBackupActionBase):
 		def hash_worker(pth: Path):
 			hashes[pth] = hash_utils.calc_file_hash(pth)
 
-		with FailFastBlockingThreadPool(name='hasher') as pool:
-			for file_entry in file_entries_to_hash:
-				if existed_sizes[file_entry.stat.st_size]:
-					# we need to hash the file, sooner or later
-					pool.submit(hash_worker, file_entry.path)
-				else:
-					pass  # will use hash_once policy
+		with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_read):
+			with FailFastBlockingThreadPool(name='hasher') as pool:
+				for file_entry in file_entries_to_hash:
+					if existed_sizes[file_entry.stat.st_size]:
+						# we need to hash the file, sooner or later
+						pool.submit(hash_worker, file_entry.path)
+					else:
+						pass  # will use hash_once policy
 
 	@functools.cached_property
 	def __temp_path(self) -> Path:
@@ -422,8 +452,9 @@ class CreateBackupAction(CreateBackupActionBase):
 			elif not can_copy_on_write:  # do tricks iff. no COW copy
 				if st.st_size <= _READ_ALL_SIZE_THRESHOLD:
 					policy = _BlobCreatePolicy.read_all
-					with _SourceFileNotFound.open_rb(src_path, 'rb') as f:
-						blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
+					with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_read):
+						with _SourceFileNotFound.open_rb(src_path, 'rb') as f:
+							blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
 					if len(blob_content) > _READ_ALL_SIZE_THRESHOLD:
 						log_and_raise_blob_file_changed('Read too many bytes for read_all policy, stat: {}, read: {}'.format(st.st_size, len(blob_content)))
 					blob_hash = hash_utils.calc_bytes_hash(blob_content)
@@ -440,8 +471,9 @@ class CreateBackupAction(CreateBackupActionBase):
 						policy = _BlobCreatePolicy.hash_once
 			if policy is None:
 				policy = _BlobCreatePolicy.default
-				with _SourceFileNotFound.wrap(src_path):
-					blob_hash = hash_utils.calc_file_hash(src_path)
+				with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_read):
+					with _SourceFileNotFound.wrap(src_path):
+						blob_hash = hash_utils.calc_file_hash(src_path)
 
 			# self.logger.info("%s %s %s", policy.name, compress_method.name, src_path)
 			if blob_hash is not None:
@@ -478,8 +510,10 @@ class CreateBackupAction(CreateBackupActionBase):
 				# copy to temp file, calc hash, then compress to blob store
 				misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
 				with make_temp_file() as temp_file_path:
-					file_utils.copy_file_fast(src_path, temp_file_path, open_r_func=_SourceFileNotFound.open_rb)
-					blob_hash = hash_utils.calc_file_hash(temp_file_path)
+					with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_copy):
+						file_utils.copy_file_fast(src_path, temp_file_path, open_r_func=_SourceFileNotFound.open_rb)
+					with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_read):
+						blob_hash = hash_utils.calc_file_hash(temp_file_path)
 
 					misc_utils.assert_true(last_chance, 'only last_chance=True is allowed for the copy_hash policy')
 					if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
@@ -489,14 +523,16 @@ class CreateBackupAction(CreateBackupActionBase):
 						return cache
 
 					blob_path = bp_rba(blob_hash)
-					cr = compressor.copy_compressed(temp_file_path, blob_path, calc_hash=False)
+					with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_copy):
+						cr = compressor.copy_compressed(temp_file_path, blob_path, calc_hash=False)
 					raw_size, stored_size = cr.read_size, cr.write_size
 
 			elif policy == _BlobCreatePolicy.hash_once:
 				# read once, compress+hash to temp file, then move
 				misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
 				with make_temp_file() as temp_file_path:
-					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True, open_r_func=_SourceFileNotFound.open_rb)
+					with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_copy):
+						cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True, open_r_func=_SourceFileNotFound.open_rb)
 					check_changes(cr.read_size, None)  # the size must be unchanged, to satisfy the uniqueness
 
 					raw_size, blob_hash, stored_size = cr.read_size, cr.read_hash, cr.write_size
@@ -504,11 +540,14 @@ class CreateBackupAction(CreateBackupActionBase):
 
 					# reference: shutil.move, but os.replace is used
 					try:
-						os.replace(temp_file_path, blob_path)
+						with self.__time_costs.measure_time_cost(_TimeCostKey.kind_fs):
+							os.replace(temp_file_path, blob_path)
 					except OSError:
 						# The temp dir is in the different file system to the blob store?
 						# Whatever, use file copy as the fallback
-						file_utils.copy_file_fast(temp_file_path, blob_path)
+						# the temp file will be deleted automatically
+						with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_copy):
+							file_utils.copy_file_fast(temp_file_path, blob_path)
 
 			else:
 				misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
@@ -517,19 +556,23 @@ class CreateBackupAction(CreateBackupActionBase):
 				if policy == _BlobCreatePolicy.read_all:
 					# the file content is already in memory, just write+compress to blob store
 					misc_utils.assert_true(blob_content is not None, 'blob_content is None')
-					with compressor.open_compressed_bypassed(blob_path) as (writer, f):
-						f.write(blob_content)
+					with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_write):
+						with compressor.open_compressed_bypassed(blob_path) as (writer, f):
+							f.write(blob_content)
 					raw_size, stored_size = len(blob_content), writer.get_write_len()
 				elif policy == _BlobCreatePolicy.default:
 					if can_copy_on_write and compress_method == CompressMethod.plain:
 						# fast copy, then calc size and hash to verify
-						file_utils.copy_file_fast(src_path, blob_path, open_r_func=_SourceFileNotFound.open_rb)
-						sah = hash_utils.calc_file_size_and_hash(blob_path)
+						with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_copy):
+							file_utils.copy_file_fast(src_path, blob_path, open_r_func=_SourceFileNotFound.open_rb)
+						with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_read):
+							sah = hash_utils.calc_file_size_and_hash(blob_path)
 						raw_size = stored_size = sah.size
 						check_changes(sah.size, sah.hash)
 					else:
 						# copy+compress+hash to blob store
-						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True, open_r_func=_SourceFileNotFound.open_rb)
+						with self.__time_costs.measure_time_cost(_TimeCostKey.kind_io_copy):
+							cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True, open_r_func=_SourceFileNotFound.open_rb)
 						raw_size, stored_size = cr.read_size, cr.write_size
 						check_changes(cr.read_size, cr.read_hash)
 				else:
@@ -592,7 +635,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			)
 
 		if (st := self.__pre_calc_result.stats.pop(path, None)) is None:
-			with _SourceFileNotFound.wrap(path):
+			with _SourceFileNotFound.wrap(path), self.__time_costs.measure_time_cost(_TimeCostKey.kind_fs):
 				st = path.lstat()
 
 		blob: Optional[schema.Blob] = None
@@ -631,17 +674,25 @@ class CreateBackupAction(CreateBackupActionBase):
 	@override
 	def run(self) -> BackupInfo:
 		super().run()
+
+		# TODO: prevent re-run
 		self.__blob_by_size_cache.clear()
 		self.__blob_by_hash_cache.clear()
+		self.__time_costs.reset()
+		with self.__time_costs.measure_time_cost(*_TimeCostKey):
+			pass
+		action_start_ts = time.time()
 
 		try:
-			with DbAccess.open_session() as session:
-				self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache)
+			session_context = DbAccess.open_session()
+			with session_context as session:
+				self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache, self.__time_costs)
 
 				self.logger.info('Scanning file for backup creation at path {!r}, targets: {}'.format(
 					self.__source_path.as_posix(), self.config.backup.targets,
 				))
-				scan_result = self.__scan_files()
+				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_scan_files):
+					scan_result = self.__scan_files()
 				backup = session.create_backup(
 					creator=str(self.creator),
 					comment=self.comment,
@@ -655,16 +706,19 @@ class CreateBackupAction(CreateBackupActionBase):
 
 				self.__pre_calculate_stats(scan_result)
 				if self.config.backup.reuse_stat_unchanged_file:
-					self.__reuse_unchanged_files(session, scan_result)
+					with self.__time_costs.measure_time_cost(_TimeCostKey.stage_reuse_unchanged_files):
+						self.__reuse_unchanged_files(session, scan_result)
 					self.logger.info('Reused {} / {} stat unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
 				if self.config.get_effective_concurrency() > 1:
-					self.__pre_calculate_hash(session, scan_result)
+					with self.__time_costs.measure_time_cost(_TimeCostKey.stage_pre_calculate_hash):
+						self.__pre_calculate_hash(session, scan_result)
 					self.logger.info('Pre-calculate all file hash done')
 
-				blob_utils.prepare_blob_directories()
-				bs_path = blob_utils.get_blob_store()
-				self.__blob_store_st = bs_path.stat()
-				self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
+				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_prepare_blob_store, _TimeCostKey.kind_fs):
+					blob_utils.prepare_blob_directories()
+					bs_path = blob_utils.get_blob_store()
+					self.__blob_store_st = bs_path.stat()
+					self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
 
 				@functools.lru_cache(None)
 				def get_skip_missing_source_file_patterns() -> pathspec.GitIgnoreSpec:
@@ -681,38 +735,69 @@ class CreateBackupAction(CreateBackupActionBase):
 					return False
 
 				files = []
-				schedule_queue: Deque[Tuple[Generator, Any]] = collections.deque()
-				for file_entry in scan_result.all_files:
-					schedule_queue.append((self.__create_file(session, file_entry.path), None))
-				while len(schedule_queue) > 0:
-					gen, value = schedule_queue.popleft()
-					try:
-						def callback(query_rsp, g=gen):
-							schedule_queue.appendleft((g, query_rsp))
+				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_create_files):
+					schedule_queue: Deque[Tuple[Generator, Any]] = collections.deque()
+					for file_entry in scan_result.all_files:
+						schedule_queue.append((self.__create_file(session, file_entry.path), None))
+					while len(schedule_queue) > 0:
+						gen, value = schedule_queue.popleft()
+						try:
+							def callback(query_rsp, g=gen):
+								schedule_queue.appendleft((g, query_rsp))
 
-						query_req = gen.send(value)
-						self.__batch_query_manager.query(query_req, callback)
-					except StopIteration as e:
-						files.append(misc_utils.ensure_type(e.value, schema.File))
-					except _SourceFileNotFound as e:
-						if should_skip_missing_source_file(e.file_path):
-							self.logger.warning('Backup source file {!r} not found, suppressed and skipped by config'.format(str(e.file_path)))
-						else:
-							raise
+							query_req = gen.send(value)
+							self.__batch_query_manager.query(query_req, callback)
+						except StopIteration as e:
+							files.append(misc_utils.ensure_type(e.value, schema.File))
+						except _SourceFileNotFound as e:
+							if should_skip_missing_source_file(e.file_path):
+								self.logger.warning('Backup source file {!r} not found, suppressed and skipped by config'.format(str(e.file_path)))
+							else:
+								raise
 
-					self.__batch_query_manager.flush_if_needed()
-					if len(schedule_queue) == 0:
-						self.__batch_query_manager.flush()
+						self.__batch_query_manager.flush_if_needed()
+						if len(schedule_queue) == 0:
+							self.__batch_query_manager.flush()
 
-				self._finalize_backup_and_files(session, backup, files)
+				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_finalize):
+					self._finalize_backup_and_files(session, backup, files)
 				info = BackupInfo.of(backup)
 
+				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_flush_db, _TimeCostKey.kind_db):
+					session_context.__exit__(None, None, None)
+		except Exception as e:
+			self._apply_blob_rollback()
+			raise e
+		else:
 			s = self.get_new_blobs_summary()
 			self.logger.info('Create backup #{} done, +{} blobs (size {} / {})'.format(
 				info.id, s.count, ByteCount(s.stored_size).auto_str(), ByteCount(s.raw_size).auto_str(),
 			))
+			self.__log_costs(time.time() - action_start_ts)
+
 			return info
 
-		except Exception as e:
-			self._apply_blob_rollback()
-			raise e
+	def __log_costs(self, actual_cost: float):
+		if not (self.config.debug and self.logger.isEnabledFor(logging.DEBUG)):
+			return
+
+		def log_one_key(what: str, cost: float):
+			self.logger.debug('  {}: {:.3f}s ({:.1f}%)'.format(what, cost, 100.0 * cost / actual_cost))
+
+		self.logger.debug('========================')
+		self.logger.debug('{} run costs'.format(self.__class__.__name__))
+		log_one_key('ACTUAL', actual_cost)
+
+		all_costs = self.__time_costs.get_costs()
+		kind_costs = {k: v for k, v in all_costs.items() if k.name.startswith('kind_')}
+		stage_costs = {k: v for k, v in all_costs.items() if k.name.startswith('stage_')}
+
+		self.logger.debug('Kind costs')
+		for k, v in kind_costs.items():
+			log_one_key(k.name, v)
+		log_one_key('rest', actual_cost - sum(kind_costs.values()))
+		self.logger.debug('Stage costs')
+		for k, v in stage_costs.items():
+			log_one_key(k.name, v)
+		log_one_key('rest', actual_cost - sum(stage_costs.values()))
+		self.logger.debug('========================')

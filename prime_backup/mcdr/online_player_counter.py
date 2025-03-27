@@ -94,7 +94,7 @@ class OnlinePlayerCounter:
 		thread.start()
 
 	def on_load(self, prev: Any):
-		should_update_from_api = self.server.is_server_running()
+		should_update_from_api = self.server.is_server_startup()
 
 		# delay this for a little bit, in case minecraft_data_api is loading too
 		self.server.schedule_task(functools.partial(self.__on_load, prev, should_update_from_api))
@@ -117,7 +117,7 @@ class OnlinePlayerCounter:
 			with self.data_lock:
 				self.data_is_correct = True
 				self.player_list = prev_player_list
-		elif should_update_from_api and self.server.is_server_running():
+		elif should_update_from_api and self.server.is_server_startup():
 			self.__try_update_player_list_from_api(log_success=True)
 
 	def on_server_start(self):

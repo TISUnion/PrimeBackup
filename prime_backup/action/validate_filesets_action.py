@@ -22,6 +22,7 @@ class ValidateFilesetsResult:
 	total: int = 0
 	validated: int = 0
 	bad_filesets: Dict[int, BadFilesetItem] = dataclasses.field(default_factory=dict)
+	affected_backup_ids: List[int] = dataclasses.field(default_factory=list)
 
 	@property
 	def ok(self) -> int:
@@ -144,6 +145,8 @@ class ValidateFilesetsAction(Action[ValidateFilesetsResult]):
 				cnt += len(filesets)
 				self.logger.info('Validating {} / {} fileset objects'.format(cnt, result.total))
 				self.__validate(session, result, [FilesetInfo.of(fileset) for fileset in filesets])
+
+			result.affected_backup_ids = session.get_backup_ids_by_fileset_ids(list(result.bad_filesets.keys()))
 
 		self.logger.info('Fileset validation done: total {}, validated {}, ok {}, bad {}'.format(
 			result.total, result.validated, result.ok, len(result.bad_filesets),

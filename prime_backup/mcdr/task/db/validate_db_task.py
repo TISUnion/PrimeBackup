@@ -83,7 +83,7 @@ class ValidateDbTask(HeavyTask[None]):
 		for file in result.affected_file_samples:
 			vlogger.info('- {!r}'.format(file))
 		vlogger.info('Affected backup / total backups: {} / {}'.format(len(result.affected_backup_ids), counts.backup_count))
-		vlogger.info('Affected backup IDs: {}'.format(result.affected_backup_ids))
+		vlogger.info('Affected backup IDs (bad blobs): {}'.format(result.affected_backup_ids))
 
 		sampled_backup_ids = result.affected_backup_ids[:100]
 		sampled_fileset_ids = result.affected_fileset_ids[:100]
@@ -142,6 +142,8 @@ class ValidateDbTask(HeavyTask[None]):
 			text = RTextBase.format('{}. {}: {}', i + 1, TextComponents.fileset_id(item.fileset.id), '; '.join(item.descriptions))
 			vlogger.info(text.to_plain_text())
 			self.reply(text)
+
+		vlogger.info('Affected backup IDs (bad filesets): {}'.format(result.affected_backup_ids))
 
 	def __validate_backups(self, vlogger: logging.Logger):
 		result = self.run_action(ValidateBackupsAction())

@@ -88,26 +88,27 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 		self.logger.info('Deleting backup #{}'.format(self.backup_id))
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
-			info = BackupInfo.of(backup)
+			backup_info = BackupInfo.of(backup)
 
-			hashes = []
-			for file in session.get_backup_files(backup):
-				if file.blob_hash is not None:
-					hashes.append(file.blob_hash)
-				session.delete_file(file)
-			session.delete_backup(backup)
-
+			# delete fileset
+			deleted_file_hashes: List[str] = []
 			fileset: schema.Fileset
 			for fileset in [backup.fileset_base, backup.fileset_delta]:
 				ref_cnt = session.get_fileset_associated_backup_count(fileset.id)
 				self.logger.info('Pruning fileset {}, ref_cnt={}{}'.format(fileset.id, ref_cnt, ', delete it' if ref_cnt <= 0 else ''))
 				if ref_cnt <= 0:
 					session.delete_fileset(fileset)
+					for file in session.get_fileset_files(fileset.id):
+						if file.blob_hash is not None:
+							deleted_file_hashes.append(file.blob_hash)
+						session.delete_file(file)
 
-		orphan_blob_cleaner = DeleteOrphanBlobsAction(hashes, quiet=True)
+			session.delete_backup(backup)
+
+		orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes, quiet=True)
 		bls = orphan_blob_cleaner.run()
 
 		self.logger.info('Deleted backup #{} done, -{} blobs (size {} / {})'.format(
-			info.id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
+			backup_info.id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
 		))
-		return DeleteBackupResult(info, bls)
+		return DeleteBackupResult(backup_info, bls)

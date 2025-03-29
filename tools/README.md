@@ -37,8 +37,11 @@ optional arguments:
 A data-recover helper tool for [Issue #64](https://github.com/TISUnion/PrimeBackup/issues/64)
 
 > [!NOTE]  
-> You need to have external backups of the database file (created by PB v1.9+) and optional some blob store (`pb_files/blobs`) backups to perform the fix
-> If no backup, then no rescue :(
+> You need to have external backups of these 2 stuffs perform the fix:
+> 1. Backup of the database file (created by PB v1.9+). Take a look in `pb_files/db_backup`
+> 2. (Optional) Backup of the blob store (`pb_files/blobs`) backups
+> 
+> No rescue if no backup :(
 
 ```bash
 $ python3 ./issue_64_fixer.py --help

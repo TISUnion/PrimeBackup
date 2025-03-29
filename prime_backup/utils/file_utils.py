@@ -2,9 +2,8 @@ import errno
 import os
 import shutil
 import stat
-from collections.abc import Callable
 from pathlib import Path
-from typing import Optional, Literal, BinaryIO
+from typing import Optional, Literal, BinaryIO, Callable
 
 import psutil
 

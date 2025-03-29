@@ -167,9 +167,8 @@ Example script output with comments:
 [2025-03-30 01:49:13,080 INFO] (run) NICE, fileset fix done
 
 # Rebuild those missing blob object in the database
-[2025-03-30 01:49:13,269 INFO] (run) Recovered 9 database blob for fileset 399
-[2025-03-30 01:49:13,437 INFO] (run) Recovered 0 database blob for fileset 451
-[2025-03-30 01:49:13,449 INFO] (run) Recovered 9 database blob in total
+[2025-03-30 01:49:13,269 INFO] (run) Iterating all file objects in the database to check if there is any missing blob object
+[2025-03-30 01:49:13,949 INFO] (run) Recovered 44 database blob in total
 
 # Now it's the time to recover those deleted blob files in the blob store
 # if --blobs-backup-dir is not provided, this step will be skipped
@@ -196,3 +195,7 @@ Example script output with comments:
 [2025-03-30 01:50:41,262 INFO] (run) Blob validation done: total 31765, validated 31765, ok 31765, bad 0
 [2025-03-30 01:50:41,263 INFO] (run) NICE, blob file fix done
 ```
+
+### To check if everything is fixed
+
+Run `!!pb database validate all` in game to validate everything in the database

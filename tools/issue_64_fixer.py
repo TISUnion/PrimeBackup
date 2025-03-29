@@ -107,14 +107,13 @@ class DatabaseBlobFixer:
 	def run(self):
 		from prime_backup.db.access import DbAccess
 
+		self.logger.info('Iterating all file objects in the database to check if there is any missing blob object')
 		recover_count_total = 0
 		with DbAccess.open_session() as session:
-			for fileset_id in self.bad_base_fileset_ids:
+			for files in session.iterate_file_batch(batch_size=1000):
 				blob_hashes: Set[str] = set()
 				all_blob_rows: Dict[str, dict] = {}  # hash -> blob row
-				recover_count = 0
-
-				for file in session.get_fileset_files(fileset_id):
+				for file in files:
 					if file.blob_hash is not None:
 						blob_hashes.add(file.blob_hash)
 						all_blob_rows[file.blob_hash] = {
@@ -126,15 +125,12 @@ class DatabaseBlobFixer:
 
 				existing_blobs = session.get_blobs(list(blob_hashes))
 				for blob_hash in blob_hashes:
-					if blob_hash not in existing_blobs:
+					if existing_blobs.get(blob_hash) is None:
 						blob_row = all_blob_rows[blob_hash]
 						session.add(session.create_blob(**blob_row))
-						recover_count += 1
 						recover_count_total += 1
 
-				self.logger.info('Recovered {} database blob for fileset {}'.format(recover_count, fileset_id))
-
-		self.logger.info('Recovered {} database blob in total'.format(recover_count_total))
+		self.logger.info('Recovered {} database blob objects in total'.format(recover_count_total))
 
 
 class BlobFileFixer:

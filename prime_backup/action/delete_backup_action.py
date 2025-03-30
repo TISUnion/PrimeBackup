@@ -89,11 +89,12 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
 			backup_info = BackupInfo.of(backup)
+			filesets_to_check: List[schema.Fileset] = [backup.fileset_base, backup.fileset_delta]
+			session.delete_backup(backup)
 
 			# delete fileset
 			deleted_file_hashes: List[str] = []
-			fileset: schema.Fileset
-			for fileset in [backup.fileset_base, backup.fileset_delta]:
+			for fileset in filesets_to_check:
 				ref_cnt = session.get_fileset_associated_backup_count(fileset.id)
 				self.logger.info('Pruning fileset {}, ref_cnt={}{}'.format(fileset.id, ref_cnt, ', delete it' if ref_cnt <= 0 else ''))
 				if ref_cnt <= 0:
@@ -102,8 +103,6 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 						if file.blob_hash is not None:
 							deleted_file_hashes.append(file.blob_hash)
 						session.delete_file(file)
-
-			session.delete_backup(backup)
 
 		orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes, quiet=True)
 		bls = orphan_blob_cleaner.run()

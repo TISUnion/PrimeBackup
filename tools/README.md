@@ -168,7 +168,7 @@ Example script output with comments:
 
 # Rebuild those missing blob object in the database
 [2025-03-30 01:49:13,269 INFO] (run) Iterating all file objects in the database to check if there is any missing blob object
-[2025-03-30 01:49:13,949 INFO] (run) Recovered 44 database blob in total
+[2025-03-30 01:49:13,949 INFO] (run) Recovered 2997 database blob objects in total
 
 # Now it's the time to recover those deleted blob files in the blob store
 # if --blobs-backup-dir is not provided, this step will be skipped
@@ -176,7 +176,7 @@ Example script output with comments:
 [2025-03-30 01:49:14,125 INFO] (__find_blob_store_roots) Found blob store root at '/path/to/blobs_backups/blobs_20250324'
 [2025-03-30 01:49:14,125 INFO] (__find_blob_store_roots) Found 1 blob store roots in total
 [2025-03-30 01:49:14,126 INFO] (run) Iterating all blobs in database to check if there is any missing blobs
-[2025-03-30 01:49:14,644 INFO] (run) Found 9 blobs with their file missing, and recovered 9 blob files in total
+[2025-03-30 01:49:14,644 INFO] (run) Found 2997 blobs with their file missing, and recovered 2997 blob files in total
 
 # Blob file recover done, perform a blob validation as a double check
 [2025-03-30 01:49:14,653 INFO] (run) Perform a blob validation since new files were added
@@ -194,6 +194,7 @@ Example script output with comments:
 [2025-03-30 01:50:35,301 INFO] (run) Validating 31765 / 31765 blobs
 [2025-03-30 01:50:41,262 INFO] (run) Blob validation done: total 31765, validated 31765, ok 31765, bad 0
 [2025-03-30 01:50:41,263 INFO] (run) NICE, blob file fix done
+[2025-03-30 01:50:41,263 INFO] (run) All fixing done. You can check the database state with MCDR command "!!pb database validate all"
 ```
 
 ### To check if everything is fixed

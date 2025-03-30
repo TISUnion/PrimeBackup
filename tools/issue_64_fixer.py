@@ -68,7 +68,7 @@ class DatabaseFilesetFileFixer:
 		with DbAccess.open_session() as session:
 			for fileset_id in self.bad_base_fileset_ids:
 				self.logger.info('Recovering files for base fileset {}'.format(fileset_id))
-				existing_file_paths = {file.path for file in session.get_fileset_files(fileset_id)}
+				existing_file_paths = {file.path: file for file in session.get_fileset_files(fileset_id)}
 				good_file_for_this_fileset = good_fileset_files.get(fileset_id, {})
 				new_file_this_fileset_count = 0
 				for path, file_row in good_file_for_this_fileset.items():
@@ -77,6 +77,16 @@ class DatabaseFilesetFileFixer:
 						session.add(session.create_file(**file_row))
 						new_file_count += 1
 						new_file_this_fileset_count += 1
+					else:
+						from prime_backup.db import schema
+						existing_file: schema.File = existing_file_paths[path]
+						if file_row != existing_file.to_dict():
+							self.logger.error('ERROR: existing file data mismatch? Did you really provide the correct backup database file?')
+							self.logger.error('fileset: {}, path: {}'.format(fileset_id, path))
+							self.logger.error('DB Existing: {}'.format(existing_file.to_dict()))
+							self.logger.error('From Backup: {}'.format(file_row))
+							sys.exit(1)
+
 				self.logger.info('Recovering {} files for fileset {}'.format(new_file_this_fileset_count, fileset_id))
 
 		self.logger.info('Recovered {} files in total'.format(new_file_count))
@@ -225,8 +235,14 @@ class Issue64Fixer:
 		if self.args.db_backup_dir:
 			DatabaseFilesetFileFixer(bad_base_fileset_ids, Path(self.args.db_backup_dir)).run()
 			DatabaseBlobFixer(bad_base_fileset_ids).run()
+		else:
+			self.logger.info('--db-backup-dir not provided, skipping database file object + blob object fixing')
 		if self.args.blobs_backup_dir:
 			BlobFileFixer(Path(self.args.blobs_backup_dir)).run()
+		else:
+			self.logger.info('--blobs-backup-dir not provided, skipping blob file fixing')
+
+		self.logger.info('All fixing done. You can check the database state with MCDR command "!!pb database validate all"')
 
 	def __init_pb_environment(self):
 		from prime_backup.config.config import Config

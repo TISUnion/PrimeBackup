@@ -4,40 +4,14 @@ from typing import List
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.action.delete_blob_action import DeleteBlobsAction
+from prime_backup.action.delete_blob_action import DeleteOrphanBlobsAction
+from prime_backup.action.shake_base_fileset_action import ShakeBaseFilesetAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import collection_utils, misc_utils
-
-
-class _CheckAndDeleteOrphanBlobsAction(Action[BlobListSummary]):
-	def __init__(self, blob_hashes_to_check: List[str], quiet: bool = False):
-		super().__init__()
-		self.blob_hashes_to_check = collection_utils.deduplicated_list(blob_hashes_to_check)
-		self.quiet = quiet
-
-	@override
-	def run(self) -> BlobListSummary:
-		if not self.quiet:
-			self.logger.info('Delete orphan blobs start')
-
-		with DbAccess.open_session() as session:
-			orphan_blob_hashes = session.filtered_orphan_blob_hashes(self.blob_hashes_to_check)
-
-		if len(orphan_blob_hashes) > 0:
-			action = DeleteBlobsAction(orphan_blob_hashes, raise_if_not_found=True)
-			bls = action.run()
-		else:
-			bls = BlobListSummary.zero()
-
-		if not self.quiet:
-			self.logger.info('Delete orphan blobs done, erasing blobs (count {}, size {} / {})'.format(
-				bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
-			))
-		return bls
+from prime_backup.utils import misc_utils
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,6 +28,7 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 	@override
 	def run(self) -> DeleteBackupResult:
 		self.logger.info('Deleting backup #{}'.format(self.backup_id))
+		base_fileset_alive = True
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
 			backup_info = BackupInfo.of(backup)
@@ -66,14 +41,21 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 				ref_cnt = session.get_fileset_associated_backup_count(fileset.id)
 				self.logger.info('Pruning fileset {}, ref_cnt={}{}'.format(fileset.id, ref_cnt, ', delete it' if ref_cnt <= 0 else ''))
 				if ref_cnt <= 0:
+					if fileset.id == backup_info.fileset_id_base:
+						base_fileset_alive = False
 					session.delete_fileset(fileset)
 					for file in session.get_fileset_files(fileset.id):
 						if file.blob_hash is not None:
 							deleted_file_hashes.append(file.blob_hash)
 						session.delete_file(file)
 
-		orphan_blob_cleaner = _CheckAndDeleteOrphanBlobsAction(deleted_file_hashes, quiet=True)
+		orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes)
 		bls = orphan_blob_cleaner.run()
+
+		if base_fileset_alive:
+			self.logger.info('Shaking base fileset {} since it''s still alive'.format(backup_info.fileset_id_base))
+			base_fileset_shaker = ShakeBaseFilesetAction(backup_info.fileset_id_base)
+			base_fileset_shaker.run()
 
 		self.logger.info('Deleted backup #{} done, -{} blobs (size {} / {})'.format(
 			backup_info.id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),

@@ -1,13 +1,16 @@
+import contextlib
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
+from prime_backup.db.session import DbSession
 from prime_backup.exceptions import BlobNotFound
 from prime_backup.types.blob_info import BlobInfo, BlobListSummary
+from prime_backup.utils import collection_utils
 
 
 class _BlobTrashBin:
@@ -38,11 +41,20 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 		self.raise_if_not_found = raise_if_not_found
 
 	@override
-	def run(self) -> BlobListSummary:
+	def run(self, *, session: Optional[DbSession] = None) -> BlobListSummary:
+		"""
+		:param session: If provided, use this session for DB operations.
+		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
+		"""
 		trash_bin = _BlobTrashBin(self.logger)
 		self_blob_hashes_set = set(self.blob_hashes)
 
-		with DbAccess.open_session() as session:
+		with contextlib.ExitStack() as es:
+			if session is None:
+				session = es.enter_context(DbAccess.open_session())
+			else:
+				es.callback(session.commit)
+
 			blobs: Dict[str, schema.Blob] = session.get_blobs(self.blob_hashes)
 			collected_hashes: List[str] = []
 			for blob_hash, blob in blobs.items():
@@ -64,3 +76,22 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 			raise errors[0]
 
 		return s
+
+
+class DeleteOrphanBlobsAction(Action[BlobListSummary]):
+	def __init__(self, blob_hashes_to_check: List[str]):
+		super().__init__()
+		self.blob_hashes_to_check = collection_utils.deduplicated_list(blob_hashes_to_check)
+
+	@override
+	def run(self) -> BlobListSummary:
+		with DbAccess.open_session() as session:
+			orphan_blob_hashes = session.filtered_orphan_blob_hashes(self.blob_hashes_to_check)
+
+			if len(orphan_blob_hashes) > 0:
+				action = DeleteBlobsAction(orphan_blob_hashes, raise_if_not_found=True)
+				bls = action.run(session=session)
+			else:
+				bls = BlobListSummary.zero()
+
+		return bls

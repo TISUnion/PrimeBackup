@@ -465,6 +465,12 @@ class DbSession:
 			)
 		return list(sorted(fileset_ids))
 
+	def get_delta_filesets_for_base_fileset(self, base_fileset_id: int) -> List[schema.Fileset]:
+		return _list_it(self.session.execute(
+			select(schema.Fileset).
+			where(schema.Fileset.base_id == base_fileset_id)
+		).scalars().all())
+
 	def delete_fileset(self, fileset: schema.Fileset):
 		self.session.delete(fileset)
 

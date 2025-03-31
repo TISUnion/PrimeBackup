@@ -67,9 +67,11 @@ def main():
 		nonlocal backup_id
 		backup_id = bi.id
 
-	def delete():
+	def delete(bid=None):
+		if bid is None:
+			bid = backup_id
 		t = time.time()
-		DeleteBackupAction(backup_id).run()
+		DeleteBackupAction(bid).run()
 		print('cost', round(time.time() - t, 2), 's')
 
 	def list_():
@@ -86,11 +88,12 @@ def main():
 		# print(MigrateCompressMethodAction(CompressMethod.lzma).run())
 
 	create(1)
-	export()
-	import_()
-	list_()
-	delete()
-	migrate()
+	delete(1)
+	# export()
+	# import_()
+	# list_()
+	# delete()
+	# migrate()
 
 
 if __name__ == '__main__':

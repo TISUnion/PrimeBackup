@@ -20,7 +20,7 @@ class ShakeBaseFilesetAction(Action[None]):
 
 	def run(self) -> None:
 		self.logger.info('Shaking base fileset {}'.format(self.base_fileset_id))
-		deleted_file_hashes: List[str] = []
+		deleted_file_hashes: Set[str] = set()
 
 		with DbAccess.open_session() as session:
 			base_fileset: schema.Fileset = session.get_fileset(self.base_fileset_id)
@@ -66,7 +66,7 @@ class ShakeBaseFilesetAction(Action[None]):
 				self.logger.info('Found {} unused files in base fileset {}, shaking'.format(len(unused_base_files), self.base_fileset_id))
 				for unused_base_file in unused_base_files.values():
 					if file.blob_hash is not None:
-						deleted_file_hashes.append(file.blob_hash)
+						deleted_file_hashes.add(file.blob_hash)
 
 					base_fileset.file_count -= 1
 					base_fileset.file_object_count -= 1
@@ -96,10 +96,10 @@ class ShakeBaseFilesetAction(Action[None]):
 				for file in files_to_delete:
 					session.delete_file(file)
 
-		self.logger.info('DBG: deleted_file_hashes len {}'.format(len(deleted_file_hashes)))
-		if len(deleted_file_hashes) > 0:
-			orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes)
-			bls = orphan_blob_cleaner.run()
-			self.logger.info('Shake base fileset {} done, -{} blobs (size {} / {})'.format(
-				self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
-			))
+			self.logger.info('DBG: deleted_file_hashes len {}'.format(len(deleted_file_hashes)))
+			if len(deleted_file_hashes) > 0:
+				orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes)
+				bls = orphan_blob_cleaner.run(session=session)
+				self.logger.info('Shake base fileset {} done, -{} blobs (size {} / {})'.format(
+					self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
+				))

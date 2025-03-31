@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List
+from typing import List, Set
 
 from typing_extensions import override
 
@@ -36,7 +36,7 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 			session.delete_backup(backup)
 
 			# delete fileset
-			deleted_file_hashes: List[str] = []
+			deleted_file_hashes: Set[str] = set()
 			for fileset in filesets_to_check:
 				ref_cnt = session.get_fileset_associated_backup_count(fileset.id)
 				self.logger.info('Pruning fileset {}, ref_cnt={}{}'.format(fileset.id, ref_cnt, ', delete it' if ref_cnt <= 0 else ''))
@@ -46,11 +46,11 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 					session.delete_fileset(fileset)
 					for file in session.get_fileset_files(fileset.id):
 						if file.blob_hash is not None:
-							deleted_file_hashes.append(file.blob_hash)
+							deleted_file_hashes.add(file.blob_hash)
 						session.delete_file(file)
 
-		orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes)
-		bls = orphan_blob_cleaner.run()
+			orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes)
+			bls = orphan_blob_cleaner.run(session=session)
 
 		if base_fileset_alive:
 			self.logger.info('Shaking base fileset {} since it''s still alive'.format(backup_info.fileset_id_base))

@@ -1,10 +1,11 @@
 import contextlib
+import dataclasses
 import functools
 import shutil
 import sqlite3
 import time
 from pathlib import Path
-from typing import Optional, Sequence, Dict, ContextManager, Iterator, Callable
+from typing import Optional, Sequence, Dict, ContextManager, Iterator, Callable, Set
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_
@@ -22,6 +23,13 @@ _T = TypeVar('_T')
 
 class UnsupportedDatabaseOperation(PrimeBackupError):
 	pass
+
+
+# TODO: a better place for this?
+@dataclasses.dataclass(frozen=True)
+class FileIdentifier:
+	fileset_id: int
+	path: str
 
 
 # make type checker happy
@@ -219,7 +227,7 @@ class DbSession:
 			self.session.execute(delete(schema.Blob).where(schema.Blob.hash.in_(view)))
 
 	def filtered_orphan_blob_hashes(self, hashes: List[str]) -> List[str]:
-		good_hashes = set()
+		good_hashes: Set[str] = set()
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			good_hashes.update(
 				self.session.execute(
@@ -282,6 +290,33 @@ class DbSession:
 		if file is None:
 			raise BackupFileNotFound(backup_id, path)
 		return file
+
+	def get_file_objects_opt(self, file_identifiers: List[FileIdentifier]) -> Dict[FileIdentifier, Optional[schema.File]]:
+		"""
+		All given identifiers are in the dict
+		"""
+		result: Dict[FileIdentifier, Optional[schema.File]] = {fid: None for fid in file_identifiers}
+		for view in collection_utils.slicing_iterate(file_identifiers, self.__safe_var_limit):
+			view_fileset_identifiers = [file_identifier.fileset_id for file_identifier in view]
+			view_paths = [file_identifier.path for file_identifier in view]
+			for file in self.session.execute(
+					select(schema.File).
+					where(schema.File.fileset_id.in_(view_fileset_identifiers)).
+					where(schema.File.path.in_(view_paths))
+			).scalars().all():
+				result[FileIdentifier(file.fileset_id, file.path)] = file
+		return result
+
+	def get_file_objects(self, file_identifiers: List[FileIdentifier]) -> Dict[FileIdentifier, schema.File]:
+		"""
+		All given identifiers are in the dict
+		:raise FilesetFileNotFound
+		"""
+		result = self.get_file_objects_opt(file_identifiers)
+		for file_identifier, file in result.items():
+			if file is None:
+				raise FilesetFileNotFound(file_identifier.fileset_id, file_identifier.path)
+		return result
 
 	def get_file_object_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.File)).scalar_one())
@@ -397,6 +432,13 @@ class DbSession:
 				raise FilesetNotFound(fileset_id)
 		return result
 
+	def check_filesets_existence(self, fileset_ids: List[int]) -> Dict[int, bool]:
+		result: Dict[int, bool] = {fsid: False for fsid in fileset_ids}
+		for view in collection_utils.slicing_iterate(fileset_ids, self.__safe_var_limit):
+			for fsid in self.session.execute(select(schema.Fileset.id).where(schema.Fileset.id.in_(view))).scalars().all():
+				result[fsid] = True
+		return result
+
 	def get_fileset_associated_backup_count(self, fileset_id: int) -> int:
 		return _int_or_0(self.session.execute(
 			select(func.count()).
@@ -490,6 +532,17 @@ class DbSession:
 				break
 			yield filesets
 			offset += limit
+
+	def filtered_orphan_fileset_ids(self, fileset_ids: List[int]) -> List[int]:
+		good_fileset_ids: Set[int] = set()
+		for view in collection_utils.slicing_iterate(fileset_ids, self.__safe_var_limit):
+			for field in [schema.Backup.fileset_id_base, schema.Backup.fileset_id_delta]:
+				good_fileset_ids.update(
+					self.session.execute(
+						select(field).where(field.in_(view)).distinct()
+					).scalars().all()
+				)
+		return list(filter(lambda h: h not in good_fileset_ids, fileset_ids))
 
 	# ==================================== Backup ====================================
 

@@ -1,6 +1,6 @@
 import contextlib
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Collection
 
 from typing_extensions import override
 
@@ -79,13 +79,22 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 
 
 class DeleteOrphanBlobsAction(Action[BlobListSummary]):
-	def __init__(self, blob_hashes_to_check: List[str]):
+	def __init__(self, blob_hashes_to_check: Collection[str]):
 		super().__init__()
 		self.blob_hashes_to_check = collection_utils.deduplicated_list(blob_hashes_to_check)
 
 	@override
-	def run(self) -> BlobListSummary:
-		with DbAccess.open_session() as session:
+	def run(self, *, session: Optional[DbSession] = None) -> BlobListSummary:
+		"""
+		:param session: If provided, use this session for DB operations.
+		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
+		"""
+		with contextlib.ExitStack() as es:
+			if session is None:
+				session = es.enter_context(DbAccess.open_session())
+			else:
+				es.callback(session.commit)
+
 			orphan_blob_hashes = session.filtered_orphan_blob_hashes(self.blob_hashes_to_check)
 
 			if len(orphan_blob_hashes) > 0:

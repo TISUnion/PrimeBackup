@@ -13,13 +13,13 @@ class NotBaseFileset(PrimeBackupError):
 	pass
 
 
-class ShakeBaseFilesetAction(Action[None]):
+class ShrinkBaseFilesetAction(Action[None]):
 	def __init__(self, base_fileset_id: int):
 		super().__init__()
 		self.base_fileset_id = base_fileset_id
 
 	def run(self) -> None:
-		self.logger.info('Shaking base fileset {}'.format(self.base_fileset_id))
+		self.logger.info('Shrinking base fileset {}'.format(self.base_fileset_id))
 		deleted_file_hashes: Set[str] = set()
 
 		with DbAccess.open_session() as session:
@@ -31,6 +31,8 @@ class ShakeBaseFilesetAction(Action[None]):
 			base_path_in_used_count = 0
 
 			delta_filesets: List[schema.Fileset] = session.get_delta_filesets_for_base_fileset(self.base_fileset_id)
+			self.logger.info('DBG: delta_filesets len {}'.format(len(delta_filesets)))
+
 			delta_file: schema.File
 			for delta_fileset in delta_filesets:
 				delta_in_used_paths: Set[str] = set(base_path_in_used.keys())
@@ -63,7 +65,7 @@ class ShakeBaseFilesetAction(Action[None]):
 				self.logger.info(f'DBG:   {k}')
 
 			if len(unused_base_files) > 0:
-				self.logger.info('Found {} unused files in base fileset {}, shaking'.format(len(unused_base_files), self.base_fileset_id))
+				self.logger.info('Found {} unused files in base fileset {}, shrinking'.format(len(unused_base_files), self.base_fileset_id))
 				for unused_base_file in unused_base_files.values():
 					if file.blob_hash is not None:
 						deleted_file_hashes.add(file.blob_hash)
@@ -100,6 +102,6 @@ class ShakeBaseFilesetAction(Action[None]):
 			if len(deleted_file_hashes) > 0:
 				orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes)
 				bls = orphan_blob_cleaner.run(session=session)
-				self.logger.info('Shake base fileset {} done, -{} blobs (size {} / {})'.format(
+				self.logger.info('Shrink base fileset {} done, -{} blobs (size {} / {})'.format(
 					self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
 				))

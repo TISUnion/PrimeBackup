@@ -5,7 +5,7 @@ from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.action.delete_blob_action import DeleteOrphanBlobsAction
-from prime_backup.action.shake_base_fileset_action import ShakeBaseFilesetAction
+from prime_backup.action.shrink_base_fileset_action import ShrinkBaseFilesetAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.types.backup_info import BackupInfo
@@ -53,9 +53,9 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 			bls = orphan_blob_cleaner.run(session=session)
 
 		if base_fileset_alive:
-			self.logger.info('Shaking base fileset {} since it''s still alive'.format(backup_info.fileset_id_base))
-			base_fileset_shaker = ShakeBaseFilesetAction(backup_info.fileset_id_base)
-			base_fileset_shaker.run()
+			self.logger.info('Shrinking base fileset {} since it''s still alive'.format(backup_info.fileset_id_base))
+			sbf_action = ShrinkBaseFilesetAction(backup_info.fileset_id_base)
+			sbf_action.run()
 
 		self.logger.info('Deleted backup #{} done, -{} blobs (size {} / {})'.format(
 			backup_info.id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),

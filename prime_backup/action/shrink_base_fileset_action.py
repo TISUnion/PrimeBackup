@@ -67,8 +67,8 @@ class ShrinkBaseFilesetAction(Action[None]):
 			if len(unused_base_files) > 0:
 				self.logger.info('Found {} unused files in base fileset {}, shrinking'.format(len(unused_base_files), self.base_fileset_id))
 				for unused_base_file in unused_base_files.values():
-					if file.blob_hash is not None:
-						deleted_file_hashes.add(file.blob_hash)
+					if unused_base_file.blob_hash is not None:
+						deleted_file_hashes.add(unused_base_file.blob_hash)
 
 					base_fileset.file_count -= 1
 					base_fileset.file_object_count -= 1
@@ -86,17 +86,19 @@ class ShrinkBaseFilesetAction(Action[None]):
 								self.logger.info(f'DBG: fileset {delta_fileset.id}, {delta_file.path}: override -> add')
 								# override -> add
 								delta_file.role = FileRole.delta_add
+								delta_fileset.file_count += 1
 							else:
 								self.logger.info(f'DBG: fileset {delta_fileset.id}, {delta_file.path}: remove -> X')
 								# remove -> X
 								files_to_delete.append(delta_file)
+								delta_fileset.file_count += 1
 								delta_fileset.file_object_count -= 1
 							delta_fileset.file_raw_size_sum += unused_base_file.blob_raw_size or 0
 							delta_fileset.file_stored_size_sum += unused_base_file.blob_stored_size or 0
 
 				self.logger.info('Deleting {} file objects'.format(len(files_to_delete)))
-				for file in files_to_delete:
-					session.delete_file(file)
+				for file_to_delete in files_to_delete:
+					session.delete_file(file_to_delete)
 
 			self.logger.info('DBG: deleted_file_hashes len {}'.format(len(deleted_file_hashes)))
 			if len(deleted_file_hashes) > 0:

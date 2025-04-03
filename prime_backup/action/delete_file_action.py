@@ -68,8 +68,6 @@ class DeleteFilesAction(Action[DeleteFilesResult]):
 		with contextlib.ExitStack() as es:
 			if session is None:
 				session = es.enter_context(DbAccess.open_session())
-			else:
-				es.callback(session.commit)
 
 			files: Dict[FileIdentifier, Optional[schema.File]] = session.get_file_objects_opt(self.file_identifiers)
 			self_file_identifiers_set = set(self.file_identifiers)

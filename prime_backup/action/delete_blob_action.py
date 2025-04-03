@@ -52,8 +52,6 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 		with contextlib.ExitStack() as es:
 			if session is None:
 				session = es.enter_context(DbAccess.open_session())
-			else:
-				es.callback(session.commit)
 
 			blobs: Dict[str, schema.Blob] = session.get_blobs(self.blob_hashes)
 			collected_hashes: List[str] = []
@@ -67,6 +65,7 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 					trash_bin.add(BlobInfo.of(blob))
 
 			session.delete_blobs(self.blob_hashes)
+			session.commit()
 
 		s = trash_bin.make_summary()
 		trash_bin.erase_all()
@@ -92,8 +91,6 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 		with contextlib.ExitStack() as es:
 			if session is None:
 				session = es.enter_context(DbAccess.open_session())
-			else:
-				es.callback(session.commit)
 
 			orphan_blob_hashes = session.filtered_orphan_blob_hashes(self.blob_hashes_to_check)
 
@@ -102,5 +99,6 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 				bls = action.run(session=session)
 			else:
 				bls = BlobListSummary.zero()
+				session.commit()
 
 		return bls

@@ -60,6 +60,7 @@ class ValidateFilesetsAction(Action[ValidateFilesetsResult]):
 		for fileset in map(FilesetInfo.of, session.get_filesets(sorted(fileset_ids_to_query)).values()):
 			base_filesets[fileset.id] = fileset
 
+		# TODO: check orphan
 		for fileset in filesets:
 			if self.is_interrupted.is_set():
 				break

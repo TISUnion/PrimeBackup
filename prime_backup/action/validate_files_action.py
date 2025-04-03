@@ -84,6 +84,7 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 		if self.is_interrupted.is_set():
 			return
 
+		# TODO: check orphan
 		for file in files:
 			if (fileset := filesets.get(file.fileset_id)) is None:
 				result.add_bad(file, BadFileItemType.bad_fileset_relation, f'fileset {file.fileset_id} does not exist')

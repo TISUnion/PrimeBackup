@@ -11,7 +11,7 @@ import unittest
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Set, List, ContextManager, Union, Generator, Tuple, BinaryIO
+from typing import Dict, List, ContextManager, Union, Generator, Tuple, BinaryIO
 from unittest import TestCase
 
 from typing_extensions import override
@@ -26,8 +26,10 @@ from prime_backup.action.validate_backups_action import ValidateBackupsAction
 from prime_backup.action.validate_blobs_action import ValidateBlobsAction
 from prime_backup.action.validate_files_action import ValidateFilesAction
 from prime_backup.action.validate_filesets_action import ValidateFilesetsAction
+from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config
 from prime_backup.db.access import DbAccess
+from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
 from prime_backup.types.tar_format import TarFormat
 
@@ -43,7 +45,7 @@ class FileInfo:
 def _compute_file_sha256(file_path: Path) -> str:
 	sha256_hash = hashlib.sha256()
 	with open(file_path, 'rb') as f:
-		while chunk := f.read(4096):
+		while chunk := f.read(16384):
 			sha256_hash.update(chunk)
 	return sha256_hash.hexdigest()
 
@@ -109,17 +111,6 @@ class Snapshot:
 		for file_path in helper.get_all_dirs_and_files():
 			add_path(file_path)
 		return cls(files_info)
-
-	def compute_diff(self, other: 'Snapshot') -> Dict[str, Set[Path]]:
-		diff: Dict[str, Set[Path]] = {'added': set(), 'removed': set(), 'modified': set()}
-		self_paths: Set[Path] = set(self.files_info.keys())
-		other_paths: Set[Path] = set(other.files_info.keys())
-		diff['added'] = other_paths - self_paths
-		diff['removed'] = self_paths - other_paths
-		for path in self_paths & other_paths:
-			if self.files_info[path] != other.files_info[path]:
-				diff['modified'].add(path)
-		return diff
 
 
 class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
@@ -257,7 +248,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 class FuzzyRunTestCase(TestCase):
 	@contextlib.contextmanager
 	def create_env(self, rnd: random.Random) -> Generator[Tuple[BackupFuzzyEnvironment, Path, Path], None, None]:
-		test_root = Path('run') / 'unittest'
+		test_root = Path(os.environ.get('PRIME_BACKUP_FUZZY_TEST_ROOT', 'run/unittest'))
 		pb_dir = test_root / 'pb_files'
 		fake_server_dir = test_root / 'server'
 		env_dir = fake_server_dir / 'world'
@@ -273,20 +264,27 @@ class FuzzyRunTestCase(TestCase):
 		Config.get().storage_root = str(pb_dir)
 		Config.get().backup.source_root = str(fake_server_dir)
 		Config.get().backup.targets = [env_dir.name]
+		Config.get().backup.hash_method = HashMethod.xxh128
+		Config.get().backup.compress_method = CompressMethod.plain
 		DbAccess.init(create=True, migrate=False)
 
 		with contextlib.ExitStack() as es:
-			es.callback(rm_test_dirs)
+			if os.environ.get('PRIME_BACKUP_FUZZY_TEST_KEEP', '').lower() not in ('true', '1'):
+				es.callback(rm_test_dirs)
 			es.callback(DbAccess.shutdown)
 			env = es.enter_context(BackupFuzzyEnvironment(self, env_dir, fake_server_dir, rnd))
 			yield env, fake_server_dir, temp_dir
 
-	FUZZY_ITERATIONS: int = 1000
+	FUZZY_ITERATIONS: int = int(os.environ.get('PRIME_BACKUP_FUZZY_TEST_ITERATION', '1000'))
 
 	def test_fuzzy_run(self):
 		env: BackupFuzzyEnvironment
+		svr_dir: Path
 		temp_dir: Path
-		rnd = random.Random(123)
+
+		seed = int(os.environ.get('PRIME_BACKUP_FUZZY_TEST_SEED', '0'))
+		print(f'Random seed: {seed}')
+		rnd = random.Random(seed)
 		with self.create_env(rnd) as (env, svr_dir, temp_dir):
 			def create_backup() -> int:
 				return CreateBackupAction(Operator.literal('test'), '').run().id
@@ -315,10 +313,17 @@ class FuzzyRunTestCase(TestCase):
 				r1 = ValidateFilesAction().run()
 				r2 = ValidateFilesetsAction().run()
 				r3 = ValidateBackupsAction().run()
-				self.assertEqual(0, r0.bad, f'ValidateBlobsAction has bad: {r0}')
-				self.assertEqual(0, r1.bad, f'ValidateFilesAction has bad: {r1}')
-				self.assertEqual(0, r2.bad, f'ValidateFilesetsAction has bad: {r2}')
-				self.assertEqual(0, r3.bad, f'ValidateBackupsAction has bad: {r3}')
+				try:
+					self.assertEqual(0, r0.bad, f'ValidateBlobsAction has bad: {r0}')
+					self.assertEqual(0, r1.bad, f'ValidateFilesAction has bad: {r1}')
+					self.assertEqual(0, r2.bad, f'ValidateFilesetsAction has bad: {r2}')
+					self.assertEqual(0, r3.bad, f'ValidateBackupsAction has bad: {r3}')
+				except AssertionError:
+					print(r0)
+					print(r1)
+					print(r2)
+					print(r3)
+					raise
 
 				VacuumSqliteAction().run()
 
@@ -366,8 +371,14 @@ class FuzzyRunTestCase(TestCase):
 				# Step 5: Modify environment
 				env.iterate_once()
 
+				# Step 6: Config alternation
+				if rnd.random() < 0.01:
+					new_compress_method = rnd.choice([CompressMethod.plain, CompressMethod.zstd])
+					print('Changing compress method {} -> {}'.format(Config.get().backup.compress_method, new_compress_method))
+					Config.get().backup.compress_method = new_compress_method
+
 				# Step 6: Validate all
-				if i % 100 == 0 or i == self.FUZZY_ITERATIONS - 1:
+				if i % 50 == 0 or i == self.FUZZY_ITERATIONS - 1:
 					validate_all()
 
 

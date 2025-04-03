@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 from typing import Dict, Callable, Any, Optional
 
-from sqlalchemy import Engine, Inspector, text
+from sqlalchemy import Engine, text, inspect
 from sqlalchemy.orm import Session
 
 from prime_backup import logger
@@ -32,7 +32,7 @@ class DbMigration:
 		}
 
 	def check_and_migrate(self, *, create: bool, migrate: bool):
-		inspector = Inspector.from_engine(self.engine)
+		inspector = inspect(self.engine)
 		if inspector.has_table(schema.DbMeta.__tablename__):
 			with Session(self.engine) as session, session.begin():
 				dbm: Optional[schema.DbMeta] = session.get(schema.DbMeta, self.DB_MAGIC_INDEX)

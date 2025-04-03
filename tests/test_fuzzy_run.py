@@ -9,8 +9,9 @@ import tarfile
 import time
 import unittest
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
-from typing import Dict, Set, List, ContextManager, Union, Generator, Tuple
+from typing import Dict, Set, List, ContextManager, Union, Generator, Tuple, BinaryIO
 from unittest import TestCase
 
 from typing_extensions import override
@@ -20,6 +21,11 @@ from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.export_backup_action_directory import ExportBackupToDirectoryAction
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
+from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
+from prime_backup.action.validate_backups_action import ValidateBackupsAction
+from prime_backup.action.validate_blobs_action import ValidateBlobsAction
+from prime_backup.action.validate_files_action import ValidateFilesAction
+from prime_backup.action.validate_filesets_action import ValidateFilesetsAction
 from prime_backup.config.config import Config
 from prime_backup.db.access import DbAccess
 from prime_backup.types.operator import Operator
@@ -47,10 +53,15 @@ class Snapshot:
 	files_info: Dict[Path, FileInfo]
 
 	@classmethod
-	def from_tar(cls, tar_path: Union[str, Path]) -> 'Snapshot':
+	def from_tar(cls, tar_src: Union[Path, BinaryIO]) -> 'Snapshot':
 		files_info: Dict[Path, FileInfo] = {}
 
-		with tarfile.open(tar_path, 'r') as tar:
+		with contextlib.ExitStack() as es:
+			if isinstance(tar_src, Path):
+				tar = es.enter_context(tarfile.open(name=tar_src, mode='r:'))
+			else:
+				tar = es.enter_context(tarfile.open(fileobj=tar_src, mode='r:'))
+
 			for member in tar.getmembers():
 				file_path = Path(member.name)
 				mode = member.mode & 0xFFFF
@@ -150,17 +161,20 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		all_files: List[Path] = self._get_all_files()
 		print(f'{len(all_dirs)=} {len(all_files)=}')
 
+		delete_chance = 0.001  # keep ~1k files
+		modify_chance = self.rnd.random() % 0.1  # [0, 0.1)
+		rmdir_change = 0.001
 		for file_path in all_files[:]:
-			if self.rnd.random() < (1.0 / 1000):  # keep ~1k files
+			if self.rnd.random() < delete_chance:
 				file_path.unlink()
 				all_files.remove(file_path)
 
 		for file_path in all_files[:]:
-			if self.rnd.random() < 0.1:
+			if self.rnd.random() < modify_chance:
 				self._modify_file(file_path)
 
 		for dir_path in all_dirs[:]:
-			if dir_path != self.base_path and self.rnd.random() < 0.001:
+			if dir_path != self.base_path and self.rnd.random() < rmdir_change:
 				shutil.rmtree(dir_path, ignore_errors=True)
 				all_dirs.remove(dir_path)
 
@@ -284,9 +298,29 @@ class FuzzyRunTestCase(TestCase):
 				ExportBackupToDirectoryAction(bid_, svr_dir, restore_mode=True).run()
 
 			def get_backup_snapshot(bid_: int) -> Snapshot:
-				tar_path = temp_dir / '1.tar'
-				ExportBackupToTarAction(bid_, tar_path, TarFormat.plain, create_meta=False).run()
-				return Snapshot.from_tar(tar_path)
+				buf = BytesIO()
+				ExportBackupToTarAction(bid_, buf, TarFormat.plain, create_meta=False).run()
+				buf.seek(0)
+				return Snapshot.from_tar(buf)
+
+			def validate_all():
+				# Verify all existing backups remain unchanged
+				for bid in backup_ids:
+					current_snapshot = get_backup_snapshot(bid)
+					initial_snapshot = backup_snapshots[bid]
+					self.assertEqual(initial_snapshot, current_snapshot, f'Backup {bid} data changed at iteration {i}')
+
+				# Validate database
+				r0 = ValidateBlobsAction().run()
+				r1 = ValidateFilesAction().run()
+				r2 = ValidateFilesetsAction().run()
+				r3 = ValidateBackupsAction().run()
+				self.assertEqual(0, r0.bad, f'ValidateBlobsAction has bad: {r0}')
+				self.assertEqual(0, r1.bad, f'ValidateFilesAction has bad: {r1}')
+				self.assertEqual(0, r2.bad, f'ValidateFilesetsAction has bad: {r2}')
+				self.assertEqual(0, r3.bad, f'ValidateBackupsAction has bad: {r3}')
+
+				VacuumSqliteAction().run()
 
 			backup_snapshots: Dict[int, Snapshot] = {}
 			backup_ids: List[int] = []
@@ -332,11 +366,9 @@ class FuzzyRunTestCase(TestCase):
 				# Step 5: Modify environment
 				env.iterate_once()
 
-			# Verify all existing backups remain unchanged
-			for bid in backup_ids:
-				current_snapshot = get_backup_snapshot(bid)
-				initial_snapshot = backup_snapshots[bid]
-				self.assertEqual(initial_snapshot, current_snapshot, f'Backup {bid} data changed at iteration {i}')
+				# Step 6: Validate all
+				if i % 100 == 0 or i == self.FUZZY_ITERATIONS - 1:
+					validate_all()
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ import tarfile
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import ContextManager, Optional, IO, Any
+from typing import ContextManager, Optional, IO, Any, Union, BinaryIO
 
 from typing_extensions import override, Unpack
 
@@ -54,8 +54,9 @@ class PeekReader:
 
 
 class ExportBackupToTarAction(_ExportBackupActionBase):
-	def __init__(self, backup_id: int, output_path: Path, tar_format: TarFormat, **kwargs: Unpack[ExportBackupActionCommonInitKwargs]):
-		super().__init__(backup_id, output_path, **kwargs)
+	def __init__(self, backup_id: int, output_dest: Union[Path, BinaryIO], tar_format: TarFormat, **kwargs: Unpack[ExportBackupActionCommonInitKwargs]):
+		super().__init__(backup_id, **kwargs)
+		self.output_dest = output_dest
 		self.tar_format = tar_format
 
 	@override
@@ -64,7 +65,13 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 
 	@contextlib.contextmanager
 	def __open_tar(self) -> ContextManager[tarfile.TarFile]:
-		with open(self.output_path, 'wb') as f:
+		with contextlib.ExitStack() as es:
+			f: BinaryIO
+			if isinstance(self.output_dest, Path):
+				f = es.enter_context(open(self.output_dest, 'wb'))
+			else:
+				f = self.output_dest
+
 			compressor = Compressor.create(self.tar_format.value.compress_method)
 			with compressor.compress_stream(f) as f_compressed:
 				with tarfile.open(fileobj=f_compressed, mode=self.tar_format.value.mode_w) as tar:
@@ -127,13 +134,17 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 	@override
 	def _export_backup(self, session, backup: schema.Backup) -> ExportFailures:
 		failures = ExportFailures(self.fail_soft)
-		if not self.output_path.name.endswith(self.tar_format.value.extension):
-			raise ValueError('bad output file extension for file name {!r}, should be {!r} for tar format {}'.format(
-				self.output_path.name, self.tar_format.value.extension, self.tar_format.name,
-			))
 
-		self.logger.info('Exporting backup {} to tarfile {}'.format(backup, self.output_path))
-		self.output_path.parent.mkdir(parents=True, exist_ok=True)
+		if isinstance(self.output_dest, Path):
+			if not self.output_dest.name.endswith(self.tar_format.value.extension):
+				raise ValueError('bad output file extension for file name {!r}, should be {!r} for tar format {}'.format(
+					self.output_dest.name, self.tar_format.value.extension, self.tar_format.name,
+				))
+
+			self.logger.info('Exporting backup {} to tarfile {}'.format(backup, self.output_dest))
+			self.output_dest.parent.mkdir(parents=True, exist_ok=True)
+		else:
+			self.logger.info('Exporting backup {} to given BinaryIO object'.format(backup))
 
 		try:
 			with self.__open_tar() as tar:
@@ -146,7 +157,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 						try:
 							self.__export_file(tar, file)
 						except Exception as e:
-							self.logger.error('Export file {!r} to tar {} failed: {}'.format(file.path, self.output_path, e))
+							self.logger.error('Export file {!r} to tar {} failed: {}'.format(file.path, self.output_dest, e))
 							raise
 
 				if self.create_meta:
@@ -156,8 +167,9 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 					info.size = len(meta_buf)
 					tar.addfile(tarinfo=info, fileobj=BytesIO(meta_buf))
 		except Exception as e:
-			with contextlib.suppress(OSError):
-				self.output_path.unlink(missing_ok=True)
+			if isinstance(self.output_dest, Path):
+				with contextlib.suppress(OSError):
+					self.output_dest.unlink(missing_ok=True)
 			if not isinstance(e, self._ExportInterrupted):
 				raise
 

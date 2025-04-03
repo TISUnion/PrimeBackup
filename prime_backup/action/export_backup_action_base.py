@@ -1,6 +1,5 @@
 import json
 from abc import abstractmethod, ABC
-from pathlib import Path
 
 from typing_extensions import override, TypedDict, NotRequired
 
@@ -27,12 +26,11 @@ class _ExportBackupActionBase(Action[ExportFailures], ABC):
 		pass
 
 	def __init__(
-			self, backup_id: int, output_path: Path, *,
+			self, backup_id: int, *,
 			fail_soft: bool = False, verify_blob: bool = True, create_meta: bool = True,
 	):
 		super().__init__()
 		self.backup_id = misc_utils.ensure_type(backup_id, int)
-		self.output_path = output_path
 		self.fail_soft = fail_soft
 		self.verify_blob = verify_blob
 		self.create_meta = create_meta

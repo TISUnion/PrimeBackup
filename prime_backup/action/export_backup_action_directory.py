@@ -68,7 +68,8 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		"""
 		:param restore_mode: recover what it was like -- delete all backup targets before export
 		"""
-		super().__init__(backup_id, output_path, **kwargs)
+		super().__init__(backup_id, **kwargs)
+		self.output_path = output_path
 		self.restore_mode = restore_mode
 		self.child_to_export = child_to_export
 		self.recursively_export_child = recursively_export_child

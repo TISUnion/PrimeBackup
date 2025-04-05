@@ -35,11 +35,10 @@ jobs:
           python -m pip install -U pip
           pip install pytest pytest-cov -r requirements.txt -r requirements.optional.txt
 
-      # https://docs.github.com/en/actions/use-cases-and-examples/building-and-testing/building-and-testing-python#testing-with-pytest-and-pytest-cov
       - name: Run fuzzy test
         run: |
           export PYTHONPATH=$(pwd)
           python tests/test_fuzzy_run.py
         env:
           PRIME_BACKUP_FUZZY_TEST_SEED: ${{ matrix.seed }}
-          PRIME_BACKUP_FUZZY_TEST_ITERATION: '1000'
+          PRIME_BACKUP_FUZZY_TEST_ITERATION: ${{ matrix.seed == '0' && '5000' || '500' }}

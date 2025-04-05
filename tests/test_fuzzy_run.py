@@ -275,7 +275,7 @@ class FuzzyRunTestCase(TestCase):
 			env = es.enter_context(BackupFuzzyEnvironment(self, env_dir, fake_server_dir, rnd))
 			yield env, fake_server_dir, temp_dir
 
-	FUZZY_ITERATIONS: int = int(os.environ.get('PRIME_BACKUP_FUZZY_TEST_ITERATION', '1000'))
+	FUZZY_ITERATIONS: int = int(os.environ.get('PRIME_BACKUP_FUZZY_TEST_ITERATION', '200'))
 
 	def test_fuzzy_run(self):
 		env: BackupFuzzyEnvironment

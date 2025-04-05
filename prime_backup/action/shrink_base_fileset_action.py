@@ -13,6 +13,9 @@ class NotBaseFileset(PrimeBackupError):
 	pass
 
 
+_DEBUG_LOG = False
+
+
 class ShrinkBaseFilesetAction(Action[None]):
 	def __init__(self, base_fileset_id: int):
 		super().__init__()
@@ -31,7 +34,8 @@ class ShrinkBaseFilesetAction(Action[None]):
 			base_path_in_used_count = 0
 
 			delta_filesets: List[schema.Fileset] = session.get_delta_filesets_for_base_fileset(self.base_fileset_id)
-			self.logger.info('DBG: delta_filesets len {}'.format(len(delta_filesets)))
+			if _DEBUG_LOG:
+				self.logger.info('DBG: delta_filesets len {}'.format(len(delta_filesets)))
 
 			delta_file: schema.File
 			for delta_fileset in delta_filesets:
@@ -51,18 +55,20 @@ class ShrinkBaseFilesetAction(Action[None]):
 				if base_path_in_used_count == len(base_path_in_used):
 					break
 
-			self.logger.info('DBG: base_path_in_used')
-			for k, v in base_path_in_used.items():
-				self.logger.info(f'DBG:   {k.ljust(80)}: {v}')
+			if _DEBUG_LOG:
+				self.logger.info('DBG: base_path_in_used')
+				for k, v in base_path_in_used.items():
+					self.logger.info(f'DBG:   {k.ljust(80)}: {v}')
 
 			unused_base_files: Dict[str, schema.File] = {}
 			for path, file in base_files_by_path.items():
 				if base_path_in_used[path] is False:
 					unused_base_files[path] = file
 
-			self.logger.info('DBG: unused_base_files')
-			for k in unused_base_files:
-				self.logger.info(f'DBG:   {k}')
+			if _DEBUG_LOG:
+				self.logger.info('DBG: unused_base_files')
+				for k in unused_base_files:
+					self.logger.info(f'DBG:   {k}')
 
 			if len(unused_base_files) > 0:
 				self.logger.info('Found {} unused files in base fileset {}, shrinking'.format(len(unused_base_files), self.base_fileset_id))
@@ -83,12 +89,14 @@ class ShrinkBaseFilesetAction(Action[None]):
 							continue
 						if delta_file.role in [FileRole.delta_override.value, FileRole.delta_remove.value]:
 							if delta_file.role == FileRole.delta_override.value:
-								self.logger.info(f'DBG: fileset {delta_fileset.id}, {delta_file.path}: override -> add')
+								if _DEBUG_LOG:
+									self.logger.info(f'DBG: fileset {delta_fileset.id}, {delta_file.path}: override -> add')
 								# override -> add
 								delta_file.role = FileRole.delta_add
 								delta_fileset.file_count += 1
 							else:
-								self.logger.info(f'DBG: fileset {delta_fileset.id}, {delta_file.path}: remove -> X')
+								if _DEBUG_LOG:
+									self.logger.info(f'DBG: fileset {delta_fileset.id}, {delta_file.path}: remove -> X')
 								# remove -> X
 								files_to_delete.append(delta_file)
 								delta_fileset.file_count += 1
@@ -100,7 +108,8 @@ class ShrinkBaseFilesetAction(Action[None]):
 				for file_to_delete in files_to_delete:
 					session.delete_file(file_to_delete)
 
-			self.logger.info('DBG: deleted_file_hashes len {}'.format(len(deleted_file_hashes)))
+			if _DEBUG_LOG:
+				self.logger.info('DBG: deleted_file_hashes len {}'.format(len(deleted_file_hashes)))
 			if len(deleted_file_hashes) > 0:
 				orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes)
 				bls = orphan_blob_cleaner.run(session=session)

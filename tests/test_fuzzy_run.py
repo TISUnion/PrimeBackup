@@ -1,4 +1,6 @@
 import contextlib
+import dataclasses
+import functools
 import hashlib
 import os
 import random
@@ -8,11 +10,12 @@ import string
 import tarfile
 import time
 import unittest
-from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, ContextManager, Union, Generator, Tuple, BinaryIO
 from unittest import TestCase
+
+from typing_extensions import Self, override
 
 from prime_backup import logger
 from prime_backup.action.create_backup_action import CreateBackupAction
@@ -34,12 +37,39 @@ from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils import path_utils
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class FileInfo:
 	size: int
 	sha256: str
 	mode: int
 	mtime: int  # timestamp in second
+
+
+@dataclasses.dataclass
+class TestStats:
+	file_create: int = 0
+	file_append: int = 0
+	file_truncate: int = 0
+	file_rebuild: int = 0
+	file_rewrite: int = 0
+	file_delete: int = 0
+	dir_create: int = 0
+	dir_remove: int = 0
+	backup_create: int = 0
+	backup_delete: int = 0
+	backup_restore: int = 0
+	hash_method_flip: int = 0
+
+	@classmethod
+	@functools.lru_cache(None)
+	def get(cls) -> Self:
+		return cls()
+
+	def reset(self) -> None:
+		# noinspection PyTypeChecker
+		for field in dataclasses.fields(self):
+			if field.type is int:
+				setattr(self, field.name, 0)
 
 
 def _compute_file_sha256(file_path: Path) -> str:
@@ -50,12 +80,12 @@ def _compute_file_sha256(file_path: Path) -> str:
 	return sha256_hash.hexdigest()
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class Snapshot:
 	files_info: Dict[Path, FileInfo]
 
 	@classmethod
-	def from_tar(cls, tar_src: Union[Path, BinaryIO]) -> 'Snapshot':
+	def from_tar(cls, tar_src: Union[Path, BinaryIO]) -> Self:
 		files_info: Dict[Path, FileInfo] = {}
 
 		with contextlib.ExitStack() as es:
@@ -179,8 +209,7 @@ class FileSystemCache:
 
 
 class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
-	MAX_FILES_PER_DIR: int = 100
-	MAX_DEPTH: int = 3
+	MAX_DEPTH: int = 5
 	MAX_TOTAL_SIZE_MB: int = 100
 
 	def __init__(self, test: unittest.TestCase, base_path: Path, snapshot_base_path: Path, rnd: random.Random) -> None:
@@ -215,10 +244,9 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		return Snapshot.from_env(self)
 
 	def iterate_once(self) -> None:
-		self.logger.info(f'ENV: FS summary: {self.__fs_cache.get_summary_text()}')
-		delete_chance = 0.001  # keep ~1k files
+		delete_chance = self.rnd.random() % 0.001
 		modify_chance = self.rnd.random() % 0.1  # [0, 0.1)
-		rmdir_chance = 0.001  # keep ~1k dirs
+		rmdir_chance = self.rnd.random() % 0.001
 
 		# Handle file deletions
 		for file_path in self.__fs_cache.get_all_files():
@@ -237,7 +265,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 
 		# Add new items (files or directories)
 		all_dirs = self.__fs_cache.get_all_dirs()
-		num_new_items: int = self.rnd.randint(1, 10)
+		num_new_items: int = self.rnd.randint(0, 10)
 		for _ in range(num_new_items):
 			if self.__fs_cache.get_total_size() >= self.MAX_TOTAL_SIZE_MB * 1024 * 1024:
 				break
@@ -246,8 +274,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 			if self.rnd.random() < 0.3 and self.__get_depth(target_dir) < self.MAX_DEPTH:
 				self.__create_dir(target_dir / self.__random_string(5))
 			else:
-				if len(list(target_dir.iterdir())) < self.MAX_FILES_PER_DIR:
-					self.__create_random_file_at(target_dir)
+				self.__create_random_file_at(target_dir)
 
 	def get_all_dirs_and_files(self) -> List[Path]:
 		return [
@@ -263,13 +290,14 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		if self.__fs_cache.has_file(file_path):
 			return
 
-		size: int = self.rnd.randint(1024, 1024 * 100)
+		size: int = self.rnd.randint(0, self.rnd.randint(0, 1024 * 100))
 		self.logger.info(f'ENV: create file {file_path}, size: {size}')
 		with open(file_path, 'wb') as f:
 			f.write(self.rnd.randbytes(size))
 		random_time: float = time.time() - self.rnd.randint(0, 30 * 24 * 3600)
 		os.utime(file_path, (random_time, random_time))
 		self.__fs_cache.add_file(file_path, size)
+		TestStats.get().file_create += 1
 
 	def __modify_file(self, file_path: Path) -> None:
 		old_size = file_path.stat().st_size
@@ -278,16 +306,21 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		if mod_type == 'append':
 			with open(file_path, 'ab') as f:
 				f.write(self.rnd.randbytes(self.rnd.randint(512, 1024 * 10)))
+			TestStats.get().file_append += 1
 		elif mod_type == 'truncate':
 			current_size: int = file_path.stat().st_size
 			if current_size > 1024:
 				with open(file_path, 'ab') as f:
 					f.truncate(self.rnd.randint(512, current_size - 512))
+			TestStats.get().file_truncate += 1
 		else:  # rewrite / rebuild
 			if mod_type == 'rebuild':
 				file_path.unlink()
+				TestStats.get().file_rebuild += 1
+			else:
+				TestStats.get().file_rewrite += 1
 			with open(file_path, 'wb') as f:
-				f.write(self.rnd.randbytes(self.rnd.randint(1024, 1024 * 50)))
+				f.write(self.rnd.randbytes(self.rnd.randint(0, self.rnd.randint(0, 1024 * 100))))
 		random_time: float = time.time() - self.rnd.randint(0, 7 * 24 * 3600)
 		os.utime(file_path, (random_time, random_time))
 		new_size = file_path.stat().st_size
@@ -297,6 +330,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		self.logger.info(f'ENV: remove file {file_path}')
 		self.__fs_cache.remove_file(file_path, file_path.stat().st_size)
 		file_path.unlink()
+		TestStats.get().file_delete += 1
 
 	def __create_dir(self, dir_path: Path):
 		if dir_path.exists() or self.__fs_cache.has_dir(dir_path):
@@ -304,11 +338,13 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		self.logger.info(f'ENV: create dir {dir_path}')
 		dir_path.mkdir()
 		self.__fs_cache.add_dir(dir_path)
+		TestStats.get().dir_create += 1
 
 	def __remove_dir(self, dir_path: Path):
 		self.logger.info(f'ENV: create dir {dir_path}')
 		self.__fs_cache.remove_dir(dir_path)
 		shutil.rmtree(dir_path)
+		TestStats.get().dir_remove += 1
 
 	def __random_string(self, length: int) -> str:
 		return ''.join(self.rnd.choices(string.ascii_lowercase + string.digits, k=length))
@@ -319,8 +355,19 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 	def refresh_fs_cache(self):
 		self.__fs_cache.refresh()
 
+	def get_fs_summary_text(self) -> str:
+		return self.__fs_cache.get_summary_text()
+
 
 class FuzzyRunTestCase(TestCase):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.logger = logger.get()
+
+	@override
+	def setUp(self):
+		TestStats.get().reset()
+
 	@contextlib.contextmanager
 	def create_env(self, rnd: random.Random) -> Generator[Tuple[BackupFuzzyEnvironment, Path, Path], None, None]:
 		test_root = Path(os.environ.get('PRIME_BACKUP_FUZZY_TEST_ROOT', 'run/unittest'))
@@ -350,24 +397,27 @@ class FuzzyRunTestCase(TestCase):
 			env = es.enter_context(BackupFuzzyEnvironment(self, env_dir, fake_server_dir, rnd))
 			yield env, fake_server_dir, temp_dir
 
-	FUZZY_ITERATIONS: int = int(os.environ.get('PRIME_BACKUP_FUZZY_TEST_ITERATION', '200'))
-
 	def test_fuzzy_run(self):
 		env: BackupFuzzyEnvironment
 		svr_dir: Path
 		temp_dir: Path
 
 		seed = int(os.environ.get('PRIME_BACKUP_FUZZY_TEST_SEED', '0'))
-		print(f'Random seed: {seed}')
+		iterations = int(os.environ.get('PRIME_BACKUP_FUZZY_TEST_ITERATION', '200'))
+		self.logger.info(f'Random seed: {seed}')
+		self.logger.info(f'Iterations: {iterations}')
 		rnd = random.Random(seed)
 		with self.create_env(rnd) as (env, svr_dir, temp_dir):
 			def create_backup() -> int:
+				TestStats.get().backup_create += 1
 				return CreateBackupAction(Operator.literal('test'), '').run().id
 
 			def delete_backup(bid_: int):
+				TestStats.get().backup_delete += 1
 				DeleteBackupAction(bid_).run()
 
 			def restore_backup(bid_: int):
+				TestStats.get().backup_restore += 1
 				ExportBackupToDirectoryAction(bid_, svr_dir, restore_mode=True).run()
 				env.refresh_fs_cache()
 
@@ -394,11 +444,12 @@ class FuzzyRunTestCase(TestCase):
 					self.assertEqual(0, r1.bad, f'ValidateFilesAction has bad: {r1}')
 					self.assertEqual(0, r2.bad, f'ValidateFilesetsAction has bad: {r2}')
 					self.assertEqual(0, r3.bad, f'ValidateBackupsAction has bad: {r3}')
-				except AssertionError:
-					print(r0)
-					print(r1)
-					print(r2)
-					print(r3)
+				except AssertionError as e:
+					self.logger.error(f'Validate DB failed: {e}')
+					self.logger.error(repr(r0))
+					self.logger.error(repr(r1))
+					self.logger.error(repr(r2))
+					self.logger.error(repr(r3))
 					raise
 
 				VacuumSqliteAction().run()
@@ -406,12 +457,11 @@ class FuzzyRunTestCase(TestCase):
 			backup_snapshots: Dict[int, Snapshot] = {}
 			backup_ids: List[int] = []
 
-			for i in range(self.FUZZY_ITERATIONS):
-				# Step 1: Show info
-				print(f'============================== Iteration {i} ==============================')
-				print(GetDbOverviewAction().run())
+			self.logger.info('Fuzzy test start')
+			for i in range(iterations):
+				self.logger.info(f'============================== Iteration {i} ==============================')
 
-				# Step 2: Create a new backup with 50% probability
+				# Step 1: Create a new backup with 50% probability
 				if rnd.random() < 0.7:
 					snapshot_before = env.create_snapshot()
 					backup_id = create_backup()
@@ -428,7 +478,7 @@ class FuzzyRunTestCase(TestCase):
 					# Store initial snapshot for later verification
 					backup_snapshots[backup_id] = backup_snapshot
 
-				# Step 3: Restore a random backup with 5% probability (if any exist)
+				# Step 2: Restore a random backup with 5% probability (if any exist)
 				if backup_ids and rnd.random() < 0.05:
 					restore_id = rnd.choice(backup_ids)
 					restore_backup(restore_id)
@@ -436,7 +486,7 @@ class FuzzyRunTestCase(TestCase):
 					restored_backup_snapshot = backup_snapshots[restore_id]
 					self.assertEqual(snapshot_after_restore, restored_backup_snapshot, f'Restore of backup {restore_id} mismatch at iteration {i}')
 
-				# Step 4: Delete a random backup with 20% probability (if any exist)
+				# Step 3: Delete a random backup with 20% probability (if any exist)
 				if backup_ids and rnd.random() < 0.2:
 					for delete_id in backup_ids[:]:
 						if rnd.random() < 0.05:
@@ -444,18 +494,27 @@ class FuzzyRunTestCase(TestCase):
 							backup_ids.remove(delete_id)
 							backup_snapshots.pop(delete_id)
 
-				# Step 5: Modify environment
+				# Step 4: Modify environment
 				env.iterate_once()
 
-				# Step 6: Config alternation
+				# Step 5: Config alternation
 				if rnd.random() < 0.01:
 					new_compress_method = rnd.choice([CompressMethod.plain, CompressMethod.zstd])
-					print('Changing compress method {} -> {}'.format(Config.get().backup.compress_method, new_compress_method))
+					self.logger.info('Changing compress method {} -> {}'.format(Config.get().backup.compress_method, new_compress_method))
 					Config.get().backup.compress_method = new_compress_method
+					TestStats.get().hash_method_flip += 1
 
 				# Step 6: Validate all
-				if i % 50 == 0 or i == self.FUZZY_ITERATIONS - 1:
+				if i % 50 == 0 or i == iterations - 1:
 					validate_all()
+
+				# Step 7: Show summary
+				self.logger.info('Iteration {} done'.format(i))
+				self.logger.info('Test stats: {}'.format(TestStats.get()))
+				self.logger.info('DB: {}'.format(GetDbOverviewAction().run()))
+				self.logger.info('ENV: {}'.format(env.get_fs_summary_text()))
+
+			self.logger.info('Fuzzy test passed')
 
 
 if __name__ == '__main__':

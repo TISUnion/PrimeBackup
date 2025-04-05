@@ -14,8 +14,7 @@ from pathlib import Path
 from typing import Dict, List, ContextManager, Union, Generator, Tuple, BinaryIO
 from unittest import TestCase
 
-from typing_extensions import override
-
+from prime_backup import logger
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.export_backup_action_directory import ExportBackupToDirectoryAction
@@ -32,6 +31,7 @@ from prime_backup.db.access import DbAccess
 from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
 from prime_backup.types.tar_format import TarFormat
+from prime_backup.utils import path_utils
 
 
 @dataclass(frozen=True)
@@ -113,6 +113,71 @@ class Snapshot:
 		return cls(files_info)
 
 
+class FileSystemCache:
+	def __init__(self, base_path: Path):
+		self.__base_path = base_path
+		self.__dirs: Dict[Path, None] = {}
+		self.__files: Dict[Path, None] = {}
+		self.__total_size: int = 0
+
+	def refresh(self):
+		self.__dirs.clear()
+		self.__files.clear()
+		self.__total_size = 0
+		self.__dirs[self.__base_path] = None
+		for root, dirs, files in os.walk(self.__base_path):
+			root_path = Path(root)
+			for d in dirs:
+				dir_path = root_path / d
+				self.__dirs[dir_path] = None
+			for f in files:
+				file_path = root_path / f
+				self.__files[file_path] = None
+				self.__total_size += file_path.stat().st_size
+
+	def get_all_dirs(self) -> List[Path]:
+		return list(self.__dirs.keys())
+
+	def get_all_files(self) -> List[Path]:
+		return list(self.__files.keys())
+
+	def get_total_size(self) -> int:
+		return self.__total_size
+
+	def add_file(self, file_path: Path, size: int):
+		self.__files[file_path] = None
+		self.__total_size += size
+
+	def remove_file(self, file_path: Path, size: int):
+		self.__files.pop(file_path)
+		self.__total_size -= size
+
+	def add_dir(self, dir_path: Path):
+		self.__dirs[dir_path] = None
+
+	def remove_dir(self, dir_path: Path):
+		self.__dirs.pop(dir_path)
+		for f in list(self.__files.keys()):
+			if path_utils.is_relative_to(f, dir_path):
+				self.__total_size -= f.stat().st_size
+				self.__files.pop(f)
+		for d in list(self.__dirs.keys()):
+			if path_utils.is_relative_to(d, dir_path):
+				self.__dirs.pop(d)
+
+	def adjust_total_size(self, delta: int):
+		self.__total_size += delta
+
+	def has_file(self, file_path: Path) -> bool:
+		return file_path in self.__files
+
+	def has_dir(self, new_dir: Path) -> bool:
+		return new_dir in self.__dirs
+
+	def get_summary_text(self) -> str:
+		return f'dirs: {len(self.__dirs)}, files: {len(self.__files)}, size: {self.__total_size}'
+
+
 class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 	MAX_FILES_PER_DIR: int = 100
 	MAX_DEPTH: int = 3
@@ -123,24 +188,26 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		self.base_path = base_path
 		self.snapshot_base_path = snapshot_base_path
 		self.rnd = rnd
+		self.logger = logger.get()
+		self.__fs_cache = FileSystemCache(self.base_path)
 
 	def create(self) -> None:
 		if self.base_path.exists():
 			shutil.rmtree(self.base_path)
 		self.base_path.mkdir(parents=True)
+		self.__fs_cache.refresh()
+
 		for _ in range(self.rnd.randint(5, 10)):
-			self._create_random_file(self.base_path)
+			self.__create_random_file_at(self.base_path)
 
 	def destroy(self) -> None:
 		if self.base_path.is_dir():
 			shutil.rmtree(self.base_path)
 
-	@override
 	def __enter__(self):
 		self.create()
 		return self
 
-	@override
 	def __exit__(self, exc_type, exc_value, traceback, /):
 		self.destroy()
 
@@ -148,82 +215,66 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		return Snapshot.from_env(self)
 
 	def iterate_once(self) -> None:
-		all_dirs: List[Path] = self._get_all_dirs()
-		all_files: List[Path] = self._get_all_files()
-		print(f'{len(all_dirs)=} {len(all_files)=}')
-
+		self.logger.info(f'ENV: FS summary: {self.__fs_cache.get_summary_text()}')
 		delete_chance = 0.001  # keep ~1k files
 		modify_chance = self.rnd.random() % 0.1  # [0, 0.1)
-		rmdir_change = 0.001
-		for file_path in all_files[:]:
+		rmdir_chance = 0.001  # keep ~1k dirs
+
+		# Handle file deletions
+		for file_path in self.__fs_cache.get_all_files():
 			if self.rnd.random() < delete_chance:
-				file_path.unlink()
-				all_files.remove(file_path)
+				self.__remove_file(file_path)
 
-		for file_path in all_files[:]:
+		# Handle file modifications
+		for file_path in self.__fs_cache.get_all_files():
 			if self.rnd.random() < modify_chance:
-				self._modify_file(file_path)
+				self.__modify_file(file_path)
 
-		for dir_path in all_dirs[:]:
-			if dir_path != self.base_path and self.rnd.random() < rmdir_change:
-				shutil.rmtree(dir_path, ignore_errors=True)
-				all_dirs.remove(dir_path)
+		# Handle directory deletions
+		for dir_path in self.__fs_cache.get_all_dirs():
+			if dir_path != self.base_path and self.rnd.random() < rmdir_chance and dir_path.exists():
+				self.__remove_dir(dir_path)
 
-		all_dirs: List[Path] = self._get_all_dirs()
+		# Add new items (files or directories)
+		all_dirs = self.__fs_cache.get_all_dirs()
 		num_new_items: int = self.rnd.randint(1, 10)
 		for _ in range(num_new_items):
-			if self._get_total_size() >= self.MAX_TOTAL_SIZE_MB * 1024 * 1024:
+			if self.__fs_cache.get_total_size() >= self.MAX_TOTAL_SIZE_MB * 1024 * 1024:
 				break
+
 			target_dir: Path = self.rnd.choice(all_dirs)
-			if self.rnd.random() < 0.3 and self._get_depth(target_dir) < self.MAX_DEPTH:
-				new_dir: Path = target_dir / self._random_string(5)
-				if not new_dir.exists():
-					new_dir.mkdir()
-					all_dirs.append(new_dir)
+			if self.rnd.random() < 0.3 and self.__get_depth(target_dir) < self.MAX_DEPTH:
+				self.__create_dir(target_dir / self.__random_string(5))
 			else:
 				if len(list(target_dir.iterdir())) < self.MAX_FILES_PER_DIR:
-					self._create_random_file(target_dir)
-
-	def _get_all_dirs(self) -> List[Path]:
-		dirs: List[Path] = [self.base_path]
-		for root, subdirs, _ in os.walk(self.base_path):
-			for subdir in subdirs:
-				dirs.append(Path(root) / subdir)
-		return dirs
-
-	def _get_all_files(self) -> List[Path]:
-		files: List[Path] = []
-		for root, _, filenames in os.walk(self.base_path):
-			for filename in filenames:
-				files.append(Path(root) / filename)
-		return files
+					self.__create_random_file_at(target_dir)
 
 	def get_all_dirs_and_files(self) -> List[Path]:
-		files: List[Path] = []
-		for root, subdirs, filenames in os.walk(self.base_path):
-			for subdir in subdirs:
-				files.append(Path(root) / subdir)
-			for filename in filenames:
-				files.append(Path(root) / filename)
-		return files
+		return [
+			*self.__fs_cache.get_all_dirs(),
+			*self.__fs_cache.get_all_files(),
+		]
 
-	def _get_total_size(self) -> int:
-		total_size: int = 0
-		for file_path in self._get_all_files():
-			total_size += file_path.stat().st_size
-		return total_size
+	def __create_random_file_at(self, directory: Path) -> None:
+		file_name: str = f'{self.__random_string(8)}.{self.rnd.choice(["txt", "bin", "dat"])}'
+		self.__create_file(directory / file_name)
 
-	def _create_random_file(self, directory: Path) -> None:
-		file_name: str = f'{self._random_string(8)}.{self.rnd.choice(["txt", "bin", "dat"])}'
-		file_path: Path = directory / file_name
+	def __create_file(self, file_path: Path):
+		if self.__fs_cache.has_file(file_path):
+			return
+
 		size: int = self.rnd.randint(1024, 1024 * 100)
+		self.logger.info(f'ENV: create file {file_path}, size: {size}')
 		with open(file_path, 'wb') as f:
 			f.write(self.rnd.randbytes(size))
 		random_time: float = time.time() - self.rnd.randint(0, 30 * 24 * 3600)
 		os.utime(file_path, (random_time, random_time))
+		self.__fs_cache.add_file(file_path, size)
 
-	def _modify_file(self, file_path: Path) -> None:
-		mod_type: str = self.rnd.choice(['append', 'truncate', 'rewrite'])
+	def __modify_file(self, file_path: Path) -> None:
+		old_size = file_path.stat().st_size
+		mod_type: str = self.rnd.choice(['append', 'truncate', 'rewrite', 'rebuild'])
+		self.logger.info(f'ENV: modify file {file_path}, mod_type: {mod_type}')
 		if mod_type == 'append':
 			with open(file_path, 'ab') as f:
 				f.write(self.rnd.randbytes(self.rnd.randint(512, 1024 * 10)))
@@ -232,17 +283,41 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 			if current_size > 1024:
 				with open(file_path, 'ab') as f:
 					f.truncate(self.rnd.randint(512, current_size - 512))
-		else:
+		else:  # rewrite / rebuild
+			if mod_type == 'rebuild':
+				file_path.unlink()
 			with open(file_path, 'wb') as f:
 				f.write(self.rnd.randbytes(self.rnd.randint(1024, 1024 * 50)))
 		random_time: float = time.time() - self.rnd.randint(0, 7 * 24 * 3600)
 		os.utime(file_path, (random_time, random_time))
+		new_size = file_path.stat().st_size
+		self.__fs_cache.adjust_total_size(new_size - old_size)
 
-	def _random_string(self, length: int) -> str:
+	def __remove_file(self, file_path: Path):
+		self.logger.info(f'ENV: remove file {file_path}')
+		self.__fs_cache.remove_file(file_path, file_path.stat().st_size)
+		file_path.unlink()
+
+	def __create_dir(self, dir_path: Path):
+		if dir_path.exists() or self.__fs_cache.has_dir(dir_path):
+			return
+		self.logger.info(f'ENV: create dir {dir_path}')
+		dir_path.mkdir()
+		self.__fs_cache.add_dir(dir_path)
+
+	def __remove_dir(self, dir_path: Path):
+		self.logger.info(f'ENV: create dir {dir_path}')
+		self.__fs_cache.remove_dir(dir_path)
+		shutil.rmtree(dir_path)
+
+	def __random_string(self, length: int) -> str:
 		return ''.join(self.rnd.choices(string.ascii_lowercase + string.digits, k=length))
 
-	def _get_depth(self, path: Path) -> int:
+	def __get_depth(self, path: Path) -> int:
 		return len(path.relative_to(self.base_path).parts)
+
+	def refresh_fs_cache(self):
+		self.__fs_cache.refresh()
 
 
 class FuzzyRunTestCase(TestCase):
@@ -294,6 +369,7 @@ class FuzzyRunTestCase(TestCase):
 
 			def restore_backup(bid_: int):
 				ExportBackupToDirectoryAction(bid_, svr_dir, restore_mode=True).run()
+				env.refresh_fs_cache()
 
 			def get_backup_snapshot(bid_: int) -> Snapshot:
 				buf = BytesIO()

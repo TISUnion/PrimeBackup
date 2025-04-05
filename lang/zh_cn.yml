@@ -281,7 +281,9 @@ prime_backup:
         all_ok: 全部{}个文件都是健康的
         found_bad_files: 发现了{}/{}个异常文件
         invalid: '非法文件对象: {}个'
+        orphan: '孤儿文件对象: {}个'
         bad_blob_relation: '与数据对象错误关联: {}个'
+        bad_fileset_relation: '与文件集对象错误关联: {}个'
         file_blob_mismatched: '文件与数据对象间信息不匹配: {}个'
       validate_filesets:
         .: 正在验证所有文件集, 请稍等...

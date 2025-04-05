@@ -60,11 +60,14 @@ class ValidateFilesetsAction(Action[ValidateFilesetsResult]):
 		for fileset in map(FilesetInfo.of, session.get_filesets(sorted(fileset_ids_to_query)).values()):
 			base_filesets[fileset.id] = fileset
 
-		# TODO: check orphan
+		orphan_fileset_ids = set(session.filtered_orphan_fileset_ids([fileset.id for fileset in filesets]))
+
 		for fileset in filesets:
 			if self.is_interrupted.is_set():
 				break
 			result.validated += 1
+			if fileset.id in orphan_fileset_ids:
+				result.add_bad(fileset, f'orphan fileset with 0 associated backup')
 
 			if fileset.id <= 0:
 				result.add_bad(fileset, 'unexpected fileset id {}, should not <= 0'.format(fileset.id))

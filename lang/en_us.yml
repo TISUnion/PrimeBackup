@@ -280,8 +280,10 @@ prime_backup:
         done: Validated {} / {} files
         all_ok: All {} files are healthy
         found_bad_files: Found {} / {} bad files in total
-        invalid: 'Invalid blob amount: {}'
+        invalid: 'Invalid file amount: {}'
+        orphan: 'Orphan file amount: {}'
         bad_blob_relation: 'Bad blob relationship: {}'
+        bad_fileset_relation: 'Bad fileset relationship: {}'
         file_blob_mismatched: 'File-blob mismatch: {}'
       validate_filesets:
         .: Start validating filesets, please wait...

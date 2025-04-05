@@ -15,9 +15,10 @@ from prime_backup.types.fileset_info import FilesetInfo
 
 class BadFileItemType(enum.Enum):
 	invalid = enum.auto()
+	orphan = enum.auto()
 	bad_blob_relation= enum.auto()
-	bad_fileset_relation= enum.auto()
-	file_blob_mismatched= enum.auto()
+	bad_fileset_relation = enum.auto()
+	file_blob_mismatched = enum.auto()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -84,10 +85,9 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 		if self.is_interrupted.is_set():
 			return
 
-		# TODO: check orphan
 		for file in files:
 			if (fileset := filesets.get(file.fileset_id)) is None:
-				result.add_bad(file, BadFileItemType.bad_fileset_relation, f'fileset {file.fileset_id} does not exist')
+				result.add_bad(file, BadFileItemType.orphan, f'orphan file with a non-exist fileset {file.fileset_id}')
 			elif FilesetInfo.of(fileset).is_base:
 				if file.role != FileRole.standalone:
 					result.add_bad(file, BadFileItemType.bad_fileset_relation, f'bad file role. fileset {file.fileset_id} is a base fileset, but file role is {file.role}')

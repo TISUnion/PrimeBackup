@@ -1,3 +1,4 @@
+import collections
 import contextlib
 import dataclasses
 import functools
@@ -12,7 +13,7 @@ import time
 import unittest
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, List, ContextManager, Union, Generator, Tuple, BinaryIO
+from typing import Dict, List, ContextManager, Union, Generator, Tuple, BinaryIO, Deque
 from unittest import TestCase
 
 from typing_extensions import Self, override
@@ -58,7 +59,7 @@ class TestStats:
 	backup_create: int = 0
 	backup_delete: int = 0
 	backup_restore: int = 0
-	hash_method_flip: int = 0
+	compress_method_flip: int = 0
 
 	@classmethod
 	@functools.lru_cache(None)
@@ -208,6 +209,46 @@ class FileSystemCache:
 		return f'dirs: {len(self.__dirs)}, files: {len(self.__files)}, size: {self.__total_size}'
 
 
+class FileContentGenerator:
+	MAX_CACHED_SIZE = 30 * 1024 * 1024
+	REUSE_PROBABILITY = 0.1
+
+	def __init__(self, rnd: random.Random):
+		self.rnd = rnd
+		self.__cache: Dict[int, List[bytes]] = collections.defaultdict(list)
+		self.__keys: Deque[int] = collections.deque()
+		self.__total_size = 0
+
+	def generate(self, min_size: int, max_size: int) -> bytes:
+		if self.__cache and self.rnd.random() < self.REUSE_PROBABILITY:
+			key = self.rnd.choice(self.__keys)
+			return self.rnd.choice(self.__cache[key])
+
+		size = self.rnd.randint(min_size, self.rnd.randint(min_size, max_size))
+		buf = self.rnd.randbytes(size)
+
+		def try_insert() -> bool:
+			if self.__total_size < self.MAX_CACHED_SIZE:
+				self.__cache[size].append(buf)
+				self.__keys.append(size)
+				self.__total_size += size
+				return True
+			return False
+
+		first_attempt_ok = try_insert()
+		if not first_attempt_ok and self.rnd.random() < 0.1 and len(self.__keys) > 0:
+			old_key = self.__keys.popleft() if self.rnd.random() < 0.5 else self.__keys.pop()
+			old_buf_list = self.__cache[old_key]
+			old_len = len(old_buf_list[0])
+			old_buf_list.pop()
+			self.__total_size -= old_len
+			if len(old_buf_list) == 0:
+				self.__cache.pop(old_key)
+			try_insert()
+
+		return buf
+
+
 class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 	MAX_DEPTH: int = 5
 	MAX_TOTAL_SIZE_MB: int = 100
@@ -219,6 +260,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		self.rnd = rnd
 		self.logger = logger.get()
 		self.__fs_cache = FileSystemCache(self.base_path)
+		self.__file_gen = FileContentGenerator(rnd)
 
 	def create(self) -> None:
 		if self.base_path.exists():
@@ -290,10 +332,11 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		if self.__fs_cache.has_file(file_path):
 			return
 
-		size: int = self.rnd.randint(0, self.rnd.randint(0, 1024 * 100))
+		file_content = self.__file_gen.generate(0, self.rnd.randint(0, 1024 * 100))
+		size = len(file_content)
 		self.logger.info(f'ENV: create file {file_path}, size: {size}')
 		with open(file_path, 'wb') as f:
-			f.write(self.rnd.randbytes(size))
+			f.write(file_content)
 		random_time: float = time.time() - self.rnd.randint(0, 30 * 24 * 3600)
 		os.utime(file_path, (random_time, random_time))
 		self.__fs_cache.add_file(file_path, size)
@@ -319,8 +362,9 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 				TestStats.get().file_rebuild += 1
 			else:
 				TestStats.get().file_rewrite += 1
+			file_content = self.__file_gen.generate(0, self.rnd.randint(0, 1024 * 100))
 			with open(file_path, 'wb') as f:
-				f.write(self.rnd.randbytes(self.rnd.randint(0, self.rnd.randint(0, 1024 * 100))))
+				f.write(file_content)
 		random_time: float = time.time() - self.rnd.randint(0, 7 * 24 * 3600)
 		os.utime(file_path, (random_time, random_time))
 		new_size = file_path.stat().st_size
@@ -488,8 +532,9 @@ class FuzzyRunTestCase(TestCase):
 
 				# Step 3: Delete a random backup with 20% probability (if any exist)
 				if backup_ids and rnd.random() < 0.2:
+					chosen_deleted_id = rnd.choice(backup_ids)
 					for delete_id in backup_ids[:]:
-						if rnd.random() < 0.05:
+						if delete_id == chosen_deleted_id or rnd.random() < 0.01:
 							delete_backup(delete_id)
 							backup_ids.remove(delete_id)
 							backup_snapshots.pop(delete_id)
@@ -502,7 +547,7 @@ class FuzzyRunTestCase(TestCase):
 					new_compress_method = rnd.choice([CompressMethod.plain, CompressMethod.zstd])
 					self.logger.info('Changing compress method {} -> {}'.format(Config.get().backup.compress_method, new_compress_method))
 					Config.get().backup.compress_method = new_compress_method
-					TestStats.get().hash_method_flip += 1
+					TestStats.get().compress_method_flip += 1
 
 				# Step 6: Validate all
 				if i % 50 == 0 or i == iterations - 1:

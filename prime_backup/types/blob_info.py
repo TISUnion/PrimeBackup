@@ -2,6 +2,8 @@ import dataclasses
 from pathlib import Path
 from typing import Iterable
 
+from typing_extensions import Self
+
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
 from prime_backup.utils import misc_utils
@@ -38,18 +40,18 @@ class BlobInfo:
 		return self.hash < other.hash
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class BlobListSummary:
 	count: int
 	raw_size: int
 	stored_size: int
 
 	@classmethod
-	def zero(cls) -> 'BlobListSummary':
-		return BlobListSummary(0, 0, 0)
+	def zero(cls) -> Self:
+		return cls(0, 0, 0)
 
 	@classmethod
-	def of(cls, blobs: Iterable[BlobInfo]) -> 'BlobListSummary':
+	def of(cls, blobs: Iterable[BlobInfo]) -> Self:
 		"""
 		Notes: should be inside a session
 		"""
@@ -64,7 +66,7 @@ class BlobListSummary:
 			stored_size=stored_size_sum,
 		)
 
-	def __add__(self, other: 'BlobListSummary') -> 'BlobListSummary':
+	def __add__(self, other: Self) -> Self:
 		misc_utils.ensure_type(other, type(self))
 		return BlobListSummary(
 			count=self.count + other.count,

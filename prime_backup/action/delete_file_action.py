@@ -1,5 +1,4 @@
 import contextlib
-import dataclasses
 from typing import List, Dict, Optional, Set
 
 from typing_extensions import override
@@ -10,23 +9,17 @@ from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import FileIdentifier, DbSession
 from prime_backup.exceptions import BlobNotFound, FilesetFileNotFound
-from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.file_info import FileListSummary
 
 
-@dataclasses.dataclass(frozen=True)
-class DeleteFilesResult:
-	file: int = 0
-	blob: BlobListSummary = dataclasses.field(default_factory=BlobListSummary)
-
-
-class DeleteFilesStep(Action[DeleteFilesResult]):
+class DeleteFilesStep(Action[FileListSummary]):
 	def __init__(self, session: DbSession, files: List[schema.File]):
 		super().__init__()
 		self.session = session
 		self.files = files
 		self.__has_run = False
 
-	def run(self) -> DeleteFilesResult:
+	def run(self) -> FileListSummary:
 		"""
 		`session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
 		"""
@@ -50,17 +43,17 @@ class DeleteFilesStep(Action[DeleteFilesResult]):
 			except BlobNotFound as e:
 				raise AssertionError('Unexpected BlobNotFound with blob_hash {}'.format(e.blob_hash))
 
-		return DeleteFilesResult(file=deleted_file_count, blob=bls)
+		return FileListSummary(count=deleted_file_count, blob_summary=bls)
 
 
-class DeleteFilesAction(Action[DeleteFilesResult]):
+class DeleteFilesAction(Action[FileListSummary]):
 	def __init__(self, file_identifiers: List[FileIdentifier], *, raise_if_not_found: bool = True):
 		super().__init__()
 		self.file_identifiers = file_identifiers
 		self.raise_if_not_found = raise_if_not_found
 
 	@override
-	def run(self, *, session: Optional[DbSession] = None) -> DeleteFilesResult:
+	def run(self, *, session: Optional[DbSession] = None) -> FileListSummary:
 		"""
 		:param session: If provided, use this session for DB operations.
 		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block

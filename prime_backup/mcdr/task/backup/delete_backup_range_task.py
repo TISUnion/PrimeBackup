@@ -68,6 +68,6 @@ class DeleteBackupRangeTask(HeavyTask[None]):
 				pass
 			else:
 				cnt += 1
-				bls = bls + dr.bls
+				bls += dr.bls
 				self.reply_tr('deleted', TextComponents.backup_brief(dr.backup, backup_id_fancy=False))
 		self.reply_tr('done', TextComponents.number(cnt), TextComponents.blob_list_summary_store_size(bls))

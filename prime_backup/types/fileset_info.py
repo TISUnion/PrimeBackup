@@ -4,6 +4,8 @@ from typing import List, Optional
 from typing_extensions import Self
 
 from prime_backup.db import schema
+from prime_backup.types.file_info import FileListSummary
+from prime_backup.utils import misc_utils
 
 
 @dataclasses.dataclass
@@ -34,3 +36,21 @@ class FilesetInfo:
 			backup_count=backup_count,
 			sampled_backup_ids=sampled_backup_ids or [],
 		)
+
+
+@dataclasses.dataclass
+class FilesetListSummary:
+	count: int
+	file_summary: FileListSummary
+
+	@classmethod
+	def zero(cls) -> Self:
+		return FilesetListSummary(0, FileListSummary.zero())
+
+	def __add__(self, other: Self) -> Self:
+		misc_utils.ensure_type(other, type(self))
+		return FilesetListSummary(
+			count=self.count + other.count,
+			file_summary=self.file_summary + other.file_summary,
+		)
+

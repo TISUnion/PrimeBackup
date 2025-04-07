@@ -4,10 +4,13 @@ import functools
 import stat
 from typing import Optional, Tuple
 
+from typing_extensions import Self
+
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.values import FileRole
-from prime_backup.types.blob_info import BlobInfo
+from prime_backup.types.blob_info import BlobInfo, BlobListSummary
+from prime_backup.utils import misc_utils
 
 
 class FileType(enum.Enum):
@@ -17,6 +20,7 @@ class FileType(enum.Enum):
 	unknown = enum.auto()
 
 
+# TODO: FileIdentifier?
 FileUniqueKey = Tuple[int, str]  # (fileset_id, path)
 
 
@@ -109,3 +113,20 @@ class FileInfo:
 	@property
 	def unique_key(self) -> FileUniqueKey:
 		return self.fileset_id, self.path
+
+
+@dataclasses.dataclass
+class FileListSummary:
+	count: int
+	blob_summary: BlobListSummary
+
+	@classmethod
+	def zero(cls) -> Self:
+		return cls(0, BlobListSummary.zero())
+
+	def __add__(self, other: Self) -> Self:
+		misc_utils.ensure_type(other, type(self))
+		return FileListSummary(
+			count=self.count + other.count,
+			blob_summary=self.blob_summary + other.blob_summary,
+		)

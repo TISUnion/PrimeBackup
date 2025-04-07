@@ -74,14 +74,14 @@ class PrunePlan(List[PrunePlanItem]):
 class PruneBackupResult:
 	plan: PrunePlan
 	deleted_backup_count: int = 0
-	deleted_blobs: BlobListSummary = BlobListSummary.zero()
+	deleted_blobs: BlobListSummary = dataclasses.field(default_factory=BlobListSummary.zero)
 
 
 @dataclasses.dataclass
 class PruneAllBackupResult:
 	sub_plans: List[PrunePlan] = dataclasses.field(default_factory=list)
 	deleted_backup_count: int = 0
-	deleted_blobs: BlobListSummary = BlobListSummary.zero()
+	deleted_blobs: BlobListSummary = dataclasses.field(default_factory=BlobListSummary.zero)
 
 
 class PruneBackupTask(HeavyTask[PruneBackupResult]):

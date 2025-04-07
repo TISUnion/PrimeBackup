@@ -6,6 +6,7 @@ from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.values import FileRole
 from prime_backup.exceptions import PrimeBackupError
+from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.types.units import ByteCount
 
 
@@ -113,6 +114,9 @@ class ShrinkBaseFilesetAction(Action[None]):
 			if len(deleted_file_hashes) > 0:
 				orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes)
 				bls = orphan_blob_cleaner.run(session=session)
-				self.logger.info('Shrink base fileset {} done, -{} blobs (size {} / {})'.format(
-					self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
-				))
+			else:
+				bls = BlobListSummary.zero()
+
+			self.logger.info('Shrink base fileset {} done, -{} blobs (size {} / {})'.format(
+				self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
+			))

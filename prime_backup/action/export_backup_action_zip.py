@@ -4,10 +4,11 @@ import shutil
 import stat
 import time
 import zipfile
+from pathlib import Path
 
-from typing_extensions import override
+from typing_extensions import override, Unpack
 
-from prime_backup.action.export_backup_action_base import _ExportBackupActionBase
+from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
 from prime_backup.compressors import Compressor
 from prime_backup.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
@@ -17,6 +18,10 @@ from prime_backup.utils.bypass_io import BypassReader
 
 
 class ExportBackupToZipAction(_ExportBackupActionBase):
+	def __init__(self, backup_id: int, output_path: Path, **kwargs: Unpack[ExportBackupActionCommonInitKwargs]):
+		super().__init__(backup_id, **kwargs)
+		self.output_path = output_path
+
 	@override
 	def is_interruptable(self) -> bool:
 		return True

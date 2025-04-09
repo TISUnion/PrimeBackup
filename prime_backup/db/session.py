@@ -524,6 +524,14 @@ class DbSession:
 			s = s.offset(offset)
 		return _list_it(self.session.execute(s).scalars().all())
 
+	def list_fileset_ids(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[int]:
+		s = select(schema.Fileset.id)
+		if limit is not None:
+			s = s.limit(limit)
+		if offset is not None:
+			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
+
 	def iterate_fileset_batch(self, *, batch_size: int = 1000) -> Iterator[List[schema.Fileset]]:
 		limit, offset = batch_size, 0
 		while True:

@@ -7,6 +7,7 @@ from prime_backup.db.access import DbAccess
 from prime_backup.db.values import FileRole
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.file_info import FileListSummary
 from prime_backup.types.units import ByteCount
 
 
@@ -17,14 +18,15 @@ class NotBaseFileset(PrimeBackupError):
 _DEBUG_LOG = False
 
 
-class ShrinkBaseFilesetAction(Action[None]):
+class ShrinkBaseFilesetAction(Action[FileListSummary]):
 	def __init__(self, base_fileset_id: int):
 		super().__init__()
 		self.base_fileset_id = base_fileset_id
 
-	def run(self) -> None:
+	def run(self) -> FileListSummary:
 		self.logger.info('Shrinking base fileset {}'.format(self.base_fileset_id))
 		deleted_file_hashes: Set[str] = set()
+		fls = FileListSummary.zero()
 
 		with DbAccess.open_session() as session:
 			base_fileset: schema.Fileset = session.get_fileset(self.base_fileset_id)
@@ -106,6 +108,7 @@ class ShrinkBaseFilesetAction(Action[None]):
 							delta_fileset.file_stored_size_sum += unused_base_file.blob_stored_size or 0
 
 				self.logger.info('Deleting {} file objects'.format(len(files_to_delete)))
+				fls.count += len(files_to_delete)
 				for file_to_delete in files_to_delete:
 					session.delete_file(file_to_delete)
 
@@ -116,7 +119,9 @@ class ShrinkBaseFilesetAction(Action[None]):
 				bls = orphan_blob_cleaner.run(session=session)
 			else:
 				bls = BlobListSummary.zero()
+			fls.blob_summary = bls
 
-			self.logger.info('Shrink base fileset {} done, -{} blobs (size {} / {})'.format(
-				self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
-			))
+		self.logger.info('Shrink base fileset {} done, -{} blobs (size {} / {})'.format(
+			self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
+		))
+		return fls

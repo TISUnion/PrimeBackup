@@ -8,10 +8,9 @@ from prime_backup.types.file_info import FileListSummary
 from prime_backup.utils import misc_utils
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class FilesetInfo:
 	id: int
-	is_base: bool
 	base_id: int
 	file_object_count: int
 
@@ -23,12 +22,15 @@ class FilesetInfo:
 	backup_count: int
 	sampled_backup_ids: List[int]
 
+	@property
+	def is_base(self) -> bool:
+		return self.base_id == 0
+
 	@classmethod
 	def of(cls, file_set: schema.Fileset, *, backup_count: int = 0, sampled_backup_ids: Optional[List[int]] = None) -> Self:
 		return cls(
 			id=file_set.id,
 			base_id=file_set.base_id,
-			is_base=file_set.base_id == 0,
 			file_object_count=file_set.file_object_count,
 			file_count=file_set.file_count,
 			raw_size=file_set.file_raw_size_sum,

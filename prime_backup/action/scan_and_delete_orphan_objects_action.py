@@ -1,3 +1,4 @@
+import dataclasses
 from typing import List, Set
 
 from prime_backup.action import Action
@@ -21,9 +22,12 @@ class ScanAndDeleteOrphanBlobsAction(Action[BlobListSummary]):
 
 			with DbAccess.open_session() as session:
 				total_blob_count = session.get_blob_count()
+				checking_blob_count = 0
 				orphan_blob_hashes: List[str] = []
 				for blobs in session.iterate_blob_batch(batch_size=500):
-					self.logger.info('Checking {} / {} blobs'.format(len(blobs), total_blob_count))
+					checking_blob_count += len(blobs)
+					if checking_blob_count % 3000 == 0 or checking_blob_count == total_blob_count:
+						self.logger.info('Checking {} / {} blobs'.format(checking_blob_count, total_blob_count))
 					orphan_blob_hashes.extend(session.filtered_orphan_blob_hashes([blob.hash for blob in blobs]))
 					if len(orphan_blob_hashes) > self.MAX_IN_MEMORY_OBJECTS:
 						limit_reached = True
@@ -57,10 +61,13 @@ class ScanAndDeleteOrphanFilesAction(Action[FileListSummary]):
 
 			with DbAccess.open_session() as session:
 				total_file_count = session.get_file_object_count()
+				checking_file_count = 0
 				orphan_files: List[schema.File] = []
 
-				for files in session.iterate_file_batch(batch_size=3000):
-					self.logger.info('Checking {} / {} file objects'.format(len(files), total_file_count))
+				for files in session.iterate_file_batch(batch_size=2000):
+					checking_file_count += len(files)
+					if checking_file_count % 20000 == 0 or checking_file_count == total_file_count:
+						self.logger.info('Checking {} / {} file objects'.format(checking_file_count, total_file_count))
 					fileset_states = session.check_filesets_existence(list({file.fileset_id for file in files}))
 					for file in files:
 						if fileset_states[file.fileset_id] is False:
@@ -105,7 +112,11 @@ class ScanAndDeleteOrphanFilesetsAction(Action[FilesetListSummary]):
 
 			with DbAccess.open_session() as session:
 				filesets = session.list_fileset()
+				self.logger.info('Checking {} fileset objects'.format(len(filesets)))
+
 				orphan_fileset_ids = set(session.filtered_orphan_fileset_ids([fileset.id for fileset in filesets]))
+				self.logger.info('Found {} orphan fileset'.format(len(orphan_fileset_ids)))
+
 				files_to_delete: List[schema.File] = []
 				for fileset in filesets:
 					if fileset.id not in orphan_fileset_ids:
@@ -121,6 +132,7 @@ class ScanAndDeleteOrphanFilesetsAction(Action[FilesetListSummary]):
 						break
 
 				if len(files_to_delete) > 0:
+					self.logger.info('Deleting {} file objects from {} orphan filesets'.format(len(files_to_delete), len(orphan_fileset_ids)))
 					fls = DeleteFilesStep(session, files_to_delete).run()
 					fsls.file_summary += fls
 
@@ -136,13 +148,30 @@ class ScanAndDeleteOrphanFilesetsAction(Action[FilesetListSummary]):
 		return fsls
 
 
-class ScanAndDeleteOrphanObjectsAction(Action[None]):
-	def run(self) -> None:
+@dataclasses.dataclass(frozen=True)
+class ScanAndDeleteOrphanObjectsResult:
+	orphan_blob_count: int
+	orphan_file_count: int
+	orphan_fileset_count: int
+
+	@property
+	def total_orphan_count(self) -> int:
+		return self.orphan_blob_count + self.orphan_file_count + self.orphan_fileset_count
+
+
+class ScanAndDeleteOrphanObjectsAction(Action[ScanAndDeleteOrphanObjectsResult]):
+	def run(self) -> ScanAndDeleteOrphanObjectsResult:
 		self.logger.info('Scanning orphan objects')
 		orphan_blob_summary = ScanAndDeleteOrphanBlobsAction().run()
 		orphan_file_summary = ScanAndDeleteOrphanFilesAction().run()
 		orphan_fileset_summary = ScanAndDeleteOrphanFilesetsAction().run()
-		if orphan_blob_summary.count + orphan_file_summary.count + orphan_fileset_summary.count > 0:
+		result = ScanAndDeleteOrphanObjectsResult(
+			orphan_blob_count=orphan_blob_summary.count,
+			orphan_file_count=orphan_file_summary.count,
+			orphan_fileset_count=orphan_fileset_summary.count,
+		)
+
+		if result.total_orphan_count > 0:
 			self.logger.info('Found and deleted {} orphan blobs, {} orphan file objects (with {} blobs), {} orphan fileset objects (with {} files and {} blobs) in total'.format(
 				orphan_blob_summary.count,
 				orphan_file_summary.count, orphan_file_summary.blob_summary.count,
@@ -150,3 +179,4 @@ class ScanAndDeleteOrphanObjectsAction(Action[None]):
 			))
 		else:
 			self.logger.info('Found 0 orphan object, everything looks good')
+		return result

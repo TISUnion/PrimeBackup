@@ -4,11 +4,11 @@ from typing import List, Dict, Optional, Set
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.action.delete_blob_action import DeleteBlobsAction
+from prime_backup.action.delete_blob_action import DeleteOrphanBlobsAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import FileIdentifier, DbSession
-from prime_backup.exceptions import BlobNotFound, FilesetFileNotFound
+from prime_backup.exceptions import FilesetFileNotFound
 from prime_backup.types.file_info import FileListSummary
 
 
@@ -27,21 +27,15 @@ class DeleteFilesStep(Action[FileListSummary]):
 			raise RuntimeError('no double run')
 		self.__has_run = True
 
-		with contextlib.ExitStack() as es:
-			es.callback(self.session.commit)
+		deleted_blob_hashes: Set[str] = set()
+		for file in self.files:
+			if file.blob_hash is not None:
+				deleted_blob_hashes.add(file.blob_hash)
+			self.session.delete_file(file)
+		deleted_file_count = len(self.files)
 
-			deleted_blob_hashes: Set[str] = set()
-			for file in self.files:
-				if file.blob_hash is not None:
-					deleted_blob_hashes.add(file.blob_hash)
-				self.session.delete_file(file)
-			deleted_file_count = len(self.files)
-
-			try:
-				action = DeleteBlobsAction(list(deleted_blob_hashes), raise_if_not_found=True)
-				bls = action.run(session=self.session)
-			except BlobNotFound as e:
-				raise AssertionError('Unexpected BlobNotFound with blob_hash {}'.format(e.blob_hash))
+		action = DeleteOrphanBlobsAction(deleted_blob_hashes)
+		bls = action.run(session=self.session)
 
 		return FileListSummary(count=deleted_file_count, blob_summary=bls)
 

@@ -31,6 +31,7 @@ from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
 from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask
 from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompressMethodTask
 from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
+from prime_backup.mcdr.task.db.prune_database_task import PruneDatabaseTask
 from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
 from prime_backup.mcdr.task.db.vacuum_sqlite_task import VacuumSqliteTask
 from prime_backup.mcdr.task.db.validate_db_task import ValidateDbTask, ValidatePart
@@ -113,6 +114,9 @@ class CommandManager:
 	def cmd_db_migrate_hash_method(self, source: CommandSource, context: CommandContext):
 		new_hash_method = context['hash_method']
 		self.task_manager.add_task(MigrateHashMethodTask(source, new_hash_method))
+
+	def cmd_db_prune(self, source: CommandSource, _: CommandContext):
+		self.task_manager.add_task(PruneDatabaseTask(source))
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
 		def callback(backup_id: Optional[int], err: Optional[Exception]):
@@ -332,6 +336,7 @@ class CommandManager:
 		builder.command('database vacuum', self.cmd_db_vacuum)
 		builder.command('database migrate_compress_method <compress_method>', self.cmd_db_migrate_compress_method)
 		builder.command('database migrate_hash_method <hash_method>', self.cmd_db_migrate_hash_method)
+		builder.command('database prune', self.cmd_db_prune)
 
 		builder.arg('file_path', QuotableText)  # Notes: it's actually a redefine
 		builder.arg('fileset_id', Integer)  # not that necessary to provide suggestion here

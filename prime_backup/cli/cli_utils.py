@@ -2,7 +2,6 @@ import contextlib
 import enum
 import functools
 import json
-import sys
 import zipfile
 from pathlib import Path
 from typing import Optional, Type
@@ -78,4 +77,4 @@ def get_ebf(file_path: Path, format_: Optional[str]) -> StandaloneBackupFormat:
 			return StandaloneBackupFormat[format_]
 		except KeyError:
 			logger.get().error('Bad format {!r}, should be one of {}'.format(format_, enum_options(StandaloneBackupFormat)))
-	sys.exit(1)
+	ErrorReturnCodes.invalid_argument.sys_exit()

@@ -1,5 +1,4 @@
 import argparse
-import sys
 from typing import List, Dict
 
 from prime_backup.cli import cli_utils
@@ -71,7 +70,7 @@ class CliEntrypoint:
 		adapter = self.adaptors.get(args.command)
 		if adapter is None:
 			self.logger.error('Unknown command {!r}'.format(args.command))
-			sys.exit(1)
+			ErrorReturnCodes.invalid_argument.sys_exit()
 
 		try:
 			adapter.run(args)

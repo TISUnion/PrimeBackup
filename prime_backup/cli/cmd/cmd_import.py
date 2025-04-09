@@ -1,7 +1,6 @@
 import argparse
 import dataclasses
 import json
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -38,10 +37,10 @@ class ImportCommandHandler(CliCommandHandlerBase):
 				meta_override = json.loads(args_meta_str)
 			except ValueError as e:
 				self.logger.error('Bad json {!r}: {}'.format(args_meta_str, e))
-				sys.exit(1)
+				ErrorReturnCodes.invalid_argument.sys_exit()
 			if not isinstance(meta_override, dict):
 				self.logger.error('meta_override should be a dict, but found {}: {!r}'.format(type(meta_override), meta_override))
-				sys.exit(1)
+				ErrorReturnCodes.invalid_argument.sys_exit()
 
 		self.logger.info('Importing backup from {}, format: {}'.format(str(self.args.input_path.as_posix()), fmt.name))
 		try:

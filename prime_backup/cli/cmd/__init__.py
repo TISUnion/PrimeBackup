@@ -2,12 +2,12 @@ import argparse
 import contextlib
 import dataclasses
 import logging
-import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from prime_backup import logger
 from prime_backup.cli.cli_utils import BackupIdAlternatives
+from prime_backup.cli.return_codes import ErrorReturnCodes
 from prime_backup.config.config import Config, set_config_instance
 from prime_backup.db import db_constants
 from prime_backup.db.access import DbAccess
@@ -39,7 +39,7 @@ class CliCommandHandlerBase(ABC):
 
 		if not (dbf := root_path / db_constants.DB_FILE_NAME).is_file():
 			self.logger.error('Database file {!r} does not exist'.format(dbf.as_posix()))
-			sys.exit(1)
+			ErrorReturnCodes.invalid_argument.sys_exit()
 		config.storage_root = str(root_path.as_posix())
 
 		self.logger.info('Storage root set to {!r}'.format(config.storage_root))
@@ -47,7 +47,7 @@ class CliCommandHandlerBase(ABC):
 			DbAccess.init(create=False, migrate=migrate)
 		except BadDbVersion as e:
 			self.logger.info('Load database failed, you need to ensure the database is accessible with MCDR plugin: {}'.format(e))
-			sys.exit(1)
+			ErrorReturnCodes.action_failed.sys_exit()
 		config.backup.hash_method = DbAccess.get_hash_method()  # use the hash method from the db
 
 

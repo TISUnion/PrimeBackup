@@ -1,12 +1,13 @@
 import dataclasses
 import json
 import re
-from typing import Optional
+from typing import Optional, List
 
 from mcdreforged.api.all import *
 from typing_extensions import override
 
 from prime_backup.utils import conversion_utils
+from prime_backup.utils.backup_id_parser import BackupIdParser, BackupIdAlternatives
 from prime_backup.utils.mcdr_utils import tr
 
 
@@ -21,12 +22,29 @@ class DateNode(ArgumentNode):
 			raise IllegalArgument(tr('error.node.bad_date'), result.char_read)
 
 
-class MultiIntegerNode(Integer):
+class BackupIdNode(Text):
+	@override
+	def parse(self, text: str) -> ParseResult:
+		result = super().parse(text)
+		try:
+			_ = BackupIdParser(allow_db_access=True, dry_run=True).parse(result.value)
+		except ValueError:
+			raise IllegalArgument(tr('error.node.bad_backup_id'), result.char_read)
+		return result
+
+	@classmethod
+	def get_command_suggestions(cls) -> List[str]:
+		return [
+			*[bla.name for bla in BackupIdAlternatives],
+			'~',
+		]
+
+
+class MultiBackupIdNode(BackupIdNode):
 	@override
 	def _on_visited(self, context: CommandContext, parsed_result: ParseResult):
-		if self.get_name() not in context:
-			context[self.get_name()] = []
-		context[self.get_name()].append(parsed_result.value)
+		key = self.get_name()
+		context[key] = context.get(key, []) + [parsed_result.value]
 
 
 class IdRangeNode(ArgumentNode):

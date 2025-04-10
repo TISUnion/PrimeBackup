@@ -14,6 +14,11 @@ class BackupNotFound(PrimeBackupError):
 		self.backup_id = backup_id
 
 
+class OffsetBackupNotFound(PrimeBackupError):
+	def __init__(self, offset: int):
+		self.offset = offset
+
+
 class BaseFileNotFound(PrimeBackupError):
 	def __init__(self, path: str):
 		self.path = path

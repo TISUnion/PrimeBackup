@@ -10,7 +10,7 @@ from mcdreforged.api.all import *
 from sqlalchemy.exc import OperationalError
 
 from prime_backup import logger
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.mcdr.task.basic_task import HeavyTask, LightTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
@@ -57,6 +57,8 @@ class _TaskWorker:
 	def __handle_common_exceptions(cls, holder: TaskHolder, e: Exception) -> bool:
 		if isinstance(e, BackupNotFound):
 			lines = [tr('error.backup_not_found', e.backup_id)]
+		elif isinstance(e, OffsetBackupNotFound):
+			lines = [tr('error.offset_backup_not_found', e.offset)]
 		elif isinstance(e, BackupFileNotFound):
 			lines = [tr('error.backup_file_not_found', e.backup_id, e.path)]
 		elif isinstance(e, FilesetNotFound):

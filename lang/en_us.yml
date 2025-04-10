@@ -134,6 +134,8 @@ prime_backup:
       name: show backup single tag
       value: Tag {1} of backup {0} is {2}
       not_exists: Backup {0} does not have tag {1}
+    backup_transform_backup_id:
+      name: transform backup id
     crontab_list_job:
       name: list crontab
       title: Crontab job list
@@ -338,7 +340,10 @@ prime_backup:
       arguments:
         title: '[Arguments]'
         content: |-
-          §6<backup_id>§r: A positive integer, the unique ID for a backup, e.g.: §612§r
+          §6<backup_id>§r: A specifier to a unique backup. It can be one of the following:
+          §7a)§r A positive integer, the unique ID for a backup, e.g.: §612§r; 
+          §7b)§r §6~§r, §6latest§6r, the latest backup in terms of time, excluding temporary backups
+          §7c)§r A integer with a §6~§r prefix, e.g, §6~1§r, §6~3§6r -- the backup with the given offset from the latest backup
           §6<backup_id_range>§r: An integer closed interval, e.g.: §63-12§r, §64~9§r, §64~§r, §64~§r, §6*§r
       other:
         title: '[Others]'
@@ -488,6 +493,7 @@ prime_backup:
 
   error:
     backup_not_found: Backup with ID {} does not exist
+    offset_backup_not_found: Backup with offset {} to latest does not exists
     backup_file_not_found: Backup {} does not have file {}
     fileset_not_found: Fileset with ID {} does not exist
     fileset_file_not_found: Fileset {} does not have file {}

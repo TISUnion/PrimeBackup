@@ -1,4 +1,3 @@
-import contextlib
 import enum
 import re
 
@@ -12,15 +11,24 @@ class BackupIdAlternatives(enum.Enum):
 
 
 class BackupIdParser:
+	class DbAccessNotAllowed(ValueError):
+		pass
+
+	class OffsetBackupNotFound(ValueError):
+		def __init__(self, input_str: str, offset: int):
+			super().__init__(f'found no backup in the database for input {input_str!r}')
+			self.input_str = input_str
+			self.offset = offset
+
 	__parse_backup_id_relative_pattern = re.compile(r'~(\d*)')
 
-	def __init__(self, *, allow_db_access: bool = False, dry_run: bool = False):
+	def __init__(self, *, allow_db_access: bool, dry_run: bool = False):
 		self.allow_db_access = allow_db_access
 		self.dry_run = dry_run
 
-	def __get_nth_latest(self, offset: int, include_temp: bool) -> int:
+	def __get_nth_latest(self, s: str, offset: int, include_temp: bool) -> int:
 		if not self.allow_db_access:
-			raise ValueError(f'db access not allowed')
+			raise self.DbAccessNotAllowed(f'db access not allowed')
 
 		backup_filter = BackupFilter()
 		if not include_temp:
@@ -30,7 +38,7 @@ class BackupIdParser:
 
 		candidates = ListBackupIdAction(backup_filter=backup_filter, offset=offset, limit=1).run()
 		if len(candidates) == 0:
-			raise ValueError(f'found no backup in the database for offset {offset}')
+			raise self.OffsetBackupNotFound(s, offset)
 
 		return candidates[0]
 
@@ -40,10 +48,17 @@ class BackupIdParser:
 		1. numbers: 1, 23, 456
 		2. special strings: see BackupIdAlternatives, case-insensitive
 		3. relative patterns: ~, ~1 ~3
-		"""
 
-		with contextlib.suppress(ValueError):
-			return int(s)
+		:raise: ValueError
+		"""
+		try:
+			backup_id = int(s)
+		except ValueError:
+			pass
+		else:
+			if backup_id <= 0:
+				raise ValueError(f'backup id should be greater than 0, found {backup_id}')
+			return backup_id
 
 		try:
 			alt = BackupIdAlternatives[s.lower()]
@@ -51,12 +66,10 @@ class BackupIdParser:
 			pass
 		else:
 			if alt == BackupIdAlternatives.latest:
-				return self.__get_nth_latest(0, False)
-			elif alt == BackupIdAlternatives.latest_with_temp:
-				return self.__get_nth_latest(0, True)
+				return self.__get_nth_latest(s, 0, False)
 
 		if m := self.__parse_backup_id_relative_pattern.fullmatch(s):
 			delta = int(m.group(1) or '0')
-			return self.__get_nth_latest(delta, False)
+			return self.__get_nth_latest(s, delta, False)
 
 		raise ValueError(f'bad backup id {s!r}')

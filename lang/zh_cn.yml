@@ -134,6 +134,8 @@ prime_backup:
       name: 展示备份的单个标签
       value: 备份{0}的标签{1}是{2}
       not_exists: 备份{0}不存在标签{1}
+    backup_transform_backup_id:
+      name: 转换备份ID
     crontab_list_job:
       name: 列出定时作业
       title: 定时作业列表
@@ -338,7 +340,10 @@ prime_backup:
       arguments:
         title: 【参数帮助】
         content: |-
-          §6<备份ID>§r: 一个正整数, 备份的唯一ID, 如: §612§r
+          §6<备份ID>§r: 用于指定唯一备份的标识符，可以是以下几种之一：
+          §7a)§r 一个正整数，表示该备份的唯一ID，例如：§612§r
+          §7b)§r §6~§r或§6latest§r，表示时间上最新的那个备份，忽略临时备份
+          §7c)§r 一个带有§6~§r前缀的非负整数，例如§6~1§r、§6~3§r，表示相对于最新备份的偏移量所对应的备份
           §6<备份ID范围>§r: 一个整数闭区间, 如: §63-12§r, §64~9§r, §64~§r, §64~§r, §6*§r
       other:
         title: 【其它】
@@ -488,6 +493,7 @@ prime_backup:
 
   error:
     backup_not_found: ID为{}的备份不存在
+    offset_backup_not_found: 距最新备份偏移量为{}的备份不存在
     backup_file_not_found: 备份{}不存在文件{}
     fileset_not_found: ID为{}的文件集不存在
     fileset_file_not_found: 文件集{}不存在文件{}

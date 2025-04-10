@@ -1,15 +1,15 @@
 import enum
 import functools
-import typing
+from concurrent import futures
 from pathlib import Path
-from typing import List, Callable, Optional, Type
+from typing import List, Callable, Optional, Type, Union, Any, Literal as TypingLiteral
 
 from mcdreforged.api.all import *
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config
 from prime_backup.mcdr.command.backup_id_suggestor import BackupIdSuggestor
-from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, MultiIntegerNode, HexStringNode, JsonObjectNode
+from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, HexStringNode, JsonObjectNode, BackupIdNode, MultiBackupIdNode
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
@@ -25,6 +25,7 @@ from prime_backup.mcdr.task.backup.rename_backup_task import RenameBackupTask
 from prime_backup.mcdr.task.backup.restore_backup_task import RestoreBackupTask
 from prime_backup.mcdr.task.backup.show_backup_tag_task import ShowBackupTagTask, ShowBackupSingleTagTask
 from prime_backup.mcdr.task.backup.show_backup_task import ShowBackupTask
+from prime_backup.mcdr.task.backup.transform_backup_id_task import TransformBackupIdTask
 from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
@@ -85,13 +86,15 @@ class CommandManager:
 		self.task_manager.add_task(ShowDbOverviewTask(source))
 
 	def cmd_db_inspect_backup(self, source: CommandSource, context: CommandContext):
-		backup_id = context['backup_id']
-		self.task_manager.add_task(InspectBackupTask(source, backup_id))
+		def backup_id_consumer(backup_id: int):
+			self.task_manager.add_task(InspectBackupTask(source, backup_id))
+		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
 	def cmd_db_inspect_file(self, source: CommandSource, context: CommandContext):
-		backup_id = context['backup_id']
-		file_path = context['file_path']
-		self.task_manager.add_task(InspectBackupFileTask(source, backup_id, file_path))
+		def backup_id_consumer(backup_id: int):
+			file_path = context['file_path']
+			self.task_manager.add_task(InspectBackupFileTask(source, backup_id, file_path))
+		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
 	def cmd_db_inspect_fileset(self, source: CommandSource, context: CommandContext):
 		fileset_id = context['fileset_id']
@@ -158,40 +161,44 @@ class CommandManager:
 		self.task_manager.add_task(ListBackupTask(source, per_page, page, backup_filter, show_all, show_flags))
 
 	def cmd_show(self, source: CommandSource, context: CommandContext):
-		backup_id = context['backup_id']
-		self.task_manager.add_task(ShowBackupTask(source, backup_id))
+		def backup_id_consumer(backup_id: int):
+			self.task_manager.add_task(ShowBackupTask(source, backup_id))
+		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
 	def cmd_rename(self, source: CommandSource, context: CommandContext):
-		backup_id = context['backup_id']
-		comment = context['comment']
-		self.task_manager.add_task(RenameBackupTask(source, backup_id, comment))
+		def backup_id_consumer(backup_id: int):
+			comment = context['comment']
+			self.task_manager.add_task(RenameBackupTask(source, backup_id, comment))
+		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
 	def cmd_delete(self, source: CommandSource, context: CommandContext):
+		def backup_ids_consumer(backup_ids: List[int]):
+			self.task_manager.add_task(DeleteBackupTask(source, backup_ids))
+
 		if 'backup_id' not in context:
 			reply_message(source, tr('error.missing_backup_id').set_color(RColor.red))
 			return
-
-		backup_ids = misc_utils.ensure_type(context['backup_id'], list)
-		self.task_manager.add_task(DeleteBackupTask(source, backup_ids))
+		self.transform_backup_ids(source, context['backup_id'], backup_ids_consumer)
 
 	def cmd_delete_range(self, source: CommandSource, context: CommandContext):
 		id_range: IdRangeNode.Range = context['backup_id_range']
 		self.task_manager.add_task(DeleteBackupRangeTask(source, id_range.start, id_range.end))
 
 	def cmd_export(self, source: CommandSource, context: CommandContext):
-		backup_id = context['backup_id']
-		export_format = context.get('export_format', StandaloneBackupFormat.tar)
-		fail_soft = context.get('fail_soft', 0) > 0
-		verify_blob = context.get('no_verify', 0) == 0
-		overwrite_existing = context.get('overwrite', 0) > 0
-		create_meta = context.get('no_meta', 0) == 0
-		self.task_manager.add_task(ExportBackupTask(
-			source, backup_id, export_format,
-			fail_soft=fail_soft,
-			verify_blob=verify_blob,
-			overwrite_existing=overwrite_existing,
-			create_meta=create_meta,
-		))
+		def backup_id_consumer(backup_id: int):
+			export_format = context.get('export_format', StandaloneBackupFormat.tar)
+			fail_soft = context.get('fail_soft', 0) > 0
+			verify_blob = context.get('no_verify', 0) == 0
+			overwrite_existing = context.get('overwrite', 0) > 0
+			create_meta = context.get('no_meta', 0) == 0
+			self.task_manager.add_task(ExportBackupTask(
+				source, backup_id, export_format,
+				fail_soft=fail_soft,
+				verify_blob=verify_blob,
+				overwrite_existing=overwrite_existing,
+				create_meta=create_meta,
+			))
+		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
 	def cmd_import(self, source: CommandSource, context: CommandContext):
 		file_path = Path(context['file_path'])
@@ -230,29 +237,61 @@ class CommandManager:
 		self.task_manager.do_abort(source)
 
 	def cmd_show_backup_tag(self, source: CommandSource, context: CommandContext, tag_name: Optional[BackupTagName] = None):
-		backup_id = context['backup_id']
-		if tag_name is not None:
-			self.task_manager.add_task(ShowBackupSingleTagTask(source, backup_id, tag_name))
-		else:
-			self.task_manager.add_task(ShowBackupTagTask(source, backup_id))
+		def backup_id_consumer(backup_id: int):
+			if tag_name is not None:
+				self.task_manager.add_task(ShowBackupSingleTagTask(source, backup_id, tag_name))
+			else:
+				self.task_manager.add_task(ShowBackupTagTask(source, backup_id))
+		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
-	def cmd_operate_backup_tag(self, source: CommandSource, context: CommandContext, tag_name: BackupTagName, mode: typing.Literal['set', 'clear']):
-		backup_id = context['backup_id']
-		if mode == 'set':
-			value = context['value']
-			self.task_manager.add_task(SetBackupTagTask(source, backup_id, tag_name, value))
-		elif mode == 'clear':
-			self.task_manager.add_task(ClearBackupTagTask(source, backup_id, tag_name))
-		else:
-			raise ValueError(mode)
+	def cmd_operate_backup_tag(self, source: CommandSource, context: CommandContext, tag_name: BackupTagName, mode: TypingLiteral['set', 'clear']):
+		def backup_id_consumer(backup_id: int):
+			if mode == 'set':
+				value = context['value']
+				self.task_manager.add_task(SetBackupTagTask(source, backup_id, tag_name, value))
+			elif mode == 'clear':
+				self.task_manager.add_task(ClearBackupTagTask(source, backup_id, tag_name))
+			else:
+				raise ValueError(mode)
+		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
 	# ============================ Command Callback ends ============================
 
 	def suggest_backup_id(self, source: CommandSource) -> List[str]:
+		suggestions = BackupIdNode.get_command_suggestions()
 		wv = self.backup_id_suggestor.request(source)
 		if wv.wait(0.2) == WaitableValue.EMPTY:
-			return []
-		return list(map(str, wv.get()))
+			return suggestions
+		return [*suggestions, *map(str, wv.get())]
+
+	def __transform_backup_id_impl(self, source: CommandSource, backup_id_raw: Union[str, List[str]], csm: Union[Callable[[int], Any], Callable[[List[int]], Any]]):
+		if isinstance(backup_id_raw, str):
+			backup_id_strings = [backup_id_raw]
+		elif isinstance(backup_id_raw, list):
+			backup_id_strings = [misc_utils.ensure_type(s, str) for s in backup_id_raw]
+		else:
+			raise TypeError(type(backup_id_raw))
+
+		def process_task_result(parsed_backup_ids: List[int]):
+			if isinstance(backup_id_raw, str):
+				csm(parsed_backup_ids[0])
+			else:
+				csm(parsed_backup_ids)
+
+		bid_task = TransformBackupIdTask(source, backup_id_strings)
+		if bid_task.needs_db_access():
+			def done_callback(future: 'futures.Future[List[int]]'):
+				if not future.exception():
+					process_task_result(future.result())
+			self.task_manager.add_task(bid_task).add_done_callback(done_callback)
+		else:
+			process_task_result(bid_task.run(allow_db_access=False))
+
+	def transform_backup_id(self, source: CommandSource, backup_id_raw: str, csm: Callable[[int], Any]):
+		return self.__transform_backup_id_impl(source, backup_id_raw, csm)
+
+	def transform_backup_ids(self, source: CommandSource, backup_id_raw: List[str], csm: Callable[[List[int]], Any]):
+		return self.__transform_backup_id_impl(source, backup_id_raw, csm)
 
 	def register_command_node(self):
 		if self.__state != CommandManagerState.INITIAL:
@@ -284,8 +323,8 @@ class CommandManager:
 			node.requires(get_permission_checker(literal), get_permission_denied_text)
 			return node
 
-		def create_backup_id(arg_name: str = 'backup_id', clazz: Type[Integer] = Integer) -> Integer:
-			return clazz(arg_name).at_min(1).suggests(self.suggest_backup_id)
+		def create_backup_id(arg_name: str = 'backup_id', clazz: Type[ArgumentNode] = BackupIdNode) -> ArgumentNode:
+			return clazz(arg_name).suggests(self.suggest_backup_id)
 
 		# --------------- simple commands ---------------
 
@@ -383,7 +422,7 @@ class CommandManager:
 
 		def make_delete_cmd() -> Literal:
 			node_sc = create_subcommand('delete').runs(self.cmd_delete)
-			node_bid = create_backup_id(clazz=MultiIntegerNode).redirects(node_sc)
+			node_bid = create_backup_id(clazz=MultiBackupIdNode).redirects(node_sc)
 			node_sc.then(node_bid)
 			return node_sc
 

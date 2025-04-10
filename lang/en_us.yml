@@ -344,7 +344,7 @@ prime_backup:
           §7a)§r A positive integer, the unique ID for a backup, e.g.: §612§r; 
           §7b)§r §6~§r, §6latest§6r, the latest backup in terms of time, excluding temporary backups
           §7c)§r A integer with a §6~§r prefix, e.g, §6~1§r, §6~3§6r -- the backup with the given offset from the latest backup
-          §6<backup_id_range>§r: An integer closed interval, e.g.: §63-12§r, §64~9§r, §64~§r, §64~§r, §6*§r
+          §6<backup_id_range>§r: An integer closed interval, e.g.: §63-12§r, §6-4§r, §64-§r, §6*§r
       other:
         title: '[Others]'
         nodes_with_help: 'Subcommands with detailed help: {}'

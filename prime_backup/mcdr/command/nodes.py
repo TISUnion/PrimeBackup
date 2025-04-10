@@ -56,11 +56,8 @@ class IdRangeNode(ArgumentNode):
 	__patterns = list(map(re.compile, [
 		r'\*',
 		r'(?P<start>\d+)-',
-		r'(?P<start>\d+)~',
 		r'(?P<start>\d+)-(?P<end>\d+)',
-		r'(?P<start>\d+)~(?P<end>\d+)',
 		r'-(?P<end>\d+)',
-		r'~(?P<end>\d+)',
 		r'\[ *(?P<start>\d+) *, *(?P<end>\d+) *\]',
 	]))
 

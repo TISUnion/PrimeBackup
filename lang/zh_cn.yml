@@ -263,6 +263,11 @@ prime_backup:
     db_validate:
       name: 验证数据库
       nothing_to_validate: 没有要验证的内容
+      part:
+        blobs: 数据对象
+        files: 文件对象
+        filesets: 文件集
+        backups: 备份
       validate_blobs:
         .: 正在验证所有数据对象, 请稍等...
         done: 已验证{}/{}个数据对象
@@ -303,7 +308,10 @@ prime_backup:
         done: 已验证{}/{}个备份
         all_ok: 全部{}个备份都是健康的
         found_bad_backups: 发现了{}/{}个异常备份
-      done: 验证完成, 耗时{}
+      done: 验证完成, 耗时{}。{}
+      result:
+        good: 健康
+        bad: 异常
     help:
       name: 展示帮助
       commands:

@@ -1,7 +1,7 @@
 import enum
 import logging
 import time
-from typing import List, Optional, TypeVar, Tuple, Callable, Dict, Any
+from typing import List, Optional, TypeVar, Tuple, Callable, Dict
 
 from mcdreforged.api.all import *
 from typing_extensions import override
@@ -51,14 +51,14 @@ class ValidateDbTask(HeavyTask[None]):
 	def is_abort_able(self) -> bool:
 		return True
 
-	def __validate_blobs(self, vlogger: log_utils.FileLogger):
+	def __validate_blobs(self, vlogger: log_utils.FileLogger) -> bool:
 		result = self.run_action(ValidateBlobsAction())
 
 		vlogger.info('Validate blobs result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
 		self.reply_tr('validate_blobs.done', TextComponents.number(result.validated), TextComponents.number(result.total))
 		if result.ok == result.validated:
 			self.reply(self.tr('validate_blobs.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
-			return
+			return True
 
 		def show(what: str, lst: List[BadBlobItem]):
 			if len(lst) > 0:
@@ -106,14 +106,16 @@ class ValidateDbTask(HeavyTask[None]):
 		)
 		self.reply_tr('validate_blobs.see_log', str(vlogger.log_file))
 
-	def __validate_files(self, vlogger: logging.Logger):
+		return False
+
+	def __validate_files(self, vlogger: logging.Logger) -> bool:
 		result = self.run_action(ValidateFilesAction())
 
 		vlogger.info('Validate files result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
 		self.reply_tr('validate_files.done', TextComponents.number(result.validated), TextComponents.number(result.total))
 		if result.ok == result.validated:
 			self.reply(self.tr('validate_files.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
-			return
+			return True
 
 		def show(what: str, lst: List[Tuple[FileInfo, str]]):
 			if len(lst) == 0:
@@ -130,13 +132,15 @@ class ValidateDbTask(HeavyTask[None]):
 		for bfit in BadFileItemType:
 			show(bfit.name, result.get_bad_by_type(bfit))
 
-	def __validate_filesets(self, vlogger: logging.Logger):
+		return False
+
+	def __validate_filesets(self, vlogger: logging.Logger) -> bool:
 		result = self.run_action(ValidateFilesetsAction())
 		vlogger.info('Validate filesets result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
 		self.reply_tr('validate_filesets.done', TextComponents.number(result.validated), TextComponents.number(result.total))
 		if result.ok == result.validated:
 			self.reply(self.tr('validate_filesets.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
-			return
+			return True
 
 		def show(what: str, lst: List[Tuple[FilesetInfo, str]]):
 			if len(lst) == 0:
@@ -157,20 +161,22 @@ class ValidateDbTask(HeavyTask[None]):
 			self.reply(self.tr('validate_filesets.fix_orphan_tip', TextComponents.command('database prune', suggest=True)).set_color(RColor.gold))
 
 		vlogger.info('Affected backup IDs (bad filesets): {}'.format(result.affected_backup_ids))
+		return False
 
-	def __validate_backups(self, vlogger: logging.Logger):
+	def __validate_backups(self, vlogger: logging.Logger) -> bool:
 		result = self.run_action(ValidateBackupsAction())
 		vlogger.info('Validate backups result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
 		self.reply_tr('validate_backups.done', TextComponents.number(result.validated), TextComponents.number(result.total))
 		if result.ok == result.validated:
 			self.reply(self.tr('validate_backups.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
-			return
+			return True
 
 		self.reply(self.tr('validate_backups.found_bad_backups', TextComponents.number(result.bad), TextComponents.number(result.validated)).set_color(RColor.red))
 		for i, item in enumerate(result.bad_backups):
 			text = RTextBase.format('{}. {}: {}', i + 1, TextComponents.backup_id(item.backup.id), item.desc)
 			vlogger.info(text.to_plain_text())
 			self.reply(text)
+		return False
 
 	@override
 	def run(self) -> None:
@@ -182,16 +188,21 @@ class ValidateDbTask(HeavyTask[None]):
 		with log_utils.open_file_logger('validate') as validate_logger:
 			validate_logger.info('Validation start, parts: {}'.format(self.parts))
 
-			validators: Dict[ValidatePart, Callable[[logging.Logger], Any]] = {
+			validators: Dict[ValidatePart, Callable[[logging.Logger], bool]] = {
 				ValidatePart.blobs: self.__validate_blobs,
 				ValidatePart.files: self.__validate_files,
 				ValidatePart.filesets: self.__validate_filesets,
 				ValidatePart.backups: self.__validate_backups,
 			}
+			validate_result: Dict[ValidatePart, bool] = {}
 			for part, func in validators.items():
 				if part in self.parts and not self.aborted_event.is_set():
 					self.reply_tr(f'validate_{part.name}')
-					func(validate_logger)
+					validate_result[part] = func(validate_logger)
 
-		cost = time.time() - t
-		self.reply_tr('done', TextComponents.number(f'{cost:.2f}s'))
+		t_cost = TextComponents.number(f'{time.time() - t:.2f}s')
+		t_summary = RTextBase.join(', ', [
+			RTextList(self.tr(f'part.{part.name}'), ': ', self.tr('result.good').set_color(RColor.green) if res else self.tr('result.bad').set_color(RColor.red))
+			for part, res in validate_result.items()
+		])
+		self.reply_tr('done', t_cost, t_summary)

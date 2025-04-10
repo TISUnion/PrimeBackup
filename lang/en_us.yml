@@ -263,6 +263,11 @@ prime_backup:
     db_validate:
       name: validate database
       nothing_to_validate: Nothing is requested to be validated
+      part:
+        blobs: blobs
+        files: files
+        filesets: filesets
+        backups: backups
       validate_blobs:
         .: Start validating blobs, please wait...
         done: Validated {} / {} blobs
@@ -303,7 +308,10 @@ prime_backup:
         done: Validated {} / {} backups
         all_ok: All {} backups are healthy
         found_bad_backups: Found {} / {} bad backups in total
-      done: Validation done, cost {}
+      done: Validation done, cost {}. {}
+      result:
+        good: good
+        bad: bad
     help:
       name: show help
       commands:

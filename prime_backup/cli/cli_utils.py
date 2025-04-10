@@ -1,4 +1,3 @@
-import contextlib
 import enum
 import functools
 import json
@@ -7,15 +6,10 @@ from pathlib import Path
 from typing import Optional, Type
 
 from prime_backup import logger
-from prime_backup.action.list_backup_action import ListBackupIdAction
 from prime_backup.cli.return_codes import ErrorReturnCodes
-from prime_backup.types.backup_filter import BackupFilter
+from prime_backup.db.access import DbAccess
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
-
-
-class BackupIdAlternatives(enum.Enum):
-	latest = enum.auto()
-	latest_with_temp = enum.auto()
+from prime_backup.utils.backup_id_parser import BackupIdParser
 
 
 def enum_options(clazz: Type[enum.Enum]) -> str:
@@ -48,24 +42,9 @@ def parse_backup_id(value: str) -> int:
 	"""
 	Notes: DB should have been initialized
 	"""
-	with contextlib.suppress(ValueError):
-		return int(value)
-
-	alt = BackupIdAlternatives[value.lower()]
-	if alt in [BackupIdAlternatives.latest, BackupIdAlternatives.latest_with_temp]:
-		backup_filter = BackupFilter()
-		if alt == BackupIdAlternatives.latest:
-			backup_filter.requires_non_temporary_backup()
-
-		candidates = ListBackupIdAction(backup_filter=backup_filter, limit=1).run()
-		if len(candidates) == 0:
-			raise ValueError('found no backup in the database')
-
-		backup_id = candidates[0]
-		logger.get().info('Found latest non-temp backup #{}'.format(backup_id))
-		return backup_id
-
-	raise ValueError('unsupported backup alternative {!r}'.format(alt))
+	if not DbAccess.is_initialized():
+		raise RuntimeError('DB not initialized')
+	return BackupIdParser(allow_db_access=True).parse(value)
 
 
 def get_ebf(file_path: Path, format_: Optional[str]) -> StandaloneBackupFormat:

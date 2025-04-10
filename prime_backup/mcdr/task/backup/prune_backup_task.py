@@ -309,9 +309,9 @@ class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 			result.deleted_backup_count += sub_result.deleted_backup_count
 			result.deleted_blobs = result.deleted_blobs + sub_result.deleted_blobs
 
-		prune_backups('regular', BackupFilter().filter_non_temporary_backup(), config.regular_backup)
+		prune_backups('regular', BackupFilter().requires_non_temporary_backup(), config.regular_backup)
 		if not self.aborted_event.is_set():
-			prune_backups('temporary', BackupFilter().filter_temporary_backup(), config.temporary_backup)
+			prune_backups('temporary', BackupFilter().requires_temporary_backup(), config.temporary_backup)
 
 		if self.verbose >= _PruneVerbose.delete:
 			self.reply_tr(

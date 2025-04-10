@@ -37,7 +37,7 @@ class DeleteBackupRangeTask(HeavyTask[None]):
 		backup_filter = BackupFilter()
 		backup_filter.id_start = self.id_start
 		backup_filter.id_end = self.id_end
-		backup_filter.filter_non_protected_backup()
+		backup_filter.requires_non_protected_backup()
 		backups = ListBackupAction(backup_filter=backup_filter).run()
 		backups = [backup for backup in backups if not backup.tags.is_protected()]  # double check
 		if len(backups) == 0:

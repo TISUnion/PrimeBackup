@@ -64,6 +64,10 @@ class DbAccess:
 		return value
 
 	@classmethod
+	def is_initialized(cls) -> bool:
+		return cls.__engine is not None
+
+	@classmethod
 	def get_db_file_path(cls) -> Path:
 		return cls.__ensure_not_none(cls.__db_file_path)
 

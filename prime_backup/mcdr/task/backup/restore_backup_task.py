@@ -61,7 +61,7 @@ class RestoreBackupTask(HeavyTask[None]):
 	def run(self):
 		if self.backup_id is None:
 			backup_filter = BackupFilter()
-			backup_filter.filter_non_temporary_backup()
+			backup_filter.requires_non_temporary_backup()
 			candidates = ListBackupAction(backup_filter=backup_filter, limit=1).run()
 			if len(candidates) == 0:
 				self.reply_tr('no_backup')

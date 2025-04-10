@@ -20,7 +20,6 @@ class BackupTagFilter:
 	policy: Policy
 
 
-
 class BackupSortOrder(enum.Enum):
 	id = enum.auto()
 	id_r = enum.auto()
@@ -38,18 +37,22 @@ class BackupFilter:
 	timestamp_us_end: Optional[int] = None
 	tag_filters: List[BackupTagFilter] = dataclasses.field(default_factory=list)
 
-	def filter_temporary_backup(self) -> 'BackupFilter':
+	def requires_temporary_backup(self) -> 'BackupFilter':
+		"""Exclude non-temporary backup / Must be temporary backup"""
 		self.tag_filters.append(BackupTagFilter(BackupTagName.temporary, True, BackupTagFilter.Policy.equals))
 		return self
 
-	def filter_non_temporary_backup(self) -> 'BackupFilter':
+	def requires_non_temporary_backup(self) -> 'BackupFilter':
+		"""Exclude temp backup / Must be non-temp backup"""
 		self.tag_filters.append(BackupTagFilter(BackupTagName.temporary, True, BackupTagFilter.Policy.not_equals))
 		return self
 
-	def filter_non_hidden_backup(self) -> 'BackupFilter':
+	def requires_non_hidden_backup(self) -> 'BackupFilter':
+		"""Exclude hidden backup / Must be non-hidden backup"""
 		self.tag_filters.append(BackupTagFilter(BackupTagName.hidden, True, BackupTagFilter.Policy.not_equals))
 		return self
 
-	def filter_non_protected_backup(self) -> 'BackupFilter':
+	def requires_non_protected_backup(self) -> 'BackupFilter':
+		"""Exclude protected backup / Must be non-protected backup"""
 		self.tag_filters.append(BackupTagFilter(BackupTagName.protected, True, BackupTagFilter.Policy.not_equals))
 		return self

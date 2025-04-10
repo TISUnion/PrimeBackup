@@ -1,17 +1,16 @@
 import argparse
-import contextlib
 import dataclasses
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from prime_backup import logger
-from prime_backup.cli.cli_utils import BackupIdAlternatives
 from prime_backup.cli.return_codes import ErrorReturnCodes
 from prime_backup.config.config import Config, set_config_instance
 from prime_backup.db import db_constants
 from prime_backup.db.access import DbAccess
 from prime_backup.db.migration import BadDbVersion
+from prime_backup.utils.backup_id_parser import BackupIdParser
 
 
 @dataclasses.dataclass(frozen=True)
@@ -75,11 +74,7 @@ class CliCommandAdapterBase(ABC):
 	@classmethod
 	def _add_pos_argument_backup_id(cls, parser: argparse.ArgumentParser):
 		def backup_id(s: str):
-			with contextlib.suppress(ValueError):
-				return int(s)
-			with contextlib.suppress(KeyError):
-				_ = BackupIdAlternatives[s.lower()]
-				return s
-			raise ValueError()
+			_ = BackupIdParser(allow_db_access=True, dry_run=True).parse(s)  # raises ValueError if it's invalid
+			return s
 
 		parser.add_argument('backup_id', type=backup_id, help='The ID of the backup to export. Besides an integer ID, it can also be "latest" and "latest_non_temp"')

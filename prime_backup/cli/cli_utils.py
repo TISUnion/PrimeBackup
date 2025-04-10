@@ -8,6 +8,7 @@ from typing import Optional, Type
 
 from prime_backup import logger
 from prime_backup.action.list_backup_action import ListBackupIdAction
+from prime_backup.cli.return_codes import ErrorReturnCodes
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 
@@ -54,7 +55,7 @@ def parse_backup_id(value: str) -> int:
 	if alt in [BackupIdAlternatives.latest, BackupIdAlternatives.latest_with_temp]:
 		backup_filter = BackupFilter()
 		if alt == BackupIdAlternatives.latest:
-			backup_filter.filter_non_temporary_backup()
+			backup_filter.requires_non_temporary_backup()
 
 		candidates = ListBackupIdAction(backup_filter=backup_filter, limit=1).run()
 		if len(candidates) == 0:

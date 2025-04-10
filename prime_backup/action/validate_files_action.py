@@ -16,7 +16,7 @@ from prime_backup.types.fileset_info import FilesetInfo
 class BadFileItemType(enum.Enum):
 	invalid = enum.auto()
 	orphan = enum.auto()
-	bad_blob_relation= enum.auto()
+	bad_blob_relation = enum.auto()
 	bad_fileset_relation = enum.auto()
 	file_blob_mismatched = enum.auto()
 

@@ -11,10 +11,11 @@ from prime_backup.action.get_object_counts_action import GetObjectCountsAction
 from prime_backup.action.validate_backups_action import ValidateBackupsAction
 from prime_backup.action.validate_blobs_action import ValidateBlobsAction, BadBlobItem
 from prime_backup.action.validate_files_action import ValidateFilesAction, BadFileItemType
-from prime_backup.action.validate_filesets_action import ValidateFilesetsAction
+from prime_backup.action.validate_filesets_action import ValidateFilesetsAction, BadFilesetItemType
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.file_info import FileInfo
+from prime_backup.types.fileset_info import FilesetInfo
 from prime_backup.utils import log_utils
 
 
@@ -118,7 +119,7 @@ class ValidateDbTask(HeavyTask[None]):
 			if len(lst) == 0:
 				return
 			vlogger.info('bad file with category {} (len={})'.format(what, len(lst)))
-			self.reply_tr(f'validate_files.{what}', TextComponents.number(len(lst)))
+			self.reply_tr(f'validate_files.bad_type.{what}', TextComponents.number(len(lst)))
 			for i, item in enumerate(lst):
 				file, msg = item
 				text = RTextBase.format('{}. fileset={} path={!r}: {}', i + 1, TextComponents.fileset_id(file.fileset_id), file.path, msg)
@@ -137,11 +138,23 @@ class ValidateDbTask(HeavyTask[None]):
 			self.reply(self.tr('validate_filesets.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
 			return
 
+		def show(what: str, lst: List[Tuple[FilesetInfo, str]]):
+			if len(lst) == 0:
+				return
+			vlogger.info('bad fileset with category {} (len={})'.format(what, len(lst)))
+			self.reply_tr(f'validate_filesets.bad_type.{what}', TextComponents.number(len(lst)))
+			for i, item in enumerate(lst):
+				fileset, msg = item
+				text = RTextBase.format('{}. {}: {}', i + 1, TextComponents.fileset_id(fileset.id), msg)
+				vlogger.info(text.to_plain_text())
+				self.reply(text)
+
 		self.reply(self.tr('validate_filesets.found_bad_filesets', TextComponents.number(result.bad), TextComponents.number(result.validated)).set_color(RColor.red))
-		for i, item in enumerate(result.bad_filesets.values()):
-			text = RTextBase.format('{}. {}: {}', i + 1, TextComponents.fileset_id(item.fileset.id), '; '.join(item.descriptions))
-			vlogger.info(text.to_plain_text())
-			self.reply(text)
+		for it in BadFilesetItemType:
+			show(it.name, result.get_bad_by_type(it))
+		if result.bad == len(result.get_bad_by_type(BadFilesetItemType.orphan)):
+			# orphan only, fixable with `!!pb database prune`
+			self.reply(self.tr('validate_filesets.fix_orphan_tip', TextComponents.command('database prune', suggest=True)).set_color(RColor.gold))
 
 		vlogger.info('Affected backup IDs (bad filesets): {}'.format(result.affected_backup_ids))
 

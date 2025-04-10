@@ -280,16 +280,24 @@ prime_backup:
         done: Validated {} / {} files
         all_ok: All {} files are healthy
         found_bad_files: Found {} / {} bad files in total
-        invalid: 'Invalid file amount: {}'
-        orphan: 'Orphan file amount: {}'
-        bad_blob_relation: 'Bad blob relationship: {}'
-        bad_fileset_relation: 'Bad fileset relationship: {}'
-        file_blob_mismatched: 'File-blob mismatch: {}'
+        bad_type:
+          invalid: 'Invalid file meta: {}'
+          orphan: 'Orphan file: {}'
+          bad_blob_relation: 'Bad blob relationship: {}'
+          bad_fileset_relation: 'Bad fileset relationship: {}'
+          file_blob_mismatched: 'File-blob mismatch: {}'
       validate_filesets:
         .: Start validating filesets, please wait...
         done: Validated {} / {} filesets
         all_ok: All {} filesets are healthy
         found_bad_filesets: Found {} / {} bad filesets in total
+        fix_orphan_tip: Luckily all bad filesets are just orphans, which can be fixed by {}
+        bad_type:
+          invalid: 'Invalid fileset meta: {}'
+          orphan: 'Orphan fileset: {}'
+          bad_base_fileset: 'Bad base fileset: {}'
+          bad_file_stats: 'Bad fileset file stat: {}'
+          bad_file_role: 'Bad fileset file role: {}'
       validate_backups:
         .: Start validating backups, please wait...
         done: Validated {} / {} backups

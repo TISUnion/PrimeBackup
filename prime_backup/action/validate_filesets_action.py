@@ -1,6 +1,7 @@
 import dataclasses
+import enum
 import functools
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 
 from typing_extensions import override
 
@@ -11,10 +12,18 @@ from prime_backup.db.values import FileRole
 from prime_backup.types.fileset_info import FilesetInfo
 
 
+class BadFilesetItemType(enum.Enum):
+	invalid = enum.auto()
+	orphan = enum.auto()
+	bad_base_fileset = enum.auto()
+	bad_file_stats = enum.auto()
+	bad_file_role = enum.auto()
+
+
 @dataclasses.dataclass(frozen=True)
 class BadFilesetItem:
 	fileset: FilesetInfo
-	descriptions: List[str] = dataclasses.field(default_factory=list)
+	errors: Dict[BadFilesetItemType, str] = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass
@@ -32,10 +41,17 @@ class ValidateFilesetsResult:
 	def bad(self) -> int:
 		return len(self.bad_filesets)
 
-	def add_bad(self, fileset: FilesetInfo, msg: str):
+	def add_bad(self, fileset: FilesetInfo, typ: BadFilesetItemType, msg: str):
 		if fileset.id not in self.bad_filesets:
 			self.bad_filesets[fileset.id] = BadFilesetItem(fileset=fileset)
-		self.bad_filesets[fileset.id].descriptions.append(msg)
+		self.bad_filesets[fileset.id].errors[typ] = msg
+
+	def get_bad_by_type(self, typ: BadFilesetItemType) -> List[Tuple[FilesetInfo, str]]:
+		result = []
+		for bad_fileset in self.bad_filesets.values():
+			if (msg := bad_fileset.errors.get(typ)) is not None:
+				result.append((bad_fileset.fileset, msg))
+		return result
 
 
 class ValidateFilesetsAction(Action[ValidateFilesetsResult]):
@@ -67,24 +83,24 @@ class ValidateFilesetsAction(Action[ValidateFilesetsResult]):
 				break
 			result.validated += 1
 			if fileset.id in orphan_fileset_ids:
-				result.add_bad(fileset, f'orphan fileset with 0 associated backup')
+				result.add_bad(fileset, BadFilesetItemType.orphan, f'orphan fileset with 0 associated backup')
 
 			if fileset.id <= 0:
-				result.add_bad(fileset, 'unexpected fileset id {}, should not <= 0'.format(fileset.id))
+				result.add_bad(fileset, BadFilesetItemType.invalid, 'unexpected fileset id {}, should not <= 0'.format(fileset.id))
 				continue
 
 			files = get_fileset_files_cached(fileset.id)
 			if fileset.file_object_count != len(files):
-				result.add_bad(fileset, 'fileset.file_object_count {} != actual file object count {}'.format(fileset.file_object_count, len(files)))
+				result.add_bad(fileset, BadFilesetItemType.bad_file_stats, 'fileset.file_object_count {} != actual file object count {}'.format(fileset.file_object_count, len(files)))
 				continue
 
 			if not fileset.is_base:
 				base_fileset = base_filesets.get(fileset.base_id)
 				if base_fileset is None:
-					result.add_bad(fileset, 'base fileset {} does not exist'.format(fileset.base_id))
+					result.add_bad(fileset, BadFilesetItemType.bad_base_fileset, 'base fileset {} does not exist'.format(fileset.base_id))
 					continue
 				elif not base_fileset.is_base:
-					result.add_bad(fileset, 'base fileset {} is not a base fileset, its base_id == {}'.format(fileset.base_id, base_fileset.base_id))
+					result.add_bad(fileset, BadFilesetItemType.bad_base_fileset, 'base fileset {} is not a base fileset, its base_id == {}'.format(fileset.base_id, base_fileset.base_id))
 					continue
 
 			# NOTES: validation for the file roles are done in ValidateFilesAction
@@ -105,7 +121,7 @@ class ValidateFilesetsAction(Action[ValidateFilesetsResult]):
 					old_file = base_files_by_path.get(file.path)
 					if file.role == FileRole.delta_add:
 						if old_file is not None:
-							result.add_bad(fileset, 'file {!r} role is delta_add, but it exists in the base fileset {}'.format(file.path, fileset.base_id))
+							result.add_bad(fileset, BadFilesetItemType.bad_file_role, 'file {!r} role is delta_add, but it exists in the base fileset {}'.format(file.path, fileset.base_id))
 							calc_file_stats_ok = False
 							break
 						file_count += 1
@@ -113,14 +129,14 @@ class ValidateFilesetsAction(Action[ValidateFilesetsResult]):
 						file_stored_size_sum += file.blob_stored_size or 0
 					elif file.role == FileRole.delta_override:
 						if old_file is None:
-							result.add_bad(fileset, 'file {!r} role is delta_override, but it does not exist in the base fileset {}'.format(file.path, fileset.base_id))
+							result.add_bad(fileset, BadFilesetItemType.bad_file_role, 'file {!r} role is delta_override, but it does not exist in the base fileset {}'.format(file.path, fileset.base_id))
 							calc_file_stats_ok = False
 							break
 						file_raw_size_sum += (file.blob_raw_size or 0) - (old_file.blob_raw_size or 0)
 						file_stored_size_sum += (file.blob_stored_size or 0) - (old_file.blob_stored_size or 0)
 					elif file.role == FileRole.delta_remove:
 						if old_file is None:
-							result.add_bad(fileset, 'file {!r} role is delta_remove, but it does not exist in the base fileset {}'.format(file.path, fileset.base_id))
+							result.add_bad(fileset, BadFilesetItemType.bad_file_role, 'file {!r} role is delta_remove, but it does not exist in the base fileset {}'.format(file.path, fileset.base_id))
 							calc_file_stats_ok = False
 							break
 						file_count -= 1
@@ -129,11 +145,11 @@ class ValidateFilesetsAction(Action[ValidateFilesetsResult]):
 
 			if calc_file_stats_ok:
 				if fileset.file_count != file_count:
-					result.add_bad(fileset, 'fileset.file_count {} != actual file count {}'.format(fileset.file_count, file_count))
+					result.add_bad(fileset, BadFilesetItemType.bad_file_stats, 'fileset.file_count {} != actual file count {}'.format(fileset.file_count, file_count))
 				elif fileset.raw_size != file_raw_size_sum:
-					result.add_bad(fileset, 'fileset.raw_size {} != actual file_raw_size_sum {}'.format(fileset.raw_size, file_raw_size_sum))
+					result.add_bad(fileset, BadFilesetItemType.bad_file_stats, 'fileset.raw_size {} != actual file_raw_size_sum {}'.format(fileset.raw_size, file_raw_size_sum))
 				elif fileset.stored_size != file_stored_size_sum:
-					result.add_bad(fileset, 'fileset.stored_size {} != actual file_stored_size_sum {}'.format(fileset.stored_size, file_stored_size_sum))
+					result.add_bad(fileset, BadFilesetItemType.bad_file_stats, 'fileset.stored_size {} != actual file_stored_size_sum {}'.format(fileset.stored_size, file_stored_size_sum))
 
 	def run(self) -> ValidateFilesetsResult:
 		self.logger.info('Fileset validation start')

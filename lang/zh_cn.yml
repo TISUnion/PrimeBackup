@@ -280,16 +280,24 @@ prime_backup:
         done: 已验证{}/{}个文件
         all_ok: 全部{}个文件都是健康的
         found_bad_files: 发现了{}/{}个异常文件
-        invalid: '非法文件对象: {}个'
-        orphan: '孤儿文件对象: {}个'
-        bad_blob_relation: '与数据对象错误关联: {}个'
-        bad_fileset_relation: '与文件集对象错误关联: {}个'
-        file_blob_mismatched: '文件与数据对象间信息不匹配: {}个'
+        bad_type:
+          invalid: '非法文件对象: {}个'
+          orphan: '孤儿文件对象: {}个'
+          bad_blob_relation: '与数据对象错误关联: {}个'
+          bad_fileset_relation: '与文件集对象错误关联: {}个'
+          file_blob_mismatched: '文件与数据对象间信息不匹配: {}个'
       validate_filesets:
         .: 正在验证所有文件集, 请稍等...
         done: 已验证{}/{}个文件集
         all_ok: 全部{}个文件集都是健康的
         found_bad_filesets: 发现了{}/{}个异常文件集
+        fix_orphan_tip: 幸运的是，异常文件集都仅为孤儿文件集，因此可使用指令{}来进行修复
+        bad_type:
+          invalid: '非法文件集对象: {}个'
+          orphan: '孤儿文件集对象: {}个'
+          bad_base_fileset: '基础文件集异常: {}个'
+          bad_file_stats: '文件集的文件统计信息异常: {}个'
+          bad_file_role: '文件集的文件角色异常: {}个'
       validate_backups:
         .: 正在验证所有备份, 请稍等...
         done: 已验证{}/{}个备份

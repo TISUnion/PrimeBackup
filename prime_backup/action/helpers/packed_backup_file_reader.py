@@ -8,7 +8,7 @@ import time
 import zipfile
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import ContextManager, IO, Optional, List
+from typing import ContextManager, IO, Optional, List, Generator
 
 from typing_extensions import override
 
@@ -138,7 +138,7 @@ class TarBackupReader(PackedBackupFileReader):
 
 		@contextlib.contextmanager
 		@override
-		def open(self) -> ContextManager[IO[bytes]]:
+		def open(self) -> Generator[IO[bytes], None, None]:
 			yield self.tar.extractfile(self.member)
 
 	class TarFileHolder(PackedBackupFileHolder):
@@ -163,7 +163,7 @@ class TarBackupReader(PackedBackupFileReader):
 
 	@contextlib.contextmanager
 	@override
-	def open_file(self, path: Path) -> ContextManager[TarFileHolder]:
+	def open_file(self, path: Path) -> Generator[TarFileHolder, None, None]:
 		compress_method = self.tar_format.value.compress_method
 		if compress_method == CompressMethod.plain:
 			with tarfile.open(path, mode=self.tar_format.value.mode_r) as tar:
@@ -244,7 +244,7 @@ class ZipBackupReader(PackedBackupFileReader):
 
 		@contextlib.contextmanager
 		@override
-		def open(self) -> ContextManager[IO[bytes]]:
+		def open(self) -> Generator[IO[bytes], None, None]:
 			with self.zipf.open(self.member, 'r') as f:
 				yield f
 
@@ -267,6 +267,6 @@ class ZipBackupReader(PackedBackupFileReader):
 
 	@contextlib.contextmanager
 	@override
-	def open_file(self, path: Path) -> ContextManager[ZipFileHolder]:
+	def open_file(self, path: Path) -> Generator[ZipFileHolder, None, None]:
 		with zipfile.ZipFile(path, 'r') as f:
 			yield self.ZipFileHolder(f)

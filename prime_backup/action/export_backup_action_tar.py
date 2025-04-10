@@ -4,7 +4,7 @@ import tarfile
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import ContextManager, Optional, IO, Any, Union, BinaryIO
+from typing import Optional, IO, Any, Union, BinaryIO, Generator
 
 from typing_extensions import override, Unpack
 
@@ -64,7 +64,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		return True
 
 	@contextlib.contextmanager
-	def __open_tar(self) -> ContextManager[tarfile.TarFile]:
+	def __open_tar(self) -> Generator[tarfile.TarFile, None, None]:
 		with contextlib.ExitStack() as es:
 			f: BinaryIO
 			if isinstance(self.output_dest, Path):

@@ -11,7 +11,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, ContextManager, Literal, BinaryIO
+from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, Literal, BinaryIO
 
 import pathspec
 from typing_extensions import NoReturn, override, Self
@@ -48,7 +48,7 @@ class _SourceFileNotFound(FileNotFoundError):
 
 	@classmethod
 	@contextlib.contextmanager
-	def wrap(cls, path: Path) -> ContextManager:
+	def wrap(cls, path: Path) -> Generator[None, None, None]:
 		try:
 			yield
 		except FileNotFoundError as e:
@@ -59,7 +59,7 @@ class _SourceFileNotFound(FileNotFoundError):
 		if flag != 'rb':
 			raise ValueError('flag should be rb')
 		with cls.wrap(path):
-			return open(path, flag)
+			return open(path, 'rb')
 
 
 class _BlobCreatePolicy(enum.Enum):
@@ -416,7 +416,7 @@ class CreateBackupAction(CreateBackupActionBase):
 		src_path_md5 = hashlib.md5(src_path_str.encode('utf8')).hexdigest()
 
 		@contextlib.contextmanager
-		def make_temp_file() -> ContextManager[Path]:
+		def make_temp_file() -> Generator[Path, None, None]:
 			temp_file_name = f'blob_{os.getpid()}_{threading.current_thread().ident}_{src_path_md5}.tmp'
 			temp_file_path = self.__temp_path / temp_file_name
 			try:

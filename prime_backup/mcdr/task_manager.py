@@ -85,7 +85,7 @@ class _TaskWorker:
 			holder.on_done(None, e)
 
 			if cls.__handle_common_exceptions(holder, e):
-				return
+				return None
 
 			logger.get().exception('Task {} run error'.format(holder.task))
 			if isinstance(e, OperationalError) and isinstance(e.orig, sqlite3.OperationalError) and str(e.orig) == 'database is locked':

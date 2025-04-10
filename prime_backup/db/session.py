@@ -5,7 +5,7 @@ import shutil
 import sqlite3
 import time
 from pathlib import Path
-from typing import Optional, Sequence, Dict, ContextManager, Iterator, Callable, Set
+from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_
@@ -108,7 +108,7 @@ class DbSession:
 		self.session.commit()
 
 	@contextlib.contextmanager
-	def no_auto_flush(self) -> ContextManager[None]:
+	def no_auto_flush(self) -> Generator[None, None, None]:
 		with self.session.no_autoflush:
 			yield
 

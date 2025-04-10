@@ -1,7 +1,7 @@
 import contextlib
 import logging
 from pathlib import Path
-from typing import ContextManager
+from typing import Generator
 
 LOG_FORMATTER = logging.Formatter('[%(asctime)s %(levelname)s] (%(funcName)s) %(message)s')
 LOG_FORMATTER_NO_FUNC = logging.Formatter('[%(asctime)s %(levelname)s] %(message)s')
@@ -33,7 +33,7 @@ def create_file_logger(name: str) -> FileLogger:
 
 
 @contextlib.contextmanager
-def open_file_logger(name: str) -> ContextManager[FileLogger]:
+def open_file_logger(name: str) -> Generator[FileLogger, None, None]:
 	logger = create_file_logger(name)
 	try:
 		yield logger

@@ -20,8 +20,8 @@ class BypassReader(io.BytesIO):
 			self.hasher = None
 
 	@override
-	def read(self, *args, **kwargs):
-		data = self.file_obj.read(*args, **kwargs)
+	def read(self, size: Optional[int] = None) -> bytes:
+		data = self.file_obj.read(size)
 		self.read_len += len(data)
 		if self.hasher is not None:
 			self.hasher.update(data)

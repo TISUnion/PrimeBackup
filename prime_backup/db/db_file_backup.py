@@ -1,8 +1,7 @@
 import contextlib
-import os
 import shutil
 from pathlib import Path
-from typing import ContextManager, IO
+from typing import IO, Generator
 
 
 class _DbFileBackupHelper:
@@ -19,7 +18,7 @@ class _DbFileBackupHelper:
 			self.backup_file = self.backup_dir / (self.backup_base_name + '.gz')
 
 	@contextlib.contextmanager
-	def __open_backup_for_write(self) -> ContextManager[IO[bytes]]:
+	def __open_backup_for_write(self) -> Generator[IO[bytes], None, None]:
 		self.backup_dir.mkdir(exist_ok=True, parents=True)
 		if self.__has_zstd:
 			import zstandard
@@ -31,7 +30,7 @@ class _DbFileBackupHelper:
 				yield gzf
 
 	@contextlib.contextmanager
-	def __open_backup_for_read(self) -> ContextManager[IO[bytes]]:
+	def __open_backup_for_read(self) -> Generator[IO[bytes], None, None]:
 		if self.__has_zstd:
 			import zstandard
 			with zstandard.open(self.backup_file, 'rb') as f_decompressed:
@@ -53,6 +52,3 @@ class _DbFileBackupHelper:
 
 	def delete_all(self):
 		self.backup_file.unlink(missing_ok=True)
-		# TODO: auto delete backups once migration done
-		for file_name in os.listdir(self.backup_dir):
-			file_path = self.backup_dir / file_name

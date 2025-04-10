@@ -3,7 +3,7 @@ import dataclasses
 import enum
 import shutil
 from abc import abstractmethod, ABC
-from typing import BinaryIO, Union, ContextManager, Tuple, Callable, Literal
+from typing import BinaryIO, Union, ContextManager, Tuple, Callable, Literal, Generator
 
 from typing_extensions import Protocol, override
 
@@ -67,7 +67,7 @@ class Compressor(ABC):
 			self._copy_decompressed(f_in, f_out)
 
 	@contextlib.contextmanager
-	def open_compressed(self, target_path: PathLike) -> ContextManager[BinaryIO]:
+	def open_compressed(self, target_path: PathLike) -> Generator[BinaryIO, None, None]:
 		"""
 		(writer) --[compress]--> target_path
 		"""
@@ -76,7 +76,7 @@ class Compressor(ABC):
 				yield f_compressed
 
 	@contextlib.contextmanager
-	def open_compressed_bypassed(self, target_path: PathLike) -> ContextManager[Tuple[BypassWriter, BinaryIO]]:
+	def open_compressed_bypassed(self, target_path: PathLike) -> Generator[Tuple[BypassWriter, BinaryIO], None, None]:
 		"""
 		(writer) --[compress]--> target_path
 		                      ^- bypassed
@@ -87,7 +87,7 @@ class Compressor(ABC):
 				yield writer, f_compressed
 
 	@contextlib.contextmanager
-	def open_decompressed(self, source_path: PathLike) -> ContextManager[BinaryIO]:
+	def open_decompressed(self, source_path: PathLike) -> Generator[BinaryIO, None, None]:
 		"""
 		source_path --[decompress]--> (reader)
 		"""
@@ -96,7 +96,7 @@ class Compressor(ABC):
 				yield f_decompressed
 
 	@contextlib.contextmanager
-	def open_decompressed_bypassed(self, source_path: PathLike) -> ContextManager[Tuple[BypassReader, BinaryIO]]:
+	def open_decompressed_bypassed(self, source_path: PathLike) -> Generator[Tuple[BypassReader, BinaryIO], None, None]:
 		"""
 		source_path --[decompress]--> (reader)
 		             ^- bypassed
@@ -143,12 +143,12 @@ class PlainCompressor(Compressor):
 
 	@contextlib.contextmanager
 	@override
-	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
+	def compress_stream(self, f_out: BinaryIO) -> Generator[BinaryIO, None, None]:
 		yield f_out
 
 	@contextlib.contextmanager
 	@override
-	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
+	def decompress_stream(self, f_in: BinaryIO) -> Generator[BinaryIO, None, None]:
 		yield f_in
 
 
@@ -169,13 +169,13 @@ class _GzipLikeCompressorBase(Compressor, ABC):
 
 	@contextlib.contextmanager
 	@override
-	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:
+	def compress_stream(self, f_out: BinaryIO) -> Generator[BinaryIO, None, None]:
 		with self._lib().open(f_out, 'wb') as compressed_out:
 			yield compressed_out
 
 	@contextlib.contextmanager
 	@override
-	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
+	def decompress_stream(self, f_in: BinaryIO) -> Generator[BinaryIO, None, None]:
 		with self._lib().open(f_in, 'rb') as compressed_in:
 			yield compressed_in
 

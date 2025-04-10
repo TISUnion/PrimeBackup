@@ -1,6 +1,6 @@
 import contextlib
 from pathlib import Path
-from typing import Optional, ContextManager
+from typing import Optional, Generator
 
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session
@@ -73,13 +73,13 @@ class DbAccess:
 
 	@classmethod
 	@contextlib.contextmanager
-	def open_session(cls) -> ContextManager['DbSession']:
+	def open_session(cls) -> Generator['DbSession', None, None]:
 		with Session(cls.__ensure_engine()) as session, session.begin():
 			yield DbSession(session, cls.__db_file_path)
 
 	@classmethod
 	@contextlib.contextmanager
-	def enable_echo(cls) -> ContextManager[None]:
+	def enable_echo(cls) -> Generator[None, None, None]:
 		engine = cls.__ensure_engine()
 		engine.echo = True
 		try:

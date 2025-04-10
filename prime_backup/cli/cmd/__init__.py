@@ -77,4 +77,4 @@ class CliCommandAdapterBase(ABC):
 			_ = BackupIdParser(allow_db_access=True, dry_run=True).parse(s)  # raises ValueError if it's invalid
 			return s
 
-		parser.add_argument('backup_id', type=backup_id, help='The ID of the backup to export. Besides an integer ID, it can also be "latest" and "latest_non_temp"')
+		parser.add_argument('backup_id', type=backup_id, help='The ID of the backup to export. Besides an integer ID, it can also be "latest" or latest-offsets like "~", "~3"')

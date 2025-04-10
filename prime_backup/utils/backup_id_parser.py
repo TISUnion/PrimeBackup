@@ -7,7 +7,6 @@ from prime_backup.types.backup_filter import BackupFilter
 
 class BackupIdAlternatives(enum.Enum):
 	latest = enum.auto()
-	latest_with_temp = enum.auto()
 
 
 class BackupIdParser:

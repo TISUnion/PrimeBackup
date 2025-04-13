@@ -81,7 +81,7 @@ class CreateBackupTask(HeavyTask[Optional[int]]):
 			))
 			return backup.id
 		finally:
-			if applied_auto_save_off and len(cmds.auto_save_on) > 0:
+			if applied_auto_save_off and len(cmds.auto_save_on) > 0 and self.server.is_server_running():
 				self.server.execute(cmds.auto_save_on)
 
 	@override

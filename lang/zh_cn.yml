@@ -258,10 +258,15 @@ prime_backup:
       blob_count: '数据对象数: {}'
       blob_stored_size: '数据对象总储存大小: {} ({})'
       blob_raw_size: '数据对象总原始大小: {}'
+    db_prune:
+      name: 清理数据库
+      start: 正在清理数据库, 删除其中的无效数据, 请稍等...
+      done: 清理完成, 共删除{}个孤儿对象、{}个未使用的文件集文件
+      done_clean: 清理完成, 没有任何需删除的对象, 数据库是干净的
     db_vacuum:
-      name: 整理数据库
-      start: 正在整理数据库, 请稍等...
-      done: '数据库整理完毕, 耗时{}, 体积变化: {} -> {} ({}) ({})'
+      name: 整理数据库文件
+      start: 正在整理数据库文件, 请稍等...
+      done: '数据库文件整理完毕, 耗时{}, 体积变化: {} -> {} ({}) ({})'
     db_validate:
       name: 验证数据库
       nothing_to_validate: 没有要验证的内容
@@ -381,7 +386,8 @@ prime_backup:
           §7{prefix} database inspect fileset §3<文件集ID>§r: 审查给定文件集的原始信息
           §7{prefix} database inspect blob §d<哈希值>§r: 审查给定数据对象的原始信息
           §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
-          §7{prefix} database vacuum§r: 手动执行SQLite数据库的整理操作，减少数据库文件的体积
+          §7{prefix} database vacuum§r: 手动执行SQLite数据库的文件整理操作，减少数据库文件的体积
+          §7{prefix} database prune§r: 清理数据库中的无效数据。正常情况下该操作无需手动执行
           §7{prefix} database migrate_compress_method <压缩方法>§r: 将当前使用的压缩方法迁移至另一种方法。这将影响所有数据，耗时可能较长
           §7{prefix} database migrate_hash_method <哈希算法>§r: 将当前使用的哈希算法迁移至另一种算法。这将影响所有数据，耗时可能较长
           {scheduled_compact_notes}

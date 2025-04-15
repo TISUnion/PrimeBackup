@@ -516,8 +516,13 @@ class DbSession:
 	def delete_fileset(self, fileset: schema.Fileset):
 		self.session.delete(fileset)
 
-	def list_fileset(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Fileset]:
+	def list_fileset(self, is_base: Optional[bool] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Fileset]:
 		s = select(schema.Fileset)
+		if is_base is not None:
+			if is_base:
+				s = s.where(schema.Fileset.base_id == 0)
+			else:
+				s = s.where(schema.Fileset.base_id != 0)
 		if limit is not None:
 			s = s.limit(limit)
 		if offset is not None:

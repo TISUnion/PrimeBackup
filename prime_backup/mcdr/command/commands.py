@@ -373,9 +373,9 @@ class CommandManager:
 		builder.command('database validate filesets', functools.partial(self.cmd_db_validate, parts=ValidatePart.filesets))
 		builder.command('database validate backups', functools.partial(self.cmd_db_validate, parts=ValidatePart.backups))
 		builder.command('database vacuum', self.cmd_db_vacuum)
+		builder.command('database prune', self.cmd_db_prune)
 		builder.command('database migrate_compress_method <compress_method>', self.cmd_db_migrate_compress_method)
 		builder.command('database migrate_hash_method <hash_method>', self.cmd_db_migrate_hash_method)
-		builder.command('database prune', self.cmd_db_prune)
 
 		builder.arg('file_path', QuotableText)  # Notes: it's actually a redefine
 		builder.arg('fileset_id', Integer)  # not that necessary to provide suggestion here

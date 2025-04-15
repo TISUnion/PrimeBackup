@@ -125,9 +125,12 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 				bls = BlobListSummary.zero()
 			fls.blob_summary = bls
 
-		self.logger.info('Shrink base fileset {} done, -{} blobs (size {} / {})'.format(
-			self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
-		))
+		if bls.count > 0:
+			self.logger.info('Shrink base fileset {} done, -{} blobs (size {} / {})'.format(
+				self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
+			))
+		else:
+			self.logger.info('Shrink base fileset {} done, nothing to shrink'.format(self.base_fileset_id))
 		return fls
 
 
@@ -143,12 +146,7 @@ class ShrinkAllBaseFilesetsAction(Action[FileListSummary]):
 				fls = ShrinkBaseFilesetAction(fileset.id).run()
 			except (FilesetNotFound, NotBaseFileset):
 				continue
-
 			fls_total += fls
-			if fls.count > 0:
-				self.logger.debug('ShrinkBaseFilesetAction for {} done: {}'.format(fileset.id, fls))
-			else:
-				self.logger.debug('ShrinkBaseFilesetAction for {} done, noting to do'.format(fileset.id))
-
 		self.logger.info('Shrank {} base filesets: {}'.format(len(filesets), fls_total))
+
 		return fls_total

@@ -1,11 +1,14 @@
 from typing import Dict, Set, List
 
+from typing_extensions import override
+
 from prime_backup.action import Action
 from prime_backup.action.delete_blob_action import DeleteOrphanBlobsAction
+from prime_backup.action.list_fileset_action import ListFilesetAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.values import FileRole
-from prime_backup.exceptions import PrimeBackupError
+from prime_backup.exceptions import PrimeBackupError, FilesetNotFound
 from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.types.file_info import FileListSummary
 from prime_backup.types.units import ByteCount
@@ -23,6 +26,7 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 		super().__init__()
 		self.base_fileset_id = base_fileset_id
 
+	@override
 	def run(self) -> FileListSummary:
 		self.logger.info('Shrinking base fileset {}'.format(self.base_fileset_id))
 		deleted_file_hashes: Set[str] = set()
@@ -125,3 +129,26 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 			self.base_fileset_id, bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
 		))
 		return fls
+
+
+class ShrinkAllBaseFilesetsAction(Action[FileListSummary]):
+	@override
+	def run(self) -> FileListSummary:
+		filesets = ListFilesetAction(is_base=True).run()
+		fls_total = FileListSummary.zero()
+
+		self.logger.info('Shrinking {} base filesets'.format(len(filesets)))
+		for fileset in filesets:
+			try:
+				fls = ShrinkBaseFilesetAction(fileset.id).run()
+			except (FilesetNotFound, NotBaseFileset):
+				continue
+
+			fls_total += fls
+			if fls.count > 0:
+				self.logger.debug('ShrinkBaseFilesetAction for {} done: {}'.format(fileset.id, fls))
+			else:
+				self.logger.debug('ShrinkBaseFilesetAction for {} done, noting to do'.format(fileset.id))
+
+		self.logger.info('Shrank {} base filesets: {}'.format(len(filesets), fls_total))
+		return fls_total

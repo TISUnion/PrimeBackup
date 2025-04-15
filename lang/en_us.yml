@@ -261,7 +261,7 @@ prime_backup:
     db_prune:
       name: prune database
       start: Pruning database, deleting useless objects inside, please wait...
-      done: Pruning done, deleted {} orphan objects and {} unused fileset files
+      done: Pruning done, deleted {} orphan objects, {} unused fileset files and {} unknown blob files
       done_clean: Pruning done, deleted 0 object, the database is already clean
     db_vacuum:
       name: tidy up database

@@ -27,7 +27,7 @@ def __prepare_logger():
 
 
 __prepare_logger()
-DEFAULT_STORAGE_ROOT = Config.get_default().storage_root
+_DEFAULT_STORAGE_ROOT = Config.get_default().storage_root
 
 
 class CliEntrypoint:
@@ -55,7 +55,8 @@ class CliEntrypoint:
 
 	def main(self):
 		parser = argparse.ArgumentParser(description='Prime Backup v{} CLI tools'.format(cli_utils.get_plugin_version()), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-		parser.add_argument('-d', '--db', default=DEFAULT_STORAGE_ROOT, help='Path to the {db} database file, or path to the directory that contains the {db} database file, e.g. "/my/path/{db}", or "/my/path"'.format(db=db_constants.DB_FILE_NAME))
+		parser.add_argument('-d', '--db', default=_DEFAULT_STORAGE_ROOT, help='Path to the {db} database file, or path to the directory that contains the {db} database file, e.g. "/my/path/{db}", or "/my/path"'.format(db=db_constants.DB_FILE_NAME))
+		parser.add_argument('--version', action='store_true', help='Show version and exit')
 		subparsers = parser.add_subparsers(title='Command', help='Available commands', dest='command')
 
 		for adapter in self.adaptors.values():
@@ -63,6 +64,9 @@ class CliEntrypoint:
 			adapter.build_parser(subparser)
 
 		args = parser.parse_args()
+		if args.version:
+			print('Prime Backup v{}'.format(cli_utils.get_plugin_version()))
+			return
 		if args.command is None:
 			parser.print_help()
 			return

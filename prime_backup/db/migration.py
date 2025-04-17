@@ -44,7 +44,7 @@ class DbMigration:
 
 			if current_version != target_version:
 				if not migrate:
-					raise BadDbVersion('DB version mismatch (expect {}, found {}), please migrate in the MCDR', self.DB_VERSION, current_version)
+					raise BadDbVersion('DB version mismatch, expect {}, found {}'.format(self.DB_VERSION, current_version))
 
 				if current_version > target_version:
 					self.logger.error('The current DB version {} is larger than expected {}'.format(current_version, target_version))

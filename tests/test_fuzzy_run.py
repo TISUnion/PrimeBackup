@@ -39,7 +39,7 @@ from prime_backup.utils import path_utils
 
 
 @dataclasses.dataclass(frozen=True)
-class FileInfo:
+class _FileInfo:
 	size: int
 	sha256: str
 	mode: int
@@ -47,7 +47,7 @@ class FileInfo:
 
 
 @dataclasses.dataclass
-class TestStats:
+class _TestStats:
 	file_create: int = 0
 	file_append: int = 0
 	file_truncate: int = 0
@@ -83,11 +83,11 @@ def _compute_file_sha256(file_path: Path) -> str:
 
 @dataclasses.dataclass(frozen=True)
 class Snapshot:
-	files_info: Dict[Path, FileInfo]
+	files_info: Dict[Path, _FileInfo]
 
 	@classmethod
 	def from_tar(cls, tar_src: Union[Path, BinaryIO]) -> Self:
-		files_info: Dict[Path, FileInfo] = {}
+		files_info: Dict[Path, _FileInfo] = {}
 
 		with contextlib.ExitStack() as es:
 			if isinstance(tar_src, Path):
@@ -111,14 +111,14 @@ class Snapshot:
 					file_obj = tar.extractfile(member)
 					if file_obj:
 						sha256 = hashlib.sha256(file_obj.read()).hexdigest()
-						files_info[file_path] = FileInfo(
+						files_info[file_path] = _FileInfo(
 							size=member.size,
 							sha256=sha256,
 							mode=mode,
 							mtime=member.mtime
 						)
 				elif member.isdir():
-					files_info[file_path] = FileInfo(
+					files_info[file_path] = _FileInfo(
 						size=0,
 						sha256='',
 						mode=mode,
@@ -130,14 +130,14 @@ class Snapshot:
 	def from_env(cls, helper: 'BackupFuzzyEnvironment') -> 'Snapshot':
 		def add_path(path: Path):
 			st = path.stat()
-			files_info[path.relative_to(helper.snapshot_base_path)] = FileInfo(
+			files_info[path.relative_to(helper.snapshot_base_path)] = _FileInfo(
 				size=st.st_size if path.is_file() else 0,
 				sha256=_compute_file_sha256(path) if path.is_file() else '',
 				mode=st.st_mode,
 				mtime=int(st.st_mtime),
 			)
 
-		files_info: Dict[Path, FileInfo] = {}
+		files_info: Dict[Path, _FileInfo] = {}
 		add_path(helper.base_path)
 		for file_path in helper.get_all_dirs_and_files():
 			add_path(file_path)
@@ -340,7 +340,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		random_time: float = time.time() - self.rnd.randint(0, 30 * 24 * 3600)
 		os.utime(file_path, (random_time, random_time))
 		self.__fs_cache.add_file(file_path, size)
-		TestStats.get().file_create += 1
+		_TestStats.get().file_create += 1
 
 	def __modify_file(self, file_path: Path) -> None:
 		old_size = file_path.stat().st_size
@@ -349,19 +349,19 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		if mod_type == 'append':
 			with open(file_path, 'ab') as f:
 				f.write(self.rnd.randbytes(self.rnd.randint(512, 1024 * 10)))
-			TestStats.get().file_append += 1
+			_TestStats.get().file_append += 1
 		elif mod_type == 'truncate':
 			current_size: int = file_path.stat().st_size
 			if current_size > 1024:
 				with open(file_path, 'ab') as f:
 					f.truncate(self.rnd.randint(512, current_size - 512))
-			TestStats.get().file_truncate += 1
+			_TestStats.get().file_truncate += 1
 		else:  # rewrite / rebuild
 			if mod_type == 'rebuild':
 				file_path.unlink()
-				TestStats.get().file_rebuild += 1
+				_TestStats.get().file_rebuild += 1
 			else:
-				TestStats.get().file_rewrite += 1
+				_TestStats.get().file_rewrite += 1
 			file_content = self.__file_gen.generate(0, self.rnd.randint(0, 1024 * 100))
 			with open(file_path, 'wb') as f:
 				f.write(file_content)
@@ -374,7 +374,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		self.logger.info(f'ENV: remove file {file_path}')
 		self.__fs_cache.remove_file(file_path, file_path.stat().st_size)
 		file_path.unlink()
-		TestStats.get().file_delete += 1
+		_TestStats.get().file_delete += 1
 
 	def __create_dir(self, dir_path: Path):
 		if dir_path.exists() or self.__fs_cache.has_dir(dir_path):
@@ -382,13 +382,13 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		self.logger.info(f'ENV: create dir {dir_path}')
 		dir_path.mkdir()
 		self.__fs_cache.add_dir(dir_path)
-		TestStats.get().dir_create += 1
+		_TestStats.get().dir_create += 1
 
 	def __remove_dir(self, dir_path: Path):
 		self.logger.info(f'ENV: create dir {dir_path}')
 		self.__fs_cache.remove_dir(dir_path)
 		shutil.rmtree(dir_path)
-		TestStats.get().dir_remove += 1
+		_TestStats.get().dir_remove += 1
 
 	def __random_string(self, length: int) -> str:
 		return ''.join(self.rnd.choices(string.ascii_lowercase + string.digits, k=length))
@@ -410,7 +410,7 @@ class FuzzyRunTestCase(TestCase):
 
 	@override
 	def setUp(self):
-		TestStats.get().reset()
+		_TestStats.get().reset()
 
 	@contextlib.contextmanager
 	def create_env(self, rnd: random.Random) -> Generator[Tuple[BackupFuzzyEnvironment, Path, Path], None, None]:
@@ -453,15 +453,15 @@ class FuzzyRunTestCase(TestCase):
 		rnd = random.Random(seed)
 		with self.create_env(rnd) as (env, svr_dir, temp_dir):
 			def create_backup() -> int:
-				TestStats.get().backup_create += 1
+				_TestStats.get().backup_create += 1
 				return CreateBackupAction(Operator.literal('test'), '').run().id
 
 			def delete_backup(bid_: int):
-				TestStats.get().backup_delete += 1
+				_TestStats.get().backup_delete += 1
 				DeleteBackupAction(bid_).run()
 
 			def restore_backup(bid_: int):
-				TestStats.get().backup_restore += 1
+				_TestStats.get().backup_restore += 1
 				ExportBackupToDirectoryAction(bid_, svr_dir, restore_mode=True).run()
 				env.refresh_fs_cache()
 
@@ -547,7 +547,7 @@ class FuzzyRunTestCase(TestCase):
 					new_compress_method = rnd.choice([CompressMethod.plain, CompressMethod.zstd])
 					self.logger.info('Changing compress method {} -> {}'.format(Config.get().backup.compress_method, new_compress_method))
 					Config.get().backup.compress_method = new_compress_method
-					TestStats.get().compress_method_flip += 1
+					_TestStats.get().compress_method_flip += 1
 
 				# Step 6: Validate all
 				if i % 50 == 0 or i == iterations - 1:
@@ -555,7 +555,7 @@ class FuzzyRunTestCase(TestCase):
 
 				# Step 7: Show summary
 				self.logger.info('Iteration {} done'.format(i))
-				self.logger.info('Test stats: {}'.format(TestStats.get()))
+				self.logger.info('Test stats: {}'.format(_TestStats.get()))
 				self.logger.info('DB: {}'.format(GetDbOverviewAction().run()))
 				self.logger.info('ENV: {}'.format(env.get_fs_summary_text()))
 

@@ -5,6 +5,8 @@ from typing import Generator
 
 LOG_FORMATTER = logging.Formatter('[%(asctime)s %(levelname)s] (%(funcName)s) %(message)s')
 LOG_FORMATTER_NO_FUNC = logging.Formatter('[%(asctime)s %(levelname)s] %(message)s')
+LOG_FORMATTER.default_msec_format = '%s.%03d'
+LOG_FORMATTER_NO_FUNC.default_msec_format = '%s.%03d'
 
 
 class FileLogger(logging.Logger):

@@ -20,4 +20,4 @@
 ## Extensibility
 
 - [ ] Provides HTTP API on tcp or unix socket
-- [ ] CLI tools supports create FUSE file system with [python-fuse](https://github.com/libfuse/python-fuse)
+- [x] CLI tools supports create FUSE file system with [python-fuse](https://github.com/libfuse/python-fuse)

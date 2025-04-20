@@ -10,6 +10,7 @@ class ErrorReturnCodes(enum.Enum):
 	action_failed = 3
 	backup_not_found = 4
 	backup_file_not_found = 5
+	missing_dependency = 6
 
 	def sys_exit(self) -> NoReturn:
 		sys.exit(self.value)

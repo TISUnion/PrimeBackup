@@ -4,10 +4,10 @@ from typing import List, TYPE_CHECKING, Type, Any, Dict
 from mcdreforged.api.all import Serializable
 from typing_extensions import Self, override
 
+from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.operator import Operator
 
 if TYPE_CHECKING:
-	from prime_backup.db import schema
 	from prime_backup.db.session import DbSession
 
 
@@ -39,13 +39,13 @@ class BackupMeta(Serializable):
 		return obj
 
 	@classmethod
-	def from_backup(cls, backup: 'schema.Backup') -> 'BackupMeta':
+	def from_backup(cls, backup: BackupInfo) -> 'BackupMeta':
 		return cls(
 			creator=backup.creator,
 			comment=backup.comment,
-			timestamp_ns=backup.timestamp * 1000,
+			timestamp_ns=backup.timestamp_us * 1e3,
 			targets=list(backup.targets),
-			tags=dict(backup.tags),
+			tags=backup.tags.to_dict(),
 		)
 
 	def to_backup_kwargs(self) -> 'DbSession.CreateBackupKwargs':

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_
+from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_
 from sqlalchemy.orm import Session
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
@@ -274,8 +274,8 @@ class DbSession:
 			raise FilesetFileNotFound(fileset_id, path)
 		return file
 
-	def get_file_in_backup_opt(self, backup_id: int, path: str) -> Optional[schema.File]:
-		backup = self.get_backup(backup_id)
+	def get_file_in_backup_opt(self, backup_or_backup_id: Union[int, schema.Backup], path: str) -> Optional[schema.File]:
+		backup = self.__convert_backup_or_backup_id_to_backup(backup_or_backup_id)
 
 		file_delta = self.get_file_in_fileset_opt(backup.fileset_id_delta, path)
 		if file_delta is not None:
@@ -285,10 +285,11 @@ class DbSession:
 
 		return self.get_file_in_fileset_opt(backup.fileset_id_base, path)
 
-	def get_file_in_backup(self, backup_id: int, path: str) -> schema.File:
-		file = self.get_file_in_backup_opt(backup_id, path)
+	def get_file_in_backup(self, backup_or_backup_id: Union[int, schema.Backup], path: str) -> schema.File:
+		backup = self.__convert_backup_or_backup_id_to_backup(backup_or_backup_id)
+		file = self.get_file_in_backup_opt(backup, path)
 		if file is None:
-			raise BackupFileNotFound(backup_id, path)
+			raise BackupFileNotFound(backup.id, path)
 		return file
 
 	def get_file_objects_opt(self, file_identifiers: List[FileIdentifier]) -> Dict[FileIdentifier, Optional[schema.File]]:
@@ -368,6 +369,21 @@ class DbSession:
 		if offset is not None:
 			s = s.offset(offset)
 		return _list_it(self.session.execute(s).scalars().all())
+
+	def list_directory_files_in_backup(self, backup_or_backup_id: Union[int, schema.Backup], dir_path: str) -> List[schema.File]:
+		def list_one_fileset(fileset_id: int) -> List[schema.File]:
+			s = select(schema.File).where(schema.File.fileset_id == fileset_id)
+			if dir_path == '':
+				s = s.where(~schema.File.path.contains('/'))
+			else:
+				s = s.where(schema.File.path.startswith(dir_path + '/'))
+				s = s.where(not_(schema.File.path.like(dir_path + '/%/%')))
+			return _list_it(self.session.execute(s).scalars().all())
+
+		backup = self.__convert_backup_or_backup_id_to_backup(backup_or_backup_id)
+		files_base = list_one_fileset(backup.fileset_id_base)
+		files_delta = list_one_fileset(backup.fileset_id_delta)
+		return self.__merge_fileset_files(files_base, files_delta)
 
 	def iterate_file_batch(self, *, batch_size: int = 5000) -> Iterator[List[schema.File]]:
 		limit, offset = batch_size, 0
@@ -699,23 +715,18 @@ class DbSession:
 			raise BackupNotFound(backup_id)
 		return backup
 
-	@overload
-	def get_backup_files(self, backup_id: int) -> List[schema.File]: ...
-	@overload
-	def get_backup_files(self, backup: schema.Backup) -> List[schema.File]: ...
-
-	def get_backup_files(self, backup_or_backup_id: Union[int, schema.Backup]) -> List[schema.File]:
+	def __convert_backup_or_backup_id_to_backup(self, backup_or_backup_id: Union[int, schema.Backup]) -> schema.Backup:
 		if isinstance(backup_or_backup_id, schema.Backup):
-			backup = backup_or_backup_id
+			return backup_or_backup_id
 		elif isinstance(backup_or_backup_id, int):
-			backup = self.get_backup(backup_or_backup_id)
+			return self.get_backup(backup_or_backup_id)
 		else:
 			raise TypeError(type(backup_or_backup_id))
 
-		files_base = self.get_fileset_files(backup.fileset_id_base)
-		files_delta = self.get_fileset_files(backup.fileset_id_delta)
+	@classmethod
+	def __merge_fileset_files(cls, files_base: List[schema.File], files_delta: List[schema.File]) -> List[schema.File]:
 		if len(files_delta) == 0:
-			return files_base
+			return files_base.copy()
 
 		path_to_file = {file.path: file for file in files_base}
 		for file in files_delta:
@@ -725,6 +736,17 @@ class DbSession:
 				path_to_file.pop(file.path, None)
 
 		return list(path_to_file.values())
+
+	@overload
+	def get_backup_files(self, backup_id: int) -> List[schema.File]: ...
+	@overload
+	def get_backup_files(self, backup: schema.Backup) -> List[schema.File]: ...
+
+	def get_backup_files(self, backup_or_backup_id: Union[int, schema.Backup]) -> List[schema.File]:
+		backup = self.__convert_backup_or_backup_id_to_backup(backup_or_backup_id)
+		files_base = self.get_fileset_files(backup.fileset_id_base)
+		files_delta = self.get_fileset_files(backup.fileset_id_delta)
+		return self.__merge_fileset_files(files_base, files_delta)
 
 	def get_backups(self, backup_ids: List[int]) -> Dict[int, schema.Backup]:
 		"""

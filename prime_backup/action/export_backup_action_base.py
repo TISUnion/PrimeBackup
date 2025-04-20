@@ -1,4 +1,3 @@
-import json
 from abc import abstractmethod, ABC
 
 from typing_extensions import override, TypedDict, NotRequired
@@ -8,7 +7,7 @@ from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.exceptions import PrimeBackupError, VerificationError
-from prime_backup.types.backup_meta import BackupMeta
+from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.utils import misc_utils
 
@@ -54,8 +53,7 @@ class _ExportBackupActionBase(Action[ExportFailures], ABC):
 	def _create_meta_buf(self, backup: schema.Backup) -> bytes:
 		if not self.create_meta:
 			raise RuntimeError('calling _create_meta_buf() with create_meta set to False')
-		meta = BackupMeta.from_backup(backup)
-		return json.dumps(meta.to_dict(), indent=2, ensure_ascii=False).encode('utf8')
+		return BackupInfo.of(backup).create_meta_buf()
 
 	@classmethod
 	def _on_unsupported_file_mode(cls, file: schema.File):

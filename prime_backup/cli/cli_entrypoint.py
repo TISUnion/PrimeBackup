@@ -6,6 +6,7 @@ from prime_backup.cli.cmd import CliCommandAdapterBase
 from prime_backup.cli.cmd.cmd_db_overview import DbOverviewCommandAdapter
 from prime_backup.cli.cmd.cmd_export import ExportCommandAdapter
 from prime_backup.cli.cmd.cmd_extract import ExtractCommandAdapter
+from prime_backup.cli.cmd.cmd_fuse import FuseCommandAdapter
 from prime_backup.cli.cmd.cmd_import import ImportCommandAdapter
 from prime_backup.cli.cmd.cmd_list import ListCommandAdapter
 from prime_backup.cli.cmd.cmd_migrate_db import MigrateDbCommandAdapter
@@ -41,6 +42,7 @@ class CliEntrypoint:
 			DbOverviewCommandAdapter(),
 			ExportCommandAdapter(),
 			ExtractCommandAdapter(),
+			FuseCommandAdapter(),
 			ImportCommandAdapter(),
 			ListCommandAdapter(),
 			MigrateDbCommandAdapter(),

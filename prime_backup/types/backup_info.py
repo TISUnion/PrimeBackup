@@ -1,6 +1,7 @@
 import dataclasses
 import datetime
 import functools
+import json
 from typing import List, TYPE_CHECKING
 
 from typing_extensions import Self
@@ -61,3 +62,8 @@ class BackupInfo:
 			stored_size=backup.file_stored_size_sum or 0,
 			files=[FileInfo.of(file) for file in backup_files] if backup_files is not None else [],
 		)
+
+	def create_meta_buf(self) -> bytes:
+		from prime_backup.types.backup_meta import BackupMeta
+		meta = BackupMeta.from_backup(self)
+		return json.dumps(meta.to_dict(), indent=2, ensure_ascii=False).encode('utf8')

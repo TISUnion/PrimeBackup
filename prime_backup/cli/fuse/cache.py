@@ -43,7 +43,9 @@ class TTLLRUCache(Generic[_K, _V]):
 				self.__data.move_to_end(key)
 			else:
 				if len(self.__data) >= self.__capacity:
-					self.prune_one()
+					for k in list(self.__data.keys()):
+						if time.time() >= self.__data[k].expire_at:
+							self.__data.pop(k)
 					if len(self.__data) >= self.__capacity:
 						self.__data.popitem(last=False)
 				self.__data[key] = _CacheItem(value, time.time() + self.__ttl)
@@ -79,14 +81,6 @@ class TTLLRUCache(Generic[_K, _V]):
 
 		wrapper.cache = self
 		return wrapper
-
-	def prune_one(self) -> bool:
-		with self.__lock:
-			for k in self.__data.keys():
-				if time.time() >= self.__data[k].expire_at:
-					self.__data.pop(k)
-					return True
-		return False
 
 	def prune_all(self):
 		with self.__lock:

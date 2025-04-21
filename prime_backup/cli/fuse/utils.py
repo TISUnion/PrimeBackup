@@ -29,7 +29,7 @@ def fuse_operation_wrapper(func_name: Optional[str] = None) -> Callable:
 		def wrapper(*args):
 			call_text = f'{func_name or func.__name__}({", ".join(map(repr, args[1:]))})'
 			if FuseConfig.get().log_call:
-				logger.debug(f'CALL {call_text}')
+				logger.info(f'CALL {call_text}')
 			try:
 				ret = func(*args)
 			except FuseErrnoReturnError:
@@ -45,7 +45,7 @@ def fuse_operation_wrapper(func_name: Optional[str] = None) -> Callable:
 					ret_val = str(type(ret))
 				if isinstance(ret, (str, bytes, list, dict)):
 					ret_val += f' (len={len(ret)})'
-				logger.debug(f'CALL {call_text} = {ret_val}')
+				logger.info(f'CALL {call_text} = {ret_val}')
 
 			return ret
 

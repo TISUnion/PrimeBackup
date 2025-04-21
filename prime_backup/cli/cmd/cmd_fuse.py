@@ -33,7 +33,7 @@ class FuseCommandHandler(CliCommandHandlerBase):
 		fuse_config.no_cache = self.args.no_cache
 		fuse_config.no_meta = self.args.no_meta
 		if self.args.debug:
-			fuse_config.no_meta = True
+			fuse_config.log_call = True
 
 	def handle(self):
 		try:

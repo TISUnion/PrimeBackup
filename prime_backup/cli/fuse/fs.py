@@ -15,7 +15,7 @@ import fuse
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.get_file_action import GetBackupFileAction, ListBackupDirectoryFileAction, NotDirectoryError, GetBackupFilesAction
-from prime_backup.action.list_backup_action import ListBackupIdAction
+from prime_backup.action.list_backup_action import ListBackupIdAction, ListBackupAction
 from prime_backup.cli.fuse.cache import ttl_lru_cache, TTLLRUCounter, TTLLRUCache
 from prime_backup.cli.fuse.common import PrimeBackupFuseStat, PrimeBackupFuseDirentry, PrimeBackupFuseStatVfs
 from prime_backup.cli.fuse.config import FuseConfig
@@ -24,6 +24,7 @@ from prime_backup.cli.fuse.utils import fuse_operation_wrapper, FuseErrnoReturnE
 from prime_backup.constants import BACKUP_META_FILE_NAME
 from prime_backup.exceptions import BackupFileNotFound, BackupNotFound
 from prime_backup.logger import get as get_logger
+from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.file_info import FileInfo
 from prime_backup.utils.backup_id_parser import BackupIdParser, BackupIdAlternatives
 
@@ -43,21 +44,35 @@ class _SplitPathResult:
 	is_alt: bool
 
 
-class _Helper:
+class _DbHelper:
 	__FILE_BATCH_QUERY_THRESHOLD = 3
+	__QUERY_BACKUP_THRESHOLD = 2
 	__QUERY_BACKUP_DIR_FILES_THRESHOLD = 3
 
 	def __init__(self):
 		self.logger: logging.Logger = get_logger()
 		self.__file_query_counter: TTLLRUCounter[int] = TTLLRUCounter(capacity=128, ttl=1)
-		self.__query_backup_dir_files_counter: TTLLRUCounter[int] = TTLLRUCounter(capacity=128, ttl=1)
+		self.__backup_query_counter: TTLLRUCounter[int] = TTLLRUCounter(capacity=128, ttl=1)
+		self.__backup_dir_query_files_counter: TTLLRUCounter[int] = TTLLRUCounter(capacity=128, ttl=1)
+		self.__ttl_lru_caches: List[TTLLRUCache] = [
+			self.__file_query_counter.cache,
+			self.__backup_dir_query_files_counter.cache,
+			self.__backup_query_counter.cache,
+		]
 
 		if FuseConfig.get().no_cache:
 			self.__parse_backup_id = self.__parse_backup_id_no_cache
+			self.__query_all_backups = self.__query_all_backups_no_cache
 			self.__query_backup_files = self.__parse_backup_id_no_cache
 		else:
 			self.__parse_backup_id = ttl_lru_cache(ttl=1, capacity=128)(self.__parse_backup_id_no_cache)
+			self.__query_all_backups = ttl_lru_cache(ttl=3, capacity=4)(self.__query_all_backups_no_cache)
 			self.__query_backup_files = ttl_lru_cache(ttl=1, capacity=4)(self.__query_backup_files_no_cache)
+			self.__ttl_lru_caches.extend([
+				self.__parse_backup_id.cache,
+				self.__query_all_backups.cache,
+				self.__query_backup_files.cache,
+			])
 			threading.Thread(name='CacheCleaner', target=self.__cache_cleaner_thread, daemon=True).start()
 
 	@staticmethod
@@ -66,6 +81,11 @@ class _Helper:
 			return BackupIdParser(allow_db_access=True).parse(s)
 		except ValueError:
 			return None
+
+	@staticmethod
+	def __query_all_backups_no_cache() -> Dict[int, BackupInfo]:
+		backups = ListBackupAction().run()
+		return {backup.id: backup for backup in backups}
 
 	@staticmethod
 	def __query_backup_files_no_cache(backup_id: int) -> Optional[_NiceBackupFiles]:
@@ -148,8 +168,20 @@ class _Helper:
 
 		return spr.backup_id, spr.path, file
 
+	def query_backup(self, backup_id: int) -> BackupInfo:
+		if not FuseConfig.get().no_cache and self.__backup_query_counter.inc(backup_id) >= self.__QUERY_BACKUP_THRESHOLD:
+			backups = self.__query_all_backups()
+			if (backup := backups.get(backup_id)) is None:
+				raise FuseErrnoReturnError(errno.ENOENT)
+			return backup
+		else:
+			try:
+				return GetBackupAction(backup_id).run()
+			except BackupNotFound:
+				raise FuseErrnoReturnError(errno.ENOENT)
+
 	def query_backup_dir_files(self, backup_id: int, path: str):
-		if not FuseConfig.get().no_cache and self.__query_backup_dir_files_counter.inc(backup_id) >= self.__QUERY_BACKUP_DIR_FILES_THRESHOLD:
+		if not FuseConfig.get().no_cache and self.__backup_dir_query_files_counter.inc(backup_id) >= self.__QUERY_BACKUP_DIR_FILES_THRESHOLD:
 			nbf = self.__query_backup_files(backup_id)
 			if nbf is None:
 				raise FuseErrnoReturnError(errno.ENOENT)
@@ -163,15 +195,9 @@ class _Helper:
 				raise FuseErrnoReturnError(errno.ENOTDIR)
 
 	def __cache_cleaner_thread(self):
-		caches: List[TTLLRUCache] = [
-			self.__parse_backup_id.cache,
-			self.__query_backup_files.cache,
-			self.__file_query_counter.cache,
-			self.__query_backup_dir_files_counter.cache,
-		]
 		while True:
 			time.sleep(60 + random.random())
-			for cache in caches:
+			for cache in self.__ttl_lru_caches:
 				cache.prune_all()
 
 
@@ -179,7 +205,7 @@ class PrimeBackupFuseFs(fuse.Fuse):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.logger: logging.Logger = get_logger()
-		self.__helper = helper = _Helper()
+		self.__helper = helper = _DbHelper()
 
 		class PrimeBackupFuseFileWrapper(PrimeBackupFuseFile):
 			@fuse_operation_wrapper(func_name='create_file')
@@ -189,7 +215,7 @@ class PrimeBackupFuseFs(fuse.Fuse):
 
 				spr = helper.split_path(fuse_path, allow_alternative=False)
 				if spr.path == BACKUP_META_FILE_NAME and not FuseConfig.get().no_meta:
-					backup = GetBackupAction(spr.backup_id).run()
+					backup = helper.query_backup(spr.backup_id)
 					super().__init__(buf=backup.create_meta_buf())
 				else:
 					backup_id, path, file = helper.get_backup_file(spr)
@@ -210,13 +236,13 @@ class PrimeBackupFuseFs(fuse.Fuse):
 
 		spr = self.__helper.split_path(fuse_path, allow_alternative=True)
 		if spr.path == '':
-			backup = GetBackupAction(spr.backup_id).run()
+			backup = self.__helper.query_backup(spr.backup_id)
 			if spr.is_alt:
 				return PrimeBackupFuseStat.create_symlink(backup.timestamp_us / 1e6)
 			else:
 				return PrimeBackupFuseStat.create_plain_dir(backup.timestamp_us / 1e6)
 		elif spr.path == BACKUP_META_FILE_NAME:
-			backup = GetBackupAction(spr.backup_id).run()
+			backup = self.__helper.query_backup(spr.backup_id)
 			size = len(backup.create_meta_buf())
 			return PrimeBackupFuseStat.create_regular(size, 0o444, backup.timestamp_us / 1e6)
 

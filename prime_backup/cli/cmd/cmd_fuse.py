@@ -62,7 +62,7 @@ class FuseCommandHandler(CliCommandHandlerBase):
 			self.logger.info('Starting fuse at {!r} in foreground...'.format(self.args.mount_point))
 		else:
 			self.logger.info('Starting fuse at {!r} in background...'.format(self.args.mount_point))
-		self.logger.info('Tips: Use command \'{}\' to unmount'.format(shlex.join(['sudo', 'fusermount', '-zu', self.args.mount_point])))
+		self.logger.info('Tips: Use command \'{}\' to unmount'.format(shlex.join(['sudo', 'fusermount', '-zu', os.path.abspath(self.args.mount_point)])))
 
 		fs.main()
 

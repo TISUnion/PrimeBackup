@@ -67,6 +67,7 @@ def on_load(server: PluginServerInterface, old):
 
 		global init_ok
 		init_ok = is_enabled()
+		server.logger.debug('{} init done, init_ok={}'.format(mcdr_globals.metadata.name, init_ok))
 
 	global config, task_manager, command_manager, crontab_manager, online_player_counter
 	with handle_init_error():
@@ -92,6 +93,14 @@ def on_load(server: PluginServerInterface, old):
 		global init_thread
 		init_thread = threading.Thread(target=init, name=misc_utils.make_thread_name('init'), daemon=True)
 		init_thread.start()
+		init_thread_start_ts = time.time()
+
+		max_wait_sec = 2
+		init_thread.join(timeout=max_wait_sec)
+		if init_thread.is_alive():
+			server.logger.debug('The init thread is still alive after {}s, no more waiting'.format(max_wait_sec))
+		else:
+			server.logger.debug('The init thread has terminated within {}s, cost {:.2f}s'.format(max_wait_sec, time.time() - init_thread_start_ts))
 
 
 _has_unload = False

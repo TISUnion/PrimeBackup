@@ -22,7 +22,7 @@ command_manager: Optional[CommandManager] = None
 crontab_manager: Optional[CrontabManager] = None
 online_player_counter: Optional[OnlinePlayerCounter] = None
 mcdr_globals.load()
-init_ok = False
+init_ok: Optional[bool] = None  # False: failed, True: succeeded, None: not done yet
 init_thread: Optional[threading.Thread] = None
 
 
@@ -64,7 +64,6 @@ def on_load(server: PluginServerInterface, old):
 			task_manager.start()
 			crontab_manager.start()
 			command_manager.construct_command_tree()
-			online_player_counter.on_load(getattr(old, 'online_player_counter', None))
 
 		global init_ok
 		init_ok = is_enabled()
@@ -85,6 +84,10 @@ def on_load(server: PluginServerInterface, old):
 		# registrations need to be done in the on_load() function
 		command_manager.register_command_node()
 		server.register_help_message(config.command.prefix, mcdr_globals.metadata.get_description_rtext())
+
+		# OnlinePlayerCounter does not need DbAccess,
+		# and it needs to initialized before server-start to detect the server-start event
+		online_player_counter.on_load(getattr(old, 'online_player_counter', None))
 
 		global init_thread
 		init_thread = threading.Thread(target=init, name=misc_utils.make_thread_name('init'), daemon=True)
@@ -155,7 +158,7 @@ def on_info(server: PluginServerInterface, info: Info):
 
 
 def on_server_start(server: PluginServerInterface):
-	if init_ok and online_player_counter is not None:
+	if init_ok is not False and online_player_counter is not None:
 		online_player_counter.on_server_start()
 
 
@@ -165,10 +168,10 @@ def on_server_stop(server: PluginServerInterface, server_return_code: int):
 
 
 def on_player_joined(server: PluginServerInterface, player: str, info: Info):
-	if init_ok and online_player_counter is not None:
+	if init_ok is not False and online_player_counter is not None:
 		online_player_counter.on_player_joined(player)
 
 
 def on_player_left(_: PluginServerInterface, player: str):
-	if init_ok and online_player_counter is not None:
+	if init_ok is not False and online_player_counter is not None:
 		online_player_counter.on_player_left(player)

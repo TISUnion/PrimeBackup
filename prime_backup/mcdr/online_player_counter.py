@@ -120,8 +120,8 @@ class OnlinePlayerCounter:
 		elif should_update_from_api and self.server.is_server_startup():
 			self.__try_update_player_list_from_api(log_success=True)
 
-	def on_server_start(self):
-		self.logger.info('Server startup detected, enable the online player counter')
+	def on_server_start_stop(self, what: str):
+		self.logger.debug(f'Server {what} detected, enable the online player counter')
 		with self.data_lock:
 			self.data_is_correct = True
 			self.player_list = []

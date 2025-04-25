@@ -166,12 +166,17 @@ def on_info(server: PluginServerInterface, info: Info):
 				break
 
 
-def on_server_start(server: PluginServerInterface):
+def __reset_online_player_counter(what: str):
 	if init_ok is not False and online_player_counter is not None:
-		online_player_counter.on_server_start()
+		online_player_counter.on_server_start_stop(what)
+
+
+def on_server_start(server: PluginServerInterface):
+	__reset_online_player_counter('start')
 
 
 def on_server_stop(server: PluginServerInterface, server_return_code: int):
+	__reset_online_player_counter('stop')
 	if init_ok:
 		task_manager.on_server_stopped()
 

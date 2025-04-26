@@ -1,6 +1,7 @@
 import argparse
 import dataclasses
 import os
+import platform
 import shlex
 from pathlib import Path
 
@@ -38,8 +39,12 @@ class FuseCommandHandler(CliCommandHandlerBase):
 	def handle(self):
 		try:
 			import fuse
-		except ImportError:
-			self.logger.error('fuse package not found')
+		except ImportError as e:
+			self.logger.error('Failed to import the fuse module: {}'.format(e))
+			if os.name != 'posix':
+				self.logger.error('Note that libfuse is not supported on this system ({}). It requires a unix-like system'.format(platform.system()))
+			else:
+				self.logger.error('Note that you need to install the `python-fuse` python package and the libfuse system package to use this command')
 			ErrorReturnCodes.missing_dependency.sys_exit()
 
 		self.__adjust_fuse_config()
@@ -76,11 +81,11 @@ class FuseCommandAdapter(CliCommandAdapterBase):
 	@property
 	@override
 	def description(self) -> str:
-		return 'Run fuse'
+		return 'Mount all backups as a file system using libfuse'
 
 	@override
 	def build_parser(self, parser: argparse.ArgumentParser):
-		parser.add_argument('mount', help='Path to the fuse mount point')
+		parser.add_argument('mount', help='Path to the fuse filesystem mount point. It should be an empty directory')
 		parser.add_argument('-f', '--foreground', action='store_true', help='Run in foreground')
 		parser.add_argument('--allow-other', action='store_true', help='Allow other users to access the fuse filesystem')
 		parser.add_argument('--debug', action='store_true', help='Enable fuse debug and more debug logging')

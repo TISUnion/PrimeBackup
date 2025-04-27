@@ -35,6 +35,7 @@ prime_backup:
       protected: Backup {} is protected and cannot be deleted
       deleting: Deleting {}
       deleted: Deleted backup {}, freed {}
+      multi_deleted: 'Deleted {} backups in total, freed {}'
     backup_delete_range:
       name: delete backup range
       no_backup: No available backup to delete

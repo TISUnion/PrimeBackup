@@ -35,6 +35,7 @@ prime_backup:
       protected: 备份{}受到保护, 无法删除
       deleting: 正在删除{}
       deleted: 已删除备份{}, 释放{}
+      multi_deleted: '共删除{}个备份, 共释放{}'
     backup_delete_range:
       name: 范围删除备份
       no_backup: 未找到可删除的备份

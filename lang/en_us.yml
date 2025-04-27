@@ -516,6 +516,7 @@ prime_backup:
       bad_date: Bad input date
       bad_id_range: Bad ID Range
       bad_hex_string: Bad hex string
+      bad_backup_id: Bad backup ID
       invalid_json:
         empty: Empty input
         prefix: '"{{" prefix not found'

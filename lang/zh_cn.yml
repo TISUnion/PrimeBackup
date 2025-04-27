@@ -516,6 +516,7 @@ prime_backup:
       bad_date: 非法日期格式
       bad_id_range: 非法ID范围
       bad_hex_string: 非法的十六进制字符串
+      bad_backup_id: 非法的备份ID
       invalid_json:
         empty: 空输入
         prefix: 未找到"{{"前缀

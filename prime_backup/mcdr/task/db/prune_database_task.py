@@ -23,4 +23,8 @@ class PruneDatabaseTask(HeavyTask[None]):
 		if doo_result.total_orphan_count + saf_result.count + ubf_result.count == 0:
 			self.reply_tr('done_clean')
 		else:
-			self.reply_tr('done', doo_result.total_orphan_count, saf_result.count, ubf_result.count)
+			self.reply_tr(
+				'done',
+				doo_result.total_orphan_count, doo_result.orphan_blob_count, doo_result.orphan_file_count, doo_result.orphan_fileset_count,
+				saf_result.count, ubf_result.count,
+			)

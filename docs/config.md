@@ -251,7 +251,7 @@ and the value of key [source_root](#source_root) in the config will be ignored
 
 #### targets
 
-The target files / directories to make backups
+The target files / directories to make backups. They can also be [gitignore flavor](http://git-scm.com/docs/gitignore) patterns 
 
 Usually you need to add the name(s) of your world folder(s) here
 
@@ -265,7 +265,19 @@ For example, for bukkit-like servers that split the world dimensions, you might 
 ]
 ```
 
+Or use this wildcard pattern that matches everything whose name starts with "world" in the [source_root](#source_root) directory
+
+```json
+"targets": [
+    "world*"
+]
+```
+
 - Type: `List[str]`
+
+Changelog:
+
+- v1.10.0: Support gitignore flavor patterns
 
 #### ignored_files
 

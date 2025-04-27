@@ -251,7 +251,7 @@ Prime Backup 在创建备份时的操作时序如下：
 
 #### targets
 
-要备份的目标文件/目录
+要备份的目标文件/目录。它们也可以是 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串
 
 通常来讲，你需要在整理添加你的存档文件夹的名字
 
@@ -265,7 +265,19 @@ Prime Backup 在创建备份时的操作时序如下：
 ]
 ```
 
+也可以用这个使用通配符的模板串，匹配 [source_root](#source_root) 下所有的以 "world" 开头的东西
+
+```json
+"targets": [
+    "world*"
+]
+```
+
 - 类型：`List[str]`
+
+更新日志:
+
+- v1.10.0: 支持 gitignore 风格的模板串
 
 #### ignored_files
 

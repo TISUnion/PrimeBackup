@@ -316,11 +316,18 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.logger.info('Following root symlink target {!r} -> {!r} ({!r})'.format(str(rel_path), str(symlink_target), str(symlink_target_full_path)))
 				scan(symlink_target_full_path, True)
 
-		self.logger.debug(f'Scan file done start, targets: {self.config.backup.targets}')
-
+		self.logger.debug(f'Scan file start, target patterns: {self.config.backup.targets}')
 		with self.__time_costs.measure_time_cost(_TimeCostKey.kind_fs) as scan_cost:
-			for target in self.config.backup.targets:
-				scan(self.__source_path / target, True)
+			target_patterns = pathspec.GitIgnoreSpec.from_lines(self.config.backup.targets)
+			target_paths: List[Path] = []
+			for candidate_target_name in sorted(os.listdir(self.__source_path)):
+				candidate_target_path = self.__source_path / candidate_target_name
+				if target_patterns.match_file(candidate_target_path):
+					target_paths.append(candidate_target_path)
+
+			self.logger.debug(f'Scan file found {len(target_paths)} targets, {target_paths[:10]=}')
+			for target_path in target_paths:
+				scan(target_path, True)
 
 		self.logger.debug('Scan file done, cost {:.2f}s, count {}, root_targets (len={}): {}, ignored_paths[:100] (len={}): {}'.format(
 			scan_cost(), len(result.all_files),

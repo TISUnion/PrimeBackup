@@ -28,7 +28,7 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 
 	@override
 	def run(self) -> FileListSummary:
-		self.logger.info('Shrinking base fileset {}'.format(self.base_fileset_id))
+		self.logger.debug('Shrinking base fileset {}'.format(self.base_fileset_id))
 		deleted_file_hashes: Set[str] = set()
 		fls = FileListSummary.zero()
 

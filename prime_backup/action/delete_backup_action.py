@@ -53,7 +53,7 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 			bls = orphan_blob_cleaner.run(session=session)
 
 		if base_fileset_alive:
-			self.logger.info('Shrinking base fileset {} since it''s still alive'.format(backup_info.fileset_id_base))
+			self.logger.debug('Shrinking base fileset {} since it''s still alive'.format(backup_info.fileset_id_base))
 			sbf_action = ShrinkBaseFilesetAction(backup_info.fileset_id_base)
 			sbf_action.run()
 

@@ -125,7 +125,7 @@ class ScanAndDeleteOrphanFilesetsAction(Action[FilesetListSummary]):
 					files_to_delete.extend(files_to_delete_for_this_fileset)
 					session.delete_fileset(fileset)
 
-					fsls.count += len(files_to_delete_for_this_fileset)
+					fsls.count += 1
 
 					if len(filesets) + len(files_to_delete) > self.MAX_IN_MEMORY_OBJECTS:
 						limit_reached = True

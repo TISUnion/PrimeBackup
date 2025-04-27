@@ -29,22 +29,21 @@ prime_backup:
       cost.hover: |-
         等待世界保存: {}
         创建备份: {}
-    backup_delete:
-      name: 删除备份
-      multi_delete: '准备删除多个备份 (数量={}): {}'
-      protected: 备份{}受到保护, 无法删除
-      deleting: 正在删除{}
-      deleted: 已删除备份{}, 释放{}
-      multi_deleted: '共删除{}个备份, 共释放{}'
-    backup_delete_range:
-      name: 范围删除备份
-      no_backup: 未找到可删除的备份
+    backup_delete_base:
       to_delete_count: '将要删除以下{}个备份: '
       ellipsis.hover: 省略{}个备份
       confirm_target: 删除
+      start: 任务开始, 正在删除{}个备份
       deleted: 已删除{}
       deleted.skipped: 已跳过{} (备份不存在)
       done: 任务完成, 共删除{}个备份, 共释放{}
+    backup_delete:
+      name: 删除备份
+      protected: 备份{}受到保护, 无法删除
+      no_backup: 未找到可删除的备份
+    backup_delete_range:
+      name: 范围删除备份
+      no_backup: 未找到可删除的备份
     backup_diff:
       name: 对比备份
       no_diff: 备份{}与{}间没有任何差异

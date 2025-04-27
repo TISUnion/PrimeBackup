@@ -13,8 +13,7 @@ from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, HexStringNode
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
-from prime_backup.mcdr.task.backup.delete_backup_range_task import DeleteBackupRangeTask
-from prime_backup.mcdr.task.backup.delete_backup_task import DeleteBackupTask
+from prime_backup.mcdr.task.backup.delete_backup_task import DeleteBackupTask, DeleteBackupRangeTask
 from prime_backup.mcdr.task.backup.diff_backup_task import DiffBackupTask
 from prime_backup.mcdr.task.backup.export_backup_task import ExportBackupTask
 from prime_backup.mcdr.task.backup.import_backup_task import ImportBackupTask
@@ -173,7 +172,8 @@ class CommandManager:
 
 	def cmd_delete(self, source: CommandSource, context: CommandContext):
 		def backup_ids_consumer(backup_ids: List[int]):
-			self.task_manager.add_task(DeleteBackupTask(source, backup_ids))
+			needs_confirm = context.get('confirm', 0) == 0
+			self.task_manager.add_task(DeleteBackupTask(source, backup_ids, needs_confirm))
 
 		if 'backup_id' not in context:
 			reply_message(source, tr('error.missing_backup_id').set_color(RColor.red))
@@ -424,6 +424,7 @@ class CommandManager:
 			node_sc = create_subcommand('delete').runs(self.cmd_delete)
 			node_bid = create_backup_id(clazz=MultiBackupIdNode).redirects(node_sc)
 			node_sc.then(node_bid)
+			set_confirm_able(node_sc)
 			return node_sc
 
 		def make_export_cmd() -> Literal:

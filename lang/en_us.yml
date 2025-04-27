@@ -29,22 +29,21 @@ prime_backup:
       cost.hover: |-
         save wait: {}
         create backup: {}
-    backup_delete:
-      name: delete backup
-      multi_delete: 'Multiple backups will be deleted (amount={}): {}'
-      protected: Backup {} is protected and cannot be deleted
-      deleting: Deleting {}
-      deleted: Deleted backup {}, freed {}
-      multi_deleted: 'Deleted {} backups in total, freed {}'
-    backup_delete_range:
-      name: delete backup range
-      no_backup: No available backup to delete
+    backup_delete_base:
       to_delete_count: 'Found {} backups to be deleted:'
       ellipsis.hover: Omitted {} backups
       confirm_target: delete
+      start: Task start, deleting {} backups
       deleted: Deleted {}
       deleted.skipped: Skipped {} (missed)
-      done: Done, {} backups deleted, freed {}
+      done: Task done, {} backups deleted, freed {}
+    backup_delete:
+      name: delete backup
+      protected: Backup {} is protected and cannot be deleted
+      no_backup: No available backup to delete
+    backup_delete_range:
+      name: delete backup range
+      no_backup: No available backup to delete
     backup_diff:
       name: diff backup
       no_diff: No difference between {} and {}

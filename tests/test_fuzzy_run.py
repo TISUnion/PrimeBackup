@@ -508,22 +508,27 @@ class FuzzyRunTestCase(TestCase):
 			for i in range(iterations):
 				self.logger.info(f'============================== Iteration {i} ==============================')
 
-				# Step 1: Create a new backup with 50% probability
+				# Step 1: Create new backups with 50% probability
 				if rnd.random() < 0.7:
-					snapshot_before = env.create_snapshot()
-					backup_id = create_backup()
-					backup_ids.append(backup_id)
+					backup_num = 1
+					if rnd.random() < 0.01:  # 2% chance for another backup
+						backup_num += 1
 
-					# Verify backup creation doesn't modify environment
-					snapshot_after = env.create_snapshot()
-					self.assertEqual(snapshot_before, snapshot_after, f'Backup creation modified env at iteration {i} for backup {backup_id}')
+					for _ in range(backup_num):
+						snapshot_before = env.create_snapshot()
+						backup_id = create_backup()
+						backup_ids.append(backup_id)
 
-					# Verify backup snapshot matches environment
-					backup_snapshot = get_backup_snapshot(backup_id)
-					self.assertEqual(snapshot_before, backup_snapshot, f'Backup {backup_id} snapshot mismatch with env at iteration {i}')
+						# Verify backup creation doesn't modify environment
+						snapshot_after = env.create_snapshot()
+						self.assertEqual(snapshot_before, snapshot_after, f'Backup creation modified env at iteration {i} for backup {backup_id}')
 
-					# Store initial snapshot for later verification
-					backup_snapshots[backup_id] = backup_snapshot
+						# Verify backup snapshot matches environment
+						backup_snapshot = get_backup_snapshot(backup_id)
+						self.assertEqual(snapshot_before, backup_snapshot, f'Backup {backup_id} snapshot mismatch with env at iteration {i}')
+
+						# Store initial snapshot for later verification
+						backup_snapshots[backup_id] = backup_snapshot
 
 				# Step 2: Restore a random backup with 5% probability (if any exist)
 				if backup_ids and rnd.random() < 0.05:

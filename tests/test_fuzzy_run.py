@@ -419,13 +419,16 @@ class FuzzyRunTestCase(TestCase):
 		fake_server_dir = test_root / 'server'
 		env_dir = fake_server_dir / 'world'
 		temp_dir = test_root / 'temp'
+		gitignore_file = test_root / '.gitignore'
 
-		def rm_test_dirs():
+		def rm_test_files_dirs():
 			for d in [pb_dir, env_dir, temp_dir]:
 				if d.is_dir():
 					shutil.rmtree(d)
 
-		rm_test_dirs()
+		rm_test_files_dirs()
+		test_root.mkdir(parents=True, exist_ok=True)
+		gitignore_file.write_text('**\n', encoding='utf8')
 
 		Config.get().storage_root = str(pb_dir)
 		Config.get().backup.source_root = str(fake_server_dir)
@@ -436,7 +439,7 @@ class FuzzyRunTestCase(TestCase):
 
 		with contextlib.ExitStack() as es:
 			if os.environ.get('PRIME_BACKUP_FUZZY_TEST_KEEP', '').lower() not in ('true', '1'):
-				es.callback(rm_test_dirs)
+				es.callback(rm_test_files_dirs)
 			es.callback(DbAccess.shutdown)
 			env = es.enter_context(BackupFuzzyEnvironment(self, env_dir, fake_server_dir, rnd))
 			yield env, fake_server_dir, temp_dir
@@ -551,6 +554,7 @@ class FuzzyRunTestCase(TestCase):
 
 				# Step 6: Validate all
 				if i % 50 == 0 or i == iterations - 1:
+					self.logger.info('Validating everything at iteration {}'.format(i))
 					validate_all()
 
 				# Step 7: Show summary
@@ -558,6 +562,37 @@ class FuzzyRunTestCase(TestCase):
 				self.logger.info('Test stats: {}'.format(_TestStats.get()))
 				self.logger.info('DB: {}'.format(GetDbOverviewAction().run()))
 				self.logger.info('ENV: {}'.format(env.get_fs_summary_text()))
+
+			# Final deletion test
+			self.logger.info(f'============================== Final Deletion Test ==============================')
+			rnd.shuffle(backup_ids)
+			backup_num = len(backup_ids)
+			step = max(5.0, backup_num * 0.05)  # every 5%
+			self.logger.info('Starting the final deletion test with backup_num={} and step={:.2f}'.format(backup_num, step))
+
+			next_check = step
+			for i, backup_id in enumerate(backup_ids.copy()):
+				self.logger.info('Deleting backup {}'.format(backup_id))
+				delete_backup(backup_id)
+				backup_ids.remove(backup_id)
+				backup_snapshots.pop(backup_id)
+
+				idx = i + 1
+				if idx >= next_check - 1e-8:
+					self.logger.info(f'Validating everything, {step=:.2f} {idx=:.2f} {next_check=:.2f}')
+					next_check += step
+					validate_all()
+
+			db_overview = GetDbOverviewAction().run()
+			self.logger.info(f'Checking if the database is empty: {db_overview}')
+			self.assertEqual(0, db_overview.blob_count)
+			self.assertEqual(0, db_overview.file_object_count)
+			self.assertEqual(0, db_overview.file_total_count)
+			self.assertEqual(0, db_overview.fileset_count)
+			self.assertEqual(0, db_overview.backup_count)
+			self.assertEqual(0, db_overview.blob_stored_size_sum)
+			self.assertEqual(0, db_overview.blob_raw_size_sum)
+			self.assertEqual(0, db_overview.file_raw_size_sum)
 
 			self.logger.info('Fuzzy test passed')
 

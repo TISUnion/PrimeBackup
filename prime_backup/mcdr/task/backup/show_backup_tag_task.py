@@ -73,7 +73,10 @@ class ShowBackupTagTask(LightTask[None]):
 				RText('[+]', RColor.dark_green).h(self.tr('create', t_key)).c(RAction.suggest_command, mkcmd(f'tag {backup.id} {key} set ')),
 			]
 
-		self.reply(RTextBase.format('{} {}: {}', RTextBase.join(' ', buttons), t_key, t_value))
+		if self.source.is_console:
+			self.reply(RTextBase.format('{}: {}', t_key, t_value))
+		else:
+			self.reply(RTextBase.format('{} {}: {}', RTextBase.join(' ', buttons), t_key, t_value))
 
 	@override
 	def run(self) -> None:

@@ -1,7 +1,7 @@
 import datetime
 import stat
 from pathlib import Path
-from typing import Any, Union, Optional, Iterable
+from typing import Any, Union, Optional, Iterable, List
 
 from mcdreforged.api.all import *
 
@@ -167,21 +167,32 @@ class TextComponents:
 		return RText(compress_method, RColor.light_purple)
 
 	@classmethod
-	def confirm_hint(cls, what: RTextBase, time_wait_text: Any):
-		return cls.tr(
-			'confirm_hint.base',
-			time_wait_text,
-			click_and_run(
-				RTextList(cls.tr('confirm_hint.confirm', what), '√').set_color(RColor.yellow),
-				cls.tr('confirm_hint.confirm.hover', cls.command('confirm'), what),
-				mkcmd('confirm'),
-			),
-			click_and_run(
-				RTextList(cls.tr('confirm_hint.abort', what), '×').set_color(RColor.gold),
-				cls.tr('confirm_hint.abort.hover', cls.command('abort'), what),
-				mkcmd('abort'),
-			),
-		)
+	def confirm_hint(cls, what: RTextBase, time_wait_text: Any, *, interactable: bool) -> List[RTextBase]:
+		if interactable:
+			return [
+				cls.tr(
+					'confirm_hint.interactive.base',
+					time_wait_text,
+					click_and_run(
+						RTextList(cls.tr('confirm_hint.interactive.confirm', what), '√').set_color(RColor.yellow),
+						cls.tr('confirm_hint.interactive.confirm.hover', cls.command('confirm'), what),
+						mkcmd('confirm'),
+					),
+					click_and_run(
+						RTextList(cls.tr('confirm_hint.interactive.abort', what), '×').set_color(RColor.gold),
+						cls.tr('confirm_hint.interactive.abort.hover', cls.command('abort'), what),
+						mkcmd('abort'),
+					),
+				)
+			]
+		else:
+			def fmt_item(t: RTextBase, cmd: str) -> RTextBase:
+				return RTextList(RText('- ', RColor.dark_gray), t, ': ', RText(cmd, RColor.dark_gray))
+			return [
+				cls.tr('confirm_hint.plain.base', time_wait_text),
+				fmt_item(RTextList(cls.tr('confirm_hint.plain.confirm', what), '√').set_color(RColor.yellow), mkcmd('confirm')),
+				fmt_item(RTextList(cls.tr('confirm_hint.plain.abort', what), '×').set_color(RColor.gold), mkcmd('abort')),
+			]
 
 	@classmethod
 	def crontab(cls, crontab_str: str) -> RTextBase:

@@ -549,11 +549,16 @@ prime_backup:
       run: '点击以执行{}'
       suggest: '点击以补全{}'
     confirm_hint:
-      base: '请在{}内作出选择: [{}], [{}]'
-      confirm: 确认{}
-      confirm.hover: 点我或输入指令{}以确认{}
-      abort: 终止{}
-      abort.hover: 点我或输入指令{}以终止{}
+      interactive:
+        base: '请在{}内作出选择: [{}], [{}]'
+        confirm: 确认{}
+        confirm.hover: 点我或输入指令{}以确认{}
+        abort: 终止{}
+        abort.hover: 点我或输入指令{}以终止{}
+      plain:
+        base: '请在{}内作出选择并输入对应指令:'
+        confirm: 确认{}
+        abort: 终止{}
     crontab:
       help_url: 'Crontab字符串解释网址: {}'
     date_diff:

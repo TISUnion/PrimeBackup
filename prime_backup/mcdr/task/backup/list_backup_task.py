@@ -60,7 +60,7 @@ class ListBackupTask(LightTask[None]):
 		self.reply(TextComponents.title(self.tr('title')))
 		self.reply_tr('backup_count', TextComponents.number(total_count))
 		for backup in backups:
-			self.reply(TextComponents.backup_full(backup, True, show_flags=self.show_flags))
+			self.reply(TextComponents.backup_full(backup, operation_buttons=not self.source.is_console, show_flags=self.show_flags))
 
 		max_page = max(0, (total_count - 1) // self.per_page + 1)
 		t_prev = RText('<-')

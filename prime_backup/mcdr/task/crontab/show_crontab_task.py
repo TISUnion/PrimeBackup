@@ -35,6 +35,10 @@ class ShowCrontabJobTask(CrontabTaskBase[None]):
 			self.reply_tr('jitter', TextComponents.duration(job.jitter))
 		self.reply_tr('next_run_date', job.get_next_run_date())
 
+		if self.source.is_console:
+			# console cannot click buttons
+			return
+
 		def make(op: str, color: RColor) -> RTextBase:
 			from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 			_ = OperateCrontabJobTask.Operation[op]

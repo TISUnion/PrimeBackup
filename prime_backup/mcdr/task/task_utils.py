@@ -26,8 +26,9 @@ class ConfirmHelper:
 		self.__confirm_result: WaitableValue[ConfirmResult] = WaitableValue()
 
 	def wait_confirm(self, confirm_target_text: RTextBase, time_wait: Duration) -> WaitableValue[ConfirmResult]:
-		text = TextComponents.confirm_hint(confirm_target_text, TextComponents.duration(time_wait))
-		reply_message(self.source, text)
+		texts = TextComponents.confirm_hint(confirm_target_text, TextComponents.duration(time_wait), interactable=not self.source.is_console)
+		for text in texts:
+			reply_message(self.source, text)
 		self.__confirm_result.clear()
 		self.__confirm_result.wait(time_wait.value)
 		return self.__confirm_result

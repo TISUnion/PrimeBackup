@@ -60,7 +60,11 @@ class ShowWelcomeTask(LightTask[None]):
 		backups = ListBackupAction(backup_filter=backup_filter, limit=self.BACKUP_NUMBER_TO_SHOW).run()
 		self.reply(self.tr('recent_backups', len(backups)).set_color(TextColors.help_title))
 		for backup in backups:
-			self.reply(TextComponents.backup_full(backup, operation_buttons=True))
+			self.reply(TextComponents.backup_full(backup, operation_buttons=not self.source.is_console))
+
+		if self.source.is_console:
+			# console cannot click buttons
+			return
 
 		self.reply(self.tr('quick_actions.title').set_color(TextColors.help_title))
 		with self.source.preferred_language_context():

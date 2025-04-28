@@ -549,11 +549,16 @@ prime_backup:
       run: 'Click to run {}'
       suggest: 'Click to complete {}'
     confirm_hint:
-      base: 'Please choose within {}: [{}], [{}]'
-      confirm: Confirm {}
-      confirm.hover: Click me or enter command {} to confirm {}
-      abort: Abort {}
-      abort.hover: Click me or enter command {} to abort {}
+      interactive:
+        base: 'Please choose within {}: [{}], [{}]'
+        confirm: Confirm {}
+        confirm.hover: Click me or enter command {} to confirm {}
+        abort: Abort {}
+        abort.hover: Click me or enter command {} to abort {}
+      plain:
+        base: 'Please choose and enter command within {}:'
+        confirm: Confirm {}
+        abort: Abort {}
     crontab:
       help_url: 'Crontab string explanation at: {}'
     date_diff:

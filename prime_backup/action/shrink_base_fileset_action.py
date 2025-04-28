@@ -29,7 +29,6 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 	@override
 	def run(self) -> FileListSummary:
 		self.logger.debug('Shrinking base fileset {}'.format(self.base_fileset_id))
-		deleted_file_hashes: Set[str] = set()
 		fls = FileListSummary.zero()
 
 		with DbAccess.open_session() as session:
@@ -77,12 +76,10 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 				for k in unused_base_files:
 					self.logger.info(f'DBG:   {k}')
 
+			deleted_file_hashes: Set[str] = set()
 			if len(unused_base_files) > 0:
 				self.logger.info('Found {} unused files in base fileset {}, shrinking'.format(len(unused_base_files), self.base_fileset_id))
 				for unused_base_file in unused_base_files.values():
-					if unused_base_file.blob_hash is not None:
-						deleted_file_hashes.add(unused_base_file.blob_hash)
-
 					base_fileset.file_count -= 1
 					base_fileset.file_object_count -= 1
 					base_fileset.file_raw_size_sum -= unused_base_file.blob_raw_size or 0
@@ -114,6 +111,8 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 				self.logger.info('Deleting {} file objects'.format(len(files_to_delete)))
 				fls.count += len(files_to_delete)
 				for file_to_delete in files_to_delete:
+					if file_to_delete.blob_hash is not None:
+						deleted_file_hashes.add(file_to_delete.blob_hash)
 					session.delete_file(file_to_delete)
 
 			if _DEBUG_LOG:

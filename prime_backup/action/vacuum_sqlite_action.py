@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
+import sqlalchemy.exc
 from typing_extensions import override
 
 from prime_backup.action import Action
@@ -25,7 +26,15 @@ class VacuumSqliteAction(Action[SizeDiff]):
 			into_file = None
 
 		with DbAccess.open_session() as session:
-			session.vacuum(into_file)
+			try:
+				session.vacuum(into_file)
+			except sqlalchemy.exc.OperationalError as e:
+				import sqlite3
+				if isinstance(e.orig, sqlite3.OperationalError) and str(e.orig) == 'database or disk is full':
+					# https://github.com/TISUnion/PrimeBackup/issues/72
+					self.logger.error('VACUUM failed due to {}'.format(e))
+					self.logger.error('See https://github.com/TISUnion/PrimeBackup/issues/72 for more information')
+				raise
 
 		if self.target_path is not None:
 			after_size = self.target_path.stat().st_size

@@ -412,6 +412,9 @@ class FuzzyRunTestCase(TestCase):
 	def setUp(self):
 		_TestStats.get().reset()
 
+		from prime_backup.action.helpers.fileset_allocator import FilesetAllocateArgsDefaults
+		FilesetAllocateArgsDefaults.candidate_max_changes_ratio = 0.4  # increase this for easier fileset reuse
+
 	@contextlib.contextmanager
 	def create_env(self, rnd: random.Random) -> Generator[Tuple[BackupFuzzyEnvironment, Path, Path], None, None]:
 		test_root = Path(os.environ.get('PRIME_BACKUP_FUZZY_TEST_ROOT', 'run/unittest'))
@@ -600,6 +603,7 @@ class FuzzyRunTestCase(TestCase):
 			self.assertEqual(0, db_overview.file_raw_size_sum)
 
 			self.logger.info('Fuzzy test passed')
+			self.logger.info('Final test stats: {}'.format(_TestStats.get()))
 
 
 if __name__ == '__main__':

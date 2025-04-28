@@ -27,12 +27,19 @@ def _sum_file_sizes(files: Iterable[schema.File]) -> Tuple[int, int]:
 	return file_raw_size_sum, file_stored_size_sum
 
 
-@dataclasses.dataclass(frozen=True)
-class FilesetAllocateArgs:
+class FilesetAllocateArgsDefaults:
 	candidate_select_count: int = 2
 	candidate_max_changes_ratio: float = 0.2
 	max_delta_ratio: float = 1.5
 	max_base_reuse_count: int = 100
+
+
+@dataclasses.dataclass(frozen=True)
+class FilesetAllocateArgs:
+	candidate_select_count: int = dataclasses.field(default_factory=lambda: FilesetAllocateArgsDefaults.candidate_select_count)
+	candidate_max_changes_ratio: float = dataclasses.field(default_factory=lambda: FilesetAllocateArgsDefaults.candidate_max_changes_ratio)
+	max_delta_ratio: float = dataclasses.field(default_factory=lambda: FilesetAllocateArgsDefaults.max_delta_ratio)
+	max_base_reuse_count: int = dataclasses.field(default_factory=lambda: FilesetAllocateArgsDefaults.max_base_reuse_count)
 
 	@classmethod
 	def from_config(cls, config: 'Config') -> Self:

@@ -8,7 +8,7 @@ import stat
 import threading
 import time
 from pathlib import Path
-from typing import Tuple, List, Optional, Union, Dict
+from typing import Tuple, List, Optional, Union, Dict, Callable
 
 import fuse
 
@@ -49,6 +49,10 @@ class _DbHelper:
 	__QUERY_BACKUP_THRESHOLD = 2
 	__QUERY_BACKUP_DIR_FILES_THRESHOLD = 3
 
+	__parse_backup_id: Callable[[str], Optional[int]]
+	__query_all_backups: Callable[[], Dict[int, BackupInfo]]
+	__query_backup_files: Callable[[int], Optional[_NiceBackupFiles]]
+
 	def __init__(self):
 		self.logger: logging.Logger = get_logger()
 		self.__file_query_counter: TTLLRUCounter[int] = TTLLRUCounter(capacity=128, ttl=1)
@@ -63,11 +67,12 @@ class _DbHelper:
 		if FuseConfig.get().no_cache:
 			self.__parse_backup_id = self.__parse_backup_id_no_cache
 			self.__query_all_backups = self.__query_all_backups_no_cache
-			self.__query_backup_files = self.__parse_backup_id_no_cache
+			self.__query_backup_files = self.__query_backup_files_no_cache
 		else:
 			self.__parse_backup_id = ttl_lru_cache(ttl=1, capacity=128)(self.__parse_backup_id_no_cache)
 			self.__query_all_backups = ttl_lru_cache(ttl=3, capacity=4)(self.__query_all_backups_no_cache)
 			self.__query_backup_files = ttl_lru_cache(ttl=1, capacity=4)(self.__query_backup_files_no_cache)
+			# noinspection PyUnresolvedReferences
 			self.__ttl_lru_caches.extend([
 				self.__parse_backup_id.cache,
 				self.__query_all_backups.cache,
@@ -103,7 +108,8 @@ class _DbHelper:
 		return _NiceBackupFiles(files, dict(by_parent))
 
 	def query_backup_file(self, backup_id: int, path: str) -> FileInfo:
-		if (nbf := self.__query_backup_files(backup_id)) is None:
+		nbf: Optional[_NiceBackupFiles] = self.__query_backup_files(backup_id)
+		if nbf is None:
 			raise FuseErrnoReturnError(errno.ENOENT)
 		if (file := nbf.by_path.get(path)) is None:
 			raise FuseErrnoReturnError(errno.ENOENT)
@@ -119,7 +125,7 @@ class _DbHelper:
 			raise FuseErrnoReturnError(errno.ENOENT)
 
 		if allow_alternative:
-			backup_id = self.__parse_backup_id(parts[1])
+			backup_id: Optional[int] = self.__parse_backup_id(parts[1])
 			if backup_id is None:
 				raise FuseErrnoReturnError(errno.ENOENT)
 		else:
@@ -153,7 +159,7 @@ class _DbHelper:
 			raise FuseErrnoReturnError(errno.ENOENT)
 
 		if not FuseConfig.get().no_cache and self.__file_query_counter.inc(spr.backup_id) >= self.__FILE_BATCH_QUERY_THRESHOLD:
-			nbf = self.__query_backup_files(spr.backup_id)
+			nbf: Optional[_NiceBackupFiles] = self.__query_backup_files(spr.backup_id)
 			if nbf is None:
 				raise FuseErrnoReturnError(errno.ENOENT)
 
@@ -170,7 +176,7 @@ class _DbHelper:
 
 	def query_backup(self, backup_id: int) -> BackupInfo:
 		if not FuseConfig.get().no_cache and self.__backup_query_counter.inc(backup_id) >= self.__QUERY_BACKUP_THRESHOLD:
-			backups = self.__query_all_backups()
+			backups: Dict[int, BackupInfo] = self.__query_all_backups()
 			if (backup := backups.get(backup_id)) is None:
 				raise FuseErrnoReturnError(errno.ENOENT)
 			return backup
@@ -180,9 +186,9 @@ class _DbHelper:
 			except BackupNotFound:
 				raise FuseErrnoReturnError(errno.ENOENT)
 
-	def query_backup_dir_files(self, backup_id: int, path: str):
+	def query_backup_dir_files(self, backup_id: int, path: str) -> List[FileInfo]:
 		if not FuseConfig.get().no_cache and self.__backup_dir_query_files_counter.inc(backup_id) >= self.__QUERY_BACKUP_DIR_FILES_THRESHOLD:
-			nbf = self.__query_backup_files(backup_id)
+			nbf: Optional[_NiceBackupFiles] = self.__query_backup_files(backup_id)
 			if nbf is None:
 				raise FuseErrnoReturnError(errno.ENOENT)
 			return nbf.by_parent.get(path, [])

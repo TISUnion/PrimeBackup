@@ -90,6 +90,7 @@ class Snapshot:
 		files_info: Dict[Path, _FileInfo] = {}
 
 		with contextlib.ExitStack() as es:
+			tar: tarfile.TarFile
 			if isinstance(tar_src, Path):
 				tar = es.enter_context(tarfile.open(name=tar_src, mode='r:'))
 			else:

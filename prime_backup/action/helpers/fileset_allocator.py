@@ -8,6 +8,7 @@ from prime_backup import logger
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.db.values import FileRole
+from prime_backup.utils import collection_utils
 from prime_backup.utils.lru_dict import LruDict
 
 if TYPE_CHECKING:
@@ -64,26 +65,12 @@ class FilesetAllocator:
 		self.files = files
 		self.__fileset_files_cache: Optional[FilesetAllocator.FilesetFileCache] = None
 
-	@dataclasses.dataclass(frozen=True)
-	class Delta:
-		@dataclasses.dataclass(frozen=True)
-		class OldNewFile:
-			old: schema.File
-			new: schema.File
-
-		added: List[schema.File] = dataclasses.field(default_factory=list)  # list of new
-		removed: List[schema.File] = dataclasses.field(default_factory=list)  # list of old
-		changed: List[OldNewFile] = dataclasses.field(default_factory=list)  # list of (old, new)
-
-		def size(self) -> int:
-			return len(self.added) + len(self.removed) + len(self.changed)
-
 	@classmethod
 	def __get_file_by_path(cls, files: List[schema.File]) -> Dict[str, schema.File]:
 		return {f.path: f for f in files}
 
 	@classmethod
-	def __are_files_content_equaled(cls, a: schema.File, b: schema.File):
+	def __are_files_content_equaled(cls, a: schema.File, b: schema.File) -> bool:
 		return (
 			a.path == b.path and a.mode == b.mode and
 			a.content == b.content and a.blob_hash == b.blob_hash and
@@ -92,19 +79,8 @@ class FilesetAllocator:
 		)
 
 	@classmethod
-	def __calc_delta(cls, old: Dict[str, schema.File], new: Dict[str, schema.File]) -> Delta:
-		delta = cls.Delta()
-		for path, old_file in old.items():
-			if path in new:
-				new_file = new[path]
-				if not cls.__are_files_content_equaled(new_file, old_file):
-					delta.changed.append(cls.Delta.OldNewFile(old_file, new_file))
-			else:
-				delta.removed.append(old_file)
-		for path in new.keys():
-			if path not in old:
-				delta.added.append(new[path])
-		return delta
+	def __calc_delta(cls, old: Dict[str, schema.File], new: Dict[str, schema.File]) -> collection_utils.DictValueDelta[schema.File]:
+		return collection_utils.compute_dict_value_delta(old, new, cmp=cls.__are_files_content_equaled)
 
 	def enable_fileset_files_cache(self, cache: FilesetFileCache):
 		self.__fileset_files_cache = cache
@@ -123,7 +99,7 @@ class FilesetAllocator:
 		class Candidate:
 			fileset: schema.Fileset
 			file_by_path: Dict[str, schema.File]
-			delta: FilesetAllocator.Delta
+			delta: collection_utils.DictValueDelta[schema.File]
 			delta_size: int
 
 		c: Optional[Candidate] = None

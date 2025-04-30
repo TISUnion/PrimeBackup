@@ -1,0 +1,1 @@
+from prime_backup.db.migrations.migration_2_3.migration_2_3 import MigrationImpl2To3 as MigrationImpl2To3

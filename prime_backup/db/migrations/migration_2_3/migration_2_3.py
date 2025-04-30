@@ -1,25 +1,75 @@
 import collections
 import dataclasses
-import json
 import time
 from pathlib import Path
 from typing import List, Dict
 
+from sqlalchemy import Table, Column, Integer, String, ForeignKey, LargeBinary, BigInteger, JSON
 from sqlalchemy import text, inspect, Engine, RowMapping
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 from typing_extensions import override
 
-from prime_backup.db import schema
 from prime_backup.db.migrations import MigrationImplBase
+from prime_backup.db.migrations.migration_2_3._v3_fileset_allocator import _V3FilesetAllocator
+from prime_backup.db.migrations.migration_2_3._v3_session import _V3DbSession
 from prime_backup.utils import collection_utils
 from prime_backup.utils.lru_dict import LruDict
 
 
 class _V3:
-	Base = schema.Base
-	File = schema.File
-	Fileset = schema.Fileset
-	Backup = schema.Backup
+	Base = declarative_base()
+	Blob = Table(
+		'blob',
+		Base.metadata,
+		Column('hash', String, primary_key=True),
+		Column('compress', String),
+		Column('raw_size', BigInteger, index=True),
+		Column('stored_size', BigInteger)
+	)
+	File = Table(
+		'file',
+		Base.metadata,
+		Column('fileset_id', Integer, ForeignKey('fileset.id'), primary_key=True, index=True),
+		Column('path', String, primary_key=True),
+		Column('role', Integer),
+		Column('mode', Integer),
+		Column('content', LargeBinary, nullable=True),
+		Column('blob_hash', String, ForeignKey('blob.hash'), index=True, nullable=True),
+		Column('blob_compress', String, nullable=True),
+		Column('blob_raw_size', BigInteger, nullable=True),
+		Column('blob_stored_size', BigInteger, nullable=True),
+		Column('uid', Integer, nullable=True),
+		Column('gid', Integer, nullable=True),
+		Column('mtime', BigInteger, nullable=True),
+	)
+	Fileset = Table(
+		'fileset',
+		Base.metadata,
+		Column('id', Integer, primary_key=True, autoincrement=True, index=True),
+		Column('base_id', Integer),
+		Column('file_object_count', BigInteger),
+		Column('file_count', BigInteger),
+		Column('file_raw_size_sum', BigInteger),
+		Column('file_stored_size_sum', BigInteger),
+		sqlite_autoincrement=True
+	)
+	Backup = Table(
+		'backup',
+		Base.metadata,
+		Column('id', Integer, primary_key=True, autoincrement=True, index=True),
+		Column('timestamp', BigInteger),
+		Column('creator', String),
+		Column('comment', String),
+		Column('targets', JSON),
+		Column('tags', JSON),
+		Column('fileset_id_base', Integer, ForeignKey('fileset.id')),
+		Column('fileset_id_delta', Integer, ForeignKey('fileset.id')),
+		Column('file_count', BigInteger),
+		Column('file_raw_size_sum', BigInteger),
+		Column('file_stored_size_sum', BigInteger),
+		sqlite_autoincrement=True
+	)
 
 
 @dataclasses.dataclass
@@ -40,10 +90,6 @@ class MigrationImpl2To3(MigrationImplBase):
 	def __init__(self, engine: Engine, temp_dir: Path, session: Session):
 		super().__init__(engine, temp_dir, session)
 		self.__stats = _Stats()
-
-		# FIXME: This might not work if impl is updated in the future
-		from prime_backup.action.helpers.fileset_allocator import FilesetAllocateArgs
-		self.allocate_args = FilesetAllocateArgs()
 		self.fileset_files_cache = LruDict(max_size=8)
 
 	@override
@@ -78,7 +124,7 @@ class MigrationImpl2To3(MigrationImplBase):
 		# FIXME: This might not work if schema is updated in the future
 		# temp workaround to make it running first
 		self.logger.info('Creating the new File and Fileset tables')
-		_V3.Base.metadata.create_all(self.engine, tables=[_V3.Base.metadata.tables[table_name] for table_name in ['file', 'fileset', 'backup']])
+		_V3.Base.metadata.create_all(self.engine, tables=[_V3.File, _V3.Fileset, _V3.Backup])
 
 	def __step_rebuild(self):
 		old_backup_ids: List[int] = sorted(set(self.session.execute(text('SELECT id FROM old_backup_2to3')).scalars()))
@@ -116,12 +162,12 @@ class MigrationImpl2To3(MigrationImplBase):
 				percent = 100.0 * self.__stats.processed_backup_count / self.__stats.old_backup_count
 				elapsed_sec = time.time() - start_ts
 				self.logger.info('Rebuilt backup {} with {} files ({} / {}, {:.2f}%, elapsed {}s, rebuild eta {}s)'.format(
-					new_backup.id, new_backup.file_count, self.__stats.processed_backup_count, self.__stats.old_backup_count, percent,
+					new_backup['id'], new_backup['file_count'], self.__stats.processed_backup_count, self.__stats.old_backup_count, percent,
 					round(elapsed_sec), round(elapsed_sec / self.__stats.processed_backup_count * max(0, self.__stats.old_backup_count - self.__stats.processed_backup_count)),
 				))
 
-	def __rebuild_backup(self, backup_id: int, old_backup: RowMapping, old_file_rows: List[RowMapping]) -> _V3.Backup:
-		files: List[_V3.File] = []
+	def __rebuild_backup(self, backup_id: int, old_backup: RowMapping, old_file_rows: List[RowMapping]) -> dict:
+		files: List[dict] = []
 		for old_file_row in old_file_rows:
 			fields = {
 				key: old_file_row[key]
@@ -139,32 +185,28 @@ class MigrationImpl2To3(MigrationImplBase):
 				]
 			}
 			fields['mtime'] = fields.pop('mtime_ns') // 1000  # ns -> us
-			files.append(_V3.File(**fields))
+			files.append(fields)
 
-		# FIXME: This might not work if impl is updated in the future
-		from prime_backup.action.helpers.fileset_allocator import FilesetAllocator
-		from prime_backup.db.session import DbSession
-		allocator = FilesetAllocator(DbSession(self.session), files)
+		db_session = _V3DbSession(self.session)
+		allocator = _V3FilesetAllocator(db_session, files)
 		allocator.enable_fileset_files_cache(self.fileset_files_cache)
-		fs_result = allocator.allocate(self.allocate_args)
+		fs_result = allocator.allocate()
 		self.logger.debug('Allocated fileset for the backup files, backup_id {}'.format(backup_id))
 
 		fs_base, fs_delta = fs_result.fileset_base, fs_result.fileset_delta
-		new_backup = _V3.Backup(
+		new_backup = db_session.v3_insert('backup', dict(
 			id=old_backup['id'],
 			timestamp=old_backup['timestamp'] // 1000,  # ns -> us
 			creator=old_backup['creator'],
 			comment=old_backup['comment'],
-			targets=json.loads(old_backup['targets']),
-			tags=json.loads(old_backup['tags']),
-			fileset_id_base=fs_base.id,
-			fileset_id_delta=fs_delta.id,
-			file_count=fs_base.file_count + fs_delta.file_count,
-			file_raw_size_sum=fs_base.file_raw_size_sum + fs_delta.file_raw_size_sum,
-			file_stored_size_sum=fs_base.file_stored_size_sum + fs_delta.file_stored_size_sum,
-		)
-		self.session.add(new_backup)
-		self.session.flush()
+			targets=old_backup['targets'],
+			tags=old_backup['tags'],
+			fileset_id_base=fs_base['id'],
+			fileset_id_delta=fs_delta['id'],
+			file_count=fs_base['file_count'] + fs_delta['file_count'],
+			file_raw_size_sum=fs_base['file_raw_size_sum'] + fs_delta['file_raw_size_sum'],
+			file_stored_size_sum=fs_base['file_stored_size_sum'] + fs_delta['file_stored_size_sum'],
+		), need_result=True)
 
 		self.__stats.processed_backup_count += 1
 		files.clear()
@@ -180,9 +222,9 @@ class MigrationImpl2To3(MigrationImplBase):
 		self.session.execute(text('DROP TABLE old_file_2to3'))
 		self.session.execute(text('DROP TABLE old_backup_2to3'))
 
-		cnt_f = self.session.execute(text(f'SELECT COUNT(*) FROM {_V3.File.__tablename__}')).scalar_one()
-		cnt_fs = self.session.execute(text(f'SELECT COUNT(*) FROM {_V3.Fileset.__tablename__}')).scalar_one()
-		cnt_b = self.session.execute(text(f'SELECT COUNT(*) FROM {_V3.Backup.__tablename__}')).scalar_one()
+		cnt_f = self.session.execute(text(f'SELECT COUNT(*) FROM file')).scalar_one()
+		cnt_fs = self.session.execute(text(f'SELECT COUNT(*) FROM fileset')).scalar_one()
+		cnt_b = self.session.execute(text(f'SELECT COUNT(*) FROM backup')).scalar_one()
 		decrease_percent = (cnt_f - self.__stats.old_file_count) / max(1, self.__stats.old_file_count) * 100
 		self.logger.info('Done. Constructed {} files (decreased from {}, {:.1f}%), {} filesets, {} backups'.format(
 			cnt_f, self.__stats.old_file_count, decrease_percent, cnt_fs, cnt_b,

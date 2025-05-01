@@ -40,6 +40,8 @@ class ScanUnknownBlobFilesAction(Action[ScanUnknownBlobFilesResult]):
 		unknown_blob_file_samples: List[str] = []
 		with DbAccess.open_session() as session:
 			for blob_dir in blob_utils.iterate_blob_directories():
+				if not blob_dir.is_dir():
+					continue
 				file_names = [
 					name
 					for name in os.listdir(blob_dir)

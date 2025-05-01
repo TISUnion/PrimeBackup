@@ -1,7 +1,7 @@
 import dataclasses
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from typing_extensions import override
 
@@ -10,17 +10,31 @@ from prime_backup.db.access import DbAccess
 from prime_backup.utils import blob_utils
 
 
-@dataclasses.dataclass
-class ScanAndDeleteUnknownBlobFilesResult:
+@dataclasses.dataclass(frozen=True)
+class UnknownBlobFile:
+	path: Path
+	blob_hash: str  # from file name
+	file_size: int
+
+
+@dataclasses.dataclass(frozen=True)
+class ScanUnknownBlobFilesResult:
 	count: int
 	size: int
+	samples: List[UnknownBlobFile]
 
 
-class ScanAndDeleteUnknownBlobFilesAction(Action[ScanAndDeleteUnknownBlobFilesResult]):
+class ScanUnknownBlobFilesAction(Action[ScanUnknownBlobFilesResult]):
+	def __init__(self, delete: bool, result_sample_limit: Optional[int] = 0):
+		super().__init__()
+		self.delete = delete
+		self.result_sample_limit = result_sample_limit
+
 	@override
-	def run(self) -> ScanAndDeleteUnknownBlobFilesResult:
+	def run(self) -> ScanUnknownBlobFilesResult:
 		count = 0
 		size_sum = 0
+		result_files: List[UnknownBlobFile] = []
 
 		self.logger.info('Scanning blob store to check if there are any unknown blob files')
 		unknown_blob_file_samples: List[str] = []
@@ -42,10 +56,14 @@ class ScanAndDeleteUnknownBlobFilesAction(Action[ScanAndDeleteUnknownBlobFilesRe
 						size = unknown_blob_file.stat().st_size
 						size_sum += size
 						self.logger.debug('Found unknown blob at {} with size {}, deleting'.format(unknown_blob_file, size))
-						unknown_blob_file.unlink(missing_ok=True)
+
+						if self.delete:
+							unknown_blob_file.unlink(missing_ok=True)
 						if len(unknown_blob_file_samples) < 5:
 							unknown_blob_file_samples.append(str(unknown_blob_file))
+						if self.result_sample_limit is not None and len(result_files) < self.result_sample_limit:
+							result_files.append(UnknownBlobFile(unknown_blob_file, blob_hash, size))
 
 		self.logger.info('Found and deleted {} unknown blob files ({} bytes) in the blob store, samples: {}'.format(count, size_sum, unknown_blob_file_samples))
 
-		return ScanAndDeleteUnknownBlobFilesResult(count, size_sum)
+		return ScanUnknownBlobFilesResult(count, size_sum, result_files)

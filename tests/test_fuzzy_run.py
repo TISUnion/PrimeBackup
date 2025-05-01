@@ -24,6 +24,7 @@ from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.export_backup_action_directory import ExportBackupToDirectoryAction
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
+from prime_backup.action.scan_unknown_blob_files import ScanUnknownBlobFilesAction
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
 from prime_backup.action.validate_backups_action import ValidateBackupsAction
 from prime_backup.action.validate_blobs_action import ValidateBlobsAction
@@ -503,6 +504,13 @@ class FuzzyRunTestCase(TestCase):
 					self.logger.error(repr(r3))
 					raise
 
+				# check dangling / unused stuffs
+				r_ub = ScanUnknownBlobFilesAction(delete=False, result_sample_limit=100).run()
+				for ub in r_ub.samples:
+					self.logger.info(str(ub))
+				self.assertEqual(0, r_ub.count, 'ScanUnknownBlobFilesAction found {} unknown blobs'.format(r_ub.count))
+
+				# tidying
 				VacuumSqliteAction().run()
 
 			backup_snapshots: Dict[int, Snapshot] = {}

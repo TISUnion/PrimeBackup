@@ -129,7 +129,7 @@ class CommandManager:
 		self.task_manager.add_task(CreateBackupTask(source, comment), callback)
 
 	def cmd_back(self, source: CommandSource, context: CommandContext):
-		def backup_id_consumer(backup_id: int):
+		def backup_id_consumer(backup_id: Optional[int]):
 			needs_confirm = context.get('confirm', 0) == 0
 			fail_soft = context.get('fail_soft', 0) > 0
 			verify_blob = context.get('no_verify', 0) == 0

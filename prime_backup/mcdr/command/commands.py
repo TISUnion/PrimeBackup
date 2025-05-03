@@ -129,11 +129,12 @@ class CommandManager:
 		self.task_manager.add_task(CreateBackupTask(source, comment), callback)
 
 	def cmd_back(self, source: CommandSource, context: CommandContext):
-		needs_confirm = context.get('confirm', 0) == 0
-		fail_soft = context.get('fail_soft', 0) > 0
-		verify_blob = context.get('no_verify', 0) == 0
-		backup_id = context.get('backup_id')
-		self.task_manager.add_task(RestoreBackupTask(source, backup_id, needs_confirm=needs_confirm, fail_soft=fail_soft, verify_blob=verify_blob))
+		def backup_id_consumer(backup_id: int):
+			needs_confirm = context.get('confirm', 0) == 0
+			fail_soft = context.get('fail_soft', 0) > 0
+			verify_blob = context.get('no_verify', 0) == 0
+			self.task_manager.add_task(RestoreBackupTask(source, backup_id, needs_confirm=needs_confirm, fail_soft=fail_soft, verify_blob=verify_blob))
+		self.transform_backup_id_opt(source, context.get('backup_id'), backup_id_consumer)
 
 	def cmd_list(self, source: CommandSource, context: CommandContext):
 		page = context.get('page', 1)
@@ -287,11 +288,17 @@ class CommandManager:
 		else:
 			process_task_result(bid_task.run(allow_db_access=False))
 
+	def transform_backup_id_opt(self, source: CommandSource, backup_id_raw: Optional[str], csm: Callable[[Optional[int]], Any]):
+		if backup_id_raw is None:
+			csm(None)
+		else:
+			self.transform_backup_id(source, backup_id_raw, csm)
+
 	def transform_backup_id(self, source: CommandSource, backup_id_raw: str, csm: Callable[[int], Any]):
-		return self.__transform_backup_id_impl(source, backup_id_raw, csm)
+		self.__transform_backup_id_impl(source, backup_id_raw, csm)
 
 	def transform_backup_ids(self, source: CommandSource, backup_id_raw: List[str], csm: Callable[[List[int]], Any]):
-		return self.__transform_backup_id_impl(source, backup_id_raw, csm)
+		self.__transform_backup_id_impl(source, backup_id_raw, csm)
 
 	def register_command_node(self):
 		if self.__state != CommandManagerState.INITIAL:

@@ -227,9 +227,12 @@ class CommandManager:
 		self.task_manager.add_task(PruneAllBackupTask(source))
 
 	def cmd_diff(self, source: CommandSource, context: CommandContext):
-		backup_id_old = context['backup_id_old']
-		backup_id_new = context['backup_id_new']
-		self.task_manager.add_task(DiffBackupTask(source, backup_id_old, backup_id_new))
+		def backup_id_consumer(backup_ids: List[int]):
+			if len(backup_ids) != 2:
+				raise AssertionError(repr(backup_ids))
+			backup_id_old, backup_id_new = backup_ids
+			self.task_manager.add_task(DiffBackupTask(source, backup_id_old, backup_id_new))
+		self.transform_backup_ids(source, [context['backup_id_old'], context['backup_id_new']], backup_id_consumer)
 
 	def cmd_confirm(self, source: CommandSource, _: CommandContext):
 		self.task_manager.do_confirm(source)

@@ -3,7 +3,7 @@ import threading
 from abc import ABC
 from typing import Union, Optional, TypeVar
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, PermissionLevel
 from typing_extensions import final, override
 
 from prime_backup.action import Action

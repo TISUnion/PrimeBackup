@@ -1,7 +1,8 @@
 from abc import ABC
 from typing import Union, Any
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import ServerInterface, CommandSource, PlayerCommandSource, ConsoleCommandSource, RTextBase, \
+	RText, RTextList, RColor, RAction
 
 
 def tr(key: str, *args, **kwargs) -> RTextBase:

@@ -4,7 +4,7 @@ import threading
 from concurrent import futures
 from typing import Generic, TypeVar, Deque, Union, TYPE_CHECKING, Callable, Optional, Any
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase
 
 from prime_backup.exceptions import PrimeBackupError
 

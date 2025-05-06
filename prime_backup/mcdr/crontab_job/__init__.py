@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.base import BaseScheduler
-from mcdreforged.api.all import *
+from mcdreforged.api.all import RTextBase
 
 if TYPE_CHECKING:
 	from prime_backup.mcdr.task_manager import TaskManager

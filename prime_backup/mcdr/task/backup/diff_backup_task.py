@@ -1,7 +1,7 @@
 import operator
 from typing import Callable, List, TypeVar, Any
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, RText, RTextList, RColor, PermissionLevel
 from typing_extensions import override
 
 from prime_backup.action.diff_backup_action import DiffBackupAction

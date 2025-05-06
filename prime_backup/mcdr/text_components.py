@@ -3,7 +3,7 @@ import stat
 from pathlib import Path
 from typing import Any, Union, Optional, Iterable, List
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import RTextBase, RText, RTextList, RColor, RAction, RStyle
 
 from prime_backup import constants
 from prime_backup.compressors import CompressMethod

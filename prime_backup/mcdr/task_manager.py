@@ -6,7 +6,7 @@ import threading
 from concurrent import futures
 from typing import Optional, Callable, Any, TypeVar
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RText, RColor, RAction, PermissionLevel
 from sqlalchemy.exc import OperationalError
 
 from prime_backup import logger

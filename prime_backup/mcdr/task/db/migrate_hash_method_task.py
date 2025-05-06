@@ -1,4 +1,4 @@
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource
 from typing_extensions import override
 
 from prime_backup import constants

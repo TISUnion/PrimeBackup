@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Any
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, RText, RTextList, RColor, RAction, RTextMCDRTranslation
 from typing_extensions import override
 
 from prime_backup.action.get_backup_action import GetBackupAction

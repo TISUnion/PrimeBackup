@@ -3,7 +3,7 @@ import json
 import re
 from typing import Optional, List
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import ArgumentNode, Text, ParseResult, QuotableText, IllegalArgument, CommandContext
 from typing_extensions import override
 
 from prime_backup.utils import conversion_utils

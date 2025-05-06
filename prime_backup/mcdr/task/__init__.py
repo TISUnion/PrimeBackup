@@ -2,7 +2,7 @@ import enum
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, RColor
 
 from prime_backup.utils import mcdr_utils
 

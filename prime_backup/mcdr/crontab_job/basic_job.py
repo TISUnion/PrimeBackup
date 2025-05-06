@@ -10,7 +10,7 @@ from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, RColor
 from typing_extensions import final, override
 
 from prime_backup import logger

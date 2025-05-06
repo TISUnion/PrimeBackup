@@ -1,4 +1,4 @@
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, RText, RTextList, RColor, RAction
 from typing_extensions import override
 
 from prime_backup.mcdr.crontab_manager import CrontabManager

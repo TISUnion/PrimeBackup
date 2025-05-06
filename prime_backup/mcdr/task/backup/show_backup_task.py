@@ -1,4 +1,4 @@
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, RColor, RAction
 from typing_extensions import override
 
 from prime_backup.action.get_backup_action import GetBackupAction

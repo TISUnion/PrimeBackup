@@ -4,7 +4,9 @@ from concurrent import futures
 from pathlib import Path
 from typing import List, Callable, Optional, Type, Union, Any, Literal as TypingLiteral
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import PluginServerInterface, CommandSource, CommandContext, RText, RColor, AbstractNode, \
+	Literal, ArgumentNode, Text, QuotableText, GreedyText, Integer, Enumeration, CountingLiteral, Boolean, Float, \
+	SimpleCommandBuilder
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config

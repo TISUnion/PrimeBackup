@@ -2,7 +2,7 @@ import contextlib
 import dataclasses
 from typing import List, Iterator
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import RTextBase, RText
 
 from prime_backup.db import schema
 from prime_backup.types.file_info import FileInfo

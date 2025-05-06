@@ -2,7 +2,7 @@ import dataclasses
 import re
 from typing import List, Optional
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import RTextBase, RText, RAction
 
 from prime_backup.config.config import Config
 

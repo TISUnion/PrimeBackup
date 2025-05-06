@@ -3,7 +3,7 @@ import logging
 import time
 from typing import List, Optional, TypeVar, Tuple, Callable, Dict
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, RTextList, RColor, RAction
 from typing_extensions import override
 
 from prime_backup.action import Action

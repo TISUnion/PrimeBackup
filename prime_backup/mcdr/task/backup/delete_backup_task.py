@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import List, Optional
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RText, RColor
 from typing_extensions import override
 
 from prime_backup.action.delete_backup_action import DeleteBackupAction

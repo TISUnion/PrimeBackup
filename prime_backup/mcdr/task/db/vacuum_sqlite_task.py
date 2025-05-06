@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RText, RColor
 from typing_extensions import override
 
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction

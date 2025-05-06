@@ -6,7 +6,7 @@ import time
 from typing import List, Dict, Union, Optional, Callable
 
 import pytz
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, RTextList, RColor
 from typing_extensions import override
 
 from prime_backup.action.delete_backup_action import DeleteBackupAction

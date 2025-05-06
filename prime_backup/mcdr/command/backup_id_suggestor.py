@@ -2,7 +2,7 @@ import threading
 import time
 from typing import List, Optional
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource
 
 from prime_backup import logger
 from prime_backup.mcdr.task.backup.get_backup_ids_task import GetBackupIdsTask

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RText, RColor
 from typing_extensions import override
 
 from prime_backup.action.create_backup_action import CreateBackupAction

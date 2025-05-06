@@ -3,7 +3,7 @@ import functools
 import threading
 from typing import Any, Optional, List
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import ServerInterface
 
 from prime_backup import logger
 from prime_backup.config.config import Config

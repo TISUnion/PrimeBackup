@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RText, RColor
 from typing_extensions import override
 
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction

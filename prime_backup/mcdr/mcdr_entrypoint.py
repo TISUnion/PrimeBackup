@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Optional
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import PluginServerInterface, Info
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config, set_config_instance

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RText, RColor
 from typing_extensions import override
 
 from prime_backup.action.import_backup_action import ImportBackupAction, BackupMetadataNotFound

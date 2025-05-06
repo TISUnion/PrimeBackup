@@ -1,6 +1,6 @@
 from typing import Optional, Union
 
-from mcdreforged.api.all import *
+from mcdreforged.api.all import CommandSource, RTextBase, RText, RColor, RAction
 from typing_extensions import override
 
 from prime_backup import constants

@@ -5,7 +5,7 @@ site_author: Fallen_Breath
 site_description: A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world
 repo_url: https://github.com/TISUnion/PrimeBackup
 repo_name: TISUnion/PrimeBackup
-copyright: Copyright &copy; 2024 Fallen_Breath
+copyright: Copyright &copy; 2025 Fallen_Breath
 exclude_docs: |-
   /requirements.txt
 

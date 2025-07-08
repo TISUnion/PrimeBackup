@@ -1,3 +1,4 @@
+import contextlib
 import threading
 from typing import Optional
 
@@ -31,28 +32,41 @@ class CreateBackupTask(HeavyTask[Optional[int]]):
 	def is_abort_able(self) -> bool:
 		return self.__waiting_world_save
 
+	@contextlib.contextmanager
+	def __autosave_disabler(self):
+		cmd_auto_save_off = self.config.server.commands.auto_save_off
+		cmd_auto_save_on = self.config.server.commands.auto_save_on
+
+		applied_auto_save_off = False
+		if self.server.is_server_running() and self.config.server.turn_off_auto_save and len(cmd_auto_save_off) > 0:
+			self.server.execute(cmd_auto_save_off)
+			applied_auto_save_off = True
+
+		try:
+			yield
+		finally:
+			if applied_auto_save_off and self.server.is_server_running() and len(cmd_auto_save_on) > 0:
+				self.server.execute(cmd_auto_save_on)
+
 	@override
 	def run(self) -> Optional[int]:
 		self.broadcast(self.tr('start'))
 
-		cmds = self.config.server.commands
-		applied_auto_save_off = False
-		if self.server.is_server_running() and self.config.server.turn_off_auto_save and len(cmds.auto_save_off) > 0:
-			self.server.execute(cmds.auto_save_off)
-			applied_auto_save_off = True
-		try:
+		with contextlib.ExitStack() as exit_stack:
+			exit_stack.enter_context(self.__autosave_disabler())
+
 			timer = Timer()
 			if self.server.is_server_running():
-				if len(cmds.save_all_worlds) > 0:
-					self.server.execute(cmds.save_all_worlds)
+				if len(cmd_save_all_worlds := self.config.server.commands.save_all_worlds) > 0:
+					self.server.execute(cmd_save_all_worlds)
 				if len(self.config.server.saved_world_regex) > 0:
 					self.__waiting_world_save = True
-					ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait.value)
+					wait_world_saved_done_ok = self.world_saved_done.wait(timeout=self.config.server.save_world_max_wait.value)
 					self.__waiting_world_save = False
 					if self.aborted_event.is_set():
 						self.broadcast(self.get_aborted_text())
 						return None
-					if not ok:
+					if not wait_world_saved_done_ok:
 						self.broadcast(self.tr('abort.save_wait_time_out').set_color(RColor.red))
 						return None
 			cost_save_wait = timer.get_and_restart()
@@ -80,9 +94,6 @@ class CreateBackupTask(HeavyTask[Optional[int]]):
 				TextComponents.blob_list_summary_store_size(bls),
 			))
 			return backup.id
-		finally:
-			if applied_auto_save_off and len(cmds.auto_save_on) > 0 and self.server.is_server_running():
-				self.server.execute(cmds.auto_save_on)
 
 	@override
 	def on_event(self, event: TaskEvent):

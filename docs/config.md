@@ -285,6 +285,12 @@ Changelog:
 
     Deprecated since v1.8.0. Use [ignore_patterns](#ignore_patterns) instead
 
+!!! danger
+
+    Files matched by `ignored_files` are also not considered during restore.  
+    After the restore, only those files that were backed up will exist in the target folders.  
+    Only use this option for useless files.
+
 A list of file / directory names to be ignored during backup
 
 If the name string starts with `*`, then it will ignore files with name ending with specific string, 
@@ -296,6 +302,12 @@ e.g. `temp*`  makes all files starts with `temp` be ignored, like `tempfile`
 - Type: `List[str]`
 
 #### ignore_patterns
+
+!!! danger
+
+    Files matched by `ignore_patterns` are also not considered during restore.  
+    After the restore, only those files that were backed up will exist in the target folders.  
+    Only use this option for useless files.
 
 A list of [gitignore flavor](http://git-scm.com/docs/gitignore) patterns for matching files / directories to be excluded during the backup
 

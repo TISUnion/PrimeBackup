@@ -11,6 +11,10 @@ from prime_backup.utils.backup_id_parser import BackupIdParser, BackupIdAlternat
 from prime_backup.utils.mcdr_utils import tr
 
 
+class BadDate(IllegalArgument):
+	pass
+
+
 class DateNode(ArgumentNode):
 	@override
 	def parse(self, text: str) -> ParseResult:
@@ -19,7 +23,11 @@ class DateNode(ArgumentNode):
 			ts = conversion_utils.date_to_timestamp_us(result.value.strip())
 			return ParseResult(ts, result.char_read)
 		except ValueError:
-			raise IllegalArgument(tr('error.node.bad_date'), result.char_read)
+			raise BadDate(tr('error.node.bad_date'), result.char_read)
+
+
+class BadBackupId(IllegalArgument):
+	pass
 
 
 class BackupIdNode(Text):
@@ -29,7 +37,7 @@ class BackupIdNode(Text):
 		try:
 			_ = BackupIdParser(allow_db_access=True, dry_run=True).parse(result.value)
 		except ValueError:
-			raise IllegalArgument(tr('error.node.bad_backup_id'), result.char_read)
+			raise BadBackupId(tr('error.node.bad_backup_id'), result.char_read)
 		return result
 
 	@classmethod
@@ -45,6 +53,10 @@ class MultiBackupIdNode(BackupIdNode):
 	def _on_visited(self, context: CommandContext, parsed_result: ParseResult):
 		key = self.get_name()
 		context[key] = context.get(key, []) + [parsed_result.value]
+
+
+class BadIdRange(IllegalArgument):
+	pass
 
 
 class IdRangeNode(ArgumentNode):
@@ -75,8 +87,12 @@ class IdRangeNode(ArgumentNode):
 				r = self.Range(start, end)
 				break
 		else:
-			raise IllegalArgument(tr('error.node.bad_id_range'), result.char_read)
+			raise BadIdRange(tr('error.node.bad_id_range'), result.char_read)
 		return ParseResult(r, result.char_read)
+
+
+class BadHexString(IllegalArgument):
+	pass
 
 
 class HexStringNode(Text):
@@ -87,7 +103,7 @@ class HexStringNode(Text):
 		result = super().parse(text)
 		h: str = result.value.lower()
 		if not self.__pattern.fullmatch(h):
-			raise IllegalArgument(tr('error.node.bad_hex_string'), result.char_read)
+			raise BadHexString(tr('error.node.bad_hex_string'), result.char_read)
 		return ParseResult(h, result.char_read)
 
 

@@ -49,28 +49,38 @@ class ScheduledBackupJob(BasicCrontabJob):
 		if self.config.require_online_players:
 			online_player_counter = OnlinePlayerCounter.get()
 			player_records = online_player_counter.get_player_records()
-			online_players = online_player_counter.get_online_players()
+
 			if player_records is not None:
-				assert (
-					online_players is not None
-				), "online_players must not be None if player_records is not None"
-				base_msg = "Scheduled backup player check, online players: valid={} ignored={}, player records: valid={} ignored={}".format(
-					online_players.valid, online_players.ignored, player_records.valid, player_records.ignored
+				base_msg = "Scheduled backup player check: valid {}, ignored {}".format(
+					[
+						"*" + record.name if record.online else record.name
+						for record in player_records.values()
+						if record.valid
+					],
+					[
+						"*" + record.name if record.online else record.name
+						for record in player_records.values()
+						if not record.valid
+					],
 				)
-				if len(player_records.valid) == 0:
-					self.logger.debug("{}, backup skipped".format(base_msg))
+				if not any(record.valid for record in player_records.values()):
+					self.logger.info("{}, backup skipped".format(base_msg))
 					return
-				elif len(online_players.valid) == 0:
-					self.logger.info("{}, performing the last backup".format(base_msg))
+
+				if not any(
+					record.valid and record.online for record in player_records.values()
+				):
+					self.logger.info(
+						"{}, no valid online player, performing the last backup".format(
+							base_msg
+						)
+					)
 				else:
 					self.logger.info("{}, performing normally".format(base_msg))
 
 				online_player_counter.reset_player_records()
 
 			else:
-				assert (
-					online_players is None
-				), "online_players must be None if player_records is None"
 				base_msg = "Scheduled backup player check: no valid data"
 				self.logger.info("{}, performing normally".format(base_msg))
 

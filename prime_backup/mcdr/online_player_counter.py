@@ -1,7 +1,7 @@
 import dataclasses
 import functools
 import threading
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Dict
 
 from mcdreforged.api.all import *
 
@@ -16,7 +16,10 @@ class PlayerRecord:
 	online: bool
 	valid: bool
 
-_PlayerDict = dict[str, PlayerRecord]
+
+_PlayerDict = Dict[str, PlayerRecord]
+
+
 class OnlinePlayerCounter:
 	__inst: Optional['OnlinePlayerCounter'] = None
 
@@ -65,10 +68,8 @@ class OnlinePlayerCounter:
 					if player_record.online
 				}
 
-	def __try_update_player_dict_from_api(
-		self, *, log_success: bool = False, timeout: float = 10
-	):
-		api = self.server.get_plugin_instance("minecraft_data_api")
+	def __try_update_player_dict_from_api(self, *, log_success: bool = False, timeout: float = 10):
+		api = self.server.get_plugin_instance('minecraft_data_api')
 		if api is None:
 			return None
 
@@ -82,7 +83,7 @@ class OnlinePlayerCounter:
 				self.logger.exception('Queried players from minecraft_data_api error', e)
 				return None
 			if result is None:
-				self.logger.warning("Queried players from minecraft_data_api failed")
+				self.logger.warning('Queried players from minecraft_data_api failed')
 				return None
 
 			with self.data_lock:
@@ -106,25 +107,21 @@ class OnlinePlayerCounter:
 		should_update_from_api = self.server.is_server_startup()
 
 		# delay this for a little bit, in case minecraft_data_api is loading too
-		self.server.schedule_task(
-			functools.partial(self.__on_load, prev, should_update_from_api)
-		)
+		self.server.schedule_task(functools.partial(self.__on_load, prev, should_update_from_api))
 
 	def __on_load(self, prev: Any, should_update_from_api: bool):
-		if (prev_lock := getattr(prev, "data_lock", None)) is not None and type(
-			prev_lock
-		) is type(self.data_lock):
+		if (prev_lock := getattr(prev, 'data_lock', None)) is not None and type(prev_lock) is type(self.data_lock):
 			with prev_lock:
-				prev_data_is_correct = getattr(prev, "data_is_correct", False)
-				prev_player_dict: _PlayerDict = getattr(prev, "player_dict", None)
+				prev_data_is_correct = getattr(prev, 'data_is_correct', False)
+				prev_player_dict: Optional[_PlayerDict] = getattr(prev, 'player_dict', None)
 				if not isinstance(prev_player_dict, dict) or not all(
-					isinstance(record, PlayerRecord)
-					for record in prev_player_dict.values()
+						isinstance(record, PlayerRecord)
+						for record in prev_player_dict.values()
 				):
 					prev_data_is_correct = False
 					prev_player_dict = None
 
-				self.job_data_store = getattr(prev, "job_data_store", {})
+				self.job_data_store = getattr(prev, 'job_data_store', {})
 		else:
 			prev_data_is_correct = False
 			prev_player_dict = None
@@ -146,7 +143,7 @@ class OnlinePlayerCounter:
 			self.__try_update_player_dict_from_api(log_success=True)
 
 	def on_server_start_stop(self, what: str):
-		self.logger.debug(f"Server {what} detected, enable the online player counter")
+		self.logger.debug(f'Server {what} detected, enable the online player counter')
 		with self.data_lock:
 			self.data_is_correct = True
 			self.player_dict = {}
@@ -173,8 +170,4 @@ class OnlinePlayerCounter:
 						self.player_dict[player], online=False
 					)
 				else:
-					self.logger.warning(
-						"Tried to mark non-existent player {} as offline from player dict {}, data desync?".format(
-							player, self.player_dict
-						)
-					)
+					self.logger.warning('Tried to mark non-existent player {} as offline from player dict {}, data desync?'.format(player, self.player_dict))

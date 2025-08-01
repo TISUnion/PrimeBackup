@@ -1,9 +1,10 @@
 import dataclasses
 import functools
 import threading
-from typing import Any, Optional, List, Dict
+from typing import Any, Optional, List, Dict, Callable
 
 from mcdreforged.api.all import ServerInterface
+from typing_extensions import Final
 
 from prime_backup import logger
 from prime_backup.config.config import Config
@@ -17,7 +18,57 @@ class PlayerRecord:
 	valid: bool
 
 
-_PlayerDict = Dict[str, PlayerRecord]
+class PlayerRecords:
+	__NameValidator = Callable[[str], bool]
+
+	def __init__(self, name_validator: __NameValidator):
+		self.__name_validator = functools.lru_cache(maxsize=256)(name_validator)
+		self.__players: Dict[str, PlayerRecord] = {}
+
+	def get_records(self) -> List[PlayerRecord]:
+		return list(self.__players.values())
+
+	def remove_offline_players(self):
+		for player, record in list(self.__players.items()):
+			if not record.online:
+				self.__players.pop(player)
+
+	def set_player(self, player: str, online: bool, *, check_exist: bool = False):
+		if check_exist:
+			_ = self.__players[player]
+		self.__players[player] = PlayerRecord(
+			name=player,
+			online=online,
+			valid=self.__name_validator(player),
+		)
+
+	def clear(self):
+		self.__players.clear()
+
+	@dataclasses.dataclass(frozen=True)
+	class Snapshot:
+		summary: str
+		has_valid: bool
+		has_valid_online: bool
+
+	def create_snapshot(self) -> Snapshot:
+		online_prefix = '', '*'
+		return self.Snapshot(
+			summary='valid {}, ignored {}'.format(
+				[
+					online_prefix[record.online] + record.name
+					for record in self.__players.values()
+					if record.valid
+				],
+				[
+					online_prefix[record.online] + record.name
+					for record in self.__players.values()
+					if not record.valid
+				],
+			),
+			has_valid=any(record.valid for record in self.__players.values()),
+			has_valid_online=any(record.valid and record.online for record in self.__players.values()),
+		)
 
 
 class OnlinePlayerCounter:
@@ -40,38 +91,31 @@ class OnlinePlayerCounter:
 
 		self.data_lock = threading.Lock()
 		self.data_is_correct = False
-		self.job_data_store = {}
-		self.player_dict: _PlayerDict = {}
+		self.player_records: Final[PlayerRecords] = PlayerRecords(self.__is_valid_player)
 
 	def __is_valid_player(self, player_name: str) -> bool:
 		blacklist = self.config.scheduled_backup.require_online_players_blacklist
-		for pattern in blacklist:
-			if not pattern.fullmatch(player_name):
-				return False
+		return all(
+			not pattern.fullmatch(player_name)
+			for pattern in blacklist
+		)
 
-		return True
-
-	def get_player_records(self) -> Optional[_PlayerDict]:
+	def get_player_record_snapshot(self) -> Optional[PlayerRecords.Snapshot]:
 		with self.data_lock:
 			if self.data_is_correct:
-				# deepcopy is not needed here, since PlayerRecord is immutable
-				return self.player_dict.copy()
+				return self.player_records.create_snapshot()
 			else:
 				return None
 
-	def reset_player_records(self):
+	def remove_offline_player_records(self):
 		with self.data_lock:
 			if self.data_is_correct:
-				self.player_dict = {
-					name: player_record
-					for name, player_record in self.player_dict.items()
-					if player_record.online
-				}
+				self.player_records.remove_offline_players()
 
-	def __try_update_player_dict_from_api(self, *, log_success: bool = False, timeout: float = 10):
+	def __try_update_player_records_from_api(self, *, log_success: bool = False, timeout: float = 10):
 		api = self.server.get_plugin_instance('minecraft_data_api')
 		if api is None:
-			return None
+			return
 
 		def query_thread():
 			player_names: List[str] = []
@@ -81,21 +125,16 @@ class OnlinePlayerCounter:
 					player_names = list(map(str, result[2]))
 			except Exception as e:
 				self.logger.exception('Queried players from minecraft_data_api error', e)
-				return None
+				return
 			if result is None:
 				self.logger.warning('Queried players from minecraft_data_api failed')
-				return None
+				return
 
 			with self.data_lock:
 				self.data_is_correct = True
-				self.player_dict = {
-					name: PlayerRecord(
-						name=name,
-						online=True,
-						valid=self.__is_valid_player(name),
-					)
-					for name in player_names
-				}
+				self.player_records.clear()
+				for name in player_names:
+					self.player_records.set_player(name, True)
 
 			if log_success:
 				self.logger.info('Successfully queried online players from minecraft_data_api: {}'.format(player_names))
@@ -110,64 +149,40 @@ class OnlinePlayerCounter:
 		self.server.schedule_task(functools.partial(self.__on_load, prev, should_update_from_api))
 
 	def __on_load(self, prev: Any, should_update_from_api: bool):
-		if (prev_lock := getattr(prev, 'data_lock', None)) is not None and type(prev_lock) is type(self.data_lock):
+		if type(prev_lock := getattr(prev, 'data_lock', None)) is type(self.data_lock):
 			with prev_lock:
-				prev_data_is_correct = getattr(prev, 'data_is_correct', False)
-				prev_player_dict: Optional[_PlayerDict] = getattr(prev, 'player_dict', None)
-				if not isinstance(prev_player_dict, dict) or not all(
-						isinstance(record, PlayerRecord)
-						for record in prev_player_dict.values()
-				):
-					prev_data_is_correct = False
-					prev_player_dict = None
+				prev_data_is_correct: bool = getattr(prev, 'data_is_correct', False)
+				prev_player_records: Optional[PlayerRecords] = getattr(prev, 'player_records', None)
+				if prev_data_is_correct and prev_player_records is not None:
+					self.logger.info('Found existing valid data of the previous online player counter, inherit it')
+					with self.data_lock:
+						self.data_is_correct = True
+						self.player_records.clear()
+						try:
+							for record in prev_player_records.get_records():
+								self.player_records.set_player(record.name, record.online)
+						except AttributeError:
+							self.data_is_correct = False
+							self.player_records.clear()
 
-				self.job_data_store = getattr(prev, 'job_data_store', {})
-		else:
-			prev_data_is_correct = False
-			prev_player_dict = None
-
-		if prev_data_is_correct is True and prev_player_dict is not None:
-			self.logger.info('Found existing valid data of the previous online player counter, inherit it')
-			with self.data_lock:
-				self.data_is_correct = True
-				self.player_dict = {
-					name: PlayerRecord(
-						name=player.name,
-						online=player.online,
-						# Re-validate player name
-						valid=self.__is_valid_player(player.name),
-					)
-					for name, player in prev_player_dict.items()
-				}
-		elif should_update_from_api and self.server.is_server_startup():
-			self.__try_update_player_dict_from_api(log_success=True)
+		if not self.data_is_correct and should_update_from_api and self.server.is_server_startup():
+			self.__try_update_player_records_from_api(log_success=True)
 
 	def on_server_start_stop(self, what: str):
 		self.logger.debug(f'Server {what} detected, enable the online player counter')
 		with self.data_lock:
 			self.data_is_correct = True
-			self.player_dict = {}
+			self.player_records.clear()
 
-	def on_player_joined(self, player_name: str):
+	def on_player_joined(self, player: str):
 		with self.data_lock:
 			if self.data_is_correct:
-				if player_name not in self.player_dict:
-					self.player_dict[player_name] = PlayerRecord(
-						name=player_name,
-						online=True,
-						valid=self.__is_valid_player(player_name),
-					)
-				else:
-					self.player_dict[player_name] = dataclasses.replace(
-						self.player_dict[player_name], online=True
-					)
+				self.player_records.set_player(player, True)
 
 	def on_player_left(self, player: str):
 		with self.data_lock:
 			if self.data_is_correct:
-				if player in self.player_dict:
-					self.player_dict[player] = dataclasses.replace(
-						self.player_dict[player], online=False
-					)
-				else:
-					self.logger.warning('Tried to mark non-existent player {} as offline from player dict {}, data desync?'.format(player, self.player_dict))
+				try:
+					self.player_records.set_player(player, False, check_exist=True)
+				except KeyError:
+					self.logger.warning('Tried to mark non-existent player {} as offline from player dict {}, data desync?'.format(player, self.player_records))

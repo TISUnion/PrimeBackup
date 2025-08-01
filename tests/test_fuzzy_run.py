@@ -14,7 +14,6 @@ import unittest
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, ContextManager, Union, Generator, Tuple, BinaryIO, Deque
-from unittest import TestCase
 
 from typing_extensions import Self, override
 
@@ -405,7 +404,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		return self.__fs_cache.get_summary_text()
 
 
-class FuzzyRunTestCase(TestCase):
+class FuzzyRunTestCase(unittest.TestCase):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.logger = logger.get()

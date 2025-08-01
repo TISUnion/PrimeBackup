@@ -38,6 +38,27 @@ class ScheduledBackupJob(BasicCrontabJob):
 	def job_config(self) -> CrontabJobSetting:
 		return self.config
 
+	def check_online_player_counter(self) -> bool:
+		online_player_counter = OnlinePlayerCounter.get()
+		ss = online_player_counter.get_player_record_snapshot()
+
+		if ss is not None:
+			online_player_counter.remove_offline_player_records()
+			base_msg = 'Scheduled backup player check: {}'.format(ss.summary)
+			if not ss.has_valid:
+				self.logger.info('{}, backup skipped'.format(base_msg))
+				return False
+
+			if not ss.has_valid_online:
+				self.logger.info('{}, no valid online player, performing the last backup'.format(base_msg))
+			else:
+				self.logger.info('{}, performing normally'.format(base_msg))
+		else:
+			base_msg = 'Scheduled backup player check: no valid data'
+			self.logger.info("{}, performing normally".format(base_msg))
+
+		return True
+
 	@override
 	def run(self):
 		if not self.config.enabled:
@@ -47,42 +68,9 @@ class ScheduledBackupJob(BasicCrontabJob):
 			return
 
 		if self.config.require_online_players:
-			online_player_counter = OnlinePlayerCounter.get()
-			player_records = online_player_counter.get_player_records()
-
-			if player_records is not None:
-				base_msg = "Scheduled backup player check: valid {}, ignored {}".format(
-					[
-						"*" + record.name if record.online else record.name
-						for record in player_records.values()
-						if record.valid
-					],
-					[
-						"*" + record.name if record.online else record.name
-						for record in player_records.values()
-						if not record.valid
-					],
-				)
-				if not any(record.valid for record in player_records.values()):
-					self.logger.info("{}, backup skipped".format(base_msg))
-					return
-
-				if not any(
-					record.valid and record.online for record in player_records.values()
-				):
-					self.logger.info(
-						"{}, no valid online player, performing the last backup".format(
-							base_msg
-						)
-					)
-				else:
-					self.logger.info("{}, performing normally".format(base_msg))
-
-				online_player_counter.reset_player_records()
-
-			else:
-				base_msg = "Scheduled backup player check: no valid data"
-				self.logger.info("{}, performing normally".format(base_msg))
+			should_perform = self.check_online_player_counter()
+			if not should_perform:
+				return
 
 		broadcast_message(self.tr('triggered', self.get_name_text_titled()))
 		with contextlib.ExitStack() as exit_stack:

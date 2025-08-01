@@ -38,18 +38,6 @@ class ScheduledBackupJob(BasicCrontabJob):
 	def job_config(self) -> CrontabJobSetting:
 		return self.config
 
-	@property
-	def __store(self) -> dict:
-		return OnlinePlayerCounter.get().job_data_store
-
-	@property
-	def __backups_without_players(self) -> int:
-		return self.__store.get('backups_without_players', 0)
-
-	@__backups_without_players.setter
-	def __backups_without_players(self, value: int):
-		self.__store['backups_without_players'] = value
-
 	@override
 	def run(self):
 		if not self.config.enabled:
@@ -59,22 +47,42 @@ class ScheduledBackupJob(BasicCrontabJob):
 			return
 
 		if self.config.require_online_players:
-			online_players = OnlinePlayerCounter.get().get_online_players()
-			if online_players is not None:
-				base_msg = 'Scheduled backup player check: valid={} ignored={}'.format(online_players.valid, online_players.ignored)
-			else:
-				base_msg = 'Scheduled backup player check: no valid data'
-			if online_players is not None and len(online_players.valid) == 0:
-				if self.__backups_without_players >= 1:
-					self.logger.debug('{}, backup skipped'.format(base_msg))
+			online_player_counter = OnlinePlayerCounter.get()
+			player_records = online_player_counter.get_player_records()
+
+			if player_records is not None:
+				base_msg = "Scheduled backup player check: valid {}, ignored {}".format(
+					[
+						"*" + record.name if record.online else record.name
+						for record in player_records.values()
+						if record.valid
+					],
+					[
+						"*" + record.name if record.online else record.name
+						for record in player_records.values()
+						if not record.valid
+					],
+				)
+				if not any(record.valid for record in player_records.values()):
+					self.logger.info("{}, backup skipped".format(base_msg))
 					return
-				self.__backups_without_players = self.__backups_without_players + 1
-				self.logger.info('{}, performing the last backup'.format(base_msg))
+
+				if not any(
+					record.valid and record.online for record in player_records.values()
+				):
+					self.logger.info(
+						"{}, no valid online player, performing the last backup".format(
+							base_msg
+						)
+					)
+				else:
+					self.logger.info("{}, performing normally".format(base_msg))
+
+				online_player_counter.reset_player_records()
+
 			else:
-				# player exists (True), or no valid data (None)
-				# let's perform the backup
-				self.__backups_without_players = 0
-				self.logger.info('{}, performing normally'.format(base_msg))
+				base_msg = "Scheduled backup player check: no valid data"
+				self.logger.info("{}, performing normally".format(base_msg))
 
 		broadcast_message(self.tr('triggered', self.get_name_text_titled()))
 		with contextlib.ExitStack() as exit_stack:

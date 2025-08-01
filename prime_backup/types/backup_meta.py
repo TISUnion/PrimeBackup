@@ -29,6 +29,14 @@ class BackupMeta(Serializable):
 		version = dt.get('_version', 0)
 		if 'timestamp_ns' not in dt:
 			dt['timestamp_ns'] = time.time_ns()
+
+		# fix https://github.com/TISUnion/PrimeBackup/issues/87
+		# where timestamp_ns was stored as float, and creator was stored as serialized Operator
+		if isinstance(dt['timestamp_ns'], float):
+			dt['timestamp_ns'] = int(dt['timestamp_ns'])
+		if isinstance(dt.get('creator', None), dict):
+			dt['creator'] = str(Operator(type=dt['creator']['type'], name=dt['creator']['name']))
+
 		return cls.deserialize(dt)
 
 	@classmethod
@@ -41,9 +49,9 @@ class BackupMeta(Serializable):
 	@classmethod
 	def from_backup(cls, backup: BackupInfo) -> 'BackupMeta':
 		return cls(
-			creator=backup.creator,
+			creator=str(backup.creator),
 			comment=backup.comment,
-			timestamp_ns=backup.timestamp_us * 1e3,
+			timestamp_ns=backup.timestamp_us * 1000,
 			targets=list(backup.targets),
 			tags=backup.tags.to_dict(),
 		)

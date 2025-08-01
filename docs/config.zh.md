@@ -285,6 +285,12 @@ Prime Backup 在创建备份时的操作时序如下：
 
     于 v1.8.0 弃用。请使用 [ignore_patterns](#ignore_patterns)
 
+!!! danger
+
+    `ignored_files` 匹配的文件在回档时不会被保留。  
+    回档后，目标文件夹中只存在已备份的内容。  
+    仅对无用数据使用此选项。
+
 在备份时忽略的文件名列表
 
 若文件名字符串以 `*` 开头，则将忽略以指定字符串结尾的文件，
@@ -296,6 +302,12 @@ Prime Backup 在创建备份时的操作时序如下：
 - 类型：`List[str]`
 
 #### ignore_patterns
+
+!!! danger
+
+    `ignore_patterns` 匹配的文件在回档时不会被保留。  
+    回档后，目标文件夹中只存在已备份的内容。  
+    仅对无用数据使用此选项。
 
 一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，用于在创建备份的过程中匹配并忽略指定的文件 / 文件夹
 

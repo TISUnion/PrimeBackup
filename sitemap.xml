@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/index.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/index.html"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/index.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/cli.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/cli.html"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/cli.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/command.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/command.html"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/command.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/config.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/config.html"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/config.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/quick_start.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/quick_start.html"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/quick_start.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/reference/index.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/reference/index.html"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/reference/index.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/zh/index.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/index.html"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/index.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/zh/cli.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/cli.html"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/cli.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/zh/command.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/command.html"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/command.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/zh/config.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/config.html"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/config.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/zh/quick_start.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/quick_start.html"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/quick_start.html"/>
+    </url>
+    <url>
+        <loc>https://tisunion.github.io/PrimeBackup/zh/reference/index.html</loc>
+        <lastmod>2025-08-02</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://tisunion.github.io/PrimeBackup/zh/reference/index.html"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://tisunion.github.io/PrimeBackup/reference/index.html"/>
+    </url>
+</urlset>

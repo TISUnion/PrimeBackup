@@ -8,7 +8,26 @@ on:
       - 'tests/**'
 
 jobs:
-  # unit_test:
+  unit_test:
+    runs-on: ubuntu-latest
+    name: unit tests
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: '**/requirements*.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          pip install pytest pytest-cov -r requirements.txt -r requirements.optional.txt
+
+      - name: Run common unit tests
+        run: pytest tests/ --ignore=tests/test_fuzzy_run.py
+
   fuzzy_test:
     runs-on: ubuntu-latest
     strategy:
@@ -18,17 +37,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          cache: 'pip'
+          cache-dependency-path: '**/requirements*.txt'
 
       - name: Install dependencies
         run: |
@@ -36,9 +49,7 @@ jobs:
           pip install pytest pytest-cov -r requirements.txt -r requirements.optional.txt
 
       - name: Run fuzzy test
-        run: |
-          export PYTHONPATH=$(pwd)
-          python tests/test_fuzzy_run.py
+        run: pytest tests/test_fuzzy_run.py
         env:
           PRIME_BACKUP_FUZZY_TEST_SEED: ${{ matrix.seed }}
           PRIME_BACKUP_FUZZY_TEST_ITERATION: ${{ matrix.seed == '0' && '5000' || '500' }}

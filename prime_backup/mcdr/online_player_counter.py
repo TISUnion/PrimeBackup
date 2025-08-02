@@ -154,16 +154,19 @@ class OnlinePlayerCounter:
 				prev_data_is_correct: bool = getattr(prev, 'data_is_correct', False)
 				prev_player_records: Optional[PlayerRecords] = getattr(prev, 'player_records', None)
 				if prev_data_is_correct and prev_player_records is not None:
-					self.logger.info('Found existing valid data of the previous online player counter, inherit it')
+					self.logger.debug('Found existing valid data of the previous online player counter')
 					with self.data_lock:
 						self.data_is_correct = True
 						self.player_records.clear()
 						try:
 							for record in prev_player_records.get_records():
 								self.player_records.set_player(record.name, record.online)
-						except AttributeError:
+						except AttributeError as e:
 							self.data_is_correct = False
 							self.player_records.clear()
+							self.logger.warning('Inherited data from previous online player counter failed: {}'.format(e))
+						else:
+							self.logger.info('Inherited data from previous online player counter: {}'.format(self.player_records.create_snapshot().summary))
 
 		if not self.data_is_correct and should_update_from_api and self.server.is_server_startup():
 			self.__try_update_player_records_from_api(log_success=True)

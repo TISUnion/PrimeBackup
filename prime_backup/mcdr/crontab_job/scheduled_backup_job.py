@@ -46,7 +46,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 			online_player_counter.remove_offline_player_records()
 			base_msg = 'Scheduled backup player check: {}'.format(ss.summary)
 			if not ss.has_valid:
-				self.logger.info('{}, backup skipped'.format(base_msg))
+				self.logger.debug('{}, backup skipped'.format(base_msg))
 				return False
 
 			if not ss.has_valid_online:

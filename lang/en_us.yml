@@ -1,5 +1,9 @@
 prime_backup:
   command:
+    disabled:
+      disabled_by_config: '{} is disabled by config'
+      read_doc: 'Please read and follow the document to enable {0}: {1}'
+      doc_url: 'https://tisunion.github.io/PrimeBackup/quick_start.html'
     help:
       no_help: No detailed help message for command {}
     confirm:

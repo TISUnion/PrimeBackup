@@ -1,5 +1,9 @@
 prime_backup:
   command:
+    disabled:
+      disabled_by_config: '{}已在配置文件中被禁用'
+      read_doc: '请阅读并遵循文档指引，以启用{0}: {1}'
+      doc_url: 'https://tisunion.github.io/PrimeBackup/zh/quick_start.html'
     help:
       no_help: 指令{}无详细帮助内容
     confirm:

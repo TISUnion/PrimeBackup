@@ -14,7 +14,8 @@ from prime_backup.mcdr.command.commands import CommandManager
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.online_player_counter import OnlinePlayerCounter
 from prime_backup.mcdr.task_manager import TaskManager
-from prime_backup.utils import misc_utils
+from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.utils import misc_utils, mcdr_utils
 
 config: Optional[Config] = None
 task_manager: Optional[TaskManager] = None
@@ -44,12 +45,14 @@ def is_enabled() -> bool:
 
 
 def on_load(server: PluginServerInterface, old):
+	self_name = server.get_self_metadata().name
+
 	@contextlib.contextmanager
 	def handle_init_error():
 		try:
 			yield
 		except Exception:
-			server.logger.error('{} initialization failed and will be disabled'.format(server.get_self_metadata().name))
+			server.logger.error('{} initialization failed and will be disabled'.format(self_name))
 			server.schedule_task(functools.partial(on_unload, server))
 			raise
 
@@ -67,14 +70,28 @@ def on_load(server: PluginServerInterface, old):
 
 		global init_ok
 		init_ok = is_enabled()
-		server.logger.debug('{} init done, init_ok={}'.format(mcdr_globals.metadata.name, init_ok))
+		server.logger.debug('{} init done, init_ok={}'.format(self_name, init_ok))
+
+	def register_disabled_command():
+		from mcdreforged.api.all import SimpleCommandBuilder, CommandSource, RColor
+		builder = SimpleCommandBuilder()
+
+		@builder.command(config.command.prefix)
+		def handle_root(source: CommandSource):
+			with source.preferred_language_context():
+				doc_url = mcdr_utils.tr('command.disabled.doc_url').to_plain_text()
+			mcdr_utils.reply_message(source, mcdr_utils.tr('command.disabled.disabled_by_config', self_name).set_color(RColor.yellow))
+			mcdr_utils.reply_message(source, mcdr_utils.tr('command.disabled.read_doc', self_name, TextComponents.url(doc_url)))
+
+		builder.register(server)
 
 	global config, task_manager, command_manager, crontab_manager, online_player_counter
 	with handle_init_error():
 		config = server.load_config_simple(target_class=Config, failure_policy='raise')
 		set_config_instance(config)
 		if not is_enabled():
-			server.logger.warning('{} is disabled by config'.format(mcdr_globals.metadata.name))
+			server.logger.warning('{} is disabled by config'.format(self_name))
+			register_disabled_command()
 			return
 
 		task_manager = TaskManager()

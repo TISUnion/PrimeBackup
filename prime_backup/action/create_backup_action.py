@@ -11,7 +11,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, Literal, BinaryIO
+from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, Literal, BinaryIO, ContextManager, overload, TypeVar
 
 import pathspec
 from typing_extensions import NoReturn, override, Self
@@ -195,15 +195,21 @@ class BlobByHashFetcher(BatchFetcherBase):
 		self.hashes.clear()
 
 
-class BatchQueryManager:
-	Reqs = Union[BlobBySizeFetcher.Req, BlobByHashFetcher.Req]
-	Rsps = Union[BlobBySizeFetcher.Rsp, BlobByHashFetcher.Rsp]
+BqmReq = Union[BlobBySizeFetcher.Req, BlobByHashFetcher.Req]
+BqmRsp = Union[BlobBySizeFetcher.Rsp, BlobByHashFetcher.Rsp]
 
+
+class BatchQueryManager:
 	def __init__(self, session: DbSession, size_result_cache: dict, hash_result_cache: dict, time_costs: TimeCostStats[_TimeCostKey], *, max_batch_size: int = 100):
 		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size, size_result_cache, time_costs)
 		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size, hash_result_cache, time_costs)
 
-	def query(self, query: Reqs, callback: Callable[[Rsps], None]):
+	@overload
+	def query(self, query: BlobBySizeFetcher.Req, callback: Callable[[BlobBySizeFetcher.Rsp], None]): ...
+	@overload
+	def query(self, query: BlobByHashFetcher.Req, callback: Callable[[BlobByHashFetcher.Rsp], None]): ...
+
+	def query(self,query: BqmReq, callback: Callable[[BqmRsp], None]):
 		if isinstance(query, BlobBySizeFetcher.Req):
 			self.fetcher_size.query(query, callback)
 		elif isinstance(query, BlobByHashFetcher.Req):
@@ -678,6 +684,86 @@ class CreateBackupAction(CreateBackupActionBase):
 			blob=blob,
 		)
 
+	def __create_backup(self, session_context: ContextManager[DbSession], session: DbSession) -> BackupInfo:
+		self.logger.info('Scanning file for backup creation at path {!r}, targets: {}'.format(
+			self.__source_path.as_posix(), self.config.backup.targets,
+		))
+		with self.__time_costs.measure_time_cost(_TimeCostKey.stage_scan_files):
+			scan_result = self.__scan_files()
+		backup = session.create_backup(
+			creator=str(self.creator),
+			comment=self.comment,
+			targets=scan_result.root_targets,
+			tags=self.tags.to_dict(),
+		)
+		self.logger.info('Creating backup for {} at path {!r}, file cnt {}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
+			scan_result.root_targets, self.__source_path.as_posix(), len(scan_result.all_files),
+			backup.timestamp, backup.creator, backup.comment, backup.tags,
+		))
+
+		self.__pre_calculate_stats(scan_result)
+		if self.config.backup.reuse_stat_unchanged_file:
+			with self.__time_costs.measure_time_cost(_TimeCostKey.stage_reuse_unchanged_files):
+				self.__reuse_unchanged_files(session, scan_result)
+			self.logger.info('Reused {} / {} stat unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
+		if self.config.get_effective_concurrency() > 1:
+			with self.__time_costs.measure_time_cost(_TimeCostKey.stage_pre_calculate_hash):
+				self.__pre_calculate_hash(session, scan_result)
+			self.logger.info('Pre-calculate all file hash done')
+
+		with self.__time_costs.measure_time_cost(_TimeCostKey.stage_prepare_blob_store, _TimeCostKey.kind_fs):
+			blob_utils.prepare_blob_directories()
+			bs_path = blob_utils.get_blob_store()
+			self.__blob_store_st = bs_path.stat()
+			self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
+
+		@functools.lru_cache(None)
+		def get_skip_missing_source_file_patterns() -> pathspec.GitIgnoreSpec:
+			return pathspec.GitIgnoreSpec.from_lines(self.config.backup.creation_skip_missing_file_patterns)
+
+		def should_skip_missing_source_file(src_file_path: Path) -> bool:
+			if self.config.backup.creation_skip_missing_file:
+				try:
+					rel_path = src_file_path.relative_to(self.__source_path)
+				except ValueError:
+					self.logger.error("Path {!r} is not inside the source path {!r}".format(str(src_file_path), str(self.__source_path)))
+				else:
+					return get_skip_missing_source_file_patterns().match_file(rel_path)
+			return False
+
+		files = []
+		with self.__time_costs.measure_time_cost(_TimeCostKey.stage_create_files):
+			schedule_queue: Deque[Tuple[Generator[BqmReq, Optional[BqmRsp], schema.File], Optional[BqmRsp]]] = collections.deque()
+			for file_entry in scan_result.all_files:
+				schedule_queue.append((self.__create_file(session, file_entry.path), None))
+			while len(schedule_queue) > 0:
+				gen, value = schedule_queue.popleft()
+				try:
+					def callback(query_rsp: BqmRsp, g=gen):
+						schedule_queue.appendleft((g, query_rsp))
+
+					query_req = gen.send(value)
+					self.__batch_query_manager.query(query_req, callback)
+				except StopIteration as e:
+					files.append(misc_utils.ensure_type(e.value, schema.File))
+				except _SourceFileNotFound as e:
+					if should_skip_missing_source_file(e.file_path):
+						self.logger.warning('Backup source file {!r} not found, suppressed and skipped by config'.format(str(e.file_path)))
+					else:
+						raise
+
+				self.__batch_query_manager.flush_if_needed()
+				if len(schedule_queue) == 0:
+					self.__batch_query_manager.flush()
+
+		with self.__time_costs.measure_time_cost(_TimeCostKey.stage_finalize):
+			self._finalize_backup_and_files(session, backup, files)
+		info = BackupInfo.of(backup)
+
+		with self.__time_costs.measure_time_cost(_TimeCostKey.stage_flush_db, _TimeCostKey.kind_db):
+			session_context.__exit__(None, None, None)
+		return info
+
 	@override
 	def run(self) -> BackupInfo:
 		super().run()
@@ -694,84 +780,7 @@ class CreateBackupAction(CreateBackupActionBase):
 			session_context = DbAccess.open_session()
 			with session_context as session:
 				self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache, self.__time_costs)
-
-				self.logger.info('Scanning file for backup creation at path {!r}, targets: {}'.format(
-					self.__source_path.as_posix(), self.config.backup.targets,
-				))
-				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_scan_files):
-					scan_result = self.__scan_files()
-				backup = session.create_backup(
-					creator=str(self.creator),
-					comment=self.comment,
-					targets=scan_result.root_targets,
-					tags=self.tags.to_dict(),
-				)
-				self.logger.info('Creating backup for {} at path {!r}, file cnt {}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
-					scan_result.root_targets, self.__source_path.as_posix(), len(scan_result.all_files),
-					backup.timestamp, backup.creator, backup.comment, backup.tags,
-				))
-
-				self.__pre_calculate_stats(scan_result)
-				if self.config.backup.reuse_stat_unchanged_file:
-					with self.__time_costs.measure_time_cost(_TimeCostKey.stage_reuse_unchanged_files):
-						self.__reuse_unchanged_files(session, scan_result)
-					self.logger.info('Reused {} / {} stat unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
-				if self.config.get_effective_concurrency() > 1:
-					with self.__time_costs.measure_time_cost(_TimeCostKey.stage_pre_calculate_hash):
-						self.__pre_calculate_hash(session, scan_result)
-					self.logger.info('Pre-calculate all file hash done')
-
-				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_prepare_blob_store, _TimeCostKey.kind_fs):
-					blob_utils.prepare_blob_directories()
-					bs_path = blob_utils.get_blob_store()
-					self.__blob_store_st = bs_path.stat()
-					self.__blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
-
-				@functools.lru_cache(None)
-				def get_skip_missing_source_file_patterns() -> pathspec.GitIgnoreSpec:
-					return pathspec.GitIgnoreSpec.from_lines(self.config.backup.creation_skip_missing_file_patterns)
-
-				def should_skip_missing_source_file(src_file_path: Path) -> bool:
-					if self.config.backup.creation_skip_missing_file:
-						try:
-							rel_path = src_file_path.relative_to(self.__source_path)
-						except ValueError:
-							self.logger.error("Path {!r} is not inside the source path {!r}".format(str(src_file_path), str(self.__source_path)))
-						else:
-							return get_skip_missing_source_file_patterns().match_file(rel_path)
-					return False
-
-				files = []
-				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_create_files):
-					schedule_queue: Deque[Tuple[Generator, Any]] = collections.deque()
-					for file_entry in scan_result.all_files:
-						schedule_queue.append((self.__create_file(session, file_entry.path), None))
-					while len(schedule_queue) > 0:
-						gen, value = schedule_queue.popleft()
-						try:
-							def callback(query_rsp, g=gen):
-								schedule_queue.appendleft((g, query_rsp))
-
-							query_req = gen.send(value)
-							self.__batch_query_manager.query(query_req, callback)
-						except StopIteration as e:
-							files.append(misc_utils.ensure_type(e.value, schema.File))
-						except _SourceFileNotFound as e:
-							if should_skip_missing_source_file(e.file_path):
-								self.logger.warning('Backup source file {!r} not found, suppressed and skipped by config'.format(str(e.file_path)))
-							else:
-								raise
-
-						self.__batch_query_manager.flush_if_needed()
-						if len(schedule_queue) == 0:
-							self.__batch_query_manager.flush()
-
-				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_finalize):
-					self._finalize_backup_and_files(session, backup, files)
-				info = BackupInfo.of(backup)
-
-				with self.__time_costs.measure_time_cost(_TimeCostKey.stage_flush_db, _TimeCostKey.kind_db):
-					session_context.__exit__(None, None, None)
+				info = self.__create_backup(session_context, session)
 		except Exception as e:
 			self._apply_blob_rollback()
 			raise e

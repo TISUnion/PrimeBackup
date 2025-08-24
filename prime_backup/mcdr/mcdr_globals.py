@@ -25,4 +25,5 @@ __init()
 
 
 def load():
-	pass
+	from prime_backup import logger
+	logger.get()

@@ -216,6 +216,7 @@ Prime Backup 在创建备份时的操作时序如下：
     "ignore_patterns": [
        "**/session.lock"
     ],
+    "retain_patterns": [],
     "follow_target_symlink": false,
     "reuse_stat_unchanged_file": false,
 	"creation_skip_missing_file": false,
@@ -309,13 +310,32 @@ Prime Backup 在创建备份时的操作时序如下：
     回档后，目标文件夹中只存在已备份的内容。  
     仅对无用数据使用此选项。
 
-一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，用于在创建备份的过程中匹配并忽略指定的文件 / 文件夹
+一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，
+被匹配中的文件 / 文件夹将在创建备份时被忽略
 
 模板串匹配时的根路径是 [source_root](#source_root)。
 例如，如果 `source_root` 是 `server`，那么模板串 `world/trash*.obj` 将匹配 `server/world/trash1.obj`
 
 默认包含一个 `**/session.lock` 模板串，用于匹配位于任何位置的，名为 `session.lock` 的文件，
 以解决 Windows 下 `session.lock` 被服务端占用导致备份失败的问题
+
+- 类型：`List[str]`
+
+#### retain_patterns
+
+一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，
+被匹配中的文件 / 文件夹将在创建备份时被忽略、在还原备份时被保留
+
+模板串匹配时的根路径是 [source_root](#source_root)。
+例如，如果 `source_root` 是 `server`，那么模板串 `world/trash*.obj` 将匹配 `server/world/trash1.obj`
+
+建议设置为那些无需备份，但仍需保留的文件，
+如服务端模组的大体积数据库、网页地图的渲染输出等
+
+| 选项                                  | 用途             | 备份时忽略 | 还原时保留 |
+|-------------------------------------|----------------|-------|-------|
+| [ignore_patterns](#ignore_patterns) | 忽略 + 抛弃无用的数据   | √     | ×     |
+| [retain_patterns](#retain_patterns) | 忽略 + 保留无需备份的数据 | √     | √     |
 
 - 类型：`List[str]`
 

@@ -216,6 +216,7 @@ Configs on how the backup is made
     "ignore_patterns": [
        "**/session.lock"
     ],
+    "retain_patterns": [],
     "follow_target_symlink": false,
     "reuse_stat_unchanged_file": false,
 	"creation_skip_missing_file": false,
@@ -309,13 +310,32 @@ e.g. `temp*`  makes all files starts with `temp` be ignored, like `tempfile`
     After the restore, only those files that were backed up will exist in the target folders.  
     Only use this option for useless files.
 
-A list of [gitignore flavor](http://git-scm.com/docs/gitignore) patterns for matching files / directories to be excluded during the backup
+A list of [gitignore-style](http://git-scm.com/docs/gitignore) pattern strings.
+Files or directories matching these patterns will be ignored during backup creation
 
-The root path for the pattern matching is [source_root](#source_root).
-For example, if `source_root` is `server`, then pattern `world/trash*.obj` will match `server/world/trash1.obj`
+The root path for pattern matching is [source_root](#source_root).
+For example, if `source_root` is `server`, then the pattern `world/trash*.obj` will match `server/world/trash1.obj`
 
 It contains a `**/session.lock` pattern by default, which matches files named `session.lock` in any location.
 It's used to solve the backup failure problem caused by `session.lock` being occupied by the server in Windows OS
+
+- Type: `List[str]`
+
+#### retain_patterns
+
+A list of [gitignore-style](http://git-scm.com/docs/gitignore) pattern strings.
+Files or directories matching these patterns will be ignored during backup creation but retained when restoring a backup
+
+The root path for pattern matching is [source_root](#source_root).  
+For example, if `source_root` is `server`, then the pattern `world/trash*.obj` will match `server/world/trash1.obj`
+
+This option is recommended for files that do not need to be backed up but should still be kept,
+such as large databases used by mods or rendered outputs of web maps
+
+| Option                              | Purpose                                | Ignored on Backup | Retained on Restore |
+|-------------------------------------|----------------------------------------|-------------------|---------------------|
+| [ignore_patterns](#ignore_patterns) | Ignore & discard unnecessary data      | √                 | ×                   |
+| [retain_patterns](#retain_patterns) | Ignore but retain unneeded backup data | √                 | √                   |
 
 - Type: `List[str]`
 

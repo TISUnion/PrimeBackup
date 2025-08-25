@@ -103,6 +103,7 @@ class RestoreBackupTask(HeavyTask[None]):
 			restore_mode=True,
 			fail_soft=self.fail_soft,
 			verify_blob=self.verify_blob,
+			retain_patterns=self.config.backup.retain_patterns,
 		).run()
 		cost_restore = timer.get_and_restart()
 

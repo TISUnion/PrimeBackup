@@ -279,10 +279,13 @@ class CreateBackupAction(CreateBackupActionBase):
 		return path.relative_to(self.__source_path).as_posix()
 
 	def __scan_files(self) -> _ScanResult:
-		ignore_patterns = pathspec.GitIgnoreSpec.from_lines(self.config.backup.ignore_patterns)
+		ignore_or_retained_patterns = pathspec.GitIgnoreSpec.from_lines([
+			*self.config.backup.ignore_patterns,
+			*self.config.backup.retain_patterns,
+		])
 		result = _ScanResult()
 		visited_path: Set[Path] = set()  # full path
-		ignored_paths: List[Path] = []   # related path
+		ignored_or_retained_paths: List[Path] = []   # related path
 
 		def scan(full_path: Path, is_root_target: bool):
 			try:
@@ -291,10 +294,10 @@ class CreateBackupAction(CreateBackupActionBase):
 				self.logger.warning("Skipping backup path {!r} cuz it's not inside the source path {!r}".format(str(full_path), str(self.__source_path)))
 				return
 
-			if ignore_patterns.match_file(rel_path) or self.config.backup.is_file_ignore_by_deprecated_ignored_files(rel_path.name):
-				ignored_paths.append(rel_path)
+			if ignore_or_retained_patterns.match_file(rel_path) or self.config.backup.is_file_ignore_by_deprecated_ignored_files(rel_path.name):
+				ignored_or_retained_paths.append(rel_path)
 				if is_root_target:
-					self.logger.warning('Backup target {!r} is ignored by config'.format(str(rel_path)))
+					self.logger.warning('Backup target {!r} is ignored or retained by config'.format(str(rel_path)))
 				return
 
 			if full_path in visited_path:
@@ -335,10 +338,10 @@ class CreateBackupAction(CreateBackupActionBase):
 			for target_path in target_paths:
 				scan(target_path, True)
 
-		self.logger.debug('Scan file done, cost {:.2f}s, count {}, root_targets (len={}): {}, ignored_paths[:100] (len={}): {}'.format(
+		self.logger.debug('Scan file done, cost {:.2f}s, count {}, root_targets (len={}): {}, ignored_or_retained_paths[:100] (len={}): {}'.format(
 			scan_cost(), len(result.all_files),
 			len(result.root_targets), result.root_targets,
-			len(ignored_paths), [p.as_posix() for p in ignored_paths][:100],
+			len(ignored_or_retained_paths), [p.as_posix() for p in ignored_or_retained_paths][:100],
 		))
 		return result
 

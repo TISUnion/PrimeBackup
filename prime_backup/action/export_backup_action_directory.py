@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import os
 import queue
 import shutil
@@ -6,11 +7,13 @@ import stat
 import threading
 import time
 from pathlib import Path
-from typing import Optional, List, Tuple
+from typing import Optional, List, Dict, Tuple
 
+import pathspec
 from typing_extensions import override, Unpack
 
 from prime_backup import constants
+from prime_backup import logger
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
@@ -28,27 +31,123 @@ def _i_am_root():
 
 class _TrashBin:
 	def __init__(self, trash_bin_path: Path):
-		file_utils.rm_rf(trash_bin_path, missing_ok=True)
-		trash_bin_path.mkdir(parents=True, exist_ok=True)
-
 		self.trash_bin_path = trash_bin_path
 		self.trashes: List[Tuple[Path, Path]] = []  # (trash path, original path)
 
-	def add(self, src_path: Path, relpath_in_bin: Path):
-		dst_path = self.trash_bin_path / relpath_in_bin
+	def add(self, src_path: Path, relative_path_in_bin: Path):
+		dst_path = self.trash_bin_path / relative_path_in_bin
 		dst_path.parent.mkdir(parents=True, exist_ok=True)
 		shutil.move(src_path, dst_path)
 		self.trashes.append((dst_path, src_path))
-
-	def erase(self):
-		shutil.rmtree(self.trash_bin_path)
 
 	def restore(self):
 		for trash_path, original_path in self.trashes:
 			file_utils.rm_rf(original_path, missing_ok=True)
 			shutil.move(trash_path, original_path)
-
 		self.trashes.clear()
+
+
+class _FileRetainer:
+	def __init__(self, base_dir: Path, patterns: List[str], retain_dir: Path):
+		self.logger: logging.Logger = logger.get()
+		self.base_dir = base_dir
+		self.patterns = pathspec.GitIgnoreSpec.from_lines(patterns)
+		self.retain_dir = retain_dir
+		self.__file_mappings: Dict[Path, Path] = {}  # temp path -> origin path
+		self.__has_moved_away = False
+		self.__has_moved_back = False
+
+	def move_away(self):
+		if self.__has_moved_away:
+			raise RuntimeError('use twice')
+		self.__has_moved_away = True
+
+		def on_error(e: Exception):
+			raise e
+
+		matched_paths: List[Tuple[str, Path]] = []
+		for ent in self.patterns.match_tree_entries(self.base_dir, on_error=on_error, follow_links=False):
+			ent_path = Path(ent.path)
+			matched_paths.append((ent_path.as_posix(), ent_path))
+
+		for _, rel_path in sorted(matched_paths):  # parent first
+			src_path = Path(self.base_dir) / rel_path
+			dst_path = self.retain_dir / rel_path
+			if src_path.exists():  # check to see if the parent has already been moved
+				self.logger.debug('Relocating retained file from {!r} to {!r}'.format(src_path.as_posix(), dst_path.as_posix()))
+				dst_path.parent.mkdir(parents=True, exist_ok=True)
+				shutil.move(src_path, dst_path)
+				self.__file_mappings[dst_path] = src_path
+		self.logger.debug('Relocated {} retained files'.format(len(self.__file_mappings)))
+
+	def move_back(self):
+		if self.__has_moved_back:
+			return
+		# set the flag first
+		# don't retry if an exception occurs during the move-back process
+		self.__has_moved_back = True
+
+		for tmp_path, origin_path in self.__file_mappings.items():
+			shutil.move(tmp_path, origin_path)
+		self.__file_mappings.clear()
+		if self.retain_dir.is_dir():
+			shutil.rmtree(self.retain_dir)
+
+
+class _ExportTempDirectory:
+	def __init__(self, output_path: Path, retain_patterns: List[str]):
+		from prime_backup.config.config import Config
+		self.logger: logging.Logger = logger.get()
+		config: Config = Config.get()
+
+		# make temp_dir name
+		self.__temp_dir_base_name = f'.{constants.PLUGIN_ID}.export_temp'
+		temp_dir_name = f'{self.__temp_dir_base_name}_{os.getpid()}_{threading.current_thread().ident}'
+
+		# decide temp_dir_path
+		config.temp_path.mkdir(parents=True, exist_ok=True)
+		if config.temp_path.stat().st_dev == output_path.stat().st_dev:
+			self.__temp_dir_path = config.temp_path / temp_dir_name
+		else:
+			self.__temp_dir_path = output_path / temp_dir_name
+
+		# init trash bin
+		self.__trash_bin_path = self.__temp_dir_path / 'trash_bin'
+		self.__trash_bin = _TrashBin(self.__trash_bin_path)
+
+		# init retainer
+		self.__retain_dir_path = self.__temp_dir_path / 'retained'
+		self.__retainer: Optional[_FileRetainer] = None
+		if len(retain_patterns) > 0:
+			self.__retainer = _FileRetainer(output_path, retain_patterns, self.__retain_dir_path)
+
+		self.logger.debug('Exporting temp directory {!r}'.format(self.__temp_dir_path))
+
+	@property
+	def trash_bin(self) -> _TrashBin:
+		return self.__trash_bin
+
+	@property
+	def retainer(self) -> Optional[_FileRetainer]:
+		return self.__retainer
+
+	def prepare(self):
+		file_utils.rm_rf(self.__temp_dir_path, missing_ok=True)
+		self.__trash_bin_path.mkdir(parents=True, exist_ok=True)
+		if self.__retainer is not None:
+			self.__retain_dir_path.mkdir(parents=True, exist_ok=True)
+
+		try:
+			# remove existing undeleted trash bins
+			for f in self.__trash_bin_path.parent.iterdir():
+				if f.name.startswith(self.__temp_dir_base_name):
+					self.logger.warning('Removing existing undeleted temp dir {}'.format(f))
+					file_utils.rm_rf(f)
+		except OSError as e:
+			self.logger.warning('Error when removing existing undeleted temp dirs: {}'.format(e))
+
+	def erase(self):
+		shutil.rmtree(self.__temp_dir_path)
 
 
 class ExportBackupToDirectoryAction(_ExportBackupActionBase):
@@ -63,6 +162,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			restore_mode: bool = False,
 			child_to_export: Optional[Path] = None,
 			recursively_export_child: bool = False,
+			retain_patterns: Optional[List[str]] = None,
 			**kwargs: Unpack[ExportBackupActionCommonInitKwargs],
 	):
 		"""
@@ -73,6 +173,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		self.restore_mode = restore_mode
 		self.child_to_export = child_to_export
 		self.recursively_export_child = recursively_export_child
+		self.retain_patterns: List[str] = retain_patterns or []
 
 		if self.restore_mode and self.child_to_export is not None:
 			raise ValueError('restore mode does not support exporting child')
@@ -182,22 +283,10 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		# 2. do the export
 
 		self.output_path.mkdir(parents=True, exist_ok=True)
-		self.config.temp_path.mkdir(parents=True, exist_ok=True)
-		trash_bin_name_base = f'.{constants.PLUGIN_ID}.export_trashes'
-		trash_bin_dir_name = f'{trash_bin_name_base}_{os.getpid()}_{threading.current_thread().ident}'
-		trash_bin_path = self.config.temp_path / trash_bin_dir_name
-		if self.config.temp_path.stat().st_dev != self.output_path.stat().st_dev:
-			trash_bin_path = self.output_path / trash_bin_dir_name
-		try:
-			# remove existing undeleted trash bins
-			for f in trash_bin_path.parent.iterdir():
-				if f.name.startswith(trash_bin_name_base):
-					self.logger.warning('Removing existing undeleted trash bin {}'.format(f))
-					file_utils.rm_rf(f)
-		except OSError as e:
-			self.logger.warning('Error when removing existing undeleted trash bins: {}'.format(e))
-
-		trash_bin = _TrashBin(trash_bin_path)
+		export_temp_dir = _ExportTempDirectory(self.output_path, self.retain_patterns)
+		export_temp_dir.prepare()
+		if export_temp_dir.retainer is not None:
+			export_temp_dir.retainer.move_away()
 		try:
 			if self.restore_mode:
 				# in restore mode, recover what it was like
@@ -205,13 +294,13 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 				for target in backup.targets:
 					target_path = self.output_path / target
 					if os.path.lexists(target_path):
-						trash_bin.add(target_path, Path(target))
+						export_temp_dir.trash_bin.add(target_path, Path(target))
 
 			# parent dir first, so the parent will be added to trash-bin first
 			export_items.sort(key=lambda ei: ei.path_posix)
 			for item in export_items:
 				with failures.handling_exception(item.file):
-					self.__prepare_for_export(item, trash_bin)
+					self.__prepare_for_export(item, export_temp_dir.trash_bin)
 
 			directories: 'queue.Queue[Tuple[schema.File, Path]]' = queue.Queue()
 			with FailFastBlockingThreadPool('export') as pool:
@@ -226,6 +315,10 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 				for item in export_items:
 					pool.submit(export_worker, item)
 
+			# restore retained files before setting directory attrs
+			if export_temp_dir.retainer is not None:
+				export_temp_dir.retainer.move_back()
+
 			# child dir first
 			# reference: tarfile.TarFile.extractall
 			for dir_file, dir_file_path in sorted(
@@ -238,9 +331,11 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 
 		except Exception:
 			self.logger.warning('Error occurs during export to directory, applying rollback')
-			trash_bin.restore()
+			export_temp_dir.trash_bin.restore()
 			raise
 		finally:
-			trash_bin.erase()
+			if export_temp_dir.retainer is not None:
+				export_temp_dir.retainer.move_back()
+			export_temp_dir.erase()
 
 		return failures

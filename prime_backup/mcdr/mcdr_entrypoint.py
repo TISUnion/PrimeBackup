@@ -11,11 +11,11 @@ from prime_backup.config.config import Config, set_config_instance
 from prime_backup.db.access import DbAccess
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.command.commands import CommandManager
+from prime_backup.mcdr.command.disabled_command_helper import DisabledCommandHelper
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.online_player_counter import OnlinePlayerCounter
 from prime_backup.mcdr.task_manager import TaskManager
-from prime_backup.mcdr.text_components import TextComponents
-from prime_backup.utils import misc_utils, mcdr_utils
+from prime_backup.utils import misc_utils
 
 config: Optional[Config] = None
 task_manager: Optional[TaskManager] = None
@@ -72,27 +72,18 @@ def on_load(server: PluginServerInterface, old):
 		init_ok = is_enabled()
 		server.logger.debug('{} init done, init_ok={}'.format(self_name, init_ok))
 
-	def register_disabled_command():
-		from mcdreforged.api.all import SimpleCommandBuilder, CommandSource, RColor
-		builder = SimpleCommandBuilder()
-
-		@builder.command(config.command.prefix)
-		def handle_root(source: CommandSource):
-			with source.preferred_language_context():
-				doc_url = mcdr_utils.tr('command.disabled.doc_url').to_plain_text()
-			mcdr_utils.reply_message(source, mcdr_utils.tr('command.disabled.disabled_by_config', self_name).set_color(RColor.yellow))
-			mcdr_utils.reply_message(source, mcdr_utils.tr('command.disabled.read_doc', self_name, TextComponents.url(doc_url)))
-
-		builder.register(server)
-
 	global config, task_manager, command_manager, crontab_manager, online_player_counter
 	with handle_init_error():
 		config = server.load_config_simple(target_class=Config, failure_policy='raise')
 		set_config_instance(config)
+
+		disabled_command_helper = DisabledCommandHelper(server, self_name)
 		if not is_enabled():
 			server.logger.warning('{} is disabled by config'.format(self_name))
-			register_disabled_command()
+			disabled_command_helper.on_disabled()
 			return
+		else:
+			disabled_command_helper.on_enabled()
 
 		task_manager = TaskManager()
 		crontab_manager = CrontabManager(task_manager)

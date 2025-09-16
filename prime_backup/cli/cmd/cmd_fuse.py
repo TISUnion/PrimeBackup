@@ -44,7 +44,7 @@ class FuseCommandHandler(CliCommandHandlerBase):
 			if os.name != 'posix':
 				self.logger.error('Note that libfuse is not supported on this system ({}). It requires a unix-like system'.format(platform.system()))
 			else:
-				self.logger.error('Note that you need to install the `python-fuse` python package and the libfuse system package to use this command')
+				self.logger.error('Note that you need to install the `fuse-python` python package and the libfuse system package to use this command')
 			ErrorReturnCodes.missing_dependency.sys_exit()
 
 		self.__adjust_fuse_config()

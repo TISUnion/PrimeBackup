@@ -265,6 +265,19 @@ class DbSession:
 		cls.__validate_int_fields_range(file)
 		return file
 
+	@classmethod
+	def create_delta_remove_file(cls, *, path: str, fileset_id: Optional[int] = None) -> schema.File:
+		return cls.create_file(
+			**(dict(fileset_id=fileset_id) if fileset_id is not None else {}),
+			path=path,
+			role=FileRole.delta_remove.value,
+			mode=0,
+			content=None,
+			uid=None,
+			gid=None,
+			mtime=None,
+		)
+
 	def get_file_in_fileset_opt(self, fileset_id: int, path: str) -> Optional[schema.File]:
 		return self.session.get(schema.File, dict(fileset_id=fileset_id, path=path))
 
@@ -383,7 +396,7 @@ class DbSession:
 		backup = self.__convert_backup_or_backup_id_to_backup(backup_or_backup_id)
 		files_base = list_one_fileset(backup.fileset_id_base)
 		files_delta = list_one_fileset(backup.fileset_id_delta)
-		return self.__merge_fileset_files(files_base, files_delta)
+		return self.merge_fileset_files(files_base, files_delta)
 
 	def iterate_file_batch(self, *, batch_size: int = 5000) -> Iterator[List[schema.File]]:
 		limit, offset = batch_size, 0
@@ -724,7 +737,7 @@ class DbSession:
 			raise TypeError(type(backup_or_backup_id))
 
 	@classmethod
-	def __merge_fileset_files(cls, files_base: List[schema.File], files_delta: List[schema.File]) -> List[schema.File]:
+	def merge_fileset_files(cls, files_base: List[schema.File], files_delta: List[schema.File]) -> List[schema.File]:
 		if len(files_delta) == 0:
 			return files_base.copy()
 
@@ -746,7 +759,7 @@ class DbSession:
 		backup = self.__convert_backup_or_backup_id_to_backup(backup_or_backup_id)
 		files_base = self.get_fileset_files(backup.fileset_id_base)
 		files_delta = self.get_fileset_files(backup.fileset_id_delta)
-		return self.__merge_fileset_files(files_base, files_delta)
+		return self.merge_fileset_files(files_base, files_delta)
 
 	def get_backups(self, backup_ids: List[int]) -> Dict[int, schema.Backup]:
 		"""

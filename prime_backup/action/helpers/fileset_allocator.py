@@ -191,15 +191,7 @@ class FilesetAllocator:
 				delta_files.append(old_new.new)
 
 			for old_file in c.delta.removed:
-				file = self.session.create_file(
-					path=old_file.path,
-					role=FileRole.delta_remove.value,
-					mode=0,
-					content=None,
-					uid=None,
-					gid=None,
-					mtime=None,
-				)
+				file = self.session.create_delta_remove_file(path=old_file.path)
 				file_count -= 1
 				file_raw_size_sum -= (old_file.blob_raw_size or 0)
 				file_stored_size_sum -= (old_file.blob_stored_size or 0)

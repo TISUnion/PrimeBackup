@@ -171,6 +171,9 @@ prime_backup:
       pause.hover: Click to pause job {}
       resume: resume
       resume.hover: Click to resume job {}
+    db_delete_backup_file:
+      name: delete backup file
+      done: 'Deleted file {1} in backup {0}, freed {2}'
     db_inspect_backup:
       name: inspect backup
       title: 'Backup {}'
@@ -389,6 +392,7 @@ prime_backup:
           §7{prefix} database inspect file §6<backup_id> §3<file_path>§r: Inspect the internal data of the given file
           §7{prefix} database inspect fileset §3<fileset_id>§r: Inspect the internal data of the given fileset
           §7{prefix} database inspect blob §d<blob_hash>§r: Inspect the internal data of the given blob
+          §7{prefix} database delete file §6<backup_id> §3<file_path>§r: Delete a single file in the given backup. If it's a directory, delete files inside recursively
           §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database. Might take a long time
           §7{prefix} database vacuum§r: Compact the SQLite database manually, to reduce the size of the database file
           §7{prefix} database prune§r: Prune useless objects in the database. Normally this command does not need to be performed manually

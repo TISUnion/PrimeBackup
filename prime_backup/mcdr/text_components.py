@@ -16,6 +16,7 @@ from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount, Duration
 from prime_backup.utils import conversion_utils, misc_utils, backup_utils
 from prime_backup.utils.mcdr_utils import mkcmd, click_and_run
+from prime_backup.utils.path_like import PathLike
 
 
 class TextColors:
@@ -265,7 +266,9 @@ class TextComponents:
 		return RText(type_flag + permissions, color)
 
 	@classmethod
-	def file_name(cls, file_path: Path) -> RTextBase:
+	def file_name(cls, file_path: PathLike) -> RTextBase:
+		if isinstance(file_path, str):
+			file_path = Path(file_path)
 		return RText(file_path.name, TextColors.file).h(file_path.as_posix())
 
 	@classmethod

@@ -171,6 +171,9 @@ prime_backup:
       pause.hover: 点击以暂停运行作业{}
       resume: 继续
       resume.hover: 点击以继续运行作业{}
+    db_delete_backup_file:
+      name: 删除备份中的文件
+      done: '已删除备份{0}中的文件{1}，共释放{2}'
     db_inspect_backup:
       name: 审查备份
       title: '备份{}'
@@ -389,6 +392,7 @@ prime_backup:
           §7{prefix} database inspect file §6<备份ID> §3<文件路径>§r: 审查给定文件的原始信息
           §7{prefix} database inspect fileset §3<文件集ID>§r: 审查给定文件集的原始信息
           §7{prefix} database inspect blob §d<哈希值>§r: 审查给定数据对象的原始信息
+          §7{prefix} database delete file §6<backup_id> §3<file_path>§r: 删除给定备份中的某个文件。若其为文件夹，则递归删除其内部的所有文件
           §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
           §7{prefix} database vacuum§r: 手动执行SQLite数据库的文件整理操作，减少数据库文件的体积
           §7{prefix} database prune§r: 清理数据库中的无效数据。正常情况下该操作无需手动执行

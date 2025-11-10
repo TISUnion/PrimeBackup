@@ -30,6 +30,7 @@ from prime_backup.mcdr.task.backup.transform_backup_id_task import TransformBack
 from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
+from prime_backup.mcdr.task.db.delete_backup_file_task import DeleteBackupFileTask
 from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask
 from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompressMethodTask
 from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
@@ -104,6 +105,12 @@ class CommandManager:
 	def cmd_db_inspect_blob(self, source: CommandSource, context: CommandContext):
 		blob_hash = context['blob_hash']
 		self.task_manager.add_task(InspectBlobTask(source, blob_hash))
+
+	def cmd_db_delete_file(self, source: CommandSource, context: CommandContext):
+		def backup_id_consumer(backup_id: int):
+			file_path = context['file_path']
+			self.task_manager.add_task(DeleteBackupFileTask(source, backup_id, file_path))
+		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
 	def cmd_db_validate(self, source: CommandSource, _: CommandContext, parts: ValidatePart):
 		self.task_manager.add_task(ValidateDbTask(source, parts))
@@ -379,6 +386,7 @@ class CommandManager:
 		builder.command('database inspect file <backup_id> <file_path>', self.cmd_db_inspect_file)
 		builder.command('database inspect fileset <fileset_id>', self.cmd_db_inspect_fileset)
 		builder.command('database inspect blob <blob_hash>', self.cmd_db_inspect_blob)
+		builder.command('database delete file <backup_id> <file_path>', self.cmd_db_delete_file)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidatePart.blobs))
 		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidatePart.files))

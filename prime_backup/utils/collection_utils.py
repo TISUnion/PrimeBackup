@@ -1,7 +1,7 @@
 import dataclasses
 import operator
 import queue
-from typing import TypeVar, Generator, List, Iterator, Collection, Generic, Dict, Callable
+from typing import TypeVar, Generator, List, Iterator, Generic, Dict, Callable, Iterable
 
 _T = TypeVar('_T')
 _K = TypeVar('_K')
@@ -13,8 +13,7 @@ def slicing_iterate(lst: List[_T], chunk_size: int) -> Generator[List[_T], None,
 		yield lst[i:min(i + chunk_size, len(lst))]
 
 
-def deduplicated_list(lst: Collection[_T]) -> List[_T]:
-	# TODO: check if caller's list convertion can be dropped
+def deduplicated_list(lst: Iterable[_T]) -> List[_T]:
 	if isinstance(lst, set):
 		return list(lst)
 	return list(dict.fromkeys(lst).keys())

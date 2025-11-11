@@ -5,7 +5,7 @@ import shutil
 import sqlite3
 import time
 from pathlib import Path
-from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator
+from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_
@@ -737,9 +737,9 @@ class DbSession:
 			raise TypeError(type(backup_or_backup_id))
 
 	@classmethod
-	def merge_fileset_files(cls, files_base: List[schema.File], files_delta: List[schema.File]) -> List[schema.File]:
-		if len(files_delta) == 0:
-			return files_base.copy()
+	def merge_fileset_files(cls, files_base: Iterable[schema.File], files_delta: Iterable[schema.File]) -> List[schema.File]:
+		if isinstance(files_delta, list) and len(files_delta) == 0:
+			return list(files_base)
 
 		path_to_file = {file.path: file for file in files_base}
 		for file in files_delta:

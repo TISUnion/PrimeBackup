@@ -173,6 +173,12 @@ prime_backup:
       resume.hover: Click to resume job {}
     db_delete_backup_file:
       name: delete backup file
+      start: 'Deleting file {1} in backup {0}'
+      info.regular: 'File type: {0}, raw size: {1}'
+      info.directory: 'File type: {0}, directory tree size: {1} ({2} files, {3} directories), raw size sum: {4}'
+      cannot_delete_root: 'Cannot delete the root directory'
+      cannot_delete_directory: 'Cannot delete directory {0} without the --recursive argument'
+      confirm_target: delete
       done: 'Deleted file {1} in backup {0}, freed {2}'
     db_inspect_backup:
       name: inspect backup
@@ -392,7 +398,7 @@ prime_backup:
           §7{prefix} database inspect file §6<backup_id> §3<file_path>§r: Inspect the internal data of the given file
           §7{prefix} database inspect fileset §3<fileset_id>§r: Inspect the internal data of the given fileset
           §7{prefix} database inspect blob §d<blob_hash>§r: Inspect the internal data of the given blob
-          §7{prefix} database delete file §6<backup_id> §3<file_path>§r: Delete a single file in the given backup. If it's a directory, delete files inside recursively
+          §7{prefix} database delete file §6<backup_id> §3<file_path> §7[--recursive]§r: Delete given file in the given backup. If §7[--recursive]§r and it's a directory, delete everything inside it
           §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database. Might take a long time
           §7{prefix} database vacuum§r: Compact the SQLite database manually, to reduce the size of the database file
           §7{prefix} database prune§r: Prune useless objects in the database. Normally this command does not need to be performed manually
@@ -400,7 +406,7 @@ prime_backup:
           §7{prefix} database migrate_hash_method <hash_method>§r: Migrate the currently used hash method to another. Affects all data, might take a long time
           {scheduled_compact_notes}
           §d[Arguments]§r
-          §6<file_path>§r: Path of the file related to the backup source root
+          §3<file_path>§r: Path of the file related to the backup source root
           §d<blob_hash>§r: Hash value of the blob. Can be a prefix of the hash string as long as it's unique
           §d<compress_method>§r: Available options: {compress_methods}
           §d<hash_method>§r: Available options: {hash_methods}
@@ -582,6 +588,10 @@ prime_backup:
       h: hour{}
       d: day{}
       plural_suffix: s
+    file_type:
+      file: File
+      directory: Directory
+      symlink: Symlink
     fileset_kind:
       base: Base fileset
       delta: Delta fileset

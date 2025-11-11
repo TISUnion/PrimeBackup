@@ -173,7 +173,13 @@ prime_backup:
       resume.hover: 点击以继续运行作业{}
     db_delete_backup_file:
       name: 删除备份中的文件
-      done: '已删除备份{0}中的文件{1}，共释放{2}'
+      start: '正在删除备份{0}中的文件{1}'
+      info.regular: '文件类型: {0}, 原始大小: {1}'
+      info.directory: '文件类型: {0}，文件总数: {1} ({2}个文件、{3}个文件夹), 总原始大小: {4}'
+      cannot_delete_root: '无法删除根路径'
+      cannot_delete_directory: '无法删除文件夹{0}。如需删除，请带上--recursive参数'
+      confirm_target: 删除
+      done: '已删除备份{0}中的文件{1}, 共释放{2}'
     db_inspect_backup:
       name: 审查备份
       title: '备份{}'
@@ -392,7 +398,7 @@ prime_backup:
           §7{prefix} database inspect file §6<备份ID> §3<文件路径>§r: 审查给定文件的原始信息
           §7{prefix} database inspect fileset §3<文件集ID>§r: 审查给定文件集的原始信息
           §7{prefix} database inspect blob §d<哈希值>§r: 审查给定数据对象的原始信息
-          §7{prefix} database delete file §6<backup_id> §3<file_path>§r: 删除给定备份中的某个文件。若其为文件夹，则递归删除其内部的所有文件
+          §7{prefix} database delete file §6<备份ID> §3<文件路径> §7[--recursive]§r: 删除给定备份中的某个文件。若带有§7--recursive§r且目标为文件夹，则递归删除其内部的所有内容
           §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
           §7{prefix} database vacuum§r: 手动执行SQLite数据库的文件整理操作，减少数据库文件的体积
           §7{prefix} database prune§r: 清理数据库中的无效数据。正常情况下该操作无需手动执行
@@ -400,7 +406,7 @@ prime_backup:
           §7{prefix} database migrate_hash_method <哈希算法>§r: 将当前使用的哈希算法迁移至另一种算法。这将影响所有数据，耗时可能较长
           {scheduled_compact_notes}
           §d【参数帮助】§r
-          §6<文件路径>§r: 要审查的文件的路径，相对备份根目录
+          §3<文件路径>§r: 要审查的文件的路径，相对备份根目录
           §d<哈希值>§r: 要审查的数据对象的哈希值。可以是哈希串的前缀，只要唯一即可
           §d<压缩方法>§r: 可用选项: {compress_methods}
           §d<哈希算法>§r: 可用选项: {hash_methods}
@@ -582,6 +588,10 @@ prime_backup:
       h: 小时
       d: 天
       plural_suffix: ''
+    file_type:
+      file: 文件
+      directory: 文件夹
+      symlink: 符号链接
     fileset_kind:
       base: 基础文件集
       delta: 增量文件集

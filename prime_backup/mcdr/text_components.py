@@ -10,6 +10,7 @@ from prime_backup.compressors import CompressMethod
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.file_info import FileType
 from prime_backup.types.fileset_info import FilesetInfo
 from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
@@ -276,6 +277,12 @@ class TextComponents:
 		if not isinstance(byte_cnt, ByteCount):
 			byte_cnt = ByteCount(byte_cnt)
 		return RText(byte_cnt.auto_str(ndigits=ndigits, always_sign=always_sign), color=color)
+
+	@classmethod
+	def file_type(cls, file_type: FileType) -> RTextBase:
+		if file_type in [FileType.file, FileType.directory, FileType.symlink]:
+			return cls.tr(f'file_type.{file_type.name}')
+		raise ValueError(file_type)
 
 	@classmethod
 	def fileset_id(cls, fileset_id: int) -> RTextBase:

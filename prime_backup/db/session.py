@@ -398,6 +398,20 @@ class DbSession:
 		files_delta = list_one_fileset(backup.fileset_id_delta)
 		return self.merge_fileset_files(files_base, files_delta)
 
+	def list_directory_tree_files_in_backup(self, backup_or_backup_id: Union[int, schema.Backup], dir_path: str) -> List[schema.File]:
+		if dir_path == '':
+			return self.get_backup_files(backup_or_backup_id)
+
+		def list_one_fileset(fileset_id: int) -> List[schema.File]:
+			s = select(schema.File).where(schema.File.fileset_id == fileset_id)
+			s = s.where(or_(schema.File.path == dir_path, schema.File.path.startswith(dir_path + '/')))
+			return _list_it(self.session.execute(s).scalars().all())
+
+		backup = self.__convert_backup_or_backup_id_to_backup(backup_or_backup_id)
+		files_base = list_one_fileset(backup.fileset_id_base)
+		files_delta = list_one_fileset(backup.fileset_id_delta)
+		return self.merge_fileset_files(files_base, files_delta)
+
 	def iterate_file_batch(self, *, batch_size: int = 5000) -> Iterator[List[schema.File]]:
 		limit, offset = batch_size, 0
 		while True:

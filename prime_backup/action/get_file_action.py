@@ -1,11 +1,14 @@
 import stat
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Dict
 
 from typing_extensions import override
 
 from prime_backup.action import Action
+from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
+from prime_backup.db.session import DbSession
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.file_info import FileInfo
 from prime_backup.utils.path_like import PathLike
@@ -53,7 +56,7 @@ class NotDirectoryError(PrimeBackupError):
 	pass
 
 
-class ListBackupDirectoryFileAction(Action[List[FileInfo]]):
+class _ListBackupDirectoryFileActionBase(Action[List[FileInfo]], ABC):
 	def __init__(self, backup_id: int, file_path: PathLike):
 		super().__init__()
 		self.backup_id = backup_id
@@ -71,7 +74,20 @@ class ListBackupDirectoryFileAction(Action[List[FileInfo]]):
 				if not stat.S_ISDIR(dir_file.mode):
 					raise NotDirectoryError(dir_file.mode)
 
-			return [
-				FileInfo.of(file)
-				for file in session.list_directory_files_in_backup(backup, self.dir_path)
-			]
+			return [FileInfo.of(file) for file in self._get_files(session, backup)]
+
+	@abstractmethod
+	def _get_files(self, session: DbSession, backup: schema.Backup) -> List[schema.File]:
+		...
+
+
+class ListBackupDirectoryFileAction(_ListBackupDirectoryFileActionBase):
+	@override
+	def _get_files(self, session: DbSession, backup: schema.Backup) -> List[schema.File]:
+		return session.list_directory_files_in_backup(backup, self.dir_path)
+
+
+class ListBackupDirectoryTreeFileAction(_ListBackupDirectoryFileActionBase):
+	@override
+	def _get_files(self, session: DbSession, backup: schema.Backup) -> List[schema.File]:
+		return session.list_directory_tree_files_in_backup(backup, self.dir_path)

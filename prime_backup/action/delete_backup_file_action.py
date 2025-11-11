@@ -10,18 +10,23 @@ from prime_backup.action.shrink_base_fileset_action import ShrinkBaseFilesetActi
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.values import FileRole
-from prime_backup.exceptions import BackupFileNotFound
+from prime_backup.exceptions import BackupFileNotFound, PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.types.units import ByteCount
 from prime_backup.utils.path_like import PathLike
 
 
+class DeleteDirectoryNotAllowed(PrimeBackupError):
+	pass
+
+
 class DeleteBackupFileAction(Action[BlobListSummary]):
-	def __init__(self, backup_id: int, file_path: PathLike):
+	def __init__(self, backup_id: int, file_path: PathLike, allow_directory: bool = False):
 		super().__init__()
 		self.backup_id = backup_id
 		self.file_path = Path(file_path).as_posix()
+		self.allow_directory = allow_directory
 
 	@override
 	def run(self) -> BlobListSummary:
@@ -42,6 +47,8 @@ class DeleteBackupFileAction(Action[BlobListSummary]):
 
 			files_to_delete: List[schema.File] = [file_target]
 			if target_is_dir := stat.S_ISDIR(file_target.mode):
+				if not self.allow_directory:
+					raise DeleteDirectoryNotAllowed()
 				# collect contents inside the directory recursively
 				for file in files_merged.values():
 					if file.path.startswith(self.file_path + '/'):

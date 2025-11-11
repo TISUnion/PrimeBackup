@@ -109,7 +109,9 @@ class CommandManager:
 	def cmd_db_delete_file(self, source: CommandSource, context: CommandContext):
 		def backup_id_consumer(backup_id: int):
 			file_path = context['file_path']
-			self.task_manager.add_task(DeleteBackupFileTask(source, backup_id, file_path))
+			needs_confirm = context.get('confirm', 0) == 0
+			recursive = context.get('recursive', 0) > 0
+			self.task_manager.add_task(DeleteBackupFileTask(source, backup_id, file_path, needs_confirm=needs_confirm, recursive=recursive))
 		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
 	def cmd_db_validate(self, source: CommandSource, _: CommandContext, parts: ValidatePart):
@@ -386,7 +388,6 @@ class CommandManager:
 		builder.command('database inspect file <backup_id> <file_path>', self.cmd_db_inspect_file)
 		builder.command('database inspect fileset <fileset_id>', self.cmd_db_inspect_fileset)
 		builder.command('database inspect blob <blob_hash>', self.cmd_db_inspect_blob)
-		builder.command('database delete file <backup_id> <file_path>', self.cmd_db_delete_file)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidatePart.blobs))
 		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidatePart.files))
@@ -396,6 +397,7 @@ class CommandManager:
 		builder.command('database prune', self.cmd_db_prune)
 		builder.command('database migrate_compress_method <compress_method>', self.cmd_db_migrate_compress_method)
 		builder.command('database migrate_hash_method <hash_method>', self.cmd_db_migrate_hash_method)
+		# `database delete file <backup_id> <file_path>` is handled by `make_db_delete_file_cmd()` below
 
 		builder.arg('file_path', QuotableText)  # Notes: it's actually a redefine
 		builder.arg('fileset_id', Integer)  # not that necessary to provide suggestion here
@@ -419,6 +421,17 @@ class CommandManager:
 		builder.add_children_for(root)
 
 		# --------------- complex commands ---------------
+
+		def __locate_node(literal_path: List[str]) -> Literal:
+			current_node = root
+			for ltr in literal_path:
+				for child in current_node.get_children():
+					if isinstance(child, Literal) and ltr in child.literals:
+						current_node = child
+						break
+				else:
+					raise KeyError('Node {} does not have literal {!r}'.format(current_node, ltr))
+			return current_node
 
 		def set_confirm_able(node: AbstractNode):
 			node.then(CountingLiteral('--confirm', 'confirm').redirects(node))
@@ -514,6 +527,16 @@ class CommandManager:
 				node.then(children[0])
 			return create_subcommand('tag').then(node)
 
+		def make_db_delete_file_cmd():
+			__locate_node(['database']).then(Literal('delete').then(node_subcommand := Literal('file')))
+			node_bid = create_backup_id()
+			node_file_path = QuotableText('file_path').runs(self.cmd_db_delete_file)
+			node_subcommand.then(node_bid)
+			node_bid.then(node_file_path)
+			for node in [node_bid, node_file_path]:
+				set_confirm_able(node)
+				node.then(CountingLiteral('--recursive', 'recursive').redirects(node))
+
 		# backup
 		root.then(make_back_cmd())
 		root.then(make_delete_cmd())
@@ -521,6 +544,7 @@ class CommandManager:
 		root.then(make_import_cmd())
 		root.then(make_list_cmd())
 		root.then(make_tag_cmd())
+		make_db_delete_file_cmd()
 
 		# --------------- done ---------------
 

@@ -1,6 +1,6 @@
 from typing import List
 
-from mcdreforged.command.command_source import CommandSource
+from mcdreforged.api.all import CommandSource
 
 from prime_backup.exceptions import OffsetBackupNotFound
 from prime_backup.mcdr.task.basic_task import LightTask

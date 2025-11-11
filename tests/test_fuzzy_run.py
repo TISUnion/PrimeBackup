@@ -83,6 +83,12 @@ def _compute_file_sha256(file_path: Path) -> str:
 	return sha256_hash.hexdigest()
 
 
+def _randbytes(rnd: random.Random, n: int) -> bytes:
+	if hasattr(rnd, 'randbytes'):
+		return rnd.randbytes(n)
+	return bytes(random.randint(0, 255) for _ in range(n))
+
+
 @dataclasses.dataclass(frozen=True)
 class Snapshot:
 	files_info: Dict[Path, _FileInfo]
@@ -233,7 +239,7 @@ class FileContentGenerator:
 			return self.rnd.choice(self.__cache[key])
 
 		size = self.rnd.randint(min_size, self.rnd.randint(min_size, max_size))
-		buf = self.rnd.randbytes(size)
+		buf = _randbytes(self.rnd, size)
 
 		def try_insert() -> bool:
 			if self.__total_size < self.MAX_CACHED_SIZE:
@@ -359,7 +365,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		self.logger.info(f'ENV: modify file {file_path}, mod_type: {mod_type}')
 		if mod_type == 'append':
 			with open(file_path, 'ab') as f:
-				f.write(self.rnd.randbytes(self.rnd.randint(512, 1024 * 10)))
+				f.write(_randbytes(self.rnd, self.rnd.randint(512, 1024 * 10)))
 			_TestStats.get().file_append += 1
 		elif mod_type == 'truncate':
 			current_size: int = file_path.stat().st_size

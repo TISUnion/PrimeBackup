@@ -46,7 +46,7 @@ class DeleteBackupFileAction(Action[BlobListSummary]):
 				for file in files_merged.values():
 					if file.path.startswith(self.file_path + '/'):
 						files_to_delete.append(file)
-			self.logger.info('Target file {!r} is dir: {}, files_to_delete[:10](size={}): {}'.format(self.file_path, target_is_dir, len(files_to_delete), files_to_delete[:10]))
+			self.logger.info('Target file to delete {!r} is dir: {}, all files_to_delete[:10](size={}): {}'.format(self.file_path, target_is_dir, len(files_to_delete), files_to_delete[:10]))
 
 			deleted_blob_hashes: Set[str] = set()
 			for file_existing in files_to_delete:

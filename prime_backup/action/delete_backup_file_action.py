@@ -22,7 +22,7 @@ class DeleteDirectoryNotAllowed(PrimeBackupError):
 
 
 class DeleteBackupFileAction(Action[BlobListSummary]):
-	def __init__(self, backup_id: int, file_path: PathLike, allow_directory: bool = False):
+	def __init__(self, backup_id: int, file_path: PathLike, allow_directory: bool):
 		super().__init__()
 		self.backup_id = backup_id
 		self.file_path = Path(file_path).as_posix()

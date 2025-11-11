@@ -497,7 +497,7 @@ class FuzzyRunTestCase(unittest.TestCase):
 					if path_utils.is_relative_to(path, path_to_delete):
 						mem_snapshot.files_info.pop(path)
 						_TestStats.get().backup_file_delete += 1
-				DeleteBackupFileAction(bid_, path_to_delete).run()
+				DeleteBackupFileAction(bid_, path_to_delete, allow_directory=True).run()
 
 			def get_backup_snapshot(bid_: int) -> Snapshot:
 				buf = BytesIO()

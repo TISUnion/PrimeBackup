@@ -20,6 +20,7 @@ from typing_extensions import Self, override
 from prime_backup import logger
 from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.action.delete_backup_action import DeleteBackupAction
+from prime_backup.action.delete_backup_file_action import DeleteBackupFileAction
 from prime_backup.action.export_backup_action_directory import ExportBackupToDirectoryAction
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
@@ -59,6 +60,7 @@ class _TestStats:
 	backup_create: int = 0
 	backup_delete: int = 0
 	backup_restore: int = 0
+	backup_file_delete: int = 0
 	compress_method_flip: int = 0
 
 	@classmethod
@@ -139,7 +141,8 @@ class Snapshot:
 			)
 
 		files_info: Dict[Path, _FileInfo] = {}
-		add_path(helper.base_path)
+		if helper.base_path.exists():
+			add_path(helper.base_path)
 		for file_path in helper.get_all_dirs_and_files():
 			add_path(file_path)
 		return cls(files_info)
@@ -156,6 +159,10 @@ class FileSystemCache:
 		self.__dirs.clear()
 		self.__files.clear()
 		self.__total_size = 0
+		if not self.__base_path.exists():
+			return
+		if not self.__base_path.is_dir():
+			raise AssertionError('base_path {} exists but is not a dir'.format(self.__base_path))
 		self.__dirs[self.__base_path] = None
 		for root, dirs, files in os.walk(self.__base_path):
 			root_path = Path(root)
@@ -256,7 +263,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 
 	def __init__(self, test: unittest.TestCase, base_path: Path, snapshot_base_path: Path, rnd: random.Random) -> None:
 		self.test = test
-		self.base_path = base_path
+		self.base_path = base_path  # might not exists
 		self.snapshot_base_path = snapshot_base_path
 		self.rnd = rnd
 		self.logger = logger.get()
@@ -287,6 +294,9 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		return Snapshot.from_env(self)
 
 	def iterate_once(self) -> None:
+		if not self.base_path.exists():
+			self.create()
+
 		delete_chance = self.rnd.random() % 0.001
 		modify_chance = self.rnd.random() % 0.1  # [0, 0.1)
 		rmdir_chance = self.rnd.random() % 0.001
@@ -472,6 +482,17 @@ class FuzzyRunTestCase(unittest.TestCase):
 				ExportBackupToDirectoryAction(bid_, svr_dir, restore_mode=True).run()
 				env.refresh_fs_cache()
 
+			def delete_backup_file(bid_: int, mem_snapshot: Snapshot):
+				paths = list(mem_snapshot.files_info.keys())
+				if len(paths) == 0:
+					return
+				path_to_delete = rnd.choice(paths)
+				for path in paths:
+					if path_utils.is_relative_to(path, path_to_delete):
+						mem_snapshot.files_info.pop(path)
+						_TestStats.get().backup_file_delete += 1
+				DeleteBackupFileAction(bid_, path_to_delete).run()
+
 			def get_backup_snapshot(bid_: int) -> Snapshot:
 				buf = BytesIO()
 				ExportBackupToTarAction(bid_, buf, TarFormat.plain, create_meta=False).run()
@@ -557,6 +578,9 @@ class FuzzyRunTestCase(unittest.TestCase):
 							delete_backup(delete_id)
 							backup_ids.remove(delete_id)
 							backup_snapshots.pop(delete_id)
+				if backup_ids and rnd.random() < 0.2:
+					to_mess_backup_id = rnd.choice(backup_ids)
+					delete_backup_file(to_mess_backup_id, backup_snapshots[to_mess_backup_id])
 
 				# Step 4: Modify environment
 				env.iterate_once()

@@ -5,10 +5,10 @@ import shutil
 import sqlite3
 import time
 from pathlib import Path
-from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable
+from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_
+from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_
 from sqlalchemy.orm import Session
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
@@ -810,6 +810,49 @@ class DbSession:
 		s = select(schema.Backup).order_by(desc(schema.Backup.id)).limit(1)
 		backups = _list_it(self.session.execute(s).scalars().all())
 		return backups[0] if backups else None
+
+	class _GetBackupContainingFileHelper:
+		def __init__(self, session: Session, file: schema.File):
+			self.session = session
+			self.file = file
+
+			if self.file.role in FileRole.standalone_role_ints():
+				# in a base fileset
+				delta_fileset_ids_with_this_path: Set[int] = set(self.session.execute(
+					select(schema.File.fileset_id).
+					where(schema.File.path == self.file.path).
+					where(schema.File.role.in_(FileRole.delta_role_ints())).
+					distinct()
+				).scalars().all())
+				self.select = select(schema.Backup).where(and_(
+					schema.Backup.fileset_id_base == self.file.fileset_id,
+					schema.Backup.fileset_id_delta.notin_(delta_fileset_ids_with_this_path),
+				))
+			elif self.file.role in FileRole.delta_role_ints():
+				# in a delta fileset
+				self.select = select(schema.Backup).where(schema.Backup.fileset_id_delta == self.file.fileset_id)
+			else:
+				raise AssertionError('unexpected file role {} for a file in a delta fileset {}: {!r}'.format(self.file.role, self.file.fileset_id, self.file))
+
+		def get_backups(self, limit: Optional[int] = None) -> List[schema.Backup]:
+			s = self.select.order_by(desc(schema.Backup.id))
+			if limit is not None:
+				s = s.limit(limit)
+			return _list_it(self.session.execute(s).scalars().all())
+
+		def get_count(self) -> int:
+			s = select(func.count()).select_from(self.select.subquery())
+			return _int_or_0(self.session.execute(s).scalar_one())
+
+	def get_backups_containing_file(self, file: schema.File, *, limit: Optional[int] = None) -> List[schema.Backup]:
+		return self._GetBackupContainingFileHelper(self.session, file).get_backups(limit=limit)
+
+	def get_backup_count_containing_file(self, file: schema.File) -> int:
+		return self._GetBackupContainingFileHelper(self.session, file).get_count()
+
+	def get_backups_containing_file_with_total(self, file: schema.File, *, limit: Optional[int] = None) -> Tuple[List[schema.Backup], int]:
+		helper = self._GetBackupContainingFileHelper(self.session, file)
+		return helper.get_backups(limit=limit), helper.get_count()
 
 	def list_backup(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Backup]:
 		if backup_filter is None:

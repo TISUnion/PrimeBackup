@@ -23,7 +23,7 @@ class BlobInfo:
 	file_samples: List['FileInfo'] = dataclasses.field(default_factory=list)
 
 	@classmethod
-	def of(cls, blob: schema.Blob, *, file_count: int = 0, file_samples: Optional[List['schema.File']] = None) -> 'BlobInfo':
+	def of(cls, blob: schema.Blob, *, file_count: int = 0, file_samples: Optional[List[schema.File]] = None) -> 'BlobInfo':
 		"""
 		Notes: should be inside a session
 		"""

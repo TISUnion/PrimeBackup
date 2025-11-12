@@ -2,7 +2,7 @@ import dataclasses
 import enum
 import functools
 import stat
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, TYPE_CHECKING
 
 from typing_extensions import Self
 
@@ -11,6 +11,9 @@ from prime_backup.db import schema
 from prime_backup.db.values import FileRole
 from prime_backup.types.blob_info import BlobInfo, BlobListSummary
 from prime_backup.utils import misc_utils
+
+if TYPE_CHECKING:
+	from prime_backup.types.backup_info import BackupInfo
 
 
 class FileType(enum.Enum):
@@ -38,8 +41,13 @@ class FileInfo:
 	gid: Optional[int] = None
 	mtime_us: Optional[int] = None
 
+	# optional stats
+	# Backup samples below do contain this file, i.e. this file is not override by another delta fileset file
+	backup_count: int = 0
+	backup_samples: List['BackupInfo'] = dataclasses.field(default_factory=list)
+
 	@classmethod
-	def of(cls, file: schema.File) -> 'FileInfo':
+	def of(cls, file: schema.File, *, backup_count: int = 0, backup_samples: Optional[List[schema.Backup]] = None) -> 'FileInfo':
 		"""
 		Notes: should be inside a session
 		"""
@@ -59,6 +67,8 @@ class FileInfo:
 			role = FileRole(file.role)
 		except (KeyError, ValueError):
 			role = FileRole.unknown
+
+		from prime_backup.types.backup_info import BackupInfo
 		return FileInfo(
 			fileset_id=file.fileset_id,
 			path=file.path,
@@ -69,6 +79,8 @@ class FileInfo:
 			uid=file.uid,
 			gid=file.gid,
 			mtime_us=file.mtime,
+			backup_count=backup_count,
+			backup_samples=[BackupInfo.of(backup) for backup in backup_samples] if backup_samples is not None else [],
 		)
 
 	@functools.cached_property

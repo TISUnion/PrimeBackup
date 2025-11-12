@@ -7,6 +7,7 @@ from mcdreforged.api.all import RTextBase, RText, RTextList, RColor, RAction, RS
 
 from prime_backup import constants
 from prime_backup.compressors import CompressMethod
+from prime_backup.db.values import FileRole
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.blob_info import BlobListSummary
@@ -132,7 +133,7 @@ class TextComponents:
 		return text
 
 	@classmethod
-	def backup_id_list(cls, backup_ids: Iterable[Any], *, with_brackets: bool = True, **kwargs) -> RTextBase:
+	def backup_id_list(cls, backup_ids: Iterable[Union[int, BackupInfo]], *, with_brackets: bool = True, **kwargs) -> RTextBase:
 		return RTextList(
 			'[' if with_brackets else '',
 			RTextBase.join(', ', [cls.backup_id(backup_id, **kwargs) for backup_id in backup_ids]),
@@ -281,6 +282,10 @@ class TextComponents:
 		if not isinstance(byte_cnt, ByteCount):
 			byte_cnt = ByteCount(byte_cnt)
 		return RText(byte_cnt.auto_str(ndigits=ndigits, always_sign=always_sign), color=color)
+
+	@classmethod
+	def file_role(cls, file_role: FileRole) -> RTextBase:
+		return cls.tr(f'file_role.{file_role.name}')
 
 	@classmethod
 	def file_type(cls, file_type: FileType) -> RTextBase:

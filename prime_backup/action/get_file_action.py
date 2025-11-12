@@ -1,7 +1,7 @@
 import stat
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from typing_extensions import override
 
@@ -14,17 +14,43 @@ from prime_backup.types.file_info import FileInfo
 from prime_backup.utils.path_like import PathLike
 
 
-class GetBackupFileAction(Action[FileInfo]):
-	def __init__(self, backup_id: int, file_path: PathLike):
+class _GetSingleFileActionBase(Action[FileInfo], ABC):
+	def __init__(self, *, count_backups: bool, sample_backup_num: Optional[int]):
 		super().__init__()
-		self.backup_id = backup_id
-		self.file_path = Path(file_path).as_posix()
+		self.count_backups = count_backups
+		self.sample_backup_num = sample_backup_num
 
 	@override
 	def run(self) -> FileInfo:
 		with DbAccess.open_session() as session:
-			backup = session.get_backup(self.backup_id)
-			return FileInfo.of(session.get_file_in_backup(backup, self.file_path))
+			file = self._get_file(session)
+
+			backup_samples: Optional[List[schema.Backup]]
+			backup_count: int
+			if self.count_backups and self.sample_backup_num is not None:
+				backup_samples, backup_count = session.get_backups_containing_file_with_total(file, limit=self.sample_backup_num)
+			elif self.count_backups:
+				backup_samples, backup_count = None, session.get_backup_count_containing_file(file)
+			elif self.sample_backup_num is not None:
+				backup_samples, backup_count = session.get_backups_containing_file(file), 0
+
+			return FileInfo.of(file, backup_count=backup_count, backup_samples=backup_samples)
+
+	@abstractmethod
+	def _get_file(self, session: DbSession) -> schema.File:
+		...
+
+
+class GetBackupFileAction(_GetSingleFileActionBase):
+	def __init__(self, backup_id: int, file_path: PathLike, *, count_backups: bool = False, sample_backup_num: Optional[int] = None):
+		super().__init__(count_backups=count_backups, sample_backup_num=sample_backup_num)
+		self.backup_id = backup_id
+		self.file_path = Path(file_path).as_posix()
+
+	@override
+	def _get_file(self, session: DbSession) -> schema.File:
+		backup = session.get_backup(self.backup_id)
+		return session.get_file_in_backup(backup, self.file_path)
 
 
 class GetBackupFilesAction(Action[Dict[str, FileInfo]]):
@@ -39,17 +65,16 @@ class GetBackupFilesAction(Action[Dict[str, FileInfo]]):
 			return {file.path: FileInfo.of(file) for file in files}
 
 
-class GetFilesetFileAction(Action[FileInfo]):
-	def __init__(self, fileset_id: int, file_path: PathLike):
-		super().__init__()
+class GetFilesetFileAction(_GetSingleFileActionBase):
+	def __init__(self, fileset_id: int, file_path: PathLike, *, count_backups: bool = False, sample_backup_num: Optional[int] = None):
+		super().__init__(count_backups=count_backups, sample_backup_num=sample_backup_num)
 		self.fileset_id = fileset_id
 		self.file_path = Path(file_path).as_posix()
 
 	@override
-	def run(self) -> FileInfo:
-		with DbAccess.open_session() as session:
-			session.get_fileset(self.fileset_id)  # ensure fileset exists first
-			return FileInfo.of(session.get_file_in_fileset(self.fileset_id, self.file_path))
+	def _get_file(self, session: DbSession) -> schema.File:
+		session.get_fileset(self.fileset_id)  # ensure fileset exists first
+		return session.get_file_in_fileset(self.fileset_id, self.file_path)
 
 
 class NotDirectoryError(PrimeBackupError):

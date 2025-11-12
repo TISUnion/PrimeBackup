@@ -212,6 +212,7 @@ prime_backup:
       title: '文件集{0}的文件{1}'
       fileset_id: '所属文件集: {}'
       path: '路径: {}'
+      role: '角色: {}'
       mode: '模式: {} ({})'
       content: '内容: {}'
       blob.hash: '数据对象哈希: {}'
@@ -223,6 +224,7 @@ prime_backup:
       gid.full: 'Gid: {} / {}'
       gid.simple: 'Gid: {}'
       mtime: '修改时间: {} ({})'
+      used_by: '包含此文件的备份数量: {} (样本: {})'
     db_inspect_fileset:
       name: 审查文件集
       title: '文件集{}'
@@ -235,7 +237,7 @@ prime_backup:
       raw_size.delta: '原始大小 (增量): {} ({})'
       stored_size.base: '储存大小: {} ({})'
       stored_size.delta: '储存大小 (增量): {} ({})'
-      used_by: '关联备份数: {} (最近备份: {})'
+      used_by: '关联备份数: {} (样本: {})'
     db_inspect_object_base:
       hover:
         backup_id: 点击以审查备份{}
@@ -590,6 +592,12 @@ prime_backup:
       h: 小时
       d: 天
       plural_suffix: ''
+    file_role:
+      unknown: 未知
+      standalone: 独立
+      delta_override: 差异-覆盖
+      delta_add: 差异-新增
+      delta_remove: 差异-删除
     file_type:
       file: 文件
       directory: 文件夹

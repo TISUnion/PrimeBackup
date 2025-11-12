@@ -117,6 +117,7 @@ class _InspectFileTaskBase(_InspectObjectTaskBase, ABC):
 
 		self.reply_tr('fileset_id', self._gt_fileset_id(file.fileset_id))
 		self.reply_tr('path', TextComponents.file_path(file.path))
+		self.reply_tr('role', TextComponents.file_role(file.role))
 		self.reply_tr('mode', TextComponents.number(file.mode), TextComponents.file_mode(file.mode))
 		if file.content is not None:
 			self.reply_tr('content', self._jsonfy(file.content_str))
@@ -140,6 +141,8 @@ class _InspectFileTaskBase(_InspectObjectTaskBase, ABC):
 		if file.mtime_us is not None:
 			self.reply_tr('mtime', TextComponents.number(file.mtime_us), TextComponents.date_us(file.mtime_us, decimal=True))
 
+		self.reply_tr('used_by', TextComponents.number(file.backup_count), TextComponents.backup_id_list(file.backup_samples, with_brackets=False))
+
 
 class InspectBackupFileTask(_InspectFileTaskBase):
 	def __init__(self, source: CommandSource, backup_id: int, file_path: str):
@@ -148,7 +151,7 @@ class InspectBackupFileTask(_InspectFileTaskBase):
 
 	@override
 	def _get_file(self) -> FileInfo:
-		return GetBackupFileAction(self.backup_id, self.file_path).run()
+		return GetBackupFileAction(self.backup_id, self.file_path, count_backups=True, sample_backup_num=5).run()
 
 
 class InspectFilesetFileTask(_InspectFileTaskBase):
@@ -158,7 +161,7 @@ class InspectFilesetFileTask(_InspectFileTaskBase):
 
 	@override
 	def _get_file(self) -> FileInfo:
-		return GetFilesetFileAction(self.fileset_id, self.file_path).run()
+		return GetFilesetFileAction(self.fileset_id, self.file_path, count_backups=True, sample_backup_num=5).run()
 
 
 class InspectFilesetTask(_InspectObjectTaskBase):

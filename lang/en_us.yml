@@ -212,6 +212,7 @@ prime_backup:
       title: 'File {1} in fileset {0}'
       fileset_id: 'Associated fileset: {}'
       path: 'Path: {}'
+      role: 'Role: {}'
       mode: 'Mode: {} ({})'
       content: 'Content: {}'
       blob.hash: 'Blob hash: {}'
@@ -223,6 +224,7 @@ prime_backup:
       gid.full: 'Gid: {} / {}'
       gid.simple: 'Gid: {}'
       mtime: 'Modify time: {} ({})'
+      used_by: 'Backup containing this file: {} (samples: {})'
     db_inspect_fileset:
       name: inspect fileset
       title: 'Fileset {}'
@@ -590,6 +592,12 @@ prime_backup:
       h: hour{}
       d: day{}
       plural_suffix: s
+    file_role:
+      unknown: Unknown
+      standalone: Standalone
+      delta_override: Delta Override
+      delta_add: Delta Add
+      delta_remove: Delta Remove
     file_type:
       file: File
       directory: Directory

@@ -205,7 +205,8 @@ prime_backup:
       compress: '压缩方法: {}'
       raw_size: '原始大小: {} ({})'
       stored_size: '储存大小: {} ({})'
-      used_by: '关联文件数: {}'
+      used_by: '关联文件数: {}。样本：'
+      file_sample: '文件集{}, 路径: {}'
     db_inspect_file:
       name: 审查文件
       title: '文件集{0}的文件{1}'

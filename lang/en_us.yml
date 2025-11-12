@@ -205,7 +205,8 @@ prime_backup:
       compress: 'Compress: {}'
       raw_size: 'Raw size: {} ({})'
       stored_size: 'Stored size: {} ({})'
-      used_by: 'Associated file count: {}'
+      used_by: 'Associated file count: {}. Samples:'
+      file_sample: 'fileset {}, path: {}'
     db_inspect_file:
       name: inspect file
       title: 'File {1} in fileset {0}'

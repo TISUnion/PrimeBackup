@@ -273,6 +273,10 @@ class TextComponents:
 		return RText(file_path.name, TextColors.file).h(file_path.as_posix())
 
 	@classmethod
+	def file_path(cls, file_path: str) -> RTextBase:
+		return RText(file_path, TextColors.file)
+
+	@classmethod
 	def file_size(cls, byte_cnt: Union[int, ByteCount], *, ndigits: int = 2, always_sign: bool = False, color: RColor = TextColors.byte_count) -> RTextBase:
 		if not isinstance(byte_cnt, ByteCount):
 			byte_cnt = ByteCount(byte_cnt)

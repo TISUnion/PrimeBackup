@@ -1,12 +1,15 @@
 import dataclasses
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, List, TYPE_CHECKING, Optional
 
 from typing_extensions import Self
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
 from prime_backup.utils import misc_utils
+
+if TYPE_CHECKING:
+	from prime_backup.types.file_info import FileInfo
 
 
 @dataclasses.dataclass(frozen=True)
@@ -17,18 +20,21 @@ class BlobInfo:
 	stored_size: int
 
 	file_count: int = 0
+	file_samples: List['FileInfo'] = dataclasses.field(default_factory=list)
 
 	@classmethod
-	def of(cls, blob: schema.Blob, *, file_count: int = 0) -> 'BlobInfo':
+	def of(cls, blob: schema.Blob, *, file_count: int = 0, file_samples: Optional[List['schema.File']] = None) -> 'BlobInfo':
 		"""
 		Notes: should be inside a session
 		"""
+		from prime_backup.types.file_info import FileInfo
 		return BlobInfo(
 			hash=blob.hash,
 			compress=CompressMethod[blob.compress],
 			raw_size=blob.raw_size,
 			stored_size=blob.stored_size,
 			file_count=file_count,
+			file_samples=[FileInfo.of(file) for file in file_samples] if file_samples is not None else [],
 		)
 
 	@property

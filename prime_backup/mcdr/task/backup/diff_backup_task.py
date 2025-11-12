@@ -53,7 +53,7 @@ class DiffBackupTask(LightTask[None]):
 				'{} {} {}',
 				head,
 				pretty_mode(file.mode),
-				RText(file.path, TextColors.file),
+				TextComponents.file_path(file.path),
 			)
 			if f.is_link():
 				if f.content is not None:

@@ -31,7 +31,7 @@ from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
 from prime_backup.mcdr.task.db.delete_backup_file_task import DeleteBackupFileTask
-from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask
+from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask, InspectFilesetFileTask
 from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompressMethodTask
 from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
 from prime_backup.mcdr.task.db.prune_database_task import PruneDatabaseTask
@@ -92,11 +92,16 @@ class CommandManager:
 			self.task_manager.add_task(InspectBackupTask(source, backup_id))
 		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
-	def cmd_db_inspect_file(self, source: CommandSource, context: CommandContext):
+	def cmd_db_inspect_backup_file(self, source: CommandSource, context: CommandContext):
 		def backup_id_consumer(backup_id: int):
 			file_path = context['file_path']
 			self.task_manager.add_task(InspectBackupFileTask(source, backup_id, file_path))
 		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
+
+	def cmd_db_inspect_fileset_file(self, source: CommandSource, context: CommandContext):
+		fileset_id = context['fileset_id']
+		file_path = context['file_path']
+		self.task_manager.add_task(InspectFilesetFileTask(source, fileset_id, file_path))
 
 	def cmd_db_inspect_fileset(self, source: CommandSource, context: CommandContext):
 		fileset_id = context['fileset_id']
@@ -385,7 +390,8 @@ class CommandManager:
 		builder.command('database', lambda src: self.cmd_help(src, {'what': 'database'}))
 		builder.command('database overview', self.cmd_db_overview)
 		builder.command('database inspect backup <backup_id>', self.cmd_db_inspect_backup)
-		builder.command('database inspect file <backup_id> <file_path>', self.cmd_db_inspect_file)
+		builder.command('database inspect file <backup_id> <file_path>', self.cmd_db_inspect_backup_file)
+		builder.command('database inspect file2 <fileset_id> <file_path>', self.cmd_db_inspect_fileset_file)
 		builder.command('database inspect fileset <fileset_id>', self.cmd_db_inspect_fileset)
 		builder.command('database inspect blob <blob_hash>', self.cmd_db_inspect_blob)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))

@@ -396,6 +396,7 @@ prime_backup:
           §7{prefix} database overview§r: 查看数据库信息概览
           §7{prefix} database inspect backup §6<备份ID>§r: 审查给定备份的原始信息
           §7{prefix} database inspect file §6<备份ID> §3<文件路径>§r: 审查给定文件的原始信息
+          §7{prefix} database inspect file2 §3<文件集ID> §3<文件路径>§r: 审查给定文件集中文件的原始信息
           §7{prefix} database inspect fileset §3<文件集ID>§r: 审查给定文件集的原始信息
           §7{prefix} database inspect blob §d<哈希值>§r: 审查给定数据对象的原始信息
           §7{prefix} database delete file §6<备份ID> §3<文件路径> §7[--recursive]§r: 删除给定备份中的某个文件。若带有§7--recursive§r且目标为文件夹，则递归删除其内部的所有内容
@@ -410,7 +411,7 @@ prime_backup:
           §d<哈希值>§r: 要审查的数据对象的哈希值。可以是哈希串的前缀，只要唯一即可
           §d<压缩方法>§r: 可用选项: {compress_methods}
           §d<哈希算法>§r: 可用选项: {hash_methods}
-          §a<组件>§r: 
+          §a<组件>§r:
           - §ablobs§r: 验证数据对象的正确性，如数据大小、哈希值
           - §afiles§r: 验证文件对象的正确性，如文件与数据的关联
           - §afilesets§r: 验证文件集对象的正确性，如文件集与其文件的关联

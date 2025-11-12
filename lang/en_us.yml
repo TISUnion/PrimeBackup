@@ -396,6 +396,7 @@ prime_backup:
           §7{prefix} database overview§r: Report an overview of the database
           §7{prefix} database inspect backup §6<backup_id>§r: Inspect the internal data of the given backup
           §7{prefix} database inspect file §6<backup_id> §3<file_path>§r: Inspect the internal data of the given file
+          §7{prefix} database inspect file2 §3<fileset_id> §3<file_path>§r: Inspect the internal data of the given file in fileset
           §7{prefix} database inspect fileset §3<fileset_id>§r: Inspect the internal data of the given fileset
           §7{prefix} database inspect blob §d<blob_hash>§r: Inspect the internal data of the given blob
           §7{prefix} database delete file §6<backup_id> §3<file_path> §7[--recursive]§r: Delete given file in the given backup. If §7[--recursive]§r and it's a directory, delete everything inside it

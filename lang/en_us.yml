@@ -96,6 +96,7 @@ prime_backup:
       nothing_to_do: No enabled prune job, no thing to do
       what:
         regular: regular backups
+        scheduled: scheduled backups
         temporary: temporary backups
       start: Start pruning {}
       done: Finished all prune jobs, removed {} backups, {} blobs, freed {}
@@ -621,3 +622,4 @@ prime_backup:
     hidden: Hidden backup
     temporary: Temporary backup
     protected: Protected backup
+    scheduled: Scheduled backup

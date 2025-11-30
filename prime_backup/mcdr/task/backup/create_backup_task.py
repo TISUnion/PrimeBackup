@@ -9,17 +9,19 @@ from prime_backup.action.create_backup_action import CreateBackupAction
 from prime_backup.mcdr.task import TaskEvent
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
 from prime_backup.utils.timer import Timer
 
 
 class CreateBackupTask(HeavyTask[Optional[int]]):
-	def __init__(self, source: CommandSource, comment: str, operator: Optional[Operator] = None):
+	def __init__(self, source: CommandSource, comment: str, operator: Optional[Operator] = None, *, backup_tags: Optional[BackupTags] = None):
 		super().__init__(source)
 		self.comment = comment
 		if operator is None:
 			operator = Operator.of(source)
 		self.operator = operator
+		self.backup_tags = backup_tags
 		self.world_saved_done = threading.Event()
 		self.__waiting_world_save = False
 
@@ -74,7 +76,7 @@ class CreateBackupTask(HeavyTask[Optional[int]]):
 				self.broadcast(self.tr('abort.unloaded').set_color(RColor.red))
 				return None
 
-			action = CreateBackupAction(self.operator, self.comment)
+			action = CreateBackupAction(self.operator, self.comment, tags=self.backup_tags)
 			backup = action.run()
 			bls = action.get_new_blobs_summary()
 			cost_create = timer.get_elapsed()

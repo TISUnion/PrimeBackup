@@ -56,3 +56,8 @@ class BackupFilter:
 		"""Exclude protected backup / Must be non-protected backup"""
 		self.tag_filters.append(BackupTagFilter(BackupTagName.protected, True, BackupTagFilter.Policy.not_equals))
 		return self
+
+	def requires_scheduled_backup(self) -> 'BackupFilter':
+		"""Exclude non-scheduled backup / Must be scheduled backup"""
+		self.tag_filters.append(BackupTagFilter(BackupTagName.scheduled, True, BackupTagFilter.Policy.equals))
+		return self

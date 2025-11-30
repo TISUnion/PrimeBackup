@@ -97,6 +97,7 @@ prime_backup:
       what:
         regular: 普通备份
         temporary: 临时备份
+        scheduled: 定时备份
       start: 开始清理{}
       done: 已完成所有清理子任务, 共删除{}个备份、{}个数据对象, 共释放{}
     backup_rename:
@@ -621,3 +622,4 @@ prime_backup:
     hidden: 隐藏备份
     temporary: 临时备份
     protected: 受保护备份
+    scheduled: 定时备份

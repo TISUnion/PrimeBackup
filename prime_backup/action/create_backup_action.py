@@ -11,7 +11,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, Literal, BinaryIO, ContextManager, overload, TypeVar
+from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, Deque, Literal, BinaryIO, ContextManager, overload
 
 import pathspec
 from typing_extensions import NoReturn, override, Self

@@ -12,6 +12,7 @@ from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
 from prime_backup.mcdr.online_player_counter import OnlinePlayerCounter
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
+from prime_backup.types.backup_tags import BackupTags, BackupTagName
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.utils import backup_utils
 from prime_backup.utils.mcdr_utils import broadcast_message
@@ -79,7 +80,7 @@ class ScheduledBackupJob(BasicCrontabJob):
 
 			comment = backup_utils.create_translated_backup_comment('scheduled_backup')
 			operator = Operator.pb(PrimeBackupOperatorNames.scheduled_backup)
-			task = CreateBackupTask(self.get_command_source(), comment, operator=operator)
+			task = CreateBackupTask(self.get_command_source(), comment, operator=operator, backup_tags=BackupTags().set(BackupTagName.scheduled, True))
 
 			self.found_created_backup.clear()
 			self.run_task_with_retry(task, True, requirement=lambda: not self.found_created_backup.is_set(), broadcast=True).report()

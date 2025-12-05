@@ -6,148 +6,7 @@ title: '数据库维护'
 
 ## 概述
 
-PrimeBackup 的数据库维护功能用于确保备份系统的数据一致性和完整性，包括数据库验证、清理和压缩等操作。这些功能对于长期运行的备份系统至关重要。
-
-## 数据库验证
-
-### 完整验证
-
-验证数据库所有组件的完整性：
-```
-!!pb database validate all
-```
-
-### 部分验证
-
-验证特定组件的完整性：
-- `!!pb database validate blobs` - 验证blob文件
-- `!!pb database validate files` - 验证文件记录
-- `!!pb database validate filesets` - 验证文件集
-- `!!pb database validate backups` - 验证备份记录
-
-示例：
-```
-!!pb database validate all
-```
-
-示例输出：
-```
-> !!pb database validate all
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 开始验证数据库...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证blobs...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证blobs完成: 已验证 1250 / 1250
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 所有blob验证通过 (1250)
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证files...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证files完成: 已验证 41060 / 41060
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 所有文件验证通过 (41060)
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证filesets...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证filesets完成: 已验证 59 / 59
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 所有文件集验证通过 (59)
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证backups...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证backups完成: 已验证 59 / 59
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 所有备份验证通过 (59)
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证完成: 耗时 12.45s, blobs: 通过, files: 通过, filesets: 通过, backups: 通过
-```
-
-### 验证内容
-
-#### Blob验证
-- **文件存在性**: 检查blob文件是否存在于存储中
-- **完整性**: 验证blob文件的哈希值
-- **大小匹配**: 检查存储大小与记录是否一致
-- **压缩验证**: 验证压缩数据的完整性
-
-#### 文件验证
-- **引用完整性**: 检查文件引用的blob是否存在
-- **文件集关联**: 验证文件与文件集的关联关系
-- **元数据一致性**: 检查文件元数据是否完整
-
-#### 文件集验证
-- **备份关联**: 验证文件集与备份的关联关系
-- **文件计数**: 检查文件集中的文件数量
-- **大小计算**: 验证文件集大小计算的正确性
-
-#### 备份验证
-- **文件集引用**: 检查备份引用的文件集是否存在
-- **时间戳顺序**: 验证备份时间戳的顺序
-- **元数据完整性**: 检查备份元数据是否完整
-
-### 错误处理
-
-当验证发现问题时，会显示详细的错误信息：
-```
-> !!pb database validate blobs
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证blobs...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 验证blobs完成: 已验证 1248 / 1250
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 发现损坏的blob: 2 / 1248
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 损坏的blob: 2
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 1. 8a3b9c7d2e1f4a5b6c7d8e9f0a1b2c3d4e5f6a7b: 文件不存在
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 2. 9b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c: 哈希值不匹配
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 受影响文件数 / 总文件数: 15 / 41060
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 受影响文件集数 / 总文件集数: 3 / 59
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 受影响备份数 / 总备份数: 5 / 59
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 查看详细日志: /path/to/validate.log
-```
-
-## 数据库清理
-
-### 清理孤立对象
-
-清理数据库中的孤立对象（不再被引用的对象）：
-```
-!!pb database prune
-```
-
-示例输出：
-```
-> !!pb database prune
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 开始清理数据库...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 清理完成: 孤立blob 5, 孤立文件 12, 孤立文件集 2, 压缩基础文件集 3, 未知blob文件 2
-```
-
-### 清理内容
-
-#### 孤立对象清理
-- **孤立blob**: 不再被任何文件引用的blob
-- **孤立文件**: 不再被任何文件集引用的文件
-- **孤立文件集**: 不再被任何备份引用的文件集
-
-#### 文件集压缩
-- **基础文件集压缩**: 优化基础文件集的存储结构
-- **增量合并**: 将增量文件集合并到基础文件集
-
-#### 未知文件清理
-- **未知blob文件**: 存储中存在但数据库中无记录的blob文件
-
-### 清理效果
-
-清理操作可以：
-- 释放存储空间
-- 提高数据库性能
-- 减少数据冗余
-- 优化查询效率
-
-## 数据库压缩
-
-### SQLite数据库压缩
-
-压缩SQLite数据库文件，减少磁盘占用：
-```
-!!pb database vacuum
-```
-
-示例输出：
-```
-> !!pb database vacuum
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 开始压缩数据库...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 压缩完成: 耗时 2.34s, 大小 45.67MiB -> 32.15MiB (-13.52MiB, 70.4%)
-```
-
-### 压缩效果
-
-- **空间回收**: 回收数据库文件中未使用的空间
-- **性能优化**: 提高数据库读写性能
-- **碎片整理**: 整理数据库文件碎片
+Prime Backup 的数据库维护功能用于确保备份系统的数据一致性和完整性，包括数据库验证、清理和压缩等操作。这些功能对于长期运行的备份系统至关重要。
 
 ## 数据库概览
 
@@ -161,71 +20,159 @@ PrimeBackup 的数据库维护功能用于确保备份系统的数据一致性�
 示例输出：
 ```
 > !!pb database overview
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 数据库概览
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 备份数: 59
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 文件集数: 118
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 文件数: 41060
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] Blob数: 1250
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 总原始大小: 8.21GiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 总存储大小: 6.45GiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 压缩率: 78.5%
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 数据库文件大小: 32.15MiB
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] ======== 数据库概览 ========
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据库版本: 3
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据库文件大小: 2.67MiB
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 哈希算法: xxh128
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 备份数: 21
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 文件数: 66351 (9147 个对象)
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 文件总大小: 2.37GiB
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据对象数: 4325
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据对象总储存大小: 428.23MiB (68.3%)
+[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据对象总原始大小: 627.04MiB
 ```
 
-## 权限要求
 
-| 操作 | 权限等级 | 说明 |
-|------|----------|------|
-| 数据库验证 | 1 | 验证数据库完整性 |
-| 数据库清理 | 3 | 清理孤立对象 |
-| 数据库压缩 | 3 | 压缩数据库文件 |
-| 数据库概览 | 1 | 查看数据库统计 |
+## 数据库验证
 
-## 维护计划
+### 完整验证
 
-### 定期维护建议
+验证数据库所有组件的完整性：
 
-- **每日**: 运行 `!!pb database overview` 检查系统状态
-- **每周**: 运行 `!!pb database validate blobs` 验证数据完整性
-- **每月**: 运行 `!!pb database prune` 清理孤立对象
-- **每季度**: 运行 `!!pb database vacuum` 压缩数据库
-
-### 故障排查
-
-当系统出现问题时：
-1. 运行 `!!pb database validate all` 进行全面验证
-2. 检查验证日志中的错误信息
-3. 根据错误类型采取相应措施
-4. 必要时运行 `!!pb database prune` 进行修复
-
-## 实用示例
-
-### 定期健康检查
 ```
 !!pb database validate all
 ```
 
-### 清理存储空间
+### 部分验证
+
+验证特定组件的完整性：
+
+- `!!pb database validate blobs` - 验证数据对象
+- `!!pb database validate files` - 验证文件记录
+- `!!pb database validate filesets` - 验证文件集
+- `!!pb database validate backups` - 验证备份记录
+
+示例：
+
+```
+!!pb database validate all
+```
+
+示例输出：
+```
+> !!pb database validate all
+[MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO]: [PB] 正在验证所有数据对象, 请稍等...
+[MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO] [prime_backup]: Blob validation start
+[MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 3000 / 4325 blobs
+[MCDR] [23:15:51] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 4325 / 4325 blobs
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4325, bad 0
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 已验证4325/4325个数据对象
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 全部4325个数据对象都是健康的
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 正在验证所有文件对象 (包括文件、文件夹、符号链接), 请稍等...
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: File validation start
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 9147 / 9147 file objects
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: File validation done: total 9147, validated 9147, ok 9147, bad 0
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 已验证9147/9147个文件
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 全部9147个文件都是健康的
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 正在验证所有文件集, 请稍等...
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Fileset validation start
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 26 fileset objects
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 26 / 26 fileset objects
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Fileset validation done: total 26, validated 26, ok 26, bad 0
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 已验证26/26个文件集
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 全部26个文件集都是健康的
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 正在验证所有备份, 请稍等...
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Backup validation start
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 21 backup objects
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Backup validation done: total 21, validated 21, ok 21, bad 0
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 已验证21/21个备份
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 全部21个备份都是健康的
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 验证完成, 耗时15.32s。数据对象: 健康, 文件对象: 健康, 文件集: 健康, 备份: 健康
+```
+
+### 验证内容
+
+数据对象：
+
+- 文件存在性: 检查数据对象文件是否存在于存储中
+- 完整性: 验证数据对象文件的哈希值
+- 大小匹配: 检查存储大小与记录是否一致
+- 压缩验证: 验证压缩数据的完整性
+
+文件：
+
+- 引用完整性: 检查文件引用的数据对象是否存在
+- 文件集关联: 验证文件与文件集的关联关系
+- 元数据一致性: 检查文件元数据是否完整
+
+文件集：
+
+- 备份关联: 验证文件集与备份的关联关系
+- 文件计数: 检查文件集中的文件数量
+- 大小计算: 验证文件集大小计算的正确性
+
+备份：
+
+- 文件集引用: 检查备份引用的文件集是否存在
+- 时间戳顺序: 验证备份时间戳的顺序
+- 元数据完整性: 检查备份元数据是否完整
+
+
+当验证发现问题时，会显示详细的错误信息：
+```
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4322, bad 3
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO]: [PB] 已验证4325/4325个数据对象
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO]: [PB] 发现了3/4325个异常数据对象
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO]: [PB] 文件缺失的数据对象: 2个
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO]: [PB] 1. 4fc02ad5e7508949634f012fb96c2968: blob file does not exist
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO]: [PB] 2. 54695a153daae89e685894ee966a277e: blob file does not exist
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO]: [PB] 信息不匹配的数据对象: 1个
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO]: [PB] 1. 8b36d71e250e25527f59b8fd9e0f2dce: stored size mismatch, expect 178, found 176
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO]: [PB] 影响范围: 6/9147个文件对象, 2/26个文件集, 16/21个备份
+[MCDR] [23:19:19] [PB@fc91-worker-heavy/INFO]: [PB] 见日志文件 pb_files/logs/validate.log 以了解这些数据对象的详细信息及影响范围
+```
+
+
+## 数据库清理
+
+### 清理孤立对象
+
+清理数据库中的孤立对象（不再被引用的对象）
+
 ```
 !!pb database prune
 ```
 
-### 优化数据库性能
+清理内容
+
+- 孤立数据对象: 不再被任何文件引用的数据对象
+- 孤立文件: 不再被任何文件集引用的文件
+- 孤立文件集: 不再被任何备份引用的文件集
+- 基础文件集压缩: 优化基础文件集的存储结构
+- 未知数据对象文件: 存储中存在但数据库中无记录的数据对象文件
+
+!!! note
+
+    绝大部分情况下，你都无需手动执行此命令。Prime Backup 在日常操作中是会确保数据库处于干净状态
+
+
+## SQLite压缩
+
+### SQLite 压缩
+
+压缩 SQLite 数据库文件，减少磁盘占用
+
 ```
 !!pb database vacuum
 ```
 
-### 查看系统状态
+示例输出：
 ```
-!!pb database overview
+> !!pb database vacuum
+[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 开始压缩数据库...
+[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 压缩完成: 耗时 2.34s, 大小 45.67MiB -> 32.15MiB (-13.52MiB, 70.4%)
 ```
 
-## 注意事项
+!!! note
 
-1. **验证时间**: 完整验证可能需要较长时间，取决于数据量
-2. **清理风险**: 清理操作会删除数据，建议先验证
-3. **压缩时机**: 在大量删除操作后运行压缩效果更好
-4. **备份建议**: 在执行维护操作前建议创建完整备份
-5. **监控指标**: 关注存储大小、文件数量和数据库性能
-
-通过这些维护功能，您可以确保备份系统的长期稳定运行，及时发现和修复问题，优化系统性能。
+    在默认配置下，Prime Backup 会自动周期性执行 SQLite 数据库任务，因此大部分情况下，你都无需手动执行此命令 

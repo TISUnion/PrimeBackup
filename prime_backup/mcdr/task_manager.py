@@ -6,7 +6,7 @@ import threading
 from concurrent import futures
 from typing import Optional, Callable, Any, TypeVar
 
-from mcdreforged.api.all import CommandSource, RText, RColor, RAction, PermissionLevel
+from mcdreforged.api.all import CommandSource, RText, RColor, RAction, RStyle, PermissionLevel
 from sqlalchemy.exc import OperationalError
 
 from prime_backup import logger
@@ -70,7 +70,10 @@ class _TaskWorker:
 		elif isinstance(e, BlobHashNotUnique):
 			lines = [
 				tr('error.blob_hash_not_unique', e.blob_hash_prefix),
-				tr('error.blob_hash_not_unique.candidates', len(e.candidates), ', '.join([b.hash for b in e.candidates])),
+				tr('error.blob_hash_not_unique.candidates', len(e.candidates), RText.join(', ', [
+					RText(b.hash[:len(e.blob_hash_prefix)], styles=RStyle.underlined) + RText(b.hash[len(e.blob_hash_prefix):])
+					for b in e.candidates
+				])),
 			]
 		else:
 			return False

@@ -9,7 +9,7 @@ Prime Backup feature list
 - [Backup create](backup_create.md)
 - [Backup restore](backup_restore.md)
 - [Backup display](backup_display.md)
-- Backup edit
+- [Backup edit](backup_edit.md)
 - Backup manage
 - Backup import/export
 
@@ -17,12 +17,10 @@ Prime Backup feature list
 
 - Scheduled backup
 - Backup pruning
-- Database maintaining
 
 ### Database Operations (Advanced)
 
-- Database overview
-- Database internal object inspect
-- Database correctness validation
-- Database clean up
+- [Database overview](database_overview.md)
+- [Database internal object inspect](database_inspect.md)
+- [Database maintaining](database_maintain.md)
 - Migrate hash method / compress method

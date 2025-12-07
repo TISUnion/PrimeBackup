@@ -50,7 +50,7 @@ If you want to add a comment to the backup for easier identification later, you 
 For example
 
 ```
-!!pb make Roasted pig is ready
+!!pb make Example Comment Here
 ```
 
 After the backup is created, you can use `!!pb show` or `!!pb list` commands to view it

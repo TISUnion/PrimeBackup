@@ -2,7 +2,7 @@
 title: 'Database Overview'
 ---
 
-View database statistics overview, used to quickly understand the information status of PrimeBackup database
+View database statistics overview, used to quickly understand the information status of Prime Backup database
 
 ## Command
 
@@ -12,7 +12,7 @@ View database statistics overview, used to quickly understand the information st
 
 ## Function
 
-View overall statistical information of PrimeBackup database
+View overall statistical information of Prime Backup database
 
 ## Example Output
 

@@ -4,31 +4,6 @@ title: 'Database Maintenance'
 
 Consistency check and Database Organization
 
-## Database Overview
-
-View the overall stats of the database:
-
-```
-!!pb database overview
-```
-
-Example output:
-
-```
-> !!pb database overview
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] ======== Database overview ========
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] Database version: 3
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] Database file size: 2.67MiB
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] Hash method: xxh128
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] Backup count: 21
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] File count: 66351 (9147 objects)
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] File raw size sum: 2.37GiB
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] Blob count: 4325
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] Blob stored size sum: 428.23MiB (68.3%)
-[MCDR] [23:22:05] [PB@fc91-worker-light/INFO]: [PB] Blob raw size sum: 627.04MiB
-```
-
-
 ## Database Validation
 
 | Command                           | Description                                                                                        |

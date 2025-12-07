@@ -1,8 +1,8 @@
 ---
-title: 'Backup Restoration (Rollback)'
+title: 'Backup Restoration'
 ---
 
-Restoring a backup, also known as rollback operation
+Restoring a backup
 
 ## Restoration Steps
 
@@ -26,47 +26,47 @@ Example console output:
 
 ```
 > !!pb back 78
-[MCDR] [22:08:05] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] Will restore to backup#78: Test backup
-[MCDR] [22:08:05] [PB@ecac-worker-heavy/INFO]: [PB] Please make a choice within 1 minute and enter the corresponding command:
-[MCDR] [22:08:05] [PB@ecac-worker-heavy/INFO]: [PB] - Confirm restore: !!pb confirm
-[MCDR] [22:08:05] [PB@ecac-worker-heavy/INFO]: [PB] - Abort restore×: !!pb abort
+[MCDR] [22:08:24] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] Gonna restore the world to backup #78: Test Backup
+[MCDR] [22:08:24] [PB@f133-worker-heavy/INFO]: [PB] Please choose and enter command within 1 minute:
+[MCDR] [22:08:24] [PB@f133-worker-heavy/INFO]: [PB] - Confirm restore¡Ì: !!pb confirm
+[MCDR] [22:08:24] [PB@f133-worker-heavy/INFO]: [PB] - Abort restore¡Á: !!pb abort
 > !!pb confirm
-[MCDR] [22:08:08] [TaskExecutor/INFO]: [PB] Confirming restore task
-[MCDR] [22:08:08] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 10 seconds
-[MCDR] [22:08:09] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 9 seconds
-[MCDR] [22:08:10] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 8 seconds
-[MCDR] [22:08:11] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 7 seconds
-[MCDR] [22:08:12] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 6 seconds
-[MCDR] [22:08:13] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 5 seconds
-[MCDR] [22:08:14] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 4 seconds
-[MCDR] [22:08:15] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 3 seconds
-[MCDR] [22:08:16] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 2 seconds
-[MCDR] [22:08:17] [PB@ecac-worker-heavy/INFO] [prime_backup]: [PB] !!! Will restore to backup#78: Test backup in 1 second
-[MCDR] [22:08:18] [PB@ecac-worker-heavy/INFO] [prime_backup]: Wait for server to stop
-[Server] [22:08:18] [Server thread/INFO]: Stopping the server
-[Server] [22:08:18] [Server thread/INFO]: Stopping server
-[Server] [22:08:18] [Server thread/INFO]: Saving players
-[Server] [22:08:18] [Server thread/INFO]: Saving worlds
-[Server] [22:08:18] [Server thread/INFO]: Saving chunks for level 'world'/minecraft:overworld
-[Server] [22:08:18] [Server thread/INFO]: ThreadedAnvilChunkStorage (world): All chunks are saved
-[Server] [22:08:18] [Server thread/INFO]: Saving chunks for level 'world'/minecraft:the_nether
-[Server] [22:08:18] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
-[Server] [22:08:18] [Server thread/INFO]: Saving chunks for level 'world'/minecraft:the_end
-[Server] [22:08:18] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
-[Server] [22:08:18] [Server thread/INFO]: ThreadedAnvilChunkStorage (world): All chunks are saved
-[Server] [22:08:18] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
-[Server] [22:08:18] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
-[MCDR] [22:08:19] [MainThread/INFO]: Server process has stopped, return code 0
-[MCDR] [22:08:19] [MainThread/INFO]: Server has been shut down
-[MCDR] [22:08:19] [PB@ecac-worker-heavy/INFO] [prime_backup]: Creating backup of existing files to avoid idiot
-[MCDR] [22:08:19] [PB@ecac-worker-heavy/INFO] [prime_backup]: Scanning file for backup creation at path 'server', targets: ['world']
-[MCDR] [22:08:20] [PB@ecac-worker-heavy/INFO] [prime_backup]: Creating backup for ['world'] at path 'server', file cnt 4118, timestamp 1764526100048797, creator 'prime_backup:pre_restore', comment '__pb_translated__:pre_restore:78', tags {'temporary': True}
-[MCDR] [22:08:22] [PB@ecac-worker-heavy/INFO] [prime_backup]: Create backup #79 done, +6 blobs (size 6.43MiB / 7.28MiB)
-[MCDR] [22:08:22] [PB@ecac-worker-heavy/INFO] [prime_backup]: Restoring to backup #78 (fail_soft=False, verify_blob=True)
-[MCDR] [22:08:22] [PB@ecac-worker-heavy/INFO] [prime_backup]: Exporting Backup(id=78, timestamp=1763890381206484, creator='player:Fallen_Breath', comment='Test backup', targets=['world'], tags={}, fileset_id_base=56, fileset_id_delta=88, file_count=4118, file_raw_size_sum=136177532, file_stored_size_sum=78537902) to directory server
-[MCDR] [22:08:36] [PB@ecac-worker-heavy/INFO] [prime_backup]: Export done
-[MCDR] [22:08:36] [PB@ecac-worker-heavy/INFO] [prime_backup]: Restore to backup #78 done, cost 16.95s (backup 2.67s, restore 14.28s), starting the server
-[MCDR] [22:08:36] [PB@ecac-worker-heavy/INFO]: Starting the server, startup parameters 'java -Xms1G -Xmx2G -jar server.jar'
+[MCDR] [22:08:26] [TaskExecutor/INFO]: [PB] Confirming restore backup task
+[MCDR] [22:08:26] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 10 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:27] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 9 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:28] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 8 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:29] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 7 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:30] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 6 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:31] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 5 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:32] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 4 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:33] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 3 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:34] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 2 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:35] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 1 second later, the world will be restored to backup #78: Test Backup
+[MCDR] [22:08:36] [PB@f133-worker-heavy/INFO] [prime_backup]: Wait for server to stop
+[Server] [22:08:36] [Server thread/INFO]: Stopping the server
+[Server] [22:08:36] [Server thread/INFO]: Stopping server
+[Server] [22:08:36] [Server thread/INFO]: Saving players
+[Server] [22:08:36] [Server thread/INFO]: Saving worlds
+[Server] [22:08:36] [Server thread/INFO]: Saving chunks for level 'world'/minecraft:the_nether
+[Server] [22:08:36] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[Server] [22:08:36] [Server thread/INFO]: Saving chunks for level 'world'/minecraft:the_end
+[Server] [22:08:36] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[Server] [22:08:36] [Server thread/INFO]: Saving chunks for level 'world'/minecraft:overworld
+[Server] [22:08:37] [Server thread/INFO]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[Server] [22:08:37] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[Server] [22:08:37] [Server thread/INFO]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[Server] [22:08:37] [Server thread/INFO]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[MCDR] [22:08:37] [MainThread/INFO]: Server process stopped with code 0
+[MCDR] [22:08:37] [MainThread/INFO]: Server stopped
+[MCDR] [22:08:37] [PB@f133-worker-heavy/INFO] [prime_backup]: Creating backup of existing files to avoid idiot
+[MCDR] [22:08:37] [PB@f133-worker-heavy/INFO] [prime_backup]: Scanning file for backup creation at path 'server', targets: ['world']
+[MCDR] [22:08:38] [PB@f133-worker-heavy/INFO] [prime_backup]: Creating backup for ['world'] at path 'server', file cnt 4118, timestamp 1765128818483891, creator 'prime_backup:pre_restore', comment '__pb_translated__:pre_restore:78', tags {'temporary': True}
+[MCDR] [22:08:39] [PB@f133-worker-heavy/INFO] [prime_backup]: Create backup #83 done, +5 blobs (size 6.42MiB / 7.27MiB)
+[MCDR] [22:08:39] [PB@f133-worker-heavy/INFO] [prime_backup]: Restoring to backup #78 (fail_soft=False, verify_blob=True)
+[MCDR] [22:08:39] [PB@f133-worker-heavy/INFO] [prime_backup]: Exporting Backup(id=78, timestamp=1763890381206484, creator='player:Fallen_Breath', comment='Test Backup', targets=['world'], tags={}, fileset_id_base=56, fileset_id_delta=88, file_count=4118, file_raw_size_sum=136177532, file_stored_size_sum=78537902) to directory server
+[MCDR] [22:08:48] [PB@f133-worker-heavy/INFO] [prime_backup]: Export done
+[MCDR] [22:08:48] [PB@f133-worker-heavy/INFO] [prime_backup]: Restore to backup #78 done, cost 10.3s (backup 1.79s, restore 8.51s), starting the server
+[MCDR] [22:08:48] [PB@f133-worker-heavy/INFO]: Starting the server with command 'java -Xms1G -Xmx2G -jar server.jar'
 ```
 
 Example in-game output:
@@ -75,20 +75,20 @@ Example in-game output:
 
 The restore command supports multiple backup ID formats:
 
-| Format             | Example             | Description            |
-|----------------|----------------|---------------|
-| Positive integer            | `!!pb back 12` | Restore to backup with specified ID  |
-| `~` or `latest` | `!!pb back ~`  | Restore to latest non-temporary backup   |
-| Relative offset           | `!!pb back ~1` | Restore to the backup before the latest backup |
-| Relative offset           | `!!pb back ~3` | Restore to the backup three before the latest backup |
+| Format           | Example        | Description                                          |
+|------------------|----------------|------------------------------------------------------|
+| Positive integer | `!!pb back 12` | Restore to backup with specified ID                  |
+| `~` or `latest`  | `!!pb back ~`  | Restore to latest non-temporary backup               |
+| Relative offset  | `!!pb back ~1` | Restore to the backup before the latest backup       |
+| Relative offset  | `!!pb back ~3` | Restore to the backup three before the latest backup |
 
 The restore command supports the following optional parameters:
 
-| Parameter            | Description              |
-|---------------|-----------------|
+| Parameter     | Description                                          |
+|---------------|------------------------------------------------------|
 | `--confirm`   | Skip confirmation step, directly start restoration   |
 | `--fail-soft` | Skip files that fail to export during export process |
-| `--no-verify` | Do not verify the content of exported files      |
+| `--no-verify` | Do not verify the content of exported files          |
 
 Example:
 
@@ -104,8 +104,8 @@ Prime Backup currently does not support restoring backups in command line enviro
 
 Configuration related to restoration is mainly located in the following two sections:
 
-- [Server Configuration](../config.md#server-configuration), including interaction commands with MC server during restoration
-- [Backup Configuration](../config.md#backup-configuration), including file processing rules during restoration
+- [Server Configuration](../config.md#server-config), including interaction commands with MC server during restoration
+- [Backup Configuration](../config.md#backup-config), including file processing rules during restoration
 
 ## Detailed Restoration Process
 

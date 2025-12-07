@@ -9,7 +9,7 @@ Prime Backup 主要功能概览
 - [备份创建](backup_create.zh.md)
 - [备份还原（回档）](backup_restore.zh.md)
 - [备份展示](backup_display.zh.md)
-- 备份编辑
+- [备份编辑](backup_edit.zh.md)
 - 备份管理
 - 备份导入导出
 
@@ -17,12 +17,10 @@ Prime Backup 主要功能概览
 
 - 定时备份
 - 备份清理
-- 数据库维护
 
 ### 数据库操作（高级操作）
 
-- 数据库概览
-- 数据库内部对象审查
-- 数据库正确性校验
-- 数据库清理
+- [数据库概览](database_operation.zh.md)
+- [数据库内部对象审查](database_inspect.zh.md)
+- [数据库维护](database_maintain.zh.md)
 - 压缩方法/哈希算法迁移

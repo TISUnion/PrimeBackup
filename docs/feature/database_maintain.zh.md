@@ -4,31 +4,6 @@ title: '数据库维护'
 
 一致性状态审查和数据库整理
 
-## 数据库概览
-
-查看数据库的整体统计信息：
-
-```
-!!pb database overview
-```
-
-示例输出：
-
-```
-> !!pb database overview
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] ======== 数据库概览 ========
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据库版本: 3
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据库文件大小: 2.67MiB
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 哈希算法: xxh128
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 备份数: 21
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 文件数: 66351 (9147 个对象)
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 文件总大小: 2.37GiB
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据对象数: 4325
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据对象总储存大小: 428.23MiB (68.3%)
-[MCDR] [23:21:50] [PB@fc91-worker-light/INFO]: [PB] 数据对象总原始大小: 627.04MiB
-```
-
-
 ## 数据库验证
 
 | 命令                                | 说明                      |

@@ -1,225 +1,157 @@
 ---
-title: '数据库查看'
+title: '数据库内部对象审查'
 ---
 
 查看和审查数据库中的对象信息
 
 ## 概述
 
-PrimeBackup 的数据库查看功能允许您深入查看备份系统中的各个组件，包括备份、文件集、文件和blob。这些功能对于调试、审计和了解备份系统的内部结构非常有用。
+Prime Backup 的数据库查看功能允许你深入查看备份系统中的各个组件，包括备份、文件集、文件和blob。这些功能对于调试、审计和了解备份系统的内部结构非常有用。
 
 ## 备份查看
 
 ### 查看备份详细信息
 
 查看特定备份的完整信息：
+
 ```
 !!pb database inspect backup <backup_id>
 ```
 
 示例：
 ```
-!!pb database inspect backup 59
+!!pb database inspect backup 45
 ```
 
 示例输出：
 ```
-> !!pb database inspect backup 59
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 备份 #59
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] ID: 59
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 时间戳: 1760892371872862 (2024-01-01 12:00:00)
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 创建者: "console:"
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 注释: "香猪烤好了"
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 目标: world
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 标签: {"scheduled": true, "protected": false}
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 文件集: 基础文件集 #123, 增量文件集 #124
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 原始大小: 139.28MiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 存储大小: 118.39MiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 文件总数: 4106
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] - 普通文件: 3802
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] - 目录: 254
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] - 符号链接: 50
+> !!pb database inspect backup 45
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] ======== 备份#45 ========
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] ID: 45
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] 时间戳 (微秒): 1756050607173147 (日期: 2025-08-24 23:50:07)
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] 创建者: "console:" (控制台)
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] 注释: "2"
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] 备份目标: world, world15, world21
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] 标签: {}
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] 基础文件集: 39, 增量文件集: 54
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] 原始大小: 124137302 (118.39MiB)
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] 储存大小: 67760442 (64.62MiB)
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] 文件总数: 4106
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] - 普通文件: 4068
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] - 文件夹: 38
+[MCDR] [01:40:29] [PB@f133-worker-light/INFO]: [PB] - 符号链接: 0
 ```
-
-### 查看的信息内容
-
-- **基本信息**: ID、时间戳、创建者、注释
-- **配置信息**: 备份目标、标签
-- **存储信息**: 文件集ID、原始大小、存储大小
-- **文件统计**: 文件总数、按类型分类的文件数量
 
 ## 文件查看
 
 ### 查看备份中的文件
 
 查看备份中特定文件的详细信息：
+
 ```
 !!pb database inspect file <backup_id> <文件路径>
 ```
 
 示例：
 ```
-!!pb database inspect file 59 world/level.dat
+!!pb database inspect file 45 world/level.dat
 ```
 
 示例输出：
 ```
-> !!pb database inspect file 59 world/level.dat
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 文件集 #123 文件 world/level.dat
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 文件集ID: 123
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 路径: world/level.dat
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 角色: 普通文件
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 权限: 644 (rw-r--r--)
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] Blob哈希: 8a3b9c7d2e1f4a5b6c7d8e9f0a1b2c3d4e5f6a7b
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] Blob压缩: zstd
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] Blob原始大小: 8.21KiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] Blob存储大小: 4.12KiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 用户ID: 1000 (minecraft)
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 组ID: 1000 (minecraft)
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 修改时间: 1760892371872862 (2024-01-01 12:00:00.728628)
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 被使用次数: 3 (#59, #60, #61)
+> !!pb database inspect file 45 world/level.dat
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] ======== 文件集39的文件level.dat ========
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 所属文件集: 39
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 路径: world/level.dat
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 角色: 独立
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 模式: 33206 (-rw-rw-rw-)
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 数据对象哈希: 86c7b6e480e869effd9200abe045b3db
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 数据对象压缩方法: zstd
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 数据对象原始大小: 1528 (1.49KiB)
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 数据对象储存大小: 1537 (1.50KiB)
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] Uid: 0
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] Gid: 0
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 修改时间: 1731254748636839 (2024-11-11 00:05:48.636839)
+[MCDR] [01:40:53] [PB@f133-worker-light/INFO]: [PB] 包含此文件的备份数量: 3 (样本: #45, #43, #42)
 ```
 
 ### 查看文件集中的文件
 
 查看文件集中特定文件的详细信息：
+
 ```
 !!pb database inspect file2 <fileset_id> <文件路径>
 ```
 
-示例：
-```
-!!pb database inspect file2 123 world/level.dat
-```
-
-### 文件信息内容
-
-- **文件元数据**: 路径、角色、权限、用户/组信息
-- **存储信息**: Blob哈希、压缩算法、大小信息
-- **时间信息**: 修改时间
-- **使用情况**: 被哪些备份使用
+展示的内容同上
 
 ## 文件集查看
 
 ### 查看文件集详细信息
 
 查看特定文件集的完整信息：
+
 ```
 !!pb database inspect fileset <fileset_id>
 ```
 
 示例：
+
 ```
-!!pb database inspect fileset 123
+!!pb database inspect fileset 87
 ```
 
 示例输出：
+
 ```
-> !!pb database inspect fileset 123
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 文件集 #123
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] ID: 123
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 类型: 基础文件集
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 文件对象数: 4106
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 文件数: 3802
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 原始大小: 139.28MiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 存储大小: 118.39MiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 被使用次数: 1 (#59)
+> !!pb database inspect fileset 87
+[MCDR] [19:37:49] [PB@fc91-worker-light/INFO]: [PB] ======== 文件集87 ========
+[MCDR] [19:37:49] [PB@fc91-worker-light/INFO]: [PB] ID: 87
+[MCDR] [19:37:49] [PB@fc91-worker-light/INFO]: [PB] 类型: 增量文件集
+[MCDR] [19:37:49] [PB@fc91-worker-light/INFO]: [PB] 文件对象数: 43
+[MCDR] [19:37:49] [PB@fc91-worker-light/INFO]: [PB] 文件数 (增量): 22
+[MCDR] [19:37:49] [PB@fc91-worker-light/INFO]: [PB] 原始大小 (增量): 23620147 (22.53MiB)
+[MCDR] [19:37:49] [PB@fc91-worker-light/INFO]: [PB] 储存大小 (增量): 19735961 (18.82MiB)
+[MCDR] [19:37:49] [PB@fc91-worker-light/INFO]: [PB] 关联备份数: 1 (样本: #77)
 ```
 
-### 文件集信息内容
+## 数据对象查看
 
-- **基本信息**: ID、类型（基础/增量）
-- **文件统计**: 文件对象数、文件数
-- **大小信息**: 原始大小、存储大小
-- **使用情况**: 被哪些备份使用
+### 查看数据对象详细信息
 
-## Blob查看
+查看特定数据对象的完整信息：
 
-### 查看Blob详细信息
-
-查看特定blob的完整信息：
 ```
-!!pb database inspect blob <blob_hash>
+!!pb database inspect blob <哈希值>
 ```
+
+参数 `<哈希值>` 可以是完整哈希字符串的一个前缀，只要保证唯一即可
 
 示例：
+
 ```
-!!pb database inspect blob 8a3b9c7d2e1f4a5b6c7d8e9f0a1b2c3d4e5f6a7b
+!!pb database inspect blob 8a3d
+!!pb database inspect blob 8a3d32b705a1274850798ae26ff56ba9
 ```
 
 示例输出：
+
 ```
-> !!pb database inspect blob 8a3b9c7d2e1f4a5b6c7d8e9f0a1b2c3d4e5f6a7b
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] Blob 8a3b9c7d2e1f4a5b
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 哈希: 8a3b9c7d2e1f4a5b6c7d8e9f0a1b2c3d4e5f6a7b
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 压缩: zstd
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 原始大小: 8.21KiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 存储大小: 4.12KiB
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 被使用次数: 3
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 1. 文件集 #123, 路径: world/level.dat
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 2. 文件集 #124, 路径: world/level.dat
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 3. 文件集 #125, 路径: world/level.dat
-```
-
-### Blob信息内容
-
-- **存储信息**: 哈希值、压缩算法、大小信息
-- **使用情况**: 被哪些文件使用（文件集ID和路径）
-
-## 交互功能
-
-### 点击操作
-
-所有查看功能都支持丰富的交互操作：
-
-- **点击备份ID**: 跳转到该备份的查看页面
-- **点击文件集ID**: 跳转到该文件集的查看页面
-- **点击Blob哈希**: 跳转到该blob的查看页面
-- **点击文件路径**: 查看该文件的详细信息
-
-### 悬停提示
-
-- **备份ID**: 悬停显示备份的创建时间和注释
-- **文件集ID**: 悬停显示文件集的类型和大小
-- **Blob哈希**: 悬停显示完整的哈希值
-- **文件路径**: 悬停显示文件的完整路径
-
-## 权限要求
-
-| 操作 | 权限等级 | 说明 |
-|------|----------|------|
-| 查看备份 | 1 | 查看备份详细信息 |
-| 查看文件 | 1 | 查看文件详细信息 |
-| 查看文件集 | 1 | 查看文件集详细信息 |
-| 查看Blob | 1 | 查看blob详细信息 |
-
-## 实用示例
-
-### 查看最近备份的详细信息
-```
-!!pb database inspect backup ~
+> !!pb database inspect blob 8a3d
+[MCDR] [19:38:37] [PB@fc91-worker-light/INFO]: [PB] ======== 数据对象8a3d32b705a12748 ========
+[MCDR] [19:38:37] [PB@fc91-worker-light/INFO]: [PB] 哈希: 8a3d32b705a1274850798ae26ff56ba9
+[MCDR] [19:38:37] [PB@fc91-worker-light/INFO]: [PB] 压缩方法: zstd
+[MCDR] [19:38:37] [PB@fc91-worker-light/INFO]: [PB] 原始大小: 736 (736.00B)
+[MCDR] [19:38:37] [PB@fc91-worker-light/INFO]: [PB] 储存大小: 745 (745.00B)
+[MCDR] [19:38:37] [PB@fc91-worker-light/INFO]: [PB] 关联文件数: 2。样本：
+[MCDR] [19:38:37] [PB@fc91-worker-light/INFO]: [PB] 1. 文件集39, 路径: world/playerdata/6ccb4484-ca33-41ee-a809-fece13a26c21.dat
+[MCDR] [19:38:37] [PB@fc91-worker-light/INFO]: [PB] 2. 文件集56, 路径: world/playerdata/6ccb4484-ca33-41ee-a809-fece13a26c21.dat
 ```
 
-### 查看特定文件的存储情况
-```
-!!pb database inspect file 59 world/level.dat
-```
+若提供的哈希值过短，导致无法唯一定位一个数据对象，则会输出：
 
-### 查看文件集的使用情况
 ```
-!!pb database inspect fileset 123
+> !!pb database inspect blob 8a
+[MCDR] [19:39:53] [PB@fc91-worker-light/INFO]: [PB] 给定的哈希值8a无法唯一确定一个数据对象
+[MCDR] [19:39:53] [PB@fc91-worker-light/INFO]: [PB] 找到了至少3个可能的数据对象: 8a92569c48895c60bf2977f1be9591f4, 8abd332ba5b579ca00d0d54e50b8bedd, 8ad9bfd69fa3e84b15e2aa803cac0e4c
 ```
-
-### 查看blob的共享情况
-```
-!!pb database inspect blob 8a3b9c7d2e1f4a5b6c7d8e9f0a1b2c3d4e5f6a7b
-```
-
-## 注意事项
-
-1. **数据模型**: PrimeBackup 使用 Backup-Fileset-File-Blob 的四层数据模型
-2. **共享机制**: 相同的文件内容会共享同一个blob，减少存储占用
-3. **交互性**: 所有查看结果都支持点击交互，便于导航
-4. **详细信息**: 提供完整的元数据信息，便于调试和审计
-
-通过这些查看功能，您可以深入了解备份系统的内部结构，检查文件存储情况，以及调试可能出现的问题。

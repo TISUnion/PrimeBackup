@@ -99,7 +99,6 @@ nav:
     - feature/backup_create.md
     - feature/backup_restore.md
     - feature/backup_display.md
-    - feature/backup_edit.md
     - feature/database_overview.md
     - feature/database_inspect.md
     - feature/database_maintain.md

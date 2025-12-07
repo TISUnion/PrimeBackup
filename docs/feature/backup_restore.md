@@ -28,8 +28,8 @@ Example console output:
 > !!pb back 78
 [MCDR] [22:08:24] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] Gonna restore the world to backup #78: Test Backup
 [MCDR] [22:08:24] [PB@f133-worker-heavy/INFO]: [PB] Please choose and enter command within 1 minute:
-[MCDR] [22:08:24] [PB@f133-worker-heavy/INFO]: [PB] - Confirm restore¡Ì: !!pb confirm
-[MCDR] [22:08:24] [PB@f133-worker-heavy/INFO]: [PB] - Abort restore¡Á: !!pb abort
+[MCDR] [22:08:24] [PB@f133-worker-heavy/INFO]: [PB] - Confirm restoreâˆš: !!pb confirm
+[MCDR] [22:08:24] [PB@f133-worker-heavy/INFO]: [PB] - Abort restoreÃ—: !!pb abort
 > !!pb confirm
 [MCDR] [22:08:26] [TaskExecutor/INFO]: [PB] Confirming restore backup task
 [MCDR] [22:08:26] [PB@f133-worker-heavy/INFO] [prime_backup]: [PB] !!! 10 second later, the world will be restored to backup #78: Test Backup

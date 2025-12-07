@@ -9,9 +9,8 @@ Prime Backup feature list
 - [Backup create](backup_create.md)
 - [Backup restore](backup_restore.md)
 - [Backup display](backup_display.md)
-- Backup edit
-- Backup manage
-- Backup import/export
+- [Backup edit](backup_edit.md)
+- [Backup import/export](backup_import.md)
 
 ### Scheduled Jobs
 

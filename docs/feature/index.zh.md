@@ -20,7 +20,7 @@ Prime Backup 主要功能概览
 
 ### 数据库操作（高级操作）
 
-- [数据库概览](database_operation.zh.md)
+- [数据库概览](database_overview.zh.md)
 - [数据库内部对象审查](database_inspect.zh.md)
 - [数据库维护](database_maintain.zh.md)
-- 压缩方法/哈希算法迁移
+- [数据库修改](database_operation.zh.md)

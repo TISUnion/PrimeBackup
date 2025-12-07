@@ -23,4 +23,4 @@ Prime Backup feature list
 - [Database overview](database_overview.md)
 - [Database internal object inspect](database_inspect.md)
 - [Database maintaining](database_maintain.md)
-- Migrate hash method / compress method
+- [Database operation](database_operation.md)

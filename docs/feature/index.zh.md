@@ -1,5 +1,5 @@
 ---
-title: '概览'
+title: '功能概览'
 ---
 
 Prime Backup 主要功能概览

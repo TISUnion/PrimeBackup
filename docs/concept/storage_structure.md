@@ -1,12 +1,8 @@
 ---
-title: 'Core Concepts'
+title: 'Storage Structure'
 ---
 
-# PrimeBackup Core Concepts
-
-This document introduces the core concepts of PrimeBackup
-
-## Storage Structure
+# Storage Structure
 
 ```mermaid
 graph TB
@@ -40,7 +36,7 @@ graph TB
     style E4 fill:#fff3e0
 ```
 
-### Backup
+## Backup
 
 A backup represents a complete snapshot of the backup target at a specific point in time. Each backup has a unique ID as its identifier
 
@@ -48,7 +44,7 @@ Each backup contains information related to the backup such as creator informati
 
 Each backup is associated with a base fileset and a delta fileset, which together describe the list of files contained in this backup
 
-### Fileset
+## Fileset
 
 Fileset is the storage unit of backups, using a combination of base fileset and delta fileset
 
@@ -64,7 +60,7 @@ Delta Fileset:
 - Stores information about added, modified, and deleted files
 - Depends on the base fileset and does not exist independently
 
-### File
+## File
 
 File represents a file item in a backup, containing file metadata and data hash
 
@@ -78,7 +74,7 @@ File represents a file item in a backup, containing file metadata and data hash
   - Added file: Newly added file in the delta fileset
   - Delete marker: File that has been deleted in the delta fileset
 
-### Blob
+## Blob
 
 Blob is the actual storage object for file content
 
@@ -87,7 +83,7 @@ Blob is the actual storage object for file content
 - Stored independently as files, located in the blobs folder under the [storage_root](config.md#storage_root) path
 - One blob can be referenced by multiple file objects. When the reference count drops to 0, PrimeBackup will delete this blob
 
-### Storage Architecture Diagram
+## Storage Architecture Diagram
 
 ```mermaid
 graph LR

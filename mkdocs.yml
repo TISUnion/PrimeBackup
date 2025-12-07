@@ -79,6 +79,7 @@ plugins:
           site_name: Prime Backup 文档
           nav_translations:
             Features: 功能列表
+            Concepts: 概念列表
   - macros
   # https://mkdocs-mermaid2.readthedocs.io/
   - mermaid2:
@@ -105,3 +106,7 @@ nav:
     - feature/database_inspect.md
     - feature/database_maintain.md
     - feature/database_operation.md
+  - Concepts:
+    - concept/index.md
+    - concept/backup_tag.md
+    - concept/storage_structure.md

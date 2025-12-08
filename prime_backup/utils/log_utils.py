@@ -1,5 +1,6 @@
 import contextlib
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Generator
 
@@ -15,7 +16,12 @@ class FileLogger(logging.Logger):
 		super().__init__(f'{constants.PLUGIN_ID}-{name}', get_log_level())
 		self.log_file = self.__get_log_file_path(f'{name}.log')
 		self.log_file.parent.mkdir(parents=True, exist_ok=True)
-		handler = logging.FileHandler(self.log_file, encoding='utf8')
+		handler = RotatingFileHandler(
+			self.log_file,
+			maxBytes=10 * 1024 * 1024,
+			backupCount=1,
+			encoding='utf8'
+		)
 		handler.setFormatter(LOG_FORMATTER)
 		self.addHandler(handler)
 

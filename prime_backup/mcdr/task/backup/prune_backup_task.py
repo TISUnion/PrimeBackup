@@ -292,7 +292,7 @@ class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 	def run(self) -> PruneAllBackupResult:
 		config = self.config.prune
 		result = PruneAllBackupResult()
-		if not config.regular_backup.enabled and not config.temporary_backup.enabled:
+		if not any([config.regular_backup.enabled, config.temporary_backup.enabled, config.scheduled_backup.enabled]):
 			if self.verbose >= _PruneVerbose.all:
 				self.reply_tr('nothing_to_do')
 			return result

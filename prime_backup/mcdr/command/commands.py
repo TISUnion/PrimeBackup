@@ -11,7 +11,7 @@ from mcdreforged.api.all import PluginServerInterface, CommandSource, CommandCon
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config
 from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, HexStringNode, JsonObjectNode, BackupIdNode, MultiBackupIdNode
-from prime_backup.mcdr.command.value_suggestor import ValueSuggesters
+from prime_backup.mcdr.command.value_suggester import ValueSuggesters
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask

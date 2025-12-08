@@ -93,5 +93,8 @@ class BackupTags:
 	def is_temporary_backup(self) -> bool:
 		return self.get(BackupTagName.temporary) is True
 
+	def is_scheduled_backup(self) -> bool:
+		return self.get(BackupTagName.scheduled) is True
+
 	def is_protected(self) -> bool:
 		return self.get(BackupTagName.protected) is True

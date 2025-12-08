@@ -33,6 +33,8 @@ class _GetSingleFileActionBase(Action[FileInfo], ABC):
 				backup_samples, backup_count = None, session.get_backup_count_containing_file(file)
 			elif self.sample_backup_num is not None:
 				backup_samples, backup_count = session.get_backups_containing_file(file), 0
+			else:
+				backup_samples, backup_count = None, 0
 
 			return FileInfo.of(file, backup_count=backup_count, backup_samples=backup_samples)
 
@@ -75,6 +77,18 @@ class GetFilesetFileAction(_GetSingleFileActionBase):
 	def _get_file(self, session: DbSession) -> schema.File:
 		session.get_fileset(self.fileset_id)  # ensure fileset exists first
 		return session.get_file_in_fileset(self.fileset_id, self.file_path)
+
+
+class GetFilesetFilesAction(Action[Dict[str, FileInfo]]):
+	def __init__(self, fileset_id: int):
+		super().__init__()
+		self.fileset_id = fileset_id
+
+	@override
+	def run(self) -> Dict[str, FileInfo]:
+		with DbAccess.open_session() as session:
+			files = session.get_fileset_files(self.fileset_id)
+			return {file.path: FileInfo.of(file) for file in files}
 
 
 class NotDirectoryError(PrimeBackupError):

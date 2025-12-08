@@ -1,7 +1,7 @@
 import copy
 import json
 
-from mcdreforged.api.all import CommandSource, RText, RTextList, RColor, RAction
+from mcdreforged.api.all import CommandSource, RText, RTextList, RColor, RStyle, RAction
 from typing_extensions import override
 
 from prime_backup.action.count_backup_action import CountBackupAction
@@ -63,6 +63,9 @@ class ListBackupTask(LightTask[None]):
 			self.reply(TextComponents.backup_full(backup, operation_buttons=not self.source.is_console, show_flags=self.show_flags))
 
 		max_page = max(0, (total_count - 1) // self.per_page + 1)
+		if not (1 <= self.page <= max_page):
+			self.reply(self.tr('out_of_range', self.page, 1, max_page).set_styles(RStyle.italic).set_color(RColor.gray))
+
 		t_prev = RText('<-')
 		if 1 <= self.page - 1 <= max_page:  # has prev
 			t_prev.h(self.tr('prev')).c(RAction.run_command, self.__make_command(self.page - 1))

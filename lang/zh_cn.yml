@@ -80,6 +80,7 @@ prime_backup:
       name: 列出备份
       title: 备份列表
       backup_count: '共有{}个备份:'
+      out_of_range: '页数 {} 超出了页数范围 [{}, {}]'
       size: 体积
       next: 下一页
       prev: 上一页

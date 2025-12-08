@@ -80,6 +80,7 @@ prime_backup:
       name: list backup
       title: Backup list
       backup_count: 'There are {} backups:'
+      out_of_range: 'Page number {} is out of range [{}, {}]'
       size: Size
       next: Next Page
       prev: Previous Page

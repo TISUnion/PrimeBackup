@@ -186,6 +186,10 @@ prime_backup:
       done: '已删除备份{0}中的文件{1}, 共释放{2}'
     db_get_fileset_ids:
       name: 获取文件集ID列表
+    db_get_backup_file_paths:
+      name: 获取备份的文件路径列表
+    db_get_fileset_file_paths:
+      name: 获取文件集的文件路径列表
     db_inspect_backup:
       name: 审查备份
       title: '备份{}'

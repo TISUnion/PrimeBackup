@@ -186,6 +186,10 @@ prime_backup:
       done: 'Deleted file {1} in backup {0}, freed {2}'
     db_get_fileset_ids:
       name: get fileset id list
+    db_get_backup_file_paths:
+      name: get backup file path list
+    db_get_fileset_file_paths:
+      name: get fileset file path list
     db_inspect_backup:
       name: inspect backup
       title: 'Backup {}'

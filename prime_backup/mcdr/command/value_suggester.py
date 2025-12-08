@@ -18,10 +18,10 @@ from prime_backup.utils import misc_utils
 from prime_backup.utils.waitable_value import WaitableValue
 
 _T = TypeVar('_T')
-_P = TypeVar('_P')
+_Arg = TypeVar('_Arg')
 
 
-class ValueSuggestor(ABC, Generic[_T, _P]):
+class ValueSuggestor(ABC, Generic[_T, _Arg]):
 	def __init__(self, task_manager: TaskManager):
 		self.task_manager = task_manager
 		self.logger = logger.get()
@@ -37,18 +37,22 @@ class ValueSuggestor(ABC, Generic[_T, _P]):
 		...
 
 	@abstractmethod
-	def _create_value_task(self, source: CommandSource, arg: _P) -> LightTask[_T]:
+	def _create_value_task(self, source: CommandSource, arg: _Arg) -> LightTask[_T]:
 		...
 
 	@abstractmethod
-	def _compute_task_key(self, source: CommandSource, arg: _P) -> str:
+	def _compute_task_key(self, source: CommandSource, arg: _Arg) -> str:
 		...
+
+	@classmethod
+	def _min_query_gap(cls) -> float:
+		return 1
 
 	def __reset(self):
 		self.last_future.set(self._create_fallback())
 		self.current_future.set(self._create_fallback())
 
-	def request(self, source: CommandSource, arg: _P) -> WaitableValue[_T]:
+	def request(self, source: CommandSource, arg: _Arg) -> WaitableValue[_T]:
 		with self.lock:
 			task_key = self._compute_task_key(source, arg)
 			if task_key != self.current_task_key:
@@ -59,7 +63,7 @@ class ValueSuggestor(ABC, Generic[_T, _P]):
 				return self.last_future
 
 			now = time.time()
-			if now - self.last_fetch_time <= 1:  # max qps == 1
+			if now - self.last_fetch_time <= self._min_query_gap():
 				return self.current_future
 
 			def callback(result: Optional[_T], err: Optional[Exception]):
@@ -81,7 +85,7 @@ class ValueSuggestor(ABC, Generic[_T, _P]):
 				self.current_future = wv
 				return wv
 
-	def suggest(self, source: CommandSource, arg: _P, timeout: float = 0.2) -> _T:
+	def suggest(self, source: CommandSource, arg: _Arg, timeout: float = 0.2) -> _T:
 		wv = self.request(source, arg)
 		if wv.wait(timeout) == WaitableValue.EMPTY:
 			return self._create_fallback()
@@ -116,7 +120,7 @@ class FilesetIdSuggestor(ValueSuggestor[List[int], None]):
 		return ''
 
 
-class BackupFilePathSuggestor(ValueSuggestor[List[str], int]):
+class BackupFilePathSuggestor(ValueSuggestor[List[str], str]):
 	@override
 	def _create_fallback(self) -> List[str]:
 		return []
@@ -129,9 +133,14 @@ class BackupFilePathSuggestor(ValueSuggestor[List[str], int]):
 	def _compute_task_key(self, source: CommandSource, backup_id_arg: str) -> str:
 		return backup_id_arg
 
+	@classmethod
 	@override
-	def suggest(self, source: CommandSource, backup_id: int, timeout: float = 0.2) -> _T:
-		return super().suggest(source, backup_id, timeout)
+	def _min_query_gap(cls) -> float:
+		return 3
+
+	@override
+	def suggest(self, source: CommandSource, backup_id_arg: str, timeout: float = 0.2) -> _T:
+		return super().suggest(source, backup_id_arg, timeout)
 
 
 class FilesetFilePathSuggestor(ValueSuggestor[List[str], int]):
@@ -146,6 +155,11 @@ class FilesetFilePathSuggestor(ValueSuggestor[List[str], int]):
 	@override
 	def _compute_task_key(self, source: CommandSource, fileset_id: int) -> str:
 		return str(fileset_id)
+
+	@classmethod
+	@override
+	def _min_query_gap(cls) -> float:
+		return 3
 
 	@override
 	def suggest(self, source: CommandSource, fileset_id: int, timeout: float = 0.2) -> _T:

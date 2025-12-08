@@ -310,11 +310,12 @@ class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 			result.deleted_blobs = result.deleted_blobs + sub_result.deleted_blobs
 
 		if not self.aborted_event.is_set():
+			# prune scheduled backups first, so some non-scheduled regular backups might get another chance to survive
+			prune_backups('scheduled', BackupFilter().requires_scheduled_backup(), config.scheduled_backup)
+		if not self.aborted_event.is_set():
 			prune_backups('regular', BackupFilter().requires_non_temporary_backup(), config.regular_backup)
 		if not self.aborted_event.is_set():
 			prune_backups('temporary', BackupFilter().requires_temporary_backup(), config.temporary_backup)
-		if not self.aborted_event.is_set():
-			prune_backups('scheduled', BackupFilter().requires_scheduled_backup(), config.scheduled_backup)
 
 		if self.verbose >= _PruneVerbose.delete:
 			self.reply_tr(

@@ -47,4 +47,5 @@ def open_file_logger(name: str) -> Generator[FileLogger, None, None]:
 		yield logger
 	finally:
 		for hdr in list(logger.handlers):
+			hdr.close()
 			logger.removeHandler(hdr)

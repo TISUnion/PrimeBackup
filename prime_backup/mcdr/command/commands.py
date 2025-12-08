@@ -10,8 +10,8 @@ from mcdreforged.api.all import PluginServerInterface, CommandSource, CommandCon
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config
-from prime_backup.mcdr.command.backup_id_suggestor import BackupIdSuggestor
 from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, HexStringNode, JsonObjectNode, BackupIdNode, MultiBackupIdNode
+from prime_backup.mcdr.command.value_suggestor import BackupIdSuggestor, FilesetIdSuggestor
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_manager import CrontabManager
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
@@ -48,7 +48,6 @@ from prime_backup.types.operator import Operator
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.utils import misc_utils
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
-from prime_backup.utils.waitable_value import WaitableValue
 
 
 class CommandManagerState(enum.Enum):
@@ -64,6 +63,7 @@ class CommandManager:
 		self.task_manager = task_manager
 		self.crontab_manager = crontab_manager
 		self.backup_id_suggestor = BackupIdSuggestor(task_manager)
+		self.fileset_id_suggestor = FilesetIdSuggestor(task_manager)
 		self.config = Config.get()
 		self.__state = CommandManagerState.INITIAL
 		self.__root_node = Literal(self.config.command.prefix)
@@ -278,11 +278,13 @@ class CommandManager:
 	# ============================ Command Callback ends ============================
 
 	def suggest_backup_id(self, source: CommandSource) -> List[str]:
-		suggestions = BackupIdNode.get_command_suggestions()
-		wv = self.backup_id_suggestor.request(source)
-		if wv.wait(0.2) == WaitableValue.EMPTY:
-			return suggestions
-		return [*suggestions, *map(str, wv.get())]
+		return [
+			*BackupIdNode.get_command_suggestions(),
+			*map(str, self.backup_id_suggestor.suggest(source)),
+		]
+
+	def suggest_fileset_id(self, source: CommandSource) -> List[str]:
+		return [str(fileset_id) for fileset_id in self.fileset_id_suggestor.suggest(source)]
 
 	def __transform_backup_id_impl(self, source: CommandSource, backup_id_raw: Union[str, List[str]], csm: Union[Callable[[int], Any], Callable[[List[int]], Any]]):
 		if isinstance(backup_id_raw, str):
@@ -352,6 +354,9 @@ class CommandManager:
 		def create_backup_id(arg_name: str = 'backup_id', clazz: Type[ArgumentNode] = BackupIdNode) -> ArgumentNode:
 			return clazz(arg_name).suggests(self.suggest_backup_id)
 
+		def create_fileset_id(arg_name: str) -> ArgumentNode:
+			return Integer(arg_name).suggests(self.suggest_fileset_id)
+
 		# --------------- simple commands ---------------
 
 		builder = SimpleCommandBuilder()
@@ -406,7 +411,7 @@ class CommandManager:
 		# `database delete file <backup_id> <file_path>` is handled by `make_db_delete_file_cmd()` below
 
 		builder.arg('file_path', QuotableText)  # Notes: it's actually a redefine
-		builder.arg('fileset_id', Integer)  # not that necessary to provide suggestion here
+		builder.arg('fileset_id', create_fileset_id)  # not that necessary to provide suggestion here
 		builder.arg('blob_hash', HexStringNode)
 		builder.arg('compress_method', lambda n: Enumeration(n, CompressMethod))
 		builder.arg('hash_method', lambda n: Enumeration(n, HashMethod))

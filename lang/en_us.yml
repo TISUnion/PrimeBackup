@@ -66,6 +66,8 @@ prime_backup:
       unfinished: Backup export unfinished
       exported: Exported backup {} to {}, cost {}, size {}
       failures: 'Found {} errors during the export:'
+    backup_get_ids:
+      name: get backup id list
     backup_import:
       name: import backup
       file_not_found: File {} does not exist
@@ -182,6 +184,8 @@ prime_backup:
       cannot_delete_directory: 'Cannot delete directory {0} without the --recursive argument'
       confirm_target: delete
       done: 'Deleted file {1} in backup {0}, freed {2}'
+    db_get_fileset_ids:
+      name: get fileset id list
     db_inspect_backup:
       name: inspect backup
       title: 'Backup {}'

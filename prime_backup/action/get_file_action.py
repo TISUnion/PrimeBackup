@@ -67,6 +67,17 @@ class GetBackupFilesAction(Action[Dict[str, FileInfo]]):
 			return {file.path: FileInfo.of(file) for file in files}
 
 
+class GetBackupFilePathsAction(Action[List[str]]):
+	def __init__(self, backup_id: int):
+		super().__init__()
+		self.backup_id = backup_id
+
+	@override
+	def run(self) -> List[str]:
+		with DbAccess.open_session() as session:
+			return session.get_backup_file_paths(self.backup_id)
+
+
 class GetFilesetFileAction(_GetSingleFileActionBase):
 	def __init__(self, fileset_id: int, file_path: PathLike, *, count_backups: bool = False, sample_backup_num: Optional[int] = None):
 		super().__init__(count_backups=count_backups, sample_backup_num=sample_backup_num)
@@ -89,6 +100,17 @@ class GetFilesetFilesAction(Action[Dict[str, FileInfo]]):
 		with DbAccess.open_session() as session:
 			files = session.get_fileset_files(self.fileset_id)
 			return {file.path: FileInfo.of(file) for file in files}
+
+
+class GetFilesetFilePathsAction(Action[List[str]]):
+	def __init__(self, fileset_id: int):
+		super().__init__()
+		self.fileset_id = fileset_id
+
+	@override
+	def run(self) -> List[str]:
+		with DbAccess.open_session() as session:
+			return session.get_fileset_file_paths(self.fileset_id)
 
 
 class NotDirectoryError(PrimeBackupError):

@@ -3,7 +3,7 @@ from typing import List, Union
 from mcdreforged.api.all import CommandSource
 from typing_extensions import override
 
-from prime_backup.action.get_file_action import GetBackupFilesAction
+from prime_backup.action.get_file_action import GetBackupFilePathsAction
 from prime_backup.mcdr.task.backup.transform_backup_id_task import TransformBackupIdTask
 from prime_backup.mcdr.task.basic_task import LightTask
 
@@ -24,5 +24,4 @@ class GetBackupFilePathsTask(LightTask[List[str]]):
 			backup_id = self.backup_id
 		else:  # backup id raw argument
 			backup_id = TransformBackupIdTask(self.source, [self.backup_id]).run()[0]
-		file_dict = GetBackupFilesAction(backup_id).run()
-		return list(file_dict.keys())
+		return GetBackupFilePathsAction(backup_id).run()

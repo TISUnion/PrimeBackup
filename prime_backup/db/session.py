@@ -538,6 +538,21 @@ class DbSession:
 			where(schema.File.fileset_id == fileset_id)
 		).scalars().all())
 
+	def get_fileset_file_paths(self, fileset_id: int) -> List[str]:
+		return _list_it(self.session.execute(
+			select(schema.File.path).
+			where(schema.File.fileset_id == fileset_id)
+		).scalars().all())
+
+	def get_fileset_file_path_and_role(self, fileset_id: int) -> Dict[str, int]:
+		return {
+			row.path: row.role
+			for row in self.session.execute(
+				select(schema.File.path, schema.File.role).
+				where(schema.File.fileset_id == fileset_id)
+			)
+		}
+
 	def get_fileset_ids_by_blob_hashes(self, hashes: List[str]) -> List[int]:
 		fileset_ids = set()
 		for v_hashes in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
@@ -774,6 +789,16 @@ class DbSession:
 		files_base = self.get_fileset_files(backup.fileset_id_base)
 		files_delta = self.get_fileset_files(backup.fileset_id_delta)
 		return self.merge_fileset_files(files_base, files_delta)
+
+	def get_backup_file_paths(self, backup_or_backup_id: Union[int, schema.Backup]) -> List[str]:
+		backup = self.__convert_backup_or_backup_id_to_backup(backup_or_backup_id)
+		file_paths: Dict[str, None] = dict.fromkeys(self.get_fileset_file_paths(backup.fileset_id_base), None)
+		for path, role in self.get_fileset_file_path_and_role(backup.fileset_id_delta).items():
+			if role == FileRole.delta_add.value:
+				file_paths[path] = None
+			elif role == FileRole.delta_remove:
+				file_paths.pop(path, None)
+		return list(file_paths.keys())
 
 	def get_backups(self, backup_ids: List[int]) -> Dict[int, schema.Backup]:
 		"""

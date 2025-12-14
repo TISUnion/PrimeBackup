@@ -1,0 +1,2165 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world" name="description"/>
+<meta content="Fallen_Breath" name="author"/>
+<link href="https://tisunion.github.io/PrimeBackup/zh/config/" rel="canonical"/>
+<link href="../quick_start/" rel="prev"/>
+<link href="../command/" rel="next"/>
+<link href="../../config/" hreflang="en" rel="alternate"/>
+<link href="./" hreflang="zh" rel="alternate"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.0" name="generator"/>
+<title>配置文件 - Prime Backup 文档</title>
+<link href="../../assets/stylesheets/main.618322db.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#配置文件详解">
+          跳转至
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="页眉" class="md-header__inner md-grid">
+<a aria-label="Prime Backup 文档" class="md-header__button md-logo" data-md-component="logo" href="../" title="Prime Backup 文档">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            Prime Backup 文档
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              配置文件
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"></path></svg>
+</label>
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_2" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to system preference" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="indigo" data-md-color-scheme="slate" id="__palette_2" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to system preference">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<div class="md-header__option">
+<div class="md-select">
+<button aria-label="选择当前语言" class="md-header__button md-icon">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"></path></svg>
+</button>
+<div class="md-select__inner">
+<ul class="md-select__list">
+<li class="md-select__item">
+<a class="md-select__link" href="../../config/" hreflang="en">
+              English
+            </a>
+</li>
+<li class="md-select__item">
+<a class="md-select__link" href="./" hreflang="zh">
+              简体中文
+            </a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="搜索" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="搜索" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="查找" class="md-search__options">
+<button aria-label="清空当前内容" class="md-search__icon md-icon" tabindex="-1" title="清空当前内容" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/TISUnion/PrimeBackup" title="前往仓库">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="导航栏" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="Prime Backup 文档" class="md-nav__button md-logo" data-md-component="logo" href="../" title="Prime Backup 文档">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    Prime Backup 文档
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/TISUnion/PrimeBackup" title="前往仓库">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../quick_start/">
+<span class="md-ellipsis">
+    
+  
+    快速上手
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    配置文件
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    配置文件
+  
+
+    
+  </span>
+</a>
+<nav aria-label="目录" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#配置文件详解">
+<span class="md-ellipsis">
+      
+        配置文件详解
+      
+    </span>
+</a>
+<nav aria-label="配置文件详解" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#根配置">
+<span class="md-ellipsis">
+      
+        根配置
+      
+    </span>
+</a>
+<nav aria-label="根配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled">
+<span class="md-ellipsis">
+      
+        enabled
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#debug">
+<span class="md-ellipsis">
+      
+        debug
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#storage_root">
+<span class="md-ellipsis">
+      
+        storage_root
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#concurrency">
+<span class="md-ellipsis">
+      
+        concurrency
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#命令配置">
+<span class="md-ellipsis">
+      
+        命令配置
+      
+    </span>
+</a>
+<nav aria-label="命令配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prefix">
+<span class="md-ellipsis">
+      
+        prefix
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#permission">
+<span class="md-ellipsis">
+      
+        permission
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#confirm_time_wait">
+<span class="md-ellipsis">
+      
+        confirm_time_wait
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup_on_restore">
+<span class="md-ellipsis">
+      
+        backup_on_restore
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#restore_countdown_sec">
+<span class="md-ellipsis">
+      
+        restore_countdown_sec
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#服务器配置">
+<span class="md-ellipsis">
+      
+        服务器配置
+      
+    </span>
+</a>
+<nav aria-label="服务器配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#turn_off_auto_save">
+<span class="md-ellipsis">
+      
+        turn_off_auto_save
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#commands">
+<span class="md-ellipsis">
+      
+        commands
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#saved_world_regex">
+<span class="md-ellipsis">
+      
+        saved_world_regex
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#save_world_max_wait">
+<span class="md-ellipsis">
+      
+        save_world_max_wait
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#备份配置">
+<span class="md-ellipsis">
+      
+        备份配置
+      
+    </span>
+</a>
+<nav aria-label="备份配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#source_root">
+<span class="md-ellipsis">
+      
+        source_root
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#source_root_use_mcdr_working_directory">
+<span class="md-ellipsis">
+      
+        source_root_use_mcdr_working_directory
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#targets">
+<span class="md-ellipsis">
+      
+        targets
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ignored_files">
+<span class="md-ellipsis">
+      
+        ignored_files
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ignore_patterns">
+<span class="md-ellipsis">
+      
+        ignore_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#retain_patterns">
+<span class="md-ellipsis">
+      
+        retain_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#follow_target_symlink">
+<span class="md-ellipsis">
+      
+        follow_target_symlink
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reuse_stat_unchanged_file">
+<span class="md-ellipsis">
+      
+        reuse_stat_unchanged_file
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creation_skip_missing_file">
+<span class="md-ellipsis">
+      
+        creation_skip_missing_file
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creation_skip_missing_file_patterns">
+<span class="md-ellipsis">
+      
+        creation_skip_missing_file_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#hash_method">
+<span class="md-ellipsis">
+      
+        hash_method
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compress_method">
+<span class="md-ellipsis">
+      
+        compress_method
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compress_threshold">
+<span class="md-ellipsis">
+      
+        compress_threshold
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#定时备份配置">
+<span class="md-ellipsis">
+      
+        定时备份配置
+      
+    </span>
+</a>
+<nav aria-label="定时备份配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reset_timer_on_backup">
+<span class="md-ellipsis">
+      
+        reset_timer_on_backup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#require_online_players">
+<span class="md-ellipsis">
+      
+        require_online_players
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#require_online_players_blacklist">
+<span class="md-ellipsis">
+      
+        require_online_players_blacklist
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#清理配置">
+<span class="md-ellipsis">
+      
+        清理配置
+      
+    </span>
+</a>
+<nav aria-label="清理配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#max_amount">
+<span class="md-ellipsis">
+      
+        max_amount
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#max_lifetime">
+<span class="md-ellipsis">
+      
+        max_lifetime
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#last-hour-day-week-month-year">
+<span class="md-ellipsis">
+      
+        last, hour, day, week, month, year
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter_1">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#timezone_override">
+<span class="md-ellipsis">
+      
+        timezone_override
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#数据库配置">
+<span class="md-ellipsis">
+      
+        数据库配置
+      
+    </span>
+</a>
+<nav aria-label="数据库配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compact">
+<span class="md-ellipsis">
+      
+        compact
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup">
+<span class="md-ellipsis">
+      
+        backup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter_2">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#子配置项说明">
+<span class="md-ellipsis">
+      
+        子配置项说明
+      
+    </span>
+</a>
+<nav aria-label="子配置项说明" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#定时作业配置">
+<span class="md-ellipsis">
+      
+        定时作业配置
+      
+    </span>
+</a>
+<nav aria-label="定时作业配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled_1">
+<span class="md-ellipsis">
+      
+        enabled
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#interval">
+<span class="md-ellipsis">
+      
+        interval
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#crontab">
+<span class="md-ellipsis">
+      
+        crontab
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#jitter">
+<span class="md-ellipsis">
+      
+        jitter
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#特殊的值类型">
+<span class="md-ellipsis">
+      
+        特殊的值类型
+      
+    </span>
+</a>
+<nav aria-label="特殊的值类型" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#duration">
+<span class="md-ellipsis">
+      
+        Duration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../command/">
+<span class="md-ellipsis">
+    
+  
+    指令
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../cli/">
+<span class="md-ellipsis">
+    
+  
+    命令行工具
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+<a class="md-nav__link" href="../feature/">
+<span class="md-ellipsis">
+    
+  
+    功能列表
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+<a class="md-nav__link" href="../concept/">
+<span class="md-ellipsis">
+    
+  
+    概念列表
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="目录" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#配置文件详解">
+<span class="md-ellipsis">
+      
+        配置文件详解
+      
+    </span>
+</a>
+<nav aria-label="配置文件详解" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#根配置">
+<span class="md-ellipsis">
+      
+        根配置
+      
+    </span>
+</a>
+<nav aria-label="根配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled">
+<span class="md-ellipsis">
+      
+        enabled
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#debug">
+<span class="md-ellipsis">
+      
+        debug
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#storage_root">
+<span class="md-ellipsis">
+      
+        storage_root
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#concurrency">
+<span class="md-ellipsis">
+      
+        concurrency
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#命令配置">
+<span class="md-ellipsis">
+      
+        命令配置
+      
+    </span>
+</a>
+<nav aria-label="命令配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prefix">
+<span class="md-ellipsis">
+      
+        prefix
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#permission">
+<span class="md-ellipsis">
+      
+        permission
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#confirm_time_wait">
+<span class="md-ellipsis">
+      
+        confirm_time_wait
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup_on_restore">
+<span class="md-ellipsis">
+      
+        backup_on_restore
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#restore_countdown_sec">
+<span class="md-ellipsis">
+      
+        restore_countdown_sec
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#服务器配置">
+<span class="md-ellipsis">
+      
+        服务器配置
+      
+    </span>
+</a>
+<nav aria-label="服务器配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#turn_off_auto_save">
+<span class="md-ellipsis">
+      
+        turn_off_auto_save
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#commands">
+<span class="md-ellipsis">
+      
+        commands
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#saved_world_regex">
+<span class="md-ellipsis">
+      
+        saved_world_regex
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#save_world_max_wait">
+<span class="md-ellipsis">
+      
+        save_world_max_wait
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#备份配置">
+<span class="md-ellipsis">
+      
+        备份配置
+      
+    </span>
+</a>
+<nav aria-label="备份配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#source_root">
+<span class="md-ellipsis">
+      
+        source_root
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#source_root_use_mcdr_working_directory">
+<span class="md-ellipsis">
+      
+        source_root_use_mcdr_working_directory
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#targets">
+<span class="md-ellipsis">
+      
+        targets
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ignored_files">
+<span class="md-ellipsis">
+      
+        ignored_files
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ignore_patterns">
+<span class="md-ellipsis">
+      
+        ignore_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#retain_patterns">
+<span class="md-ellipsis">
+      
+        retain_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#follow_target_symlink">
+<span class="md-ellipsis">
+      
+        follow_target_symlink
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reuse_stat_unchanged_file">
+<span class="md-ellipsis">
+      
+        reuse_stat_unchanged_file
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creation_skip_missing_file">
+<span class="md-ellipsis">
+      
+        creation_skip_missing_file
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creation_skip_missing_file_patterns">
+<span class="md-ellipsis">
+      
+        creation_skip_missing_file_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#hash_method">
+<span class="md-ellipsis">
+      
+        hash_method
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compress_method">
+<span class="md-ellipsis">
+      
+        compress_method
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compress_threshold">
+<span class="md-ellipsis">
+      
+        compress_threshold
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#定时备份配置">
+<span class="md-ellipsis">
+      
+        定时备份配置
+      
+    </span>
+</a>
+<nav aria-label="定时备份配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reset_timer_on_backup">
+<span class="md-ellipsis">
+      
+        reset_timer_on_backup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#require_online_players">
+<span class="md-ellipsis">
+      
+        require_online_players
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#require_online_players_blacklist">
+<span class="md-ellipsis">
+      
+        require_online_players_blacklist
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#清理配置">
+<span class="md-ellipsis">
+      
+        清理配置
+      
+    </span>
+</a>
+<nav aria-label="清理配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#max_amount">
+<span class="md-ellipsis">
+      
+        max_amount
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#max_lifetime">
+<span class="md-ellipsis">
+      
+        max_lifetime
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#last-hour-day-week-month-year">
+<span class="md-ellipsis">
+      
+        last, hour, day, week, month, year
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter_1">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#timezone_override">
+<span class="md-ellipsis">
+      
+        timezone_override
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#数据库配置">
+<span class="md-ellipsis">
+      
+        数据库配置
+      
+    </span>
+</a>
+<nav aria-label="数据库配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compact">
+<span class="md-ellipsis">
+      
+        compact
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup">
+<span class="md-ellipsis">
+      
+        backup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter_2">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#子配置项说明">
+<span class="md-ellipsis">
+      
+        子配置项说明
+      
+    </span>
+</a>
+<nav aria-label="子配置项说明" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#定时作业配置">
+<span class="md-ellipsis">
+      
+        定时作业配置
+      
+    </span>
+</a>
+<nav aria-label="定时作业配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled_1">
+<span class="md-ellipsis">
+      
+        enabled
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#interval">
+<span class="md-ellipsis">
+      
+        interval
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#crontab">
+<span class="md-ellipsis">
+      
+        crontab
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#jitter">
+<span class="md-ellipsis">
+      
+        jitter
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#特殊的值类型">
+<span class="md-ellipsis">
+      
+        特殊的值类型
+      
+    </span>
+</a>
+<nav aria-label="特殊的值类型" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#duration">
+<span class="md-ellipsis">
+      
+        Duration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1>配置文件</h1>
+<h2 id="配置文件详解">配置文件详解<a class="headerlink" href="#配置文件详解" title="Permanent link">¶</a></h2>
+<p>这是对配置文件的完整解释。如果你想深入了解它，那就接着往下看吧</p>
+<h3 id="根配置">根配置<a class="headerlink" href="#根配置" title="Permanent link">¶</a></h3>
+<p>这是配置文件中的根 json 对象</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"debug"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"storage_root"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./pb_files"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"concurrency"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+
+<span class="w">    </span><span class="c1">// 子配置。详见以下各节</span>
+<span class="w">    </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* 命令配置 */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"server"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* 服务器配置 */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* 备份配置 */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"scheduled_backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* 定时备份配置 */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"prune"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* 修剪配置 */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"database"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* 数据库配置 */</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="enabled">enabled<a class="headerlink" href="#enabled" title="Permanent link">¶</a></h4>
+<p>插件的开关。设置为 <code>false</code> 以禁用插件</p>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>false</code></li>
+</ul>
+<h4 id="debug">debug<a class="headerlink" href="#debug" title="Permanent link">¶</a></h4>
+<p>调试开关。设置为 <code>true</code> 以启用调试日志</p>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>false</code></li>
+</ul>
+<h4 id="storage_root">storage_root<a class="headerlink" href="#storage_root" title="Permanent link">¶</a></h4>
+<p>Prime Backup 储存各种数据文件所用的根目录</p>
+<p>这是一个相对于 MCDR 工作目录的相对路径。默认情况下，根目录将是 <code>/path/to/mcdr_root/pb_files</code></p>
+<ul>
+<li>类型：<code>str</code></li>
+<li>默认值：<code>"./pb_files"</code></li>
+</ul>
+<h4 id="concurrency">concurrency<a class="headerlink" href="#concurrency" title="Permanent link">¶</a></h4>
+<p>在任何任务 / 操作的执行期间使用的最大并发数</p>
+<p>将并发数设置为更高的值（例如 <code>4</code>）可以加快备份创建和回档等操作的速度，
+但这也会让这些操作消耗更多的 CPU</p>
+<p>值 <code>0</code> 表示使用 50% 的 CPU</p>
+<ul>
+<li>类型：<code>int</code></li>
+<li>默认值：<code>1</code></li>
+</ul>
+<hr/>
+<h3 id="命令配置">命令配置<a class="headerlink" href="#命令配置" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"prefix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"!!pb"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"permission"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"root"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"abort"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">  </span>
+<span class="w">        </span><span class="nt">"back"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"confirm"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"database"</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"delete"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"delete_range"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"export"</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"list"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"make"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"prune"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"rename"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"show"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"confirm_time_wait"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1m"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"backup_on_restore"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"restore_countdown_sec"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="prefix">prefix<a class="headerlink" href="#prefix" title="Permanent link">¶</a></h4>
+<p>MCDR 中，Prime Backup 所有命令的前缀。通常你不需要更改它</p>
+<ul>
+<li>类型：<code>str</code></li>
+<li>默认值：<code>"!!pb"</code></li>
+</ul>
+<h4 id="permission">permission<a class="headerlink" href="#permission" title="Permanent link">¶</a></h4>
+<p>所有子命令所需的 <a href="https://mcdreforged.readthedocs.io/en/latest/permission.html">MCDR 权限等级</a> 的最低要求</p>
+<p>它是一个从字符串映射到整数的映射表，存储所有子命令的权限级别要求。
+如果子命令不在映射表中，将使用 <code>1</code> 作为默认的权限等级要求</p>
+<p>例如，在默认配置中，<code>"back"</code> 被映射到 <code>2</code>，
+这意味着 <code>!!pb back</code> 命令需要权限级别 &gt;=2 才能执行</p>
+<p>特别地，<code>"root"</code> 指的是根命令，通常即 <code>!!pb</code> 指令</p>
+<ul>
+<li>类型：<code>Dict[str, int]</code></li>
+</ul>
+<h4 id="confirm_time_wait">confirm_time_wait<a class="headerlink" href="#confirm_time_wait" title="Permanent link">¶</a></h4>
+<p>有一些命令需要用户输入 <code>!!pb confirm</code> 才可继续执行。
+这里定义了这些命令的最长等待时间</p>
+<p>若等待超时，则命令将被取消执行</p>
+<ul>
+<li>类型：<a href="#duration"><code>Duration</code></a></li>
+<li>默认值：<code>"1m"</code></li>
+</ul>
+<h4 id="backup_on_restore">backup_on_restore<a class="headerlink" href="#backup_on_restore" title="Permanent link">¶</a></h4>
+<p>在回档至指定备份前，是否要自动创建一个备份。这一类备份被称为“回档前备份”，类型为临时备份</p>
+<p>这是一道为那些傻瓜用户准备的安全保障</p>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>true</code></li>
+</ul>
+<h4 id="restore_countdown_sec">restore_countdown_sec<a class="headerlink" href="#restore_countdown_sec" title="Permanent link">¶</a></h4>
+<p>在回档时，关闭 Minecraft 服务器前，执行倒计时的持续秒数</p>
+<ul>
+<li>类型：<code>int</code></li>
+<li>默认值：<code>10</code></li>
+</ul>
+<hr/>
+<h3 id="服务器配置">服务器配置<a class="headerlink" href="#服务器配置" title="Permanent link">¶</a></h3>
+<p>与 Minecraft 服务器交互相关的选项</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"turn_off_auto_save"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"commands"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"save_all_worlds"</span><span class="p">:</span><span class="w"> </span><span class="s2">"save-all flush"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"auto_save_off"</span><span class="p">:</span><span class="w"> </span><span class="s2">"save-off"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"auto_save_on"</span><span class="p">:</span><span class="w"> </span><span class="s2">"save-on"</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"saved_world_regex"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">"Saved the game"</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">"Saved the world"</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"save_world_max_wait"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10m"</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="turn_off_auto_save">turn_off_auto_save<a class="headerlink" href="#turn_off_auto_save" title="Permanent link">¶</a></h4>
+<p>是否应在进行备份之前关闭自动保存</p>
+<p>由于关闭自动保存可以确保在备份期间，Minecraft 存档文件不会发生变化，因此建议将此选项设置为 <code>true</code></p>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>true</code></li>
+</ul>
+<h4 id="commands">commands<a class="headerlink" href="#commands" title="Permanent link">¶</a></h4>
+<p>Prime Backup 使用的 Minecraft 指令的集合。目前它们仅在创建备份期间使用</p>
+<p>Prime Backup 在创建备份时的操作时序如下：</p>
+<ol>
+<li>若配置 <a href="#turn_off_auto_save"><code>turn_off_auto_save</code></a> 为 <code>true</code> 且子配置 <code>auto_save_off</code> 为非空字符串，则使用 <code>auto_save_off</code> 存储的命令关闭自动保存</li>
+<li>若子配置 <code>save_all_worlds</code> 为非空字符串，则使用 <code>save_all_worlds</code> 存储的命令，触发服务器保存</li>
+<li>若子配置 <code>saved_world_regex</code> 非空，则开始等待至世界保存完毕。世界保存完毕指服务器的输出与 <a href="#saved_world_regex"><code>saved_world_regex</code></a> 的某一个正则表达式成功匹配</li>
+<li>创建备份</li>
+<li>如果配置 <a href="#turn_off_auto_save"><code>turn_off_auto_save</code></a> 为 <code>true</code> 且子配置 <code>auto_save_on</code> 为非空字符串，则使用 <code>auto_save_on</code> 存储的命令打开自动保存</li>
+</ol>
+<h4 id="saved_world_regex">saved_world_regex<a class="headerlink" href="#saved_world_regex" title="Permanent link">¶</a></h4>
+<p>一个正则表达式列表，用于识别服务器是否已保存完成</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>正则表达式将对服务端消息输出执行 <a href="https://docs.python.org/3/library/re.html#re.fullmatch">全串匹配</a> 检查</p>
+</div>
+<ul>
+<li>类型：<code>List[re.Pattern]</code></li>
+</ul>
+<h4 id="save_world_max_wait">save_world_max_wait<a class="headerlink" href="#save_world_max_wait" title="Permanent link">¶</a></h4>
+<p>在创建备份期间，等待世界保存完成的最长等待时间</p>
+<ul>
+<li>类型：<a href="#duration"><code>Duration</code></a></li>
+<li>默认值：<code>"10m"</code></li>
+</ul>
+<hr/>
+<h3 id="备份配置">备份配置<a class="headerlink" href="#备份配置" title="Permanent link">¶</a></h3>
+<p>与创建备份具体细节相关的配置</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"source_root"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./server"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"source_root_use_mcdr_working_directory"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"targets"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">"world"</span>
+<span class="w">    </span><span class="p">],</span>
+
+<span class="w">    </span><span class="nt">"ignored_files"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"ignore_patterns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">       </span><span class="s2">"**/session.lock"</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"retain_patterns"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"follow_target_symlink"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"reuse_stat_unchanged_file"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"creation_skip_missing_file"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"creation_skip_missing_file_patterns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">       </span><span class="s2">"**"</span>
+<span class="w">    </span><span class="p">],</span>
+
+<span class="w">    </span><span class="nt">"hash_method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"xxh128"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"compress_method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zstd"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"compress_threshold"</span><span class="p">:</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span>
+
+<span class="w">    </span><span class="nt">"fileset_allocate_lookback_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="source_root">source_root<a class="headerlink" href="#source_root" title="Permanent link">¶</a></h4>
+<p>进行备份/还原操作的根目录</p>
+<p>通常应该是 MCDR 配置中，服务端的 <a href="https://mcdreforged.readthedocs.io/zh-cn/latest/configuration.html#working-directory">工作目录</a>，
+即默认情况下的 <code>server</code> 目录</p>
+<ul>
+<li>类型：<code>str</code></li>
+<li>默认值：<code>"./server"</code></li>
+</ul>
+<h4 id="source_root_use_mcdr_working_directory">source_root_use_mcdr_working_directory<a class="headerlink" href="#source_root_use_mcdr_working_directory" title="Permanent link">¶</a></h4>
+<p>若设置为 <code>true</code>，则使用 MCDR 配置中，服务端的工作路径作为 <a href="#source_root">source_root</a> 的值。
+此时，配置文件中 <a href="#source_root">source_root</a> 键的值将被忽略</p>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>false</code></li>
+</ul>
+<h4 id="targets">targets<a class="headerlink" href="#targets" title="Permanent link">¶</a></h4>
+<p>要备份的目标文件/目录。它们也可以是 <a href="http://git-scm.com/docs/gitignore">gitignore 风格</a> 的模板串</p>
+<p>通常来讲，你需要在整理添加你的存档文件夹的名字</p>
+<p>例如，对于像 bukkit 那样把每个维度存在独立的文件夹里的服务器，你可能需要这么配置：</p>
+<div class="highlight"><pre><span></span><code><span class="nt">"targets"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"world"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"world_nether"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"world_the_end"</span>
+<span class="p">]</span>
+</code></pre></div>
+<p>也可以用这个使用通配符的模板串，匹配 <a href="#source_root">source_root</a> 下所有的以 "world" 开头的东西</p>
+<div class="highlight"><pre><span></span><code><span class="nt">"targets"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"world*"</span>
+<span class="p">]</span>
+</code></pre></div>
+<ul>
+<li>类型：<code>List[str]</code></li>
+</ul>
+<p>更新日志:</p>
+<ul>
+<li>v1.10.0: 支持 gitignore 风格的模板串</li>
+</ul>
+<h4 id="ignored_files">ignored_files<a class="headerlink" href="#ignored_files" title="Permanent link">¶</a></h4>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>于 v1.8.0 弃用。请使用 <a href="#ignore_patterns">ignore_patterns</a></p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p><code>ignored_files</code> 匹配的文件在回档时不会被保留。<br/>
+回档后，目标文件夹中只存在已备份的内容。<br/>
+仅对无用数据使用此选项。</p>
+</div>
+<p>在备份时忽略的文件名列表</p>
+<p>若文件名字符串以 <code>*</code> 开头，则将忽略以指定字符串结尾的文件，
+如 <code>*.test</code> 表示忽略所有以 <code>.test</code> 结尾的文件，如 <code>a.test</code></p>
+<p>若文件名字符串以 <code>*</code> 结尾，则将忽略以指定字符串开头的文件，
+如 <code>temp*</code> 表示忽略所有以 <code>temp</code> 开头的文件，如 <code>tempfile</code></p>
+<ul>
+<li>类型：<code>List[str]</code></li>
+</ul>
+<h4 id="ignore_patterns">ignore_patterns<a class="headerlink" href="#ignore_patterns" title="Permanent link">¶</a></h4>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p><code>ignore_patterns</code> 匹配的文件在回档时不会被保留。<br/>
+回档后，目标文件夹中只存在已备份的内容。<br/>
+仅对无用数据使用此选项。</p>
+</div>
+<p>一个 <a href="http://git-scm.com/docs/gitignore">gitignore 风格</a> 的模板串列表，
+被匹配中的文件 / 文件夹将在创建备份时被忽略</p>
+<p>模板串匹配时的根路径是 <a href="#source_root">source_root</a>。
+例如，如果 <code>source_root</code> 是 <code>server</code>，那么模板串 <code>world/trash*.obj</code> 将匹配 <code>server/world/trash1.obj</code></p>
+<p>默认包含一个 <code>**/session.lock</code> 模板串，用于匹配位于任何位置的，名为 <code>session.lock</code> 的文件，
+以解决 Windows 下 <code>session.lock</code> 被服务端占用导致备份失败的问题</p>
+<ul>
+<li>类型：<code>List[str]</code></li>
+</ul>
+<h4 id="retain_patterns">retain_patterns<a class="headerlink" href="#retain_patterns" title="Permanent link">¶</a></h4>
+<p>一个 <a href="http://git-scm.com/docs/gitignore">gitignore 风格</a> 的模板串列表，
+被匹配中的文件 / 文件夹将在创建备份时被忽略、在还原备份时被保留</p>
+<p>模板串匹配时的根路径是 <a href="#source_root">source_root</a>。
+例如，如果 <code>source_root</code> 是 <code>server</code>，那么模板串 <code>world/trash*.obj</code> 将匹配 <code>server/world/trash1.obj</code></p>
+<p>建议设置为那些无需备份，但仍需保留的文件，
+如服务端模组的大体积数据库、网页地图的渲染输出等</p>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>用途</th>
+<th>备份时忽略</th>
+<th>还原时保留</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#ignore_patterns">ignore_patterns</a></td>
+<td>忽略 + 抛弃无用的数据</td>
+<td>√</td>
+<td>×</td>
+</tr>
+<tr>
+<td><a href="#retain_patterns">retain_patterns</a></td>
+<td>忽略 + 保留无需备份的数据</td>
+<td>√</td>
+<td>√</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>类型：<code>List[str]</code></li>
+</ul>
+<h4 id="follow_target_symlink">follow_target_symlink<a class="headerlink" href="#follow_target_symlink" title="Permanent link">¶</a></h4>
+<p>在设为 <code>true</code> 时，对于类型为符号链接的 <a href="#targets">备份目标</a>，
+Prime Backup 除了会创建它们的备份外，
+还会把符号链接的实际目标包括在备份目标中</p>
+<p>例如，对于以下符号链接关系图：</p>
+<div class="highlight"><pre><span></span><code>world --&gt; foo --&gt; bar
+^
+备份目标
+</code></pre></div>
+<p>Prime Backup 除了会保存 <code>world</code> 这个符号链接外，还会保存 <code>foo</code> 符号链接，和最终的的 <code>bar</code> 文件夹</p>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>false</code></li>
+</ul>
+<h4 id="reuse_stat_unchanged_file">reuse_stat_unchanged_file<a class="headerlink" href="#reuse_stat_unchanged_file" title="Permanent link">¶</a></h4>
+<p>启用时，在创建备份过程中，Prime Backup 将尝试直接复用上次备份中那些状态未改变的文件。
+对于这些未改变统计信息的文件，将直接复用之前备份时储存的旧文件，不再进行文件哈希检查确认</p>
+<p>Prime Backup 会检查文件的如下这些信息。下述这些信息完全一致的文件，将被认为无变化：</p>
+<ul>
+<li>文件路径</li>
+<li>文件大小</li>
+<li>文件模式位（mode）</li>
+<li>文件所有者的 UID、GID</li>
+<li>文件的修改时间（精度：微秒）</li>
+</ul>
+<p>如果你想获得尽可能快的备份创建速度，可以尝试启用此选项，但这会引入潜在的备份不完整的风险。
+除非你确实需要这一备份速度增益，或者系统磁盘读取性能过低，否则不建议启用此选项</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>请在确保服务器的操作系统和文件系统正常且稳定运行后，再启用此选项。
+否则，如果出现系统时间回退或文件系统元数据异常等问题，可能会造成某些文件的内容变化但 stat 保持不变的情况，
+从而导致 Prime Backup 创建出了一个不完整的备份</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>除非你确实需要这一备份速度增益，或者系统磁盘读取性能过低，否则不建议启用此选项。
+Prime Backup 的速度已经足够快了</p>
+</div>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>false</code></li>
+</ul>
+<h4 id="creation_skip_missing_file">creation_skip_missing_file<a class="headerlink" href="#creation_skip_missing_file" title="Permanent link">¶</a></h4>
+<p>在某些场景下，服务端的插件 / mod 并不会遵从 /save off` 命令，
+在 PB 创建备份时仍可能执行删除文件的操作。
+这些缺失的文件会导致备份操作因找不到文件而失败</p>
+<p>若你希望在这种场景下忽略这些“文件不存在”的错误，那么你可以开启该选项</p>
+<p>另见：<a href="#creation_skip_missing_file_patterns">creation_skip_missing_file_patterns</a> 选项，
+用于控制允许忽略“文件不存在”错误的文件范围</p>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>false</code></li>
+</ul>
+<h4 id="creation_skip_missing_file_patterns">creation_skip_missing_file_patterns<a class="headerlink" href="#creation_skip_missing_file_patterns" title="Permanent link">¶</a></h4>
+<p>一个 <a href="http://git-scm.com/docs/gitignore">gitignore 风格</a> 的模板串列表，
+与 <a href="#creation_skip_missing_file_patterns">creation_skip_missing_file_patterns</a> 选项配合使用</p>
+<p>在创建备份的过程中，该选项匹配中的文件发生的“文件不存在”错误将被忽略</p>
+<p>默认值为 <code>["**"]</code>，表示匹配所有文件。建议将其限制为仅针对那些易变的文件，如 <code>["trash/*.tmp"]</code></p>
+<ul>
+<li>类型：<code>List[str]</code></li>
+</ul>
+<h4 id="hash_method">hash_method<a class="headerlink" href="#hash_method" title="Permanent link">¶</a></h4>
+<p>对文件进行哈希时所使用的算法。可用选项：<code>"xxh128"</code>、<code>"sha256"</code>、<code>"blake3"</code></p>
+<table>
+<thead>
+<tr>
+<th>哈希算法</th>
+<th>描述</th>
+<th>速度</th>
+<th>密码学安全性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Cyan4973/xxHash"><code>xxh128</code></a></td>
+<td>一种极快的、高质量的 128 位哈希算法，不提供密码学安全性。推荐使用，除非你想要理论上的极端安全</td>
+<td>★★★★★</td>
+<td><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":cross_mark:"/></td>
+</tr>
+<tr>
+<td><a href="https://en.wikipedia.org/wiki/SHA-2"><code>sha256</code></a></td>
+<td>一种广泛使用的、密码学安全的 256 位哈希算法。它比 xxh128 慢，但如果 CPU 带硬件加速的话也不会太慢</td>
+<td>★★</td>
+<td><img alt="✔" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2714.svg" title=":check_mark:"/></td>
+</tr>
+<tr>
+<td><a href="https://github.com/BLAKE3-team/BLAKE3"><code>blake3</code></a></td>
+<td>一种高效的、密码学安全的哈希算法。比 sha256 快很多，但是依然比 xxh128 慢</td>
+<td>★★★☆</td>
+<td><img alt="✔" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2714.svg" title=":check_mark:"/></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>如果你想使用 <code>blake3</code> 作为哈希算法，你需要手动安装 <code>blake3</code> Python 库。
+它并不包含在默认的 Python 依赖列表中，因为它在某些情况下，可能需要 rust 环境来构建安装</p>
+<div class="highlight"><pre><span></span><code>pip3<span class="w"> </span>install<span class="w"> </span>blake3
+</code></pre></div>
+</div>
+<ul>
+<li>类型：<code>str</code></li>
+<li>默认值：<code>"xxh128"</code></li>
+</ul>
+<h4 id="compress_method">compress_method<a class="headerlink" href="#compress_method" title="Permanent link">¶</a></h4>
+<p>在储存备份中的文件时，所使用的压缩方法</p>
+<table>
+<thead>
+<tr>
+<th>压缩方法</th>
+<th>描述</th>
+<th>速度</th>
+<th>压缩率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plain</code></td>
+<td>无压缩，直接复制。若文件系统支持，将使用写时复制技术进行文件复制</td>
+<td>★★★★★</td>
+<td>☆</td>
+</tr>
+<tr>
+<td><code>gzip</code></td>
+<td>基于 <a href="https://www.zlib.net/">zlib</a> 的 <a href="https://docs.python.org/3/library/gzip.html">gzip</a> 库。<code>.gz</code> 文件同款格式</td>
+<td>★★</td>
+<td>★★★★</td>
+</tr>
+<tr>
+<td><code>lzma</code></td>
+<td><a href="https://docs.python.org/3/library/lzma.html">LZMA</a> 算法。<code>.xz</code> 文件同款格式。提供最佳的压缩率，但是速度非常慢</td>
+<td>☆</td>
+<td>★★★★★</td>
+</tr>
+<tr>
+<td><code>zstd</code></td>
+<td><a href="https://github.com/facebook/zstd">Zstandard</a> 算法。一个优秀的压缩算法，在速度和压缩率间取得了较好的平衡。推荐使用</td>
+<td>★★★☆</td>
+<td>★★★★</td>
+</tr>
+<tr>
+<td><code>lz4</code></td>
+<td><a href="https://github.com/lz4/lz4">LZ4</a> 算法。比 Zstandard 快，解压速度非常快，但是压缩率相对较低</td>
+<td>★★★★</td>
+<td>★★☆</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>更改 <code>compress_method</code> 只会影响新备份中的新文件（即新的数据对象）</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>如果你想使用 <code>lz4</code> 作为压缩方法，你需要手动安装 <code>lz4</code> Python 库</p>
+<div class="highlight"><pre><span></span><code>pip3<span class="w"> </span>install<span class="w"> </span>lz4
+</code></pre></div>
+</div>
+<ul>
+<li>类型：<code>str</code></li>
+<li>默认值：<code>"zstd"</code></li>
+</ul>
+<h4 id="compress_threshold">compress_threshold<a class="headerlink" href="#compress_threshold" title="Permanent link">¶</a></h4>
+<p>对于大小小于 <code>compress_threshold</code> 的文件，不启用压缩。它们将以 <code>plain</code> 格式存储</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>更改 <code>compress_threshold</code> 只会影响新备份中的新文件（即新的数据对象）</p>
+</div>
+<ul>
+<li>类型：int</li>
+<li>默认值：<code>64</code></li>
+</ul>
+<hr/>
+<h3 id="定时备份配置">定时备份配置<a class="headerlink" href="#定时备份配置" title="Permanent link">¶</a></h3>
+<p>定时备份功能的配置</p>
+<p>该功能会定期为服务器自动创建备份</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="s2">"12h"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10s"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"reset_timer_on_backup"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"require_online_players"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"require_online_players_blacklist"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="enabled-interval-crontab-jitter">enabled, interval, crontab, jitter<a class="headerlink" href="#enabled-interval-crontab-jitter" title="Permanent link">¶</a></h4>
+<p>见 <a href="#定时作业配置">定时作业配置</a> 小节</p>
+<h4 id="reset_timer_on_backup">reset_timer_on_backup<a class="headerlink" href="#reset_timer_on_backup" title="Permanent link">¶</a></h4>
+<p>是否在每次手动备份时重置计划定时器</p>
+<p>该功能仅在定时备份作业使用间隔模式的定时器的时候，才有效果</p>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>true</code></li>
+</ul>
+<h4 id="require_online_players">require_online_players<a class="headerlink" href="#require_online_players" title="Permanent link">¶</a></h4>
+<p>若设为 <code>true</code>，则只有在服务器中存在玩家时，才正常进行定时备份。
+如果所有玩家均已离线，则在下一次定时备份完成后，之后的定时备份都会被跳过。
+也就是说，Prime Backup 在没有玩家在线上时，只会触发一次定时备份</p>
+<p>时间线举例：</p>
+<pre class="mermaid"><code>flowchart LR
+    subgraph g1[有玩家在线]
+    b1[8:00\n备份创建] --&gt; b2
+    end
+
+    subgraph g2[无玩家在线]
+    b2[9:00\n备份创建] --&gt; b3
+    b3[10:00\n备份创建] --&gt; b4:::disabled
+    b4[11:00\n备份跳过] --&gt; b5:::disabled
+    end
+
+    subgraph g3[有玩家在线]
+    b5[12:00\n备份跳过] --&gt; b6
+    b6[13:00\n备份创建]
+    end
+
+    classDef disabled fill:#eee,stroke:#aaa,color:gray
+</code></pre>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>该功能需要 Prime Backup 插件在 <strong>服务器启动前</strong> 就被加载。
+这是必需的，以便 Prime Backup 能够正确计算在线玩家数量</p>
+<p>如果 Prime Backup 插件是在服务器运行过程中被加载的，
+玩家检测功能将被禁用，就如同 <a href="#require_online_players">require_online_players</a> 被设置为了 <code>false</code> 一样。</p>
+<p>特例：如果存在 <a href="https://github.com/MCDReforged/MinecraftDataAPI">MinecraftDataAPI</a> 插件，
+那么 Prime Backup 将利用其 API 动态地查询在线玩家，此时上述需求将不再存在</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>对于那些行为表现过于不原版的服务器，Prime Backup 的玩家在线计算逻辑可能无法正常工作</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>由于 Prime Backup 支持文件去重和高可自定义的 <a href="#清理配置">清理配置</a> 功能，
+即使在玩家不在线也照常进行定时备份，也不会占用过多的磁盘空间</p>
+</div>
+<ul>
+<li>类型：<code>bool</code></li>
+<li>默认值：<code>false</code></li>
+</ul>
+<h4 id="require_online_players_blacklist">require_online_players_blacklist<a class="headerlink" href="#require_online_players_blacklist" title="Permanent link">¶</a></h4>
+<p>在 <a href="#require_online_players">require_online_players</a> 判断是否存在玩家在线时，
+排除的玩家名正则表达式列表</p>
+<p>如果你希望服务器中只有某些玩家在线的时候，也视作服务器中不存在玩家，
+不进行定时备份，则可以使用该选项</p>
+<p>配置举例：</p>
+<div class="highlight"><pre><span></span><code><span class="nt">"require_online_players_blacklist"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"bot_.*"</span><span class="p">,</span><span class="w">  </span><span class="c1">// 匹配所有以 "bot_" 为前缀的玩家名</span>
+<span class="w">    </span><span class="s2">"Steve"</span><span class="w">    </span><span class="c1">// 匹配 "Steve" 这个玩家名</span>
+<span class="p">]</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>列表中的正则表达式将对玩家名执行 <a href="https://docs.python.org/3/library/re.html#re.fullmatch">全串匹配</a> 检查</p>
+<p>匹配时 <strong>忽略大小写</strong></p>
+</div>
+<ul>
+<li>类型：<code>List[re.Pattern]</code></li>
+<li>默认值：<code>[]</code></li>
+</ul>
+<hr/>
+<h3 id="清理配置">清理配置<a class="headerlink" href="#清理配置" title="Permanent link">¶</a></h3>
+<p>Prime Backup 的备份清理功能可用于自动清理过时备份</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="s2">"3h"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"20s"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"timezone_override"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"regular_backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"max_amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"max_lifetime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0s"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"last"</span><span class="p">:</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"hour"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"day"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"week"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"month"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"year"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"temprory_backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"max_amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"max_lifetime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"30d"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"last"</span><span class="p">:</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"hour"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"day"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"week"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"month"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"year"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>它包含两种清理设置，分别针对于如下两种类型的备份：</p>
+<ul>
+<li><code>regular_backup</code>: 针对常规备份，即非临时备份</li>
+<li><code>temporary_backup</code>: 针对临时备份，如回档前的备份</li>
+</ul>
+<p>每种清理设置都详细描述了存档的保留策略</p>
+<p>Prime Backup 会执行以下步骤来决定删除/保留哪些备份</p>
+<ol>
+<li>使用 <a href="#last-hour-day-week-month-year"><code>last</code>, <code>hour</code>, <code>day</code>, <code>week</code>, <code>month</code>, <code>year</code></a>，
+   基于 <a href="https://pbs.proxmox.com/docs/prune-simulator/">PBS</a> 保留策略，筛选出要删除/保留的备份</li>
+<li>使用 <code>max_amount</code>、<code>max_lifetime</code> 这两条规则，在第一步保留的那些备份里，筛出那些旧的和过期的备份</li>
+<li>收集上述两次筛选过程中，找到的哪些需要删除的备份，并逐个进行删除</li>
+</ol>
+<p>删除备份相关的决策结果会以日志形式储存在 <a href="#storage_root">数据根目录</a> 的 <code>logs/prune.log</code> 文件里</p>
+<div class="highlight"><span class="filename">prune.log</span><pre><span></span><code>Backup #147 at 2023-12-10 21:49:09: keep=True reason=keep last 1
+Backup #146 at 2023-12-10 21:36:10: keep=True reason=keep last 2
+Backup #145 at 2023-12-10 21:26:25: keep=True reason=keep last 3
+Backup #144 at 2023-12-10 21:21:22: keep=False reason=superseded by 145 (hour)
+Backup #143 at 2023-12-10 21:16:19: keep=False reason=superseded by 145 (hour)
+Backup #142 at 2023-12-10 21:11:14: keep=False reason=superseded by 145 (hour)
+Backup #141 at 2023-12-10 21:05:06: keep=False reason=superseded by 145 (hour)
+Backup #140 at 2023-12-10 21:00:03: keep=True reason=protected
+Backup #139 at 2023-12-10 20:55:01: keep=True reason=keep hour 1
+Backup #138 at 2023-12-10 20:49:57: keep=False reason=superseded by 139 (hour)
+Backup #137 at 2023-12-10 20:44:53: keep=False reason=superseded by 139 (hour)
+Backup #136 at 2023-12-10 20:39:45: keep=False reason=superseded by 139 (hour)
+Backup #135 at 2023-12-10 20:34:41: keep=False reason=superseded by 139 (hour)
+Backup #128 at 2023-12-10 19:59:06: keep=True reason=keep hour 2
+Backup #116 at 2023-12-10 18:56:14: keep=True reason=keep hour 3
+Backup #104 at 2023-12-10 17:55:35: keep=False reason=superseded by 116 (day)
+Backup #22 at 2023-12-09 23:59:53: keep=True reason=keep day 1
+</code></pre></div>
+<h4 id="max_amount">max_amount<a class="headerlink" href="#max_amount" title="Permanent link">¶</a></h4>
+<p>定义要保留的最大备份数量，例如 <code>10</code> 表示最多保留最新的 10 个备份</p>
+<p>设置为 <code>0</code> 表示无限制</p>
+<ul>
+<li>类型：<code>int</code></li>
+</ul>
+<h4 id="max_lifetime">max_lifetime<a class="headerlink" href="#max_lifetime" title="Permanent link">¶</a></h4>
+<p>定义所有备份的最大保存时长。超出给定时长的备份将被清理</p>
+<p>设置为 <code>0s</code> 表示无时长限制</p>
+<ul>
+<li>类型：<a href="#duration"><code>Duration</code></a></li>
+</ul>
+<h4 id="last-hour-day-week-month-year">last, hour, day, week, month, year<a class="headerlink" href="#last-hour-day-week-month-year" title="Permanent link">¶</a></h4>
+<p>一组 <a href="https://pbs.proxmox.com/">PBS</a> 风格的清理选项，用于描述备份的删除/保留方式</p>
+<p>查看 <a href="https://pbs.proxmox.com/docs/prune-simulator/">清理模拟器</a> 了解这些选项的更多解释</p>
+<p><a href="https://pbs.proxmox.com/docs/prune-simulator/">清理模拟器</a> 也可用于模拟备份的保留策略</p>
+<p>注意：值 <code>0</code> 表示不为该区间保留任何备份；值 <code>-1</code> 表示该区间可以保留无限多的备份，与设为极大值等价</p>
+<ul>
+<li>类型：<code>int</code></li>
+</ul>
+<hr/>
+<h4 id="enabled-interval-crontab-jitter_1">enabled, interval, crontab, jitter<a class="headerlink" href="#enabled-interval-crontab-jitter_1" title="Permanent link">¶</a></h4>
+<p>见 <a href="#定时作业配置">定时作业配置</a> 小节</p>
+<h4 id="timezone_override">timezone_override<a class="headerlink" href="#timezone_override" title="Permanent link">¶</a></h4>
+<p>在备份清理时所使用的时区。默认情况下（使用 <code>null</code> 值），Prime Backup 将使用本地时区</p>
+<p>例子：<code>null</code>, <code>"Asia/Shanghai"</code>, <code>"US/Eastern"</code>, <code>"Europe/Amsterdam"</code></p>
+<ul>
+<li>类型：<code>Optional[str]</code></li>
+<li>默认值：<code>null</code></li>
+</ul>
+<hr/>
+<h3 id="数据库配置">数据库配置<a class="headerlink" href="#数据库配置" title="Permanent link">¶</a></h3>
+<p>Prime Backup 所使用的 SQLite 数据库的相关配置</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"compact"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0 7 * * 0"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1m"</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0 6 * * 0"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1m"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>子配置 <code>compact</code> 和 <code>backup</code> 描述了与数据库相关的定时作业</p>
+<h4 id="compact">compact<a class="headerlink" href="#compact" title="Permanent link">¶</a></h4>
+<p>数据库精简作业</p>
+<p>它对数据库使用了 <a href="https://www.sqlite.org/lang_vacuum.html">VACUUM</a>指令， 以精简数据库文件，并释放未使用的空间</p>
+<h4 id="backup">backup<a class="headerlink" href="#backup" title="Permanent link">¶</a></h4>
+<p>数据库备份作业</p>
+<p>默认情况下，Prime Backup 会定期在 <a href="#storage_root">数据根目录</a> 内的 
+<code>db_backup</code> 目录中创建数据库备份，以防数据库文件损坏而导致无法访问备份</p>
+<p>数据库备份将以 <code>.tar.xz</code> 格式存储，不会占用太多空间</p>
+<h4 id="enabled-interval-crontab-jitter_2">enabled, interval, crontab, jitter<a class="headerlink" href="#enabled-interval-crontab-jitter_2" title="Permanent link">¶</a></h4>
+<p>见 <a href="#定时作业配置">定时作业配置</a> 小节</p>
+<hr/>
+<h2 id="子配置项说明">子配置项说明<a class="headerlink" href="#子配置项说明" title="Permanent link">¶</a></h2>
+<h3 id="定时作业配置">定时作业配置<a class="headerlink" href="#定时作业配置" title="Permanent link">¶</a></h3>
+<p>一个定时作业相关的配置，用于描述该作业会在什么时候执行。有两种模式：</p>
+<ul>
+<li>间隔模式：按给定的时间间隔执行作业。第一次执行也要等待给定的间隔</li>
+<li>定时模式: 在特定时间执行作业，由 crontab 字符串描述</li>
+</ul>
+<p>若作业被启用，你必须选择上述模式之一，并正确设置相关配置值</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 例子</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1h"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10s"</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="enabled_1">enabled<a class="headerlink" href="#enabled_1" title="Permanent link">¶</a></h4>
+<p>作业的开关。设为 <code>true</code> 以启用该作业，设为 <code>false</code> 以禁用该定时作业</p>
+<ul>
+<li>类型：<code>bool</code></li>
+</ul>
+<h4 id="interval">interval<a class="headerlink" href="#interval" title="Permanent link">¶</a></h4>
+<p>在间隔模式中使用。两次任务之间的时间间隔</p>
+<p>若作业未使用间隔模式，其值应为 <code>null</code></p>
+<ul>
+<li>类型：<code>Optional[str]</code></li>
+</ul>
+<h4 id="crontab">crontab<a class="headerlink" href="#crontab" title="Permanent link">¶</a></h4>
+<p>在定时模式中使用。描述定时计划的一个 crontab 字符串</p>
+<p>你可以使用 <a href="https://crontab.guru/">https://crontab.guru/</a> 来创建一个 crontab 字符串</p>
+<p>若作业未使用定时模式，其值应为 <code>null</code></p>
+<ul>
+<li>类型：<code>Optional[str]</code></li>
+</ul>
+<h4 id="jitter">jitter<a class="headerlink" href="#jitter" title="Permanent link">¶</a></h4>
+<p>两次作业之间，执行之间的抖动</p>
+<p>下一个任务的实际执行时间，将在范围 <code>[0, jitter]</code> 内进行随机偏移</p>
+<p>设置为 <code>"0s"</code> 表示无抖动</p>
+<ul>
+<li>类型：<code>str</code></li>
+</ul>
+<hr/>
+<h2 id="特殊的值类型">特殊的值类型<a class="headerlink" href="#特殊的值类型" title="Permanent link">¶</a></h2>
+<h3 id="duration">Duration<a class="headerlink" href="#duration" title="Permanent link">¶</a></h3>
+<p>使用字符串描述的时间持续长度，如：<code>"3s"</code>、<code>"15m"</code></p>
+<p>Duration 由两部分组成：数字和时间单位。</p>
+<p>对于数字部分，它可以是整数或浮点数</p>
+<p>对于单位部分，参见下表：</p>
+<table>
+<thead>
+<tr>
+<th>单位</th>
+<th>描述</th>
+<th>等价于</th>
+<th>秒数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ms</code></td>
+<td>毫秒</td>
+<td>0.001 秒</td>
+<td>0.001</td>
+</tr>
+<tr>
+<td><code>s</code>, <code>sec</code></td>
+<td>秒</td>
+<td>1 秒</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>m</code>, <code>min</code></td>
+<td>分钟</td>
+<td>60 秒</td>
+<td>60</td>
+</tr>
+<tr>
+<td><code>h</code>, <code>hour</code></td>
+<td>小时</td>
+<td>60 分钟</td>
+<td>3600</td>
+</tr>
+<tr>
+<td><code>d</code>, <code>day</code></td>
+<td>天</td>
+<td>24 小时</td>
+<td>86400</td>
+</tr>
+<tr>
+<td><code>mon</code>, <code>month</code></td>
+<td>月</td>
+<td>30 天</td>
+<td>2592000</td>
+</tr>
+<tr>
+<td><code>y</code>, <code>year</code></td>
+<td>年</td>
+<td>365 天</td>
+<td>31536000</td>
+</tr>
+</tbody>
+</table>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  回到页面顶部
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2025 Fallen_Breath
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.expand", "navigation.path", "navigation.prune", "navigation.top"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+<script src="../../js/mermaid-10.8.0.min.js"></script><script>window.mermaidConfig = {default: {
+    startOnLoad: false
+}};</script></body>
+</html>

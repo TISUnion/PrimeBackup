@@ -1,0 +1,2164 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world" name="description"/>
+<meta content="Fallen_Breath" name="author"/>
+<link href="https://tisunion.github.io/PrimeBackup/config/" rel="canonical"/>
+<link href="../quick_start/" rel="prev"/>
+<link href="../command/" rel="next"/>
+<link href="./" hreflang="en" rel="alternate"/>
+<link href="../zh/config/" hreflang="zh" rel="alternate"/>
+<link href="../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.0" name="generator"/>
+<title>Configuration - Prime Backup Documentation</title>
+<link href="../assets/stylesheets/main.618322db.min.css" rel="stylesheet"/>
+<link href="../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#configuration-explanation">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="Prime Backup Documentation" class="md-header__button md-logo" data-md-component="logo" href=".." title="Prime Backup Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            Prime Backup Documentation
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Configuration
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"></path></svg>
+</label>
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_2" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to system preference" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="indigo" data-md-color-scheme="slate" id="__palette_2" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to system preference">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<div class="md-header__option">
+<div class="md-select">
+<button aria-label="Select language" class="md-header__button md-icon">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"></path></svg>
+</button>
+<div class="md-select__inner">
+<ul class="md-select__list">
+<li class="md-select__item">
+<a class="md-select__link" href="./" hreflang="en">
+              English
+            </a>
+</li>
+<li class="md-select__item">
+<a class="md-select__link" href="../zh/config/" hreflang="zh">
+              简体中文
+            </a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/TISUnion/PrimeBackup" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="Prime Backup Documentation" class="md-nav__button md-logo" data-md-component="logo" href=".." title="Prime Backup Documentation">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    Prime Backup Documentation
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/TISUnion/PrimeBackup" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="..">
+<span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../quick_start/">
+<span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration-explanation">
+<span class="md-ellipsis">
+      
+        Configuration Explanation
+      
+    </span>
+</a>
+<nav aria-label="Configuration Explanation" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#root-config">
+<span class="md-ellipsis">
+      
+        Root config
+      
+    </span>
+</a>
+<nav aria-label="Root config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled">
+<span class="md-ellipsis">
+      
+        enabled
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#debug">
+<span class="md-ellipsis">
+      
+        debug
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#storage_root">
+<span class="md-ellipsis">
+      
+        storage_root
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#concurrency">
+<span class="md-ellipsis">
+      
+        concurrency
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#command-config">
+<span class="md-ellipsis">
+      
+        Command config
+      
+    </span>
+</a>
+<nav aria-label="Command config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prefix">
+<span class="md-ellipsis">
+      
+        prefix
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#permission">
+<span class="md-ellipsis">
+      
+        permission
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#confirm_time_wait">
+<span class="md-ellipsis">
+      
+        confirm_time_wait
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup_on_restore">
+<span class="md-ellipsis">
+      
+        backup_on_restore
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#restore_countdown_sec">
+<span class="md-ellipsis">
+      
+        restore_countdown_sec
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#server-config">
+<span class="md-ellipsis">
+      
+        Server config
+      
+    </span>
+</a>
+<nav aria-label="Server config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#turn_off_auto_save">
+<span class="md-ellipsis">
+      
+        turn_off_auto_save
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#commands">
+<span class="md-ellipsis">
+      
+        commands
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#saved_world_regex">
+<span class="md-ellipsis">
+      
+        saved_world_regex
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#save_world_max_wait">
+<span class="md-ellipsis">
+      
+        save_world_max_wait
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup-config">
+<span class="md-ellipsis">
+      
+        Backup config
+      
+    </span>
+</a>
+<nav aria-label="Backup config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#source_root">
+<span class="md-ellipsis">
+      
+        source_root
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#source_root_use_mcdr_working_directory">
+<span class="md-ellipsis">
+      
+        source_root_use_mcdr_working_directory
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#targets">
+<span class="md-ellipsis">
+      
+        targets
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ignored_files">
+<span class="md-ellipsis">
+      
+        ignored_files
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ignore_patterns">
+<span class="md-ellipsis">
+      
+        ignore_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#retain_patterns">
+<span class="md-ellipsis">
+      
+        retain_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#follow_target_symlink">
+<span class="md-ellipsis">
+      
+        follow_target_symlink
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reuse_stat_unchanged_file">
+<span class="md-ellipsis">
+      
+        reuse_stat_unchanged_file
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creation_skip_missing_file">
+<span class="md-ellipsis">
+      
+        creation_skip_missing_file
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creation_skip_missing_file_patterns">
+<span class="md-ellipsis">
+      
+        creation_skip_missing_file_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#hash_method">
+<span class="md-ellipsis">
+      
+        hash_method
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compress_method">
+<span class="md-ellipsis">
+      
+        compress_method
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compress_threshold">
+<span class="md-ellipsis">
+      
+        compress_threshold
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#scheduled-backup-config">
+<span class="md-ellipsis">
+      
+        Scheduled backup config
+      
+    </span>
+</a>
+<nav aria-label="Scheduled backup config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reset_timer_on_backup">
+<span class="md-ellipsis">
+      
+        reset_timer_on_backup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#require_online_players">
+<span class="md-ellipsis">
+      
+        require_online_players
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#require_online_players_blacklist">
+<span class="md-ellipsis">
+      
+        require_online_players_blacklist
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prune-config">
+<span class="md-ellipsis">
+      
+        Prune config
+      
+    </span>
+</a>
+<nav aria-label="Prune config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#max_amount">
+<span class="md-ellipsis">
+      
+        max_amount
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#max_lifetime">
+<span class="md-ellipsis">
+      
+        max_lifetime
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#last-hour-day-week-month-year">
+<span class="md-ellipsis">
+      
+        last, hour, day, week, month, year
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter_1">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#timezone_override">
+<span class="md-ellipsis">
+      
+        timezone_override
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#database-config">
+<span class="md-ellipsis">
+      
+        Database config
+      
+    </span>
+</a>
+<nav aria-label="Database config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compact">
+<span class="md-ellipsis">
+      
+        compact
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup">
+<span class="md-ellipsis">
+      
+        backup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter_2">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#subconfig-types">
+<span class="md-ellipsis">
+      
+        Subconfig types
+      
+    </span>
+</a>
+<nav aria-label="Subconfig types" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#crontab-job-setting">
+<span class="md-ellipsis">
+      
+        crontab job setting
+      
+    </span>
+</a>
+<nav aria-label="crontab job setting" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled_1">
+<span class="md-ellipsis">
+      
+        enabled
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#interval">
+<span class="md-ellipsis">
+      
+        interval
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#crontab">
+<span class="md-ellipsis">
+      
+        crontab
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#jitter">
+<span class="md-ellipsis">
+      
+        jitter
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#special-value-types">
+<span class="md-ellipsis">
+      
+        Special value types
+      
+    </span>
+</a>
+<nav aria-label="Special value types" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#duration">
+<span class="md-ellipsis">
+      
+        Duration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../command/">
+<span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../cli/">
+<span class="md-ellipsis">
+    
+  
+    CLI Tool
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+<a class="md-nav__link" href="../feature/">
+<span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+<a class="md-nav__link" href="../concept/">
+<span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration-explanation">
+<span class="md-ellipsis">
+      
+        Configuration Explanation
+      
+    </span>
+</a>
+<nav aria-label="Configuration Explanation" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#root-config">
+<span class="md-ellipsis">
+      
+        Root config
+      
+    </span>
+</a>
+<nav aria-label="Root config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled">
+<span class="md-ellipsis">
+      
+        enabled
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#debug">
+<span class="md-ellipsis">
+      
+        debug
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#storage_root">
+<span class="md-ellipsis">
+      
+        storage_root
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#concurrency">
+<span class="md-ellipsis">
+      
+        concurrency
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#command-config">
+<span class="md-ellipsis">
+      
+        Command config
+      
+    </span>
+</a>
+<nav aria-label="Command config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prefix">
+<span class="md-ellipsis">
+      
+        prefix
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#permission">
+<span class="md-ellipsis">
+      
+        permission
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#confirm_time_wait">
+<span class="md-ellipsis">
+      
+        confirm_time_wait
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup_on_restore">
+<span class="md-ellipsis">
+      
+        backup_on_restore
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#restore_countdown_sec">
+<span class="md-ellipsis">
+      
+        restore_countdown_sec
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#server-config">
+<span class="md-ellipsis">
+      
+        Server config
+      
+    </span>
+</a>
+<nav aria-label="Server config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#turn_off_auto_save">
+<span class="md-ellipsis">
+      
+        turn_off_auto_save
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#commands">
+<span class="md-ellipsis">
+      
+        commands
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#saved_world_regex">
+<span class="md-ellipsis">
+      
+        saved_world_regex
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#save_world_max_wait">
+<span class="md-ellipsis">
+      
+        save_world_max_wait
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup-config">
+<span class="md-ellipsis">
+      
+        Backup config
+      
+    </span>
+</a>
+<nav aria-label="Backup config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#source_root">
+<span class="md-ellipsis">
+      
+        source_root
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#source_root_use_mcdr_working_directory">
+<span class="md-ellipsis">
+      
+        source_root_use_mcdr_working_directory
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#targets">
+<span class="md-ellipsis">
+      
+        targets
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ignored_files">
+<span class="md-ellipsis">
+      
+        ignored_files
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ignore_patterns">
+<span class="md-ellipsis">
+      
+        ignore_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#retain_patterns">
+<span class="md-ellipsis">
+      
+        retain_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#follow_target_symlink">
+<span class="md-ellipsis">
+      
+        follow_target_symlink
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reuse_stat_unchanged_file">
+<span class="md-ellipsis">
+      
+        reuse_stat_unchanged_file
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creation_skip_missing_file">
+<span class="md-ellipsis">
+      
+        creation_skip_missing_file
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creation_skip_missing_file_patterns">
+<span class="md-ellipsis">
+      
+        creation_skip_missing_file_patterns
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#hash_method">
+<span class="md-ellipsis">
+      
+        hash_method
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compress_method">
+<span class="md-ellipsis">
+      
+        compress_method
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compress_threshold">
+<span class="md-ellipsis">
+      
+        compress_threshold
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#scheduled-backup-config">
+<span class="md-ellipsis">
+      
+        Scheduled backup config
+      
+    </span>
+</a>
+<nav aria-label="Scheduled backup config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reset_timer_on_backup">
+<span class="md-ellipsis">
+      
+        reset_timer_on_backup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#require_online_players">
+<span class="md-ellipsis">
+      
+        require_online_players
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#require_online_players_blacklist">
+<span class="md-ellipsis">
+      
+        require_online_players_blacklist
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prune-config">
+<span class="md-ellipsis">
+      
+        Prune config
+      
+    </span>
+</a>
+<nav aria-label="Prune config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#max_amount">
+<span class="md-ellipsis">
+      
+        max_amount
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#max_lifetime">
+<span class="md-ellipsis">
+      
+        max_lifetime
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#last-hour-day-week-month-year">
+<span class="md-ellipsis">
+      
+        last, hour, day, week, month, year
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter_1">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#timezone_override">
+<span class="md-ellipsis">
+      
+        timezone_override
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#database-config">
+<span class="md-ellipsis">
+      
+        Database config
+      
+    </span>
+</a>
+<nav aria-label="Database config" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compact">
+<span class="md-ellipsis">
+      
+        compact
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#backup">
+<span class="md-ellipsis">
+      
+        backup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled-interval-crontab-jitter_2">
+<span class="md-ellipsis">
+      
+        enabled, interval, crontab, jitter
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#subconfig-types">
+<span class="md-ellipsis">
+      
+        Subconfig types
+      
+    </span>
+</a>
+<nav aria-label="Subconfig types" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#crontab-job-setting">
+<span class="md-ellipsis">
+      
+        crontab job setting
+      
+    </span>
+</a>
+<nav aria-label="crontab job setting" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#enabled_1">
+<span class="md-ellipsis">
+      
+        enabled
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#interval">
+<span class="md-ellipsis">
+      
+        interval
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#crontab">
+<span class="md-ellipsis">
+      
+        crontab
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#jitter">
+<span class="md-ellipsis">
+      
+        jitter
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#special-value-types">
+<span class="md-ellipsis">
+      
+        Special value types
+      
+    </span>
+</a>
+<nav aria-label="Special value types" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#duration">
+<span class="md-ellipsis">
+      
+        Duration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1>Configuration</h1>
+<h2 id="configuration-explanation">Configuration Explanation<a class="headerlink" href="#configuration-explanation" title="Permanent link">¶</a></h2>
+<p>Here's a full explanation on the config file, if you want to have a deep dive on it</p>
+<h3 id="root-config">Root config<a class="headerlink" href="#root-config" title="Permanent link">¶</a></h3>
+<p>This is the root json object in the config files</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"debug"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"storage_root"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./pb_files"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"concurrency"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+
+<span class="w">    </span><span class="c1">// Subconfigs. See the following sections</span>
+<span class="w">    </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* Command config */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"server"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* Server config */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* Backup config */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"scheduled_backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* Scheduled backup config */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"prune"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* Prune config */</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"database"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="cm">/* Database config */</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="enabled">enabled<a class="headerlink" href="#enabled" title="Permanent link">¶</a></h4>
+<p>The switch of the plugin. Set to false to disable the plugin</p>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>false</code></li>
+</ul>
+<h4 id="debug">debug<a class="headerlink" href="#debug" title="Permanent link">¶</a></h4>
+<p>The debug switch. Set to true to enable debug logging</p>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>false</code></li>
+</ul>
+<h4 id="storage_root">storage_root<a class="headerlink" href="#storage_root" title="Permanent link">¶</a></h4>
+<p>The root directory for Prime Backup to store all data files</p>
+<p>The path is related to the work directory of MCDR. By default, the root directory will be <code>/path/to/mcdr_root/pb_files</code></p>
+<ul>
+<li>Type: <code>str</code></li>
+<li>Default: <code>"./pb_files"</code></li>
+</ul>
+<h4 id="concurrency">concurrency<a class="headerlink" href="#concurrency" title="Permanent link">¶</a></h4>
+<p>The maximum concurrency to be used during all task and action executions</p>
+<p>Setting the concurrency to a higher value (e.g. <code>4</code>) can speed up actions, such as backup creation and restoration,
+but it will also consume more CPU during these actions</p>
+<p>A value of <code>0</code> means using 50% of the CPU</p>
+<ul>
+<li>Type: <code>int</code></li>
+<li>Default: <code>1</code></li>
+</ul>
+<hr/>
+<h3 id="command-config">Command config<a class="headerlink" href="#command-config" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"prefix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"!!pb"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"permission"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"root"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"abort"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">  </span>
+<span class="w">        </span><span class="nt">"back"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"confirm"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"database"</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"delete"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"delete_range"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"export"</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"list"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"make"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"prune"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"rename"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"show"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"confirm_time_wait"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1m"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"backup_on_restore"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"restore_countdown_sec"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="prefix">prefix<a class="headerlink" href="#prefix" title="Permanent link">¶</a></h4>
+<p>The prefix of all Prime Backup commands in MCDR. Normally you don't need to change it</p>
+<ul>
+<li>Type: <code>str</code></li>
+<li>Default: <code>"!!pb"</code></li>
+</ul>
+<h4 id="permission">permission<a class="headerlink" href="#permission" title="Permanent link">¶</a></h4>
+<p>Minimum required <a href="https://mcdreforged.readthedocs.io/en/latest/permission.html">MCDR permission level</a> for all subcommands</p>
+<p>It's a mapping that maps from string to integer, storing permission level requirements for all subcommands.
+If a subcommand is not in the mapping, it will use level 1 as the default permission requirement</p>
+<p>For example, in the default config, <code>"back"</code> is mapped to <code>2</code>, 
+which means that the <code>!!pb back</code> command requires permission level &gt;= 2 to execute</p>
+<p>Specially, <code>"root"</code> refers to the root command, which is usually <code>!!pb</code></p>
+<ul>
+<li>Type: <code>Dict[str, int]</code></li>
+</ul>
+<h4 id="confirm_time_wait">confirm_time_wait<a class="headerlink" href="#confirm_time_wait" title="Permanent link">¶</a></h4>
+<p>Some of the MCDR commands requires user to enter <code>!!pb confirm</code> to continue.
+This config defines the maximum time wait for those commands</p>
+<p>When time exceeds, the command will be cancelled</p>
+<ul>
+<li>Type: <a href="#duration"><code>Duration</code></a></li>
+<li>Default: <code>"1m"</code></li>
+</ul>
+<h4 id="backup_on_restore">backup_on_restore<a class="headerlink" href="#backup_on_restore" title="Permanent link">¶</a></h4>
+<p>If an automatically backup should be made before restoring the world to a given backup. These automatic pre-restore backups are temporary backups</p>
+<p>This is a safeguard prepared for those idiot users</p>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>true</code></li>
+</ul>
+<h4 id="restore_countdown_sec">restore_countdown_sec<a class="headerlink" href="#restore_countdown_sec" title="Permanent link">¶</a></h4>
+<p>The duration in seconds of the countdown during backup restoring, before closing the Minecraft server</p>
+<ul>
+<li>Type: <code>int</code></li>
+<li>Default: <code>10</code></li>
+</ul>
+<hr/>
+<h3 id="server-config">Server config<a class="headerlink" href="#server-config" title="Permanent link">¶</a></h3>
+<p>Options on how to interact with the Minecraft server</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"turn_off_auto_save"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"commands"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"save_all_worlds"</span><span class="p">:</span><span class="w"> </span><span class="s2">"save-all flush"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"auto_save_off"</span><span class="p">:</span><span class="w"> </span><span class="s2">"save-off"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"auto_save_on"</span><span class="p">:</span><span class="w"> </span><span class="s2">"save-on"</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"saved_world_regex"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">"Saved the game"</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">"Saved the world"</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"save_world_max_wait"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10m"</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="turn_off_auto_save">turn_off_auto_save<a class="headerlink" href="#turn_off_auto_save" title="Permanent link">¶</a></h4>
+<p>If the autosave should be turned off before making a backup</p>
+<p>Since turning off autosave provide a consistent view to the Minecraft world files, it's suggested to set this option to <code>true</code></p>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>true</code></li>
+</ul>
+<h4 id="commands">commands<a class="headerlink" href="#commands" title="Permanent link">¶</a></h4>
+<p>A set of Minecraft commands to be used by Prime Backup. Current they're only used during a backup creation</p>
+<p>Timing of what Prime Backup will do during a backup creation</p>
+<ol>
+<li>Turn off autosave with command stored in subconfig <code>auto_save_off</code>, if config <a href="#turn_off_auto_save"><code>turn_off_auto_save</code></a> is true and <code>auto_save_off</code> is a non-empty string</li>
+<li>Save all worlds with command stored in subconfig <code>save_all_worlds</code>, if <code>save_all_worlds</code> is a non-empty string</li>
+<li>Wait until all words are saved, i.e. the server outputs matches one of the regex in config <a href="#saved_world_regex"><code>saved_world_regex</code></a>. If <code>saved_world_regex</code> is empty, then not waiting will be performed </li>
+<li>Create the backup</li>
+<li>Turn on autosave with command stored in subconfig <code>auto_save_on</code>, if config <a href="#turn_off_auto_save"><code>turn_off_auto_save</code></a> is true and <code>auto_save_on</code> is a non-empty string</li>
+</ol>
+<h4 id="saved_world_regex">saved_world_regex<a class="headerlink" href="#saved_world_regex" title="Permanent link">¶</a></h4>
+<p>A list of regular expressions for identifying whether the server has already saved the world</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The regex patterns will perform a <a href="https://docs.python.org/3/library/re.html#re.fullmatch">full match</a> check on the server info content</p>
+</div>
+<ul>
+<li>Type: <code>List[re.Pattern]</code></li>
+</ul>
+<h4 id="save_world_max_wait">save_world_max_wait<a class="headerlink" href="#save_world_max_wait" title="Permanent link">¶</a></h4>
+<p>The maximum waiting time to before world saving is complete during backup creation</p>
+<ul>
+<li>Type: <a href="#duration"><code>Duration</code></a></li>
+<li>Default: <code>"10m"</code></li>
+</ul>
+<hr/>
+<h3 id="backup-config">Backup config<a class="headerlink" href="#backup-config" title="Permanent link">¶</a></h3>
+<p>Configs on how the backup is made</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"source_root"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./server"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"source_root_use_mcdr_working_directory"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"targets"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">"world"</span>
+<span class="w">    </span><span class="p">],</span>
+
+<span class="w">    </span><span class="nt">"ignored_files"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"ignore_patterns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">       </span><span class="s2">"**/session.lock"</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"retain_patterns"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">"follow_target_symlink"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"reuse_stat_unchanged_file"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"creation_skip_missing_file"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"creation_skip_missing_file_patterns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">       </span><span class="s2">"**"</span>
+<span class="w">    </span><span class="p">],</span>
+
+<span class="w">    </span><span class="nt">"hash_method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"xxh128"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"compress_method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zstd"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"compress_threshold"</span><span class="p">:</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span>
+
+<span class="w">    </span><span class="nt">"fileset_allocate_lookback_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="source_root">source_root<a class="headerlink" href="#source_root" title="Permanent link">¶</a></h4>
+<p>The root directory where the backup / restore operations happen</p>
+<p>Usually this should be the same as the server <a href="https://mcdreforged.readthedocs.io/en/latest/configuration.html#working-directory">working_directory</a> option of MCDR, 
+i.e. the <code>server</code> directory by default</p>
+<ul>
+<li>Type: <code>str</code></li>
+<li>Default: <code>"./server"</code></li>
+</ul>
+<h4 id="source_root_use_mcdr_working_directory">source_root_use_mcdr_working_directory<a class="headerlink" href="#source_root_use_mcdr_working_directory" title="Permanent link">¶</a></h4>
+<p>If set to <code>true</code>, use the server working directory of MCDR as the value of <a href="#source_root">source_root</a>,
+and the value of key <a href="#source_root">source_root</a> in the config will be ignored</p>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>false</code></li>
+</ul>
+<h4 id="targets">targets<a class="headerlink" href="#targets" title="Permanent link">¶</a></h4>
+<p>The target files / directories to make backups. They can also be <a href="http://git-scm.com/docs/gitignore">gitignore flavor</a> patterns </p>
+<p>Usually you need to add the name(s) of your world folder(s) here</p>
+<p>For example, for bukkit-like servers that split the world dimensions, you might want to use:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">"targets"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"world"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"world_nether"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"world_the_end"</span>
+<span class="p">]</span>
+</code></pre></div>
+<p>Or use this wildcard pattern that matches everything whose name starts with "world" in the <a href="#source_root">source_root</a> directory</p>
+<div class="highlight"><pre><span></span><code><span class="nt">"targets"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"world*"</span>
+<span class="p">]</span>
+</code></pre></div>
+<ul>
+<li>Type: <code>List[str]</code></li>
+</ul>
+<p>Changelog:</p>
+<ul>
+<li>v1.10.0: Support gitignore flavor patterns</li>
+</ul>
+<h4 id="ignored_files">ignored_files<a class="headerlink" href="#ignored_files" title="Permanent link">¶</a></h4>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Deprecated since v1.8.0. Use <a href="#ignore_patterns">ignore_patterns</a> instead</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Files matched by <code>ignored_files</code> are also not considered during restore.<br/>
+After the restore, only those files that were backed up will exist in the target folders.<br/>
+Only use this option for useless files.</p>
+</div>
+<p>A list of file / directory names to be ignored during backup</p>
+<p>If the name string starts with <code>*</code>, then it will ignore files with name ending with specific string, 
+e.g. <code>*.test</code> makes all files ends with <code>.test</code> be ignored, like <code>a.test</code></p>
+<p>If the name string ends with <code>*</code>, then it will ignore files with name starting with specific string, 
+e.g. <code>temp*</code>  makes all files starts with <code>temp</code> be ignored, like <code>tempfile</code></p>
+<ul>
+<li>Type: <code>List[str]</code></li>
+</ul>
+<h4 id="ignore_patterns">ignore_patterns<a class="headerlink" href="#ignore_patterns" title="Permanent link">¶</a></h4>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Files matched by <code>ignore_patterns</code> are also not considered during restore.<br/>
+After the restore, only those files that were backed up will exist in the target folders.<br/>
+Only use this option for useless files.</p>
+</div>
+<p>A list of <a href="http://git-scm.com/docs/gitignore">gitignore-style</a> pattern strings.
+Files or directories matching these patterns will be ignored during backup creation</p>
+<p>The root path for pattern matching is <a href="#source_root">source_root</a>.
+For example, if <code>source_root</code> is <code>server</code>, then the pattern <code>world/trash*.obj</code> will match <code>server/world/trash1.obj</code></p>
+<p>It contains a <code>**/session.lock</code> pattern by default, which matches files named <code>session.lock</code> in any location.
+It's used to solve the backup failure problem caused by <code>session.lock</code> being occupied by the server in Windows OS</p>
+<ul>
+<li>Type: <code>List[str]</code></li>
+</ul>
+<h4 id="retain_patterns">retain_patterns<a class="headerlink" href="#retain_patterns" title="Permanent link">¶</a></h4>
+<p>A list of <a href="http://git-scm.com/docs/gitignore">gitignore-style</a> pattern strings.
+Files or directories matching these patterns will be ignored during backup creation but retained when restoring a backup</p>
+<p>The root path for pattern matching is <a href="#source_root">source_root</a>.<br/>
+For example, if <code>source_root</code> is <code>server</code>, then the pattern <code>world/trash*.obj</code> will match <code>server/world/trash1.obj</code></p>
+<p>This option is recommended for files that do not need to be backed up but should still be kept,
+such as large databases used by mods or rendered outputs of web maps</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Purpose</th>
+<th>Ignored on Backup</th>
+<th>Retained on Restore</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#ignore_patterns">ignore_patterns</a></td>
+<td>Ignore &amp; discard unnecessary data</td>
+<td>√</td>
+<td>×</td>
+</tr>
+<tr>
+<td><a href="#retain_patterns">retain_patterns</a></td>
+<td>Ignore but retain unneeded backup data</td>
+<td>√</td>
+<td>√</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Type: <code>List[str]</code></li>
+</ul>
+<h4 id="follow_target_symlink">follow_target_symlink<a class="headerlink" href="#follow_target_symlink" title="Permanent link">¶</a></h4>
+<p>When set to <code>true</code>, for <a href="#targets">backup targets</a> that are symbolic links,
+Prime Backup will not only create backups for them,
+but also include the link targets of the symbolic links in the backup targets.</p>
+<p>For example, in the following symbolic link graph:</p>
+<div class="highlight"><pre><span></span><code>world --&gt; foo --&gt; bar
+^
+backup target
+</code></pre></div>
+<p>Prime Backup will save not only the <code>world</code> symbolic link, but also the <code>foo</code> symbolic link and the final <code>bar</code> directory</p>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>false</code></li>
+</ul>
+<h4 id="reuse_stat_unchanged_file">reuse_stat_unchanged_file<a class="headerlink" href="#reuse_stat_unchanged_file" title="Permanent link">¶</a></h4>
+<p>When enabled, during backup creation, Prime Backup will try to directly reuse files from the previous backup 
+whose attributes (size, mtime, mode, etc.) have not changed. No file hash checking will be done on these attributes-unchanged files</p>
+<p>Prime Backup will check the following file attributes. Files with the exact same attributes will be considered unchanged:</p>
+<ul>
+<li>File path</li>
+<li>File size</li>
+<li>File mode bits</li>
+<li>File owner's UID and GID</li>
+<li>File modification time (precision: microseconds)</li>
+</ul>
+<p>If you want the maximum possible backup creation speed, you can try enabling this option.
+However, this also introduces the potential risk of incomplete backups</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Please only enable this option after ensuring that the server's operating system and file system are functioning properly and stably. 
+Otherwise, if issues such as system time rollback or abnormal file system metadata occur, some of the files might 
+have their content changed but keep their stat unchanged, and then Prime Backup will create an incomplete backup</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Unless you really need this backup speed boost or the system disk read performance is too low, it is not recommended to enable this option.
+Prime Backup is already fast enough</p>
+</div>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>false</code></li>
+</ul>
+<h4 id="creation_skip_missing_file">creation_skip_missing_file<a class="headerlink" href="#creation_skip_missing_file" title="Permanent link">¶</a></h4>
+<p>In certain scenarios, server plugins / mods do not respect to the <code>/save off</code> command,
+and may still delete files when PB is creating a backup.
+These missing files can cause the backup operation to fail due to file not found errors</p>
+<p>If you want to ignore such "file not found" errors in this scenario, you can enable this option</p>
+<p>See also: the <a href="#creation_skip_missing_file_patterns">creation_skip_missing_file_patterns</a> option,
+which controls the scope of files for which "file not found" errors can be ignored</p>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>false</code></li>
+</ul>
+<h4 id="creation_skip_missing_file_patterns">creation_skip_missing_file_patterns<a class="headerlink" href="#creation_skip_missing_file_patterns" title="Permanent link">¶</a></h4>
+<p>A list of <a href="http://git-scm.com/docs/gitignore">gitignore flavor</a> pattern strings
+used in combination with <a href="#creation_skip_missing_file">creation_skip_missing_file</a> option</p>
+<p>During backup creation, any "file not found" errors occurring for files matched by this option will be ignored</p>
+<p>The default value is <code>["**"]</code>, which matches everything. It's suggested to limit it to those volatile files only, e.g. <code>["trash/*.tmp"]</code></p>
+<ul>
+<li>Type: <code>List[str]</code></li>
+</ul>
+<h4 id="hash_method">hash_method<a class="headerlink" href="#hash_method" title="Permanent link">¶</a></h4>
+<p>The algorithm to hash the files. Available options: <code>"xxh128"</code>, <code>"sha256"</code>, <code>"blake3"</code></p>
+<table>
+<thead>
+<tr>
+<th>Hash Method</th>
+<th>Description</th>
+<th>Speed</th>
+<th>cryptographically secure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Cyan4973/xxHash"><code>xxh128</code></a></td>
+<td>A extremely fast, high-quality 128bit non-cryptographic hash algorithm. Recommend to use, unless you want theoretic extreme safety on hackers</td>
+<td>★★★★★</td>
+<td><img alt="❌" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/274c.svg" title=":cross_mark:"/></td>
+</tr>
+<tr>
+<td><a href="https://en.wikipedia.org/wiki/SHA-2"><code>sha256</code></a></td>
+<td>A cryptographically secure and widely used 256bit hash algorithm. It's slower than xxh128, but the speed could be acceptable using cpu with hardware acceleration</td>
+<td>★★</td>
+<td><img alt="✔" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2714.svg" title=":check_mark:"/></td>
+</tr>
+<tr>
+<td><a href="https://github.com/BLAKE3-team/BLAKE3"><code>blake3</code></a></td>
+<td>A cryptographically secure and speedy 256bit hash algorithm. It's still slower than xxh128, but is much faster than sha256</td>
+<td>★★★☆</td>
+<td><img alt="✔" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/2714.svg" title=":check_mark:"/></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you want to use <code>blake3</code> as the hash method, you need to install the <code>blake3</code> python library manually.
+It's not included in the default requirement list, because in some environments it might require rust runtime to build and install</p>
+<div class="highlight"><pre><span></span><code>pip3<span class="w"> </span>install<span class="w"> </span>blake3
+</code></pre></div>
+</div>
+<ul>
+<li>Type: <code>str</code></li>
+<li>Default: <code>"xxh128"</code></li>
+</ul>
+<h4 id="compress_method">compress_method<a class="headerlink" href="#compress_method" title="Permanent link">¶</a></h4>
+<p>The method to compress files stored in a backup</p>
+<table>
+<thead>
+<tr>
+<th>Compress Method</th>
+<th>Description</th>
+<th>Speed</th>
+<th>Compress rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plain</code></td>
+<td>No compression, copy the file directly. Can utilize the copy-on-write technique if the file system supports that</td>
+<td>★★★★★</td>
+<td>☆</td>
+</tr>
+<tr>
+<td><code>gzip</code></td>
+<td>The <a href="https://docs.python.org/3/library/gzip.html">gzip</a> library based on <a href="https://www.zlib.net/">zlib</a>. The format same as a <code>.gz</code> file</td>
+<td>★★</td>
+<td>★★★★</td>
+</tr>
+<tr>
+<td><code>lzma</code></td>
+<td>The <a href="https://docs.python.org/3/library/lzma.html">LZMA</a> algorithm. The same format as a <code>.xz</code> file. Provides the best compression, but the speed is very slow</td>
+<td>☆</td>
+<td>★★★★★</td>
+</tr>
+<tr>
+<td><code>zstd</code></td>
+<td>The <a href="https://github.com/facebook/zstd">Zstandard</a> algorithm. A good balance between speed and compression rate. Recommend to  use</td>
+<td>★★★☆</td>
+<td>★★★★</td>
+</tr>
+<tr>
+<td><code>lz4</code></td>
+<td>The <a href="https://github.com/lz4/lz4">LZ4</a> algorithm. Faster than Zstandard, and even much faster in decompression, but with a lower compression rate</td>
+<td>★★★★</td>
+<td>★★☆</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Changing <code>compress_method</code> will only affect new files in new backups (i.e., new blobs)</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you want to use <code>lz4</code> as the compress method, you need to install the <code>lz4</code> python library manually</p>
+<div class="highlight"><pre><span></span><code>pip3<span class="w"> </span>install<span class="w"> </span>lz4
+</code></pre></div>
+</div>
+<ul>
+<li>Type: <code>str</code></li>
+<li>Default: <code>"zstd"</code></li>
+</ul>
+<h4 id="compress_threshold">compress_threshold<a class="headerlink" href="#compress_threshold" title="Permanent link">¶</a></h4>
+<p>For files with a size less than the <code>compress_threshold</code>, no compression will be applied. They will be stored in the <code>plain</code> format.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Changing <code>compress_threshold</code> will only affect new files in new backups (i.e., new blobs)</p>
+</div>
+<ul>
+<li>Type: int</li>
+<li>Default: <code>64</code></li>
+</ul>
+<hr/>
+<h3 id="scheduled-backup-config">Scheduled backup config<a class="headerlink" href="#scheduled-backup-config" title="Permanent link">¶</a></h3>
+<p>Configuration of the scheduled backup feature from Prime Backup</p>
+<p>It's for creating a backup periodically and automatically for your server</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="s2">"12h"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10s"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"reset_timer_on_backup"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"require_online_players"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"require_online_players_blacklist"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="enabled-interval-crontab-jitter">enabled, interval, crontab, jitter<a class="headerlink" href="#enabled-interval-crontab-jitter" title="Permanent link">¶</a></h4>
+<p>See the <a href="#crontab-job-setting">crontab job setting</a> section</p>
+<h4 id="reset_timer_on_backup">reset_timer_on_backup<a class="headerlink" href="#reset_timer_on_backup" title="Permanent link">¶</a></h4>
+<p>If the schedule timer should be reset on each manual backup</p>
+<p>This feature is only effective when the job is in interval mode</p>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>true</code></li>
+</ul>
+<h4 id="require_online_players">require_online_players<a class="headerlink" href="#require_online_players" title="Permanent link">¶</a></h4>
+<p>If set to <code>true</code>, scheduled backups will only run normally when players are present on the server.
+If all players logged out, then after the next scheduled backup is created, no more scheduled backup will be created</p>
+<p>Example timeline:</p>
+<pre class="mermaid"><code>flowchart LR
+    subgraph g1[Players online]
+    b1[8:00\ncreated] --&gt; b2
+    end
+
+    subgraph g2[No players online]
+    b2[9:00\ncreated] --&gt; b3
+    b3[10:00\ncreated] --&gt; b4:::disabled
+    b4[11:00\nskipped] --&gt; b5:::disabled
+    end
+
+    subgraph g3[Players online]
+    b5[12:00\nskipped] --&gt; b6
+    b6[13:00\ncreated]
+    end
+
+    classDef disabled fill:#eee,stroke:#aaa,color:gray
+</code></pre>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This feature requires the Prime Backup plugin to be loaded <strong>before the server starts</strong>.
+It's needed so Prime Backup can calculate the online player count correctly</p>
+<p>If the Prime Backup plugin is loaded when the server is already running, 
+the player detection feature will be disabled, as if <a href="#require_online_players">require_online_players</a> is set to <code>false</code></p>
+<p>Exception: If <a href="https://github.com/MCDReforged/MinecraftDataAPI">MinecraftDataAPI</a> plugin is present,
+then Prime Backup will utilize its API to query online player dynamically, and the requirement mentioned above no longer exists</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The player detection logic might not work in heavily modded servers that behave too differently from vanilla servers</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Since Prime Backup supports file deduplication and highly customizable <a href="#prune-config">prune config</a>,
+having backups even when no player is on the server will not result in excessive space usage</p>
+</div>
+<ul>
+<li>Type: <code>bool</code></li>
+<li>Default: <code>false</code></li>
+</ul>
+<h4 id="require_online_players_blacklist">require_online_players_blacklist<a class="headerlink" href="#require_online_players_blacklist" title="Permanent link">¶</a></h4>
+<p>In <a href="#require_online_players">require_online_players</a>, when determining if there are players online, 
+the list of regex patterns for player names to be excluded</p>
+<p>If you want the server to still be considered as having no players online and thus not perform scheduled backups,
+when only certain players are online, you can utilize this option</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">"require_online_players_blacklist"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"bot_.*"</span><span class="p">,</span><span class="w">  </span><span class="c1">// Matches any player name starting with "bot_"</span>
+<span class="w">    </span><span class="s2">"Steve"</span><span class="w">    </span><span class="c1">// Matches the player name "Steve"</span>
+<span class="p">]</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The regex patterns will perform <a href="https://docs.python.org/3/library/re.html#re.fullmatch">full match</a> checks on the player names</p>
+<p>Matches are <strong>case-insensitive</strong></p>
+</div>
+<ul>
+<li>Type: <code>List[re.Pattern]</code></li>
+<li>Default: <code>[]</code></li>
+</ul>
+<hr/>
+<h3 id="prune-config">Prune config<a class="headerlink" href="#prune-config" title="Permanent link">¶</a></h3>
+<p>The backup prune feature from Prime Backup enables automatically backup cleanup for the backup storage</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="s2">"3h"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"20s"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"timezone_override"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"regular_backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"max_amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"max_lifetime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0s"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"last"</span><span class="p">:</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"hour"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"day"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"week"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"month"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"year"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"temprory_backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"max_amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"max_lifetime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"30d"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"last"</span><span class="p">:</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"hour"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"day"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"week"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"month"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"year"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>It contains 2 prune settings for 2 kinds of backups:</p>
+<ul>
+<li><code>regular_backup</code>: For regular backups, i.e. not temporary backups</li>
+<li><code>temporary_backup</code>: For temporary backups, e.g. pre-restore backups</li>
+</ul>
+<p>Each prune settings describes the retain policy in detailed</p>
+<p>Prime Backup use the following steps to decide what to delete and what to retain:</p>
+<ol>
+<li>Use <a href="#last-hour-day-week-month-year"><code>last</code>, <code>hour</code>, <code>day</code>, <code>week</code>, <code>month</code>, <code>year</code></a>,
+   based on the <a href="https://pbs.proxmox.com/docs/prune-simulator/">PBS</a> policy, filter out backups to be deleted / retained</li>
+<li>Use <code>max_amount</code> and <code>max_lifetime</code> to filter out those old and expired backups from the to-be-retained backups from step 1</li>
+<li>Collected those to-be-deleted backups from the 2 steps above, delete them one by one</li>
+</ol>
+<p>The final prune result will be stored in the log file at <code>logs/prune.log</code> within the <a href="#storage_root">storage root</a></p>
+<div class="highlight"><span class="filename">prune.log</span><pre><span></span><code>Backup #147 at 2023-12-10 21:49:09: keep=True reason=keep last 1
+Backup #146 at 2023-12-10 21:36:10: keep=True reason=keep last 2
+Backup #145 at 2023-12-10 21:26:25: keep=True reason=keep last 3
+Backup #144 at 2023-12-10 21:21:22: keep=False reason=superseded by 145 (hour)
+Backup #143 at 2023-12-10 21:16:19: keep=False reason=superseded by 145 (hour)
+Backup #142 at 2023-12-10 21:11:14: keep=False reason=superseded by 145 (hour)
+Backup #141 at 2023-12-10 21:05:06: keep=False reason=superseded by 145 (hour)
+Backup #140 at 2023-12-10 21:00:03: keep=True reason=protected
+Backup #139 at 2023-12-10 20:55:01: keep=True reason=keep hour 1
+Backup #138 at 2023-12-10 20:49:57: keep=False reason=superseded by 139 (hour)
+Backup #137 at 2023-12-10 20:44:53: keep=False reason=superseded by 139 (hour)
+Backup #136 at 2023-12-10 20:39:45: keep=False reason=superseded by 139 (hour)
+Backup #135 at 2023-12-10 20:34:41: keep=False reason=superseded by 139 (hour)
+Backup #128 at 2023-12-10 19:59:06: keep=True reason=keep hour 2
+Backup #116 at 2023-12-10 18:56:14: keep=True reason=keep hour 3
+Backup #104 at 2023-12-10 17:55:35: keep=False reason=superseded by 116 (day)
+Backup #22 at 2023-12-09 23:59:53: keep=True reason=keep day 1
+</code></pre></div>
+<h4 id="max_amount">max_amount<a class="headerlink" href="#max_amount" title="Permanent link">¶</a></h4>
+<p>Defines the maximum number of backups to keep, e.g. <code>10</code> means to keep a maximum of 10 of the latest backups</p>
+<p>Set it to <code>0</code> for unlimited</p>
+<ul>
+<li>Type: <code>int</code></li>
+</ul>
+<h4 id="max_lifetime">max_lifetime<a class="headerlink" href="#max_lifetime" title="Permanent link">¶</a></h4>
+<p>Defines the maximum retention duration for all backups. Backups exceeding this duration will be pruned and deleted.</p>
+<p>Set it to <code>0s</code> for no time limit</p>
+<ul>
+<li>Type: <a href="#duration"><code>Duration</code></a></li>
+</ul>
+<h4 id="last-hour-day-week-month-year">last, hour, day, week, month, year<a class="headerlink" href="#last-hour-day-week-month-year" title="Permanent link">¶</a></h4>
+<p>A set of <a href="https://pbs.proxmox.com/">PBS</a>-style prune options, to describe how backups are deleted/retained</p>
+<p>See the <a href="https://pbs.proxmox.com/docs/prune-simulator/">prune simulator</a> for more explanations on these options</p>
+<p>The <a href="https://pbs.proxmox.com/docs/prune-simulator/">prune simulator</a> can also be used to simulate the retain policy</p>
+<p>Notes: Value <code>0</code> means no retention on this period; Value <code>-1</code> means unlimited backups can be retained on this period, equivalent to setting to a very large value</p>
+<ul>
+<li>Type: <code>int</code></li>
+</ul>
+<hr/>
+<h4 id="enabled-interval-crontab-jitter_1">enabled, interval, crontab, jitter<a class="headerlink" href="#enabled-interval-crontab-jitter_1" title="Permanent link">¶</a></h4>
+<p>See the <a href="#crontab-job-setting">crontab job setting</a> section</p>
+<h4 id="timezone_override">timezone_override<a class="headerlink" href="#timezone_override" title="Permanent link">¶</a></h4>
+<p>An optional timezone override during the prune calculation. By default (<code>null</code> value), Prime Backup will use the local timezone</p>
+<p>Example values: <code>null</code>, <code>"Asia/Shanghai"</code>, <code>"US/Eastern"</code>, <code>"Europe/Amsterdam"</code></p>
+<ul>
+<li>Type: <code>Optional[str]</code></li>
+<li>Default: <code>null</code></li>
+</ul>
+<hr/>
+<h3 id="database-config">Database config<a class="headerlink" href="#database-config" title="Permanent link">¶</a></h3>
+<p>Configurations for the SQLite database, used by Prime Backup</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">"compact"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0 7 * * 0"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1m"</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"backup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0 6 * * 0"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1m"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Subconfig <code>compact</code> and <code>backup</code> describe the crontab jobs on the database</p>
+<h4 id="compact">compact<a class="headerlink" href="#compact" title="Permanent link">¶</a></h4>
+<p>The database compact job</p>
+<p>It performs the <a href="https://www.sqlite.org/lang_vacuum.html">VACUUM</a> command on the database, to compact the database file and free up unused space</p>
+<h4 id="backup">backup<a class="headerlink" href="#backup" title="Permanent link">¶</a></h4>
+<p>The database backup job</p>
+<p>By default, Prime Backup creates backups for the database in the <code>db_backup</code> directory
+within the <a href="#storage_root">storage root</a> periodically, just in case something wrong happens</p>
+<p>Database backups are stored with the <code>.tar.xz</code> format, and won't take up much space</p>
+<h4 id="enabled-interval-crontab-jitter_2">enabled, interval, crontab, jitter<a class="headerlink" href="#enabled-interval-crontab-jitter_2" title="Permanent link">¶</a></h4>
+<p>See the <a href="#crontab-job-setting">crontab job setting</a> section</p>
+<hr/>
+<h2 id="subconfig-types">Subconfig types<a class="headerlink" href="#subconfig-types" title="Permanent link">¶</a></h2>
+<h3 id="crontab-job-setting">crontab job setting<a class="headerlink" href="#crontab-job-setting" title="Permanent link">¶</a></h3>
+<p>Setting of a crontab job to describe when the job executes. There are 2 valid mode</p>
+<ul>
+<li>interval mode: Execute the job at given time interval. The first execution also has to wait for the given interval</li>
+<li>crontab mode: Execute the job at specific time, described by a crontab string</li>
+</ul>
+<p>If the job is enabled, you must choose one of the above modes and set the related config values correctly</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Example</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"interval"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1h"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"crontab"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"jitter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10s"</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="enabled_1">enabled<a class="headerlink" href="#enabled_1" title="Permanent link">¶</a></h4>
+<p>The switch for the job. Set to  <code>true</code> to enable the crontab job; Set to <code>false</code> to disable the crontab job</p>
+<ul>
+<li>Type: <code>bool</code></li>
+</ul>
+<h4 id="interval">interval<a class="headerlink" href="#interval" title="Permanent link">¶</a></h4>
+<p>Used in interval mode. The time interval between 2 jobs</p>
+<p>It should be <code>null</code> if the job is not in interval mode</p>
+<ul>
+<li>Type: <code>Optional[str]</code></li>
+</ul>
+<h4 id="crontab">crontab<a class="headerlink" href="#crontab" title="Permanent link">¶</a></h4>
+<p>Used in crontab mode. The crontab string</p>
+<p>You can use <a href="https://crontab.guru/">https://crontab.guru/</a> to create a crontab string</p>
+<p>It should be <code>null</code> if the job is not in crontab mode</p>
+<ul>
+<li>Type: <code>Optional[str]</code></li>
+</ul>
+<h4 id="jitter">jitter<a class="headerlink" href="#jitter" title="Permanent link">¶</a></h4>
+<p>The jitter between 2 scheduled backup jobs</p>
+<p>The actual execution time for the next job will be shifted randomly with <code>[0, jitter]</code></p>
+<p>Set it to <code>"0s"</code> for no jitter</p>
+<ul>
+<li>Type: <code>str</code></li>
+</ul>
+<hr/>
+<h2 id="special-value-types">Special value types<a class="headerlink" href="#special-value-types" title="Permanent link">¶</a></h2>
+<h3 id="duration">Duration<a class="headerlink" href="#duration" title="Permanent link">¶</a></h3>
+<p>Describes a time duration length with a string, e.g. <code>"3s"</code>, <code>"15m"</code></p>
+<p>A Duration consists of two parts: the number, and the time unit.</p>
+<p>For the number part, it can be an integer, or a float</p>
+<p>For the unit part, see the following table:</p>
+<table>
+<thead>
+<tr>
+<th>Unit</th>
+<th>Description</th>
+<th>Equals to</th>
+<th>Value in seconds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ms</code></td>
+<td>millisecond</td>
+<td>0.001 second</td>
+<td>0.001</td>
+</tr>
+<tr>
+<td><code>s</code>, <code>sec</code></td>
+<td>second</td>
+<td>1 second</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>m</code>, <code>min</code></td>
+<td>minute</td>
+<td>60 seconds</td>
+<td>60</td>
+</tr>
+<tr>
+<td><code>h</code>, <code>hour</code></td>
+<td>hour</td>
+<td>60 minutes</td>
+<td>3600</td>
+</tr>
+<tr>
+<td><code>d</code>, <code>day</code></td>
+<td>day</td>
+<td>24 hours</td>
+<td>86400</td>
+</tr>
+<tr>
+<td><code>mon</code>, <code>month</code></td>
+<td>month</td>
+<td>30 days</td>
+<td>2592000</td>
+</tr>
+<tr>
+<td><code>y</code>, <code>year</code></td>
+<td>year</td>
+<td>365 days</td>
+<td>31536000</td>
+</tr>
+</tbody>
+</table>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2025 Fallen_Breath
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.expand", "navigation.path", "navigation.prune", "navigation.top"], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
+<script src="../js/mermaid-10.8.0.min.js"></script><script>window.mermaidConfig = {default: {
+    startOnLoad: false
+}};</script></body>
+</html>

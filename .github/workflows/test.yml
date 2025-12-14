@@ -26,7 +26,7 @@ jobs:
           pip install pytest pytest-cov -r requirements.txt -r requirements.optional.txt
 
       - name: Run common unit tests
-        run: pytest tests/ --ignore=tests/test_fuzzy_run.py
+        run: pytest -s tests/ --ignore=tests/test_fuzzy_run.py
 
   fuzzy_test:
     runs-on: ubuntu-latest
@@ -49,7 +49,7 @@ jobs:
           pip install pytest pytest-cov -r requirements.txt -r requirements.optional.txt
 
       - name: Run fuzzy test
-        run: pytest tests/test_fuzzy_run.py
+        run: pytest -s tests/test_fuzzy_run.py
         env:
           PRIME_BACKUP_FUZZY_TEST_SEED: ${{ matrix.seed }}
           PRIME_BACKUP_FUZZY_TEST_ITERATION: ${{ matrix.seed == '0' && '5000' || '500' }}

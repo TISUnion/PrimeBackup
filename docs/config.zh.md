@@ -23,7 +23,8 @@ title: '配置文件'
     "backup": {/* 备份配置 */},
     "scheduled_backup": {/* 定时备份配置 */},
     "prune": {/* 修剪配置 */},
-    "database": {/* 数据库配置 */}
+    "database": {/* 数据库配置 */},
+    "notification": {/* 通知配置 */}
 }
 ```
 
@@ -745,6 +746,106 @@ Prime Backup 所使用的 SQLite 数据库的相关配置
 见 [定时作业配置](#定时作业配置) 小节
 
 --- 
+
+### 通知配置
+
+备份/回档任务的事件推送配置。启用后，Prime Backup 会在任务开始、成功、失败时向指定的 Webhook 发送 JSON 请求
+
+```json
+{
+    "enabled": false,
+    "events": [
+        "backup_start",
+        "backup_success",
+        "backup_failure",
+        "restore_start",
+        "restore_success",
+        "restore_failure"
+    ],
+    "endpoints": [
+        {
+            "enabled": true,
+            "name": "webhook",
+            "type": "webhook",
+            "url": "https://example.com/webhook",
+            "headers": {
+                "Authorization": "Bearer token"
+            },
+            "timeout": "5s"
+        }
+    ]
+}
+```
+
+#### enabled
+
+通知功能开关
+
+- 类型：`bool`
+- 默认值：`false`
+
+#### events
+
+需要触发通知的事件类型列表
+
+可用值：
+
+- `backup_start`
+- `backup_success`
+- `backup_failure`
+- `restore_start`
+- `restore_success`
+- `restore_failure`
+
+- 类型：`List[str]`
+
+#### endpoints
+
+通知目标列表。每个目标会接收相同的 JSON Payload
+
+- 类型：`List[NotificationEndpoint]`
+
+##### NotificationEndpoint
+
+- `enabled`：是否启用该 Endpoint（`bool`，默认 `true`）
+- `name`：Endpoint 名称（`str`，默认 `"default"`）
+- `type`：Endpoint 类型，`webhook` 或 `bark`（`str`，默认 `"webhook"`）
+- `url`：目标地址（`str`）
+- `headers`：额外请求头（`Dict[str, str]`，默认 `{}`）
+- `timeout`：请求超时（[`Duration`](#duration)，默认 `"5s"`）
+- `bark`：Bark 专用参数（见下）
+
+###### Bark 参数
+
+`bark` 仅在 `type = "bark"` 时生效。常用字段如下（均为可选）：
+
+- `device_key`：设备 key（用于 `/push` 或 URL 占位符）
+- `title` / `subtitle` / `body` / `markdown`
+- `group` / `sound` / `level` / `badge` / `icon` / `image`
+- `url` / `action` / `copy` / `autoCopy`
+- `id` / `delete` / `isArchive` / `volume` / `call`
+
+默认情况下，`bark.level` 会按任务结果自动设置：成功 `passive`、失败 `critical`、开始/其他 `active`
+
+#### Payload 说明
+
+请求方法为 `POST`，内容类型为 `application/json`
+
+Payload 中包含以下常用字段：
+
+- `event`：事件类型，如 `backup_success`
+- `task`：任务类型（`backup` / `restore`）
+- `status`：状态（`start` / `success` / `failure`）
+- `timestamp`：时间戳（`unix` 与 `iso`）
+- `backup`：备份信息（id、comment、date、tags、大小等）
+- `operator` / `source`：操作者与触发来源
+- `message` / `error`：失败原因或异常信息（如有）
+
+`type = bark` 时，将使用 Bark 原生 JSON 字段（见 Bark 文档），不发送上述完整 payload
+
+完整示例见 [任务通知与 Webhook](feature/notification.zh.md)
+
+---
 
 ## 子配置项说明
 

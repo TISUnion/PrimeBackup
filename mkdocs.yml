@@ -102,6 +102,7 @@ nav:
     - feature/backup_display.md
     - feature/backup_edit.md
     - feature/backup_import.md
+    - feature/notification.md
     - feature/database_overview.md
     - feature/database_inspect.md
     - feature/database_maintain.md

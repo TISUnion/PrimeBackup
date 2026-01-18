@@ -168,6 +168,11 @@ mcdr_root/
 
 现在 Prime Backup 应该开始工作了
 
+### 可选：任务通知推送
+
+如果你希望在备份/回档开始、成功或失败时收到消息推送，可以启用通知配置。
+请参考 [通知配置](config.zh.md#通知配置) 与 [任务通知与 Webhook](feature/notification.zh.md) 文档
+
 ## 使用
 
 在 MCDR 控制台或游戏中输入 `!!pb`，你应该看到如下所示的欢迎页面

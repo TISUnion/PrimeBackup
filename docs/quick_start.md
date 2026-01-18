@@ -168,6 +168,11 @@ Here are a few important things in the config file:
 
 Now Prime Backup should start working
 
+### Optional: task notifications
+
+If you want push notifications for backup/restore events, enable the notification config.
+See [Notification config](config.md#notification-config) and [Task Notifications & Webhook](feature/notification.md)
+
 ## Use
 
 Enter `!!pb` in the MCDR console, or in game, you should see the welcome page as shown below

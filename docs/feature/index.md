@@ -11,6 +11,7 @@ Prime Backup feature list
 - [Backup display](backup_display.md)
 - [Backup edit](backup_edit.md)
 - [Backup import/export](backup_import.md)
+- [Task Notifications & Webhook](notification.md)
 
 ### Scheduled Jobs
 

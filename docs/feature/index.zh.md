@@ -11,6 +11,7 @@ Prime Backup 主要功能概览
 - [备份展示](backup_display.zh.md)
 - [备份编辑](backup_edit.zh.md)
 - [备份导入导出](backup_import.zh.md)
+- [任务通知与 Webhook](notification.zh.md)
 
 ### 定时任务
 

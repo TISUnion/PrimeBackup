@@ -23,7 +23,8 @@ This is the root json object in the config files
     "backup": {/* Backup config */},
     "scheduled_backup": {/* Scheduled backup config */},
     "prune": {/* Prune config */},
-    "database": {/* Database config */}
+    "database": {/* Database config */},
+    "notification": {/* Notification config */}
 }
 ```
 
@@ -83,7 +84,8 @@ A value of `0` means using 50% of the CPU
         "prune": 3,
         "rename": 2,
         "show": 1,
-        "tag": 3
+        "tag": 3,
+        "test": 4
     },
     "confirm_time_wait": "1m",
     "backup_on_restore": true,
@@ -744,6 +746,90 @@ Database backups are stored with the `.tar.xz` format, and won't take up much sp
 See the [crontab job setting](#crontab-job-setting) section
 
 ---
+
+### Notification config
+
+Configuration for backup/restore notification push. When enabled, Prime Backup sends webhook or Bark notifications on task start/success/failure
+
+```json
+{
+    "enabled": false,
+    "events": [
+        "backup_start",
+        "backup_success",
+        "backup_failure",
+        "restore_start",
+        "restore_success",
+        "restore_failure"
+    ],
+    "endpoints": [
+        {
+            "enabled": true,
+            "name": "webhook",
+            "type": "webhook",
+            "url": "https://example.com/webhook",
+            "headers": {
+                "Authorization": "Bearer token"
+            },
+            "timeout": "5s"
+        }
+    ]
+}
+```
+
+#### enabled
+
+Notification switch
+
+- Type: `bool`
+- Default: `false`
+
+#### events
+
+Event types to notify
+
+- `backup_start`
+- `backup_success`
+- `backup_failure`
+- `restore_start`
+- `restore_success`
+- `restore_failure`
+
+- Type: `List[str]`
+
+#### endpoints
+
+Notification endpoint list. Each endpoint receives a notification on selected events
+
+- Type: `List[NotificationEndpoint]`
+
+##### NotificationEndpoint
+
+- `enabled`: enable the endpoint (`bool`, default `true`)
+- `name`: endpoint name (`str`, default `"default"`)
+- `type`: `webhook` or `bark` (`str`, default `"webhook"`)
+- `url`: target URL (`str`)
+- `headers`: extra request headers (`Dict[str, str]`, default `{}`)
+- `timeout`: request timeout ([`Duration`](#duration), default `"5s"`)
+- `bark`: Bark options (see below)
+
+###### Bark options
+
+`bark` is only used when `type = "bark"`. Common fields (all optional):
+
+- `device_key`
+- `title` / `subtitle` / `body` / `markdown`
+- `group` / `sound` / `level` / `badge` / `icon` / `image`
+- `url` / `action` / `copy` / `autoCopy`
+- `id` / `delete` / `isArchive` / `volume` / `call`
+
+By default, `bark.level` is derived from task result: success `passive`, failure `critical`, start/others `active`
+
+#### Payload
+
+For `type = webhook`, Prime Backup sends the full JSON payload described in [Task Notifications & Webhook](feature/notification.md)
+
+For `type = bark`, Prime Backup sends Bark native JSON fields instead of the full payload
 
 ## Subconfig types
 

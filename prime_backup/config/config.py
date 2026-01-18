@@ -12,6 +12,7 @@ from prime_backup.config.database_config import DatabaseConfig
 from prime_backup.config.prune_config import PruneConfig
 from prime_backup.config.scheduled_backup_config import ScheduledBackupConfig
 from prime_backup.config.server_config import ServerConfig
+from prime_backup.config.notification_config import NotificationConfig
 
 
 class Config(Serializable):
@@ -26,6 +27,7 @@ class Config(Serializable):
 	scheduled_backup: ScheduledBackupConfig = ScheduledBackupConfig()
 	prune: PruneConfig = PruneConfig()
 	database: DatabaseConfig = DatabaseConfig()
+	notification: NotificationConfig = NotificationConfig()
 
 	# ==================== Instance getters ====================
 

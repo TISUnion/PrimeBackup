@@ -15,6 +15,9 @@ prime_backup:
       noop: Nothing to abort
       no_permission: You don't have the permission to abort the current task
       not_abort_able: The current task {} is not abort-able
+    test_notify:
+      disabled: Notification is disabled or no endpoint configured
+      sent: Test notification sent (event: {})
 
   task:
     _base:

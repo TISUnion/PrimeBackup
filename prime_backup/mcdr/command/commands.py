@@ -45,8 +45,10 @@ from prime_backup.types.backup_filter import BackupFilter, BackupSortOrder
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
+from prime_backup.types.notification_event import NotificationEvent
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.utils import misc_utils
+from prime_backup.utils import notify_utils
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
 
 
@@ -254,6 +256,20 @@ class CommandManager:
 
 	def cmd_abort(self, source: CommandSource, _: CommandContext):
 		self.task_manager.do_abort(source)
+
+	def cmd_test_notify(self, source: CommandSource, context: CommandContext):
+		config = Config.get().notification
+		if not config.enabled or len(config.endpoints) == 0:
+			reply_message(source, tr('command.test_notify.disabled').set_color(RColor.yellow))
+			return
+		event = context.get('event', NotificationEvent.backup_success)
+		notify_utils.notify(
+			event,
+			operator=Operator.of(source),
+			source=source,
+			message='manual_test',
+		)
+		reply_message(source, tr('command.test_notify.sent', event.value))
 
 	def cmd_show_backup_tag(self, source: CommandSource, context: CommandContext, tag_name: Optional[BackupTagName] = None):
 		def backup_id_consumer(backup_id: int):
@@ -550,6 +566,17 @@ class CommandManager:
 				node.then(children[0])
 			return create_subcommand('tag').then(node)
 
+		def make_test_cmd() -> Literal:
+			node_sc = create_subcommand('test')
+			node_notify = Literal('notify')
+			node_event = Enumeration('event', NotificationEvent)
+
+			node_sc.then(node_notify)
+			node_notify.then(node_event)
+			node_notify.runs(self.cmd_test_notify)
+			node_event.runs(self.cmd_test_notify)
+			return node_sc
+
 		def make_db_delete_file_cmd():
 			__locate_node(['database']).then(Literal('delete').then(node_subcommand := Literal('file')))
 			node_bid = create_backup_id()
@@ -567,6 +594,7 @@ class CommandManager:
 		root.then(make_import_cmd())
 		root.then(make_list_cmd())
 		root.then(make_tag_cmd())
+		root.then(make_test_cmd())
 		make_db_delete_file_cmd()
 
 		# --------------- done ---------------

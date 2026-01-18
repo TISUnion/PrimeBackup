@@ -16,6 +16,8 @@ from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.utils import backup_utils, log_utils
 from prime_backup.utils.mcdr_utils import click_and_run, mkcmd
 from prime_backup.utils.timer import Timer
+from prime_backup.utils import notify_utils
+from prime_backup.types.notification_event import NotificationEvent
 
 
 class RestoreBackupTask(HeavyTask[None]):
@@ -59,67 +61,110 @@ class RestoreBackupTask(HeavyTask[None]):
 
 	@override
 	def run(self):
-		if self.backup_id is None:
-			backup_filter = BackupFilter()
-			backup_filter.requires_non_temporary_backup()
-			candidates = ListBackupAction(backup_filter=backup_filter, limit=1).run()
-			if len(candidates) == 0:
-				self.reply_tr('no_backup')
-				return
-			backup = candidates[0]
-		else:
-			backup = GetBackupAction(self.backup_id).run()
+		restore_backup = None
+		restore_cost = None
+		error: Optional[Exception] = None
+		failure_message: Optional[str] = None
+		succeeded = False
+		try:
+			if self.backup_id is None:
+				backup_filter = BackupFilter()
+				backup_filter.requires_non_temporary_backup()
+				candidates = ListBackupAction(backup_filter=backup_filter, limit=1).run()
+				if len(candidates) == 0:
+					self.reply_tr('no_backup')
+					failure_message = 'no_backup'
+					return
+				backup = candidates[0]
+			else:
+				backup = GetBackupAction(self.backup_id).run()
+			restore_backup = backup
 
-		self.__can_abort = True
-		self.broadcast(self.tr('show_backup', TextComponents.backup_brief(backup)))
-		if self.needs_confirm:
-			if not self.wait_confirm(self.tr('confirm_target')):
-				return
+			self.__can_abort = True
+			self.broadcast(self.tr('show_backup', TextComponents.backup_brief(backup)))
+			if self.needs_confirm:
+				if not self.wait_confirm(self.tr('confirm_target')):
+					failure_message = 'aborted'
+					return
 
-		server_was_running = self.server.is_server_running()
-		if server_was_running:
-			if not self.__countdown_and_stop_server(backup):
-				return
-		else:
-			self.logger.info('Found an already-stopped server')
-		self.__can_abort = False
+			server_was_running = self.server.is_server_running()
+			if server_was_running:
+				if not self.__countdown_and_stop_server(backup):
+					failure_message = 'aborted'
+					return
+			else:
+				self.logger.info('Found an already-stopped server')
+			self.__can_abort = False
 
-		timer = Timer()
-		if self.config.command.backup_on_restore:
-			self.logger.info('Creating backup of existing files to avoid idiot')
-			pre_restore_backup = CreateBackupAction(
-				Operator.pb(PrimeBackupOperatorNames.pre_restore),
-				backup_utils.create_translated_backup_comment('pre_restore', backup.id),
-				tags=BackupTags().set(BackupTagName.temporary, True),
+			notify_utils.notify(
+				NotificationEvent.restore_start,
+				backup=backup,
+				operator=Operator.of(self.source),
+				source=self.source,
+			)
+
+			timer = Timer()
+			if self.config.command.backup_on_restore:
+				self.logger.info('Creating backup of existing files to avoid idiot')
+				pre_restore_backup = CreateBackupAction(
+					Operator.pb(PrimeBackupOperatorNames.pre_restore),
+					backup_utils.create_translated_backup_comment('pre_restore', backup.id),
+					tags=BackupTags().set(BackupTagName.temporary, True),
+				).run()
+				pre_restore_backup_id = f'#{pre_restore_backup.id}'
+			else:
+				pre_restore_backup_id = 'N/A'
+			cost_backup = timer.get_and_restart()
+
+			self.logger.info('Restoring to backup #{} (fail_soft={}, verify_blob={})'.format(backup.id, self.fail_soft, self.verify_blob))
+			failures = ExportBackupToDirectoryAction(
+				backup.id, self.config.source_path,
+				restore_mode=True,
+				fail_soft=self.fail_soft,
+				verify_blob=self.verify_blob,
+				retain_patterns=self.config.backup.retain_patterns,
 			).run()
-			pre_restore_backup_id = f'#{pre_restore_backup.id}'
-		else:
-			pre_restore_backup_id = 'N/A'
-		cost_backup = timer.get_and_restart()
+			cost_restore = timer.get_and_restart()
+			restore_cost = cost_backup + cost_restore
 
-		self.logger.info('Restoring to backup #{} (fail_soft={}, verify_blob={})'.format(backup.id, self.fail_soft, self.verify_blob))
-		failures = ExportBackupToDirectoryAction(
-			backup.id, self.config.source_path,
-			restore_mode=True,
-			fail_soft=self.fail_soft,
-			verify_blob=self.verify_blob,
-			retain_patterns=self.config.backup.retain_patterns,
-		).run()
-		cost_restore = timer.get_and_restart()
-
-		if len(failures) > 0:
-			self.logger.error('Found {} failures during backup export'.format(len(failures)))
-			for line in failures.to_lines():
-				self.logger.error(line.to_colored_text())
-		self.logger.info('Restore to backup #{} done, cost {}s (backup {}s, restore {}s){}'.format(
-			backup.id, round(cost_backup + cost_restore, 2), round(cost_backup, 2), round(cost_restore, 2),
-			', starting the server' if server_was_running else ''
-		))
-
-		if server_was_running:
-			self.server.start()
-
-		with log_utils.open_file_logger('restore') as logger:
-			logger.info('{} restored world to backup #{} (date={}, comment={!r}), pre-restore temp backup: {}'.format(
-				self.source, backup.id, backup.date_str, backup.comment, pre_restore_backup_id,
+			if len(failures) > 0:
+				self.logger.error('Found {} failures during backup export'.format(len(failures)))
+				for line in failures.to_lines():
+					self.logger.error(line.to_colored_text())
+				failure_message = 'export_failures: {}'.format(len(failures))
+			self.logger.info('Restore to backup #{} done, cost {}s (backup {}s, restore {}s){}'.format(
+				backup.id, round(cost_backup + cost_restore, 2), round(cost_backup, 2), round(cost_restore, 2),
+				', starting the server' if server_was_running else ''
 			))
+
+			if len(failures) == 0:
+				succeeded = True
+
+			if server_was_running:
+				self.server.start()
+
+			with log_utils.open_file_logger('restore') as logger:
+				logger.info('{} restored world to backup #{} (date={}, comment={!r}), pre-restore temp backup: {}'.format(
+					self.source, backup.id, backup.date_str, backup.comment, pre_restore_backup_id,
+				))
+		except Exception as e:
+			error = e
+			raise
+		finally:
+			if succeeded:
+				notify_utils.notify(
+					NotificationEvent.restore_success,
+					backup=restore_backup,
+					operator=Operator.of(self.source),
+					source=self.source,
+					cost_s=restore_cost,
+				)
+			else:
+				notify_utils.notify(
+					NotificationEvent.restore_failure,
+					backup=restore_backup,
+					operator=Operator.of(self.source),
+					source=self.source,
+					message=failure_message,
+					error=error,
+				)

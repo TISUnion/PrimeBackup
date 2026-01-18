@@ -15,6 +15,9 @@ prime_backup:
       noop: 没有什么是需要终止的
       no_permission: 权限不足，无法终止当前任务
       not_abort_able: 当前任务{}无法被终止
+    test_notify:
+      disabled: 通知未启用或未配置推送地址
+      sent: 已发送测试通知（事件：{}）
 
   task:
     _base:

@@ -24,6 +24,7 @@ class CommandPermissions(Serializable):
 	rename: int = 2
 	show: int = 1
 	tag: int = 3
+	test: int = 4
 
 	def get(self, literal: str) -> int:
 		if literal.startswith('_'):

@@ -371,6 +371,7 @@ prime_backup:
           §7{prefix} database [...]§r: 操作数据库。详见§7{prefix} help database§r
           §7{prefix} confirm§r: 确认当前的任务操作
           §7{prefix} abort§r: 终止当前的任务操作
+          §7{prefix} test notify §7[<事件>]§r: 发送通知测试
       arguments:
         title: 【参数帮助】
         content: |-

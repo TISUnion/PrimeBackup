@@ -150,6 +150,113 @@ def _post_json(url: str, payload: Dict[str, Any], headers: Dict[str, str], timeo
 		response.read()
 
 
+def _apply_if_not_none(data: Dict[str, Any], key: str, value: Any):
+	if value is not None:
+		data[key] = value
+
+
+def _format_bark_body(base_payload: Dict[str, Any], *, markdown: bool) -> str:
+	backup = base_payload.get('backup') or {}
+	operator = base_payload.get('operator') or {}
+	source = base_payload.get('source') or {}
+	error = base_payload.get('error') or {}
+
+	def format_source() -> Optional[str]:
+		src_type = source.get('type')
+		if not src_type:
+			return None
+		src_name = source.get('name') or ''
+		return f'{src_type}:{src_name}' if len(src_name) > 0 else src_type
+
+	fields = [
+		('Event', base_payload.get('event')),
+		('Task', base_payload.get('task')),
+		('Status', base_payload.get('status')),
+		('Backup', f"#{backup.get('id')}" if backup.get('id') is not None else None),
+		('Date', backup.get('date')),
+		('Comment', backup.get('comment')),
+		('Creator', backup.get('creator')),
+		('Operator', operator.get('full')),
+		('Source', format_source()),
+		('Files', (
+			f"{backup.get('file_count')} files, raw={backup.get('raw_size')}, stored={backup.get('stored_size')}"
+			if backup.get('file_count') is not None else None
+		)),
+		('Cost', f"{base_payload.get('cost_s')}s" if base_payload.get('cost_s') is not None else None),
+		('Message', base_payload.get('message')),
+		('Error', (
+			f"{error.get('type')}: {error.get('message')}"
+			if error.get('type') or error.get('message') else None
+		)),
+	]
+
+	if markdown:
+		lines = [f"- **{k}**: {v}" for k, v in fields if v not in [None, '']]
+		return '\n'.join(lines)
+	else:
+		lines = [f"{k}: {v}" for k, v in fields if v not in [None, '']]
+		return '\n'.join(lines)
+
+
+def _resolve_bark_url(endpoint) -> str:
+	url = endpoint.url
+	device_key = getattr(endpoint.bark, 'device_key', None)
+	if device_key:
+		url = url.replace('{device_key}', device_key).replace('{key}', device_key)
+	return url
+
+
+def _make_bark_payload(base_payload: Dict[str, Any], endpoint) -> Dict[str, Any]:
+	bark = endpoint.bark
+	markdown = bool(bark.markdown)
+	default_body = _format_bark_body(base_payload, markdown=markdown)
+	title = bark.title or base_payload.get('title')
+	body = bark.body or default_body
+
+	backup = base_payload.get('backup') or {}
+	backup_id = backup.get('id')
+	if title and backup_id is not None and f'#{backup_id}' not in title:
+		title = f'{title} #{backup_id}'
+
+	data: Dict[str, Any] = {}
+	if markdown:
+		data['markdown'] = body
+	else:
+		data['body'] = body
+	_apply_if_not_none(data, 'title', title)
+	_apply_if_not_none(data, 'subtitle', bark.subtitle)
+
+	if bark.level is None:
+		status = base_payload.get('status')
+		if status == 'failure':
+			data['level'] = 'critical'
+		elif status == 'success':
+			data['level'] = 'passive'
+		else:
+			data['level'] = 'active'
+	else:
+		data['level'] = bark.level
+	_apply_if_not_none(data, 'volume', bark.volume)
+	_apply_if_not_none(data, 'badge', bark.badge)
+	_apply_if_not_none(data, 'call', bark.call)
+	_apply_if_not_none(data, 'autoCopy', bark.autoCopy)
+	_apply_if_not_none(data, 'copy', bark.copy)
+	_apply_if_not_none(data, 'sound', bark.sound)
+	_apply_if_not_none(data, 'icon', bark.icon)
+	_apply_if_not_none(data, 'image', bark.image)
+	_apply_if_not_none(data, 'group', bark.group or constants.PLUGIN_ID)
+	_apply_if_not_none(data, 'url', bark.url)
+	_apply_if_not_none(data, 'action', bark.action)
+	_apply_if_not_none(data, 'id', bark.id)
+	_apply_if_not_none(data, 'delete', bark.delete)
+	_apply_if_not_none(data, 'isArchive', bark.isArchive)
+
+	if bark.device_key and _resolve_bark_url(endpoint).rstrip('/').endswith('/push'):
+		data['device_key'] = bark.device_key
+
+	return data
+
+
 def notify(
 		event: NotificationEvent, *,
 		backup: Optional[BackupInfo] = None,
@@ -187,7 +294,12 @@ def notify(
 			log.warning('Notification endpoint {} has empty url, skipped'.format(endpoint.name))
 			continue
 		try:
-			_post_json(endpoint.url, payload, endpoint.headers, endpoint.timeout.value)
+			if endpoint.type == 'bark':
+				bark_url = _resolve_bark_url(endpoint)
+				bark_payload = _make_bark_payload(payload, endpoint)
+				_post_json(bark_url, bark_payload, endpoint.headers, endpoint.timeout.value)
+			else:
+				_post_json(endpoint.url, payload, endpoint.headers, endpoint.timeout.value)
 			log.debug('Notification sent to {} for event {}'.format(endpoint.name, event.value))
 		except Exception as e:
 			log.warning('Failed to send notification to {}: {}'.format(endpoint.name, e))

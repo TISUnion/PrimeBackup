@@ -150,8 +150,9 @@ class ImportBackupAction(CreateBackupActionBase):
 				root_files.append(item.rstrip('/'))
 
 		if meta is None:
-			meta = BackupMeta.get_default()
-			meta.targets = root_files
+			meta = BackupMeta(
+				targets=root_files,
+			)
 			self.logger.info('No valid backup meta, generating a default one, target: {}'.format(meta.targets))
 		else:
 			extra_files = list(sorted(set(root_files).difference(set(meta.targets))))

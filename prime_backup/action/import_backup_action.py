@@ -5,7 +5,9 @@ from typing import IO, Optional, List, Dict, Tuple
 
 from typing_extensions import override
 
-from prime_backup.action.create_backup_action_base import CreateBackupActionBase
+from prime_backup.action import Action
+from prime_backup.action.helpers import create_backup_utils
+from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.packed_backup_file_reader import PackedBackupFileReader, TarBackupReader, ZipBackupReader, PackedBackupFileMember, PackedBackupFileHolder
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.constants import BACKUP_META_FILE_NAME
@@ -36,7 +38,7 @@ class BackupMetadataInvalid(PrimeBackupError):
 	pass
 
 
-class ImportBackupAction(CreateBackupActionBase):
+class ImportBackupAction(Action[BackupInfo]):
 	def __init__(
 			self, file_path: Path, backup_format: Optional[StandaloneBackupFormat] = None, *,
 			ensure_meta: bool = True, meta_override: Optional[dict] = None,
@@ -54,10 +56,11 @@ class ImportBackupAction(CreateBackupActionBase):
 		self.meta_override = meta_override
 
 		self.__blob_cache: Dict[str, schema.Blob] = {}
+		self.__blob_recorder = BlobRecorder()
 
 	def __create_blob_file(self, file_reader: IO[bytes], sah: SizeAndHash) -> Tuple[int, CompressMethod]:
 		blob_path = blob_utils.get_blob_path(sah.hash)
-		self._add_remove_file_rollbacker(blob_path)
+		self.__blob_recorder.add_remove_file_rollbacker(blob_path)
 
 		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(sah.size)
 		compressor = Compressor.create(compress_method)
@@ -68,7 +71,7 @@ class ImportBackupAction(CreateBackupActionBase):
 
 	def __create_blob(self, session: DbSession, file_reader: IO[bytes], sah: SizeAndHash) -> schema.Blob:
 		stored_size, compress_method = self.__create_blob_file(file_reader, sah)
-		blob = self._create_blob(
+		blob = self.__blob_recorder.create_blob(
 			session,
 			hash=sah.hash,
 			compress=compress_method.name,
@@ -188,7 +191,7 @@ class ImportBackupAction(CreateBackupActionBase):
 
 			files.append(file)
 
-		self._finalize_backup_and_files(session, backup, files)
+		create_backup_utils.finalize_backup_and_files(self.config, session, backup, files)
 		return backup
 
 	@override
@@ -213,12 +216,12 @@ class ImportBackupAction(CreateBackupActionBase):
 					backup = self.__import_packed_backup_file(session, file_holder)
 				info = BackupInfo.of(backup)
 
-			s = self.get_new_blobs_summary()
+			s = self.__blob_recorder.get_new_blobs_summary()
 			self.logger.info('Import backup #{} done, +{} blobs (size {} / {})'.format(
 				info.id, s.count, ByteCount(s.stored_size).auto_str(), ByteCount(s.raw_size).auto_str(),
 			))
 			return info
 
 		except Exception:
-			self._apply_blob_rollback()
+			self.__blob_recorder.apply_blob_rollback()
 			raise

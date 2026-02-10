@@ -1,6 +1,6 @@
 from typing import Union, Callable, Any, Optional, Type, Tuple, TypeVar
 
-from prime_backup import constants
+from prime_backup.constants import constants
 
 _T = TypeVar('_T')
 

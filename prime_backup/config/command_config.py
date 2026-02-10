@@ -1,6 +1,6 @@
 from mcdreforged.api.utils import Serializable
 
-from prime_backup import constants
+from prime_backup.constants import constants
 from prime_backup.types.units import Duration
 
 

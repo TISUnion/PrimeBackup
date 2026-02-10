@@ -12,7 +12,7 @@ LOG_FORMATTER_NO_FUNC.default_msec_format = '%s.%03d'
 
 class FileLogger(logging.Logger):
 	def __init__(self, name: str):
-		from prime_backup import constants
+		from prime_backup.constants import constants
 		super().__init__(f'{constants.PLUGIN_ID}-{name}', get_log_level())
 		self.log_file = self.__get_log_file_path(f'{name}.log')
 		self.log_file.parent.mkdir(parents=True, exist_ok=True)

@@ -21,7 +21,7 @@ from prime_backup.cli.fuse.common import PrimeBackupFuseStat, PrimeBackupFuseDir
 from prime_backup.cli.fuse.config import FuseConfig
 from prime_backup.cli.fuse.file import PrimeBackupFuseFile
 from prime_backup.cli.fuse.utils import fuse_operation_wrapper, FuseErrnoReturnError
-from prime_backup.constants import BACKUP_META_FILE_NAME
+from prime_backup.constants.constants import BACKUP_META_FILE_NAME
 from prime_backup.exceptions import BackupFileNotFound, BackupNotFound
 from prime_backup.logger import get as get_logger
 from prime_backup.types.backup_info import BackupInfo

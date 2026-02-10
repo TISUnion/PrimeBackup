@@ -10,7 +10,7 @@ from prime_backup.action.helpers import create_backup_utils
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.packed_backup_file_reader import PackedBackupFileReader, TarBackupReader, ZipBackupReader, PackedBackupFileMember, PackedBackupFileHolder
 from prime_backup.compressors import Compressor, CompressMethod
-from prime_backup.constants import BACKUP_META_FILE_NAME
+from prime_backup.constants.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
@@ -73,6 +73,7 @@ class ImportBackupAction(Action[BackupInfo]):
 		stored_size, compress_method = self.__create_blob_file(file_reader, sah)
 		blob = self.__blob_recorder.create_blob(
 			session,
+			# FIXME: storage_method
 			hash=sah.hash,
 			compress=compress_method.name,
 			raw_size=sah.size,

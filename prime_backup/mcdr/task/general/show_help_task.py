@@ -3,7 +3,7 @@ from typing import Optional, Union
 from mcdreforged.api.all import CommandSource, RTextBase, RText, RColor, RAction
 from typing_extensions import override
 
-from prime_backup import constants
+from prime_backup.constants import constants
 from prime_backup.compressors import CompressMethod
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJobId

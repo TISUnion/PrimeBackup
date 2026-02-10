@@ -6,7 +6,7 @@ from mcdreforged.api.all import ServerInterface, CommandSource, PlayerCommandSou
 
 
 def tr(key: str, *args, **kwargs) -> RTextBase:
-	from prime_backup import constants
+	from prime_backup.constants import constants
 	return ServerInterface.si().rtr(constants.PLUGIN_ID + '.' + key, *args, **kwargs)
 
 

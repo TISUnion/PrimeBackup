@@ -2,7 +2,7 @@ import functools
 import logging
 import sys
 
-from prime_backup import constants
+from prime_backup.constants import constants
 
 
 def __create_logger() -> logging.Logger:

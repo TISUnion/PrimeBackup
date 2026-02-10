@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Union, TYPE_CHECKING
 
-from prime_backup import constants
+from prime_backup.constants import constants
 
 if TYPE_CHECKING:
 	from mcdreforged.api.all import CommandSource, RTextBase

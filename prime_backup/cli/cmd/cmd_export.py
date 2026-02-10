@@ -5,7 +5,7 @@ from typing import Optional
 
 from typing_extensions import override
 
-from prime_backup import constants
+from prime_backup.constants import constants
 from prime_backup.action.export_backup_action_base import ExportBackupActionCommonInitKwargs
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.export_backup_action_zip import ExportBackupToZipAction

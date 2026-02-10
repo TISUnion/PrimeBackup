@@ -10,7 +10,7 @@ from typing_extensions import override, Unpack
 
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
 from prime_backup.compressors import Compressor
-from prime_backup.constants import BACKUP_META_FILE_NAME
+from prime_backup.constants.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.tar_format import TarFormat

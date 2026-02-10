@@ -1,7 +1,7 @@
 from mcdreforged.api.all import CommandSource, RColor
 from typing_extensions import override
 
-from prime_backup import constants
+from prime_backup.constants import constants
 from prime_backup.action.migrate_compress_method_action import MigrateCompressMethodAction
 from prime_backup.compressors import CompressMethod
 from prime_backup.mcdr.task.basic_task import HeavyTask

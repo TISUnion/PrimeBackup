@@ -12,7 +12,7 @@ from typing import Optional, List, Dict, Tuple
 import pathspec
 from typing_extensions import override, Unpack
 
-from prime_backup import constants
+from prime_backup.constants import constants
 from prime_backup import logger
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
 from prime_backup.compressors import Compressor, CompressMethod

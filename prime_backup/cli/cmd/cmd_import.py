@@ -6,7 +6,7 @@ from typing import Optional
 
 from typing_extensions import override
 
-from prime_backup import constants
+from prime_backup.constants import constants
 from prime_backup.action.import_backup_action import BackupMetadataNotFound, ImportBackupAction
 from prime_backup.cli import cli_utils
 from prime_backup.cli.cmd import CliCommandHandlerBase, CommonCommandArgs, CliCommandAdapterBase

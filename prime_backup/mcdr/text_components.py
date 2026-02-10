@@ -5,7 +5,7 @@ from typing import Any, Union, Optional, Iterable, List
 
 from mcdreforged.api.all import RTextBase, RText, RTextList, RColor, RAction, RStyle
 
-from prime_backup import constants
+from prime_backup.constants import constants
 from prime_backup.compressors import CompressMethod
 from prime_backup.db.values import FileRole
 from prime_backup.types.backup_info import BackupInfo

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from typing_extensions import override
 
-from prime_backup import constants
+from prime_backup.constants import constants
 from prime_backup.cli.cmd import CliCommandHandlerBase, CommonCommandArgs, CliCommandAdapterBase
 from prime_backup.cli.return_codes import ErrorReturnCodes
 

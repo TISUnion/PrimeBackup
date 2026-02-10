@@ -36,8 +36,7 @@ pip3 install -r {{ config.site_url }}requirements.txt
 
 ### 可选依赖
 
-一些 Prime Backup 功能所需要的 Python 库并没有在 requirements.txt 中列出，
-因为在某些环境下安装这些依赖库可能会 [花不少功夫](https://github.com/oconnor663/blake3-py/issues/41)
+一些 Prime Backup 的可选功能所依赖的 Python 库并没有在 requirements.txt 中列出
 
 如果你想解锁 Prime Backup 的全部功能特性，你可以使用以下命令：
 
@@ -114,7 +113,7 @@ mcdr_root/
     {
         // ...
         "backup": {
-            "hash_method": "xxh128",
+            "hash_method": "blake3",
             "compress_method": "zstd",
         }
         // ...
@@ -124,25 +123,17 @@ mcdr_root/
     - [`hash_method`](config.zh.md#hash_method): 对文件进行哈希的算法。可用选项： "xxh128", "sha256", "blake3"
 
         - [`"xxh128"`](https://github.com/Cyan4973/xxHash):：一种极快的、高质量的哈希算法，不提供密码学安全保证。
-          推荐使用，除非你想要理论上的极端安全
-        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): 一种广泛使用的、密码学安全的哈希算法
+          推荐使用，因为其登峰造极的性能，除非你想要理论上的极端安全
+        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): 一种广泛使用的、密码学安全的哈希算法。经典永不过时
         - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): 一种高效的、密码学安全的哈希算法。比 sha256 快很多，但是依然比 xxh128 慢。
-          推荐使用，记得要装 `blake3` Python 依赖
+          推荐使用，因为它很好地平衡了速度与理论安全性
 
     - [`compress_method`](config.zh.md#compress_method): 备份文件的压缩方式。常用建议：
 
-        - `"plain"`: 无压缩。如果你希望获得最快的操作速度，就用这个
+        - `"plain"`: 无压缩。如果你希望获得最快的操作速度，就用这个。
+          与哈希算法 xxh128 相结合可实现最极致的速度
         - [`"zstd"`](https://github.com/facebook/zstd): 快速且高效的压缩算法。如果你想节约一些磁盘空间的话，推荐使用
-    
-    !!! note
-   
-        如果你想使用 `blake3` 作为哈希算法，你需要手动安装 `blake3` Python 库。
-        它并不包含在默认的 Python 依赖列表中，因为它在某些情况下，可能需要 rust 环境来构建安装
-   
-        ```bash
-        pip3 install blake3
-        ```
-    
+
     !!! note
 
         建议你在一开始就明智地设置这两个选项

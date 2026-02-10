@@ -1,5 +1,2 @@
-# hash
-blake3
-
 # compress
 lz4

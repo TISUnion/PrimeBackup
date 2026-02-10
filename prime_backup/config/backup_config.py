@@ -28,7 +28,7 @@ class BackupConfig(Serializable):
 	]
 
 	# Storage
-	hash_method: HashMethod = HashMethod.xxh128
+	hash_method: HashMethod = HashMethod.blake3
 	compress_method: CompressMethod = CompressMethod.zstd
 	compress_threshold: int = 64
 

@@ -1,5 +1,6 @@
 APScheduler>=3.8,<4
 SQLAlchemy>=2
+blake3
 mcdreforged>=2.12.0
 pathspec
 psutil

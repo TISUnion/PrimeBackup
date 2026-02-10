@@ -224,7 +224,7 @@ Configs on how the backup is made
        "**"
     ],
 
-    "hash_method": "xxh128",
+    "hash_method": "blake3",
     "compress_method": "zstd",
     "compress_threshold": 64,
 
@@ -423,17 +423,8 @@ The algorithm to hash the files. Available options: `"xxh128"`, `"sha256"`, `"bl
 | [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | A cryptographically secure and widely used 256bit hash algorithm. It's slower than xxh128, but the speed could be acceptable using cpu with hardware acceleration | ★★    | :check_mark:             |
 | [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | A cryptographically secure and speedy 256bit hash algorithm. It's still slower than xxh128, but is much faster than sha256                                        | ★★★☆  | :check_mark:             |
 
-!!! note
-
-    If you want to use `blake3` as the hash method, you need to install the `blake3` python library manually.
-    It's not included in the default requirement list, because in some environments it might require rust runtime to build and install
-
-    ```bash
-    pip3 install blake3
-    ```
-
 - Type: `str`
-- Default: `"xxh128"`
+- Default: `"blake3"`
 
 #### compress_method
 

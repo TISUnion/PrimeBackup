@@ -36,8 +36,7 @@ pip3 install -r {{ config.site_url }}requirements.txt
 
 ### Optional requirements
 
-Some Prime Backup features requires python libraries that does not listed in the requirements.txt,
-because it might [take you some effort](https://github.com/oconnor663/blake3-py/issues/41) to install in some environments
+Some optional Prime Backup features requires python libraries that does not listed in the requirements.txt
 
 If you want to have full features of Prime Backup, you can use the following command in advanced:
 
@@ -114,7 +113,7 @@ Here are a few important things in the config file:
     {
         // ...
         "backup": {
-            "hash_method": "xxh128",
+            "hash_method": "blake3",
             "compress_method": "zstd",
         }
         // ...
@@ -124,25 +123,17 @@ Here are a few important things in the config file:
     - [`hash_method`](config.md#hash_method): The algorithm to hash the files. Available options: "xxh128", "sha256", "blake3"
 
         - [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality non-cryptographic hash algorithm. 
-          Recommend to use, unless you want theoretic extreme safety on hackers
-        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used hash algorithm
+          Recommend to use for its extreme speed, unless you want theoretic extreme safety on hackers
+        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used hash algorithm. Classics never go out of style
         - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and speedy hash algorithm. Much faster than sha256, but still slower than xxh128
-          Recommend to use, don't forget to install the `blake3` Python requirement
+          Recommend to use, as it provides a good balance between speed and theoretical security
 
     - [`compress_method`](config.md#compress_method): The way the backups get compressed. Common suggestions:
 
-        - `"plain"`: No compression. Use this if you want the maximum operation speed
+        - `"plain"`: No compression. Use this if you want the maximum operation speed.
+          You can combine it with "xxh128" hash method to achieve the highest speed 
         - [`"zstd"`](https://github.com/facebook/zstd): Fast and good compression algorithm. Recommend to use you want to save some disk spaces
-    
-    !!! note
-   
-        If you want to use `blake3` as the hash method, you need to install the `blake3` python library manually.
-        It's not included in the default requirement list, because in some environments it might require rust runtime to build and install
-   
-        ```bash
-        pip3 install blake3
-        ```
-    
+
     !!! note
 
         It is recommended that you set these two options wisely from the start

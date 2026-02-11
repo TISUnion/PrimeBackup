@@ -121,8 +121,6 @@ class MigrationImpl2To3(MigrationImplBase):
 		self.session.execute(text('DROP TABLE IF EXISTS backup'))
 		self.session.execute(text('DROP TABLE IF EXISTS fileset'))
 
-		# FIXME: This might not work if schema is updated in the future
-		# temp workaround to make it running first
 		self.logger.info('Creating the new File and Fileset tables')
 		_V3.Base.metadata.create_all(self.engine, tables=[_V3.File, _V3.Fileset, _V3.Backup])
 

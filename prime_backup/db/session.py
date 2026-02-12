@@ -330,47 +330,47 @@ class DbSession:
 				result[chunk_group.hash] = chunk_group
 		return result
 
-	# ===================================== ChunkGroupChunkList =====================================
+	# ===================================== ChunkGroupChunkBinding =====================================
 
-	class CreateChunkGroupChunkListKwargs(TypedDict):
+	class CreateChunkGroupChunkBindingKwargs(TypedDict):
 		chunk_group_id: int
 		chunk_offset: int
 		chunk_id: int
 
 	@classmethod
-	def create_chunk_group_chunk_list(cls, **kwargs: Unpack[CreateChunkGroupChunkListKwargs]) -> schema.ChunkGroupChunkList:
-		cgc = schema.ChunkGroupChunkList(**kwargs)
+	def create_chunk_group_chunk_binding(cls, **kwargs: Unpack[CreateChunkGroupChunkBindingKwargs]) -> schema.ChunkGroupChunkBinding:
+		cgc = schema.ChunkGroupChunkBinding(**kwargs)
 		cls.__validate_int_fields_range(cgc)
 		return cgc
 
-	def create_and_add_chunk_group_chunk_list(self, **kwargs: Unpack[CreateChunkGroupChunkListKwargs]) -> schema.ChunkGroupChunkList:
-		cgc = self.create_chunk_group_chunk_list(**kwargs)
+	def create_and_add_chunk_group_chunk_binding(self, **kwargs: Unpack[CreateChunkGroupChunkBindingKwargs]) -> schema.ChunkGroupChunkBinding:
+		cgc = self.create_chunk_group_chunk_binding(**kwargs)
 		self.add(cgc)
 		return cgc
 
-	def get_chunk_group_chunk_list_count(self) -> int:
-		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.ChunkGroupChunkList)).scalar_one())
+	def get_chunk_group_chunk_binding_count(self) -> int:
+		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.ChunkGroupChunkBinding)).scalar_one())
 
-	# ===================================== BlobChunkGroupList =====================================
+	# ===================================== BlobChunkGroupBinding =====================================
 
-	class CreateBlobLayoutKwargs(TypedDict):
+	class CreateBlobChunkGroupBindingKwargs(TypedDict):
 		blob_id: int
 		chunk_group_offset: int
 		chunk_group_id: int
 
 	@classmethod
-	def create_blob_chunk_group_list(cls, **kwargs: Unpack[CreateBlobLayoutKwargs]) -> schema.BlobChunkGroupList:
-		bcg = schema.BlobChunkGroupList(**kwargs)
+	def create_blob_chunk_group_binding(cls, **kwargs: Unpack[CreateBlobChunkGroupBindingKwargs]) -> schema.BlobChunkGroupBinding:
+		bcg = schema.BlobChunkGroupBinding(**kwargs)
 		cls.__validate_int_fields_range(bcg)
 		return bcg
 
-	def create_and_add_blob_chunk_group_list(self, **kwargs: Unpack[CreateBlobLayoutKwargs]) -> schema.BlobChunkGroupList:
-		bcg = self.create_blob_chunk_group_list(**kwargs)
+	def create_and_add_blob_chunk_group_binding(self, **kwargs: Unpack[CreateBlobChunkGroupBindingKwargs]) -> schema.BlobChunkGroupBinding:
+		bcg = self.create_blob_chunk_group_binding(**kwargs)
 		self.add(bcg)
 		return bcg
 
-	def get_blob_chunk_group_list_count(self) -> int:
-		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.BlobChunkGroupList)).scalar_one())
+	def get_blob_chunk_group_binding_count(self) -> int:
+		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.BlobChunkGroupBinding)).scalar_one())
 
 	# ===================================== File =====================================
 

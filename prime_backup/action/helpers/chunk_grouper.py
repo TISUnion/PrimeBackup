@@ -79,7 +79,7 @@ class ChunkGrouper:
 			new_chunk_group = known_chunk_groups[cg_hash]
 			offset = 0
 			for chunk in chunk_group_hashes_to_chunks[cg_hash]:
-				self.session.create_and_add_chunk_group_chunk_list(
+				self.session.create_and_add_chunk_group_chunk_binding(
 					chunk_group_id=new_chunk_group.id,
 					chunk_offset=offset,
 					chunk_id=chunk.id,
@@ -89,7 +89,7 @@ class ChunkGrouper:
 		# create binding for the blob
 		for raw_chunk_group in raw_chunk_groups:
 			db_chunk_group = known_chunk_groups[raw_chunk_group.hash]
-			self.session.create_and_add_blob_chunk_group_list(
+			self.session.create_and_add_blob_chunk_group_binding(
 				blob_id=blob.id,
 				chunk_group_offset=raw_chunk_group.offset,
 				chunk_group_id=db_chunk_group.id,

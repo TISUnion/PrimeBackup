@@ -14,8 +14,8 @@ class DbOverviewResult:
 	blob_count: int
 	chunk_count: int
 	chunk_group_count: int
-	chunk_group_chunk_list_count: int
-	blob_chunk_group_list_count: int
+	chunk_group_chunk_binding_count: int
+	blob_chunk_group_binding_count: int
 
 	file_object_count: int
 	file_total_count: int
@@ -42,8 +42,8 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 				blob_count=session.get_blob_count(),
 				chunk_count=session.get_chunk_count(),
 				chunk_group_count=session.get_chunk_group_count(),
-				chunk_group_chunk_list_count=session.get_chunk_group_chunk_list_count(),
-				blob_chunk_group_list_count=session.get_blob_chunk_group_list_count(),
+				chunk_group_chunk_binding_count=session.get_chunk_group_chunk_binding_count(),
+				blob_chunk_group_binding_count=session.get_blob_chunk_group_binding_count(),
 
 				file_object_count=session.get_file_object_count(),
 				file_total_count=session.get_file_total_count(),

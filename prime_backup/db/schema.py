@@ -72,12 +72,12 @@ class ChunkGroup(Base):
 	__fields_end__: bool
 
 
-class ChunkGroupChunkList(Base):
+class ChunkGroupChunkBinding(Base):
 	"""
 	ChunkGroup == [Chunk0, Chunk1, Chunk2, ...]
 	"""
 
-	__tablename__ = 'chunk_group_chunk_list'
+	__tablename__ = 'chunk_group_chunk_binding'
 
 	chunk_group_id: Mapped[int] = mapped_column(ForeignKey('chunk_group.id'), primary_key=True)
 	chunk_offset: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # &chunk[0] - &chunk_group[0]
@@ -88,12 +88,12 @@ class ChunkGroupChunkList(Base):
 	chunk: Mapped['Chunk'] = relationship(viewonly=True, foreign_keys=[chunk_id])
 
 
-class BlobChunkGroupList(Base):
+class BlobChunkGroupBinding(Base):
 	"""
 	Blob == [ChunkGroup0, ChunkGroup1, ChunkGroup2, ...]
 	"""
 
-	__tablename__ = 'blob_chunk_group_list'
+	__tablename__ = 'blob_chunk_group_binding'
 
 	blob_id: Mapped[int] = mapped_column(ForeignKey('blob.id'), primary_key=True)
 	chunk_group_offset: Mapped[int] = mapped_column(BigInteger, primary_key=True)

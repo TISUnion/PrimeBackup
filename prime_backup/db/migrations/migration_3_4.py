@@ -16,8 +16,8 @@ class _V4:
 	Blob = schema.Blob
 	Chunk = schema.Chunk
 	ChunkGroup = schema.ChunkGroup
-	ChunkGroupChunkList = schema.ChunkGroupChunkList
-	BlobChunkGroupList = schema.BlobChunkGroupList
+	ChunkGroupChunkBinding = schema.ChunkGroupChunkBinding
+	BlobChunkGroupBinding = schema.BlobChunkGroupBinding
 
 
 @dataclasses.dataclass
@@ -64,8 +64,8 @@ class MigrationImpl3To4(MigrationImplBase):
 			for declarative in [
 				_V4.Chunk,
 				_V4.ChunkGroup,
-				_V4.ChunkGroupChunkList,
-				_V4.BlobChunkGroupList,
+				_V4.ChunkGroupChunkBinding,
+				_V4.BlobChunkGroupBinding,
 			]
 		])
 

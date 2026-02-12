@@ -531,9 +531,12 @@ prime_backup:
     backup_file_not_found: 备份{}不存在文件{}
     fileset_not_found: ID为{}的文件集不存在
     fileset_file_not_found: 文件集{}不存在文件{}
+    blob_id_not_found: ID为{}的数据对象不存在
+    blob_hash_not_found: 哈希值为{}的数据对象不存在
     blob_hash_not_unique: '给定的哈希值{}无法唯一确定一个数据对象'
     blob_hash_not_unique.candidates: '找到了至少{}个可能的数据对象: {}'
-    blob_not_found: 哈希值为{}的数据对象不存在
+    chunk_id_not_found: ID为{}的数据块不存在
+    chunk_hash_not_found: 哈希值为{}的数据块不存在
     db_locked: 任务{}执行失败, 数据库已被锁定。请稍候再试
     initializing: 插件初始化中
     disabled: 插件已禁用

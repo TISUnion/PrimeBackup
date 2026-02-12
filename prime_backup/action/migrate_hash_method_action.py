@@ -27,7 +27,7 @@ class MigrateHashMethodAction(Action[None]):
 
 	def __migrate_blobs(self, session: DbSession, blob_hashes: List[str], old_hashes: Set[str], processed_hash_mapping: Dict[str, str]):
 		hash_mapping: Dict[str, str] = {}
-		blobs = list(session.get_blobs(blob_hashes).values())
+		blobs = list(session.get_blobs_by_hashes(blob_hashes).values())
 
 		# calc blob hashes
 		for blob in blobs:

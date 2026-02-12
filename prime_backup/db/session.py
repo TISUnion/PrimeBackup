@@ -8,13 +8,13 @@ from pathlib import Path
 from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists
+from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, tuple_, Row
 from sqlalchemy.orm import Session
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
-from prime_backup.db.values import FileRole, BackupTagDict
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, ChunkNotFound
+from prime_backup.db.values import FileRole, BackupTagDict, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, ChunkNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.utils import collection_utils, db_utils, validation_utils
 
@@ -43,6 +43,12 @@ def _int_or_0(value: Optional[int]) -> int:
 	if value is None:
 		return 0
 	return int(value)
+
+
+def _ensure_not_none(value: Optional[_T]) -> _T:
+	if value is None:
+		raise ValueError('value is None')
+	return value
 
 
 class DbSession:
@@ -160,12 +166,14 @@ class DbSession:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.Blob)).scalar_one())
 
 	def get_blob_by_hash_opt(self, h: str) -> Optional[schema.Blob]:
-		return self.get_blobs([h])[h]
+		return self.session.execute(
+	        select(schema.Blob).where(schema.Blob.hash == h)
+	    ).scalars().one_or_none()
 
 	def get_blob_by_hash(self, h: str) -> schema.Blob:
 		blob = self.get_blob_by_hash_opt(h)
 		if blob is None:
-			raise BlobNotFound(h)
+			raise BlobHashNotFound(h)
 		return blob
 
 	def get_blob_by_id_opt(self, blob_id: int) -> Optional[schema.Blob]:
@@ -174,10 +182,20 @@ class DbSession:
 	def get_blob_by_id(self, blob_id: int) -> schema.Blob:
 		blob = self.get_blob_by_id_opt(blob_id)
 		if blob is None:
-			raise BlobNotFound(blob_id)  # FIXME: support blob id
+			raise BlobIdNotFound(blob_id)
 		return blob
 
-	def get_blobs(self, hashes: List[str]) -> Dict[str, Optional[schema.Blob]]:
+	def get_blobs_by_ids(self, blob_ids: List[int]) -> Dict[int, Optional[schema.Blob]]:
+		"""
+		:return: a dict, id -> optional blob. All given ids are in the dict
+		"""
+		result: Dict[int, Optional[schema.Blob]] = {blob_id: None for blob_id in blob_ids}
+		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):
+			for blob in self.session.execute(select(schema.Blob).where(schema.Blob.id.in_(view))).scalars().all():
+				result[blob.id] = blob
+		return result
+
+	def get_blobs_by_hashes(self, hashes: List[str]) -> Dict[str, Optional[schema.Blob]]:
 		"""
 		:return: a dict, hash -> optional blob. All given hashes are in the dict
 		"""
@@ -232,19 +250,24 @@ class DbSession:
 	def delete_blob(self, blob: schema.Blob):
 		self.session.delete(blob)
 
-	def delete_blobs(self, hashes: List[str]):
-		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
-			self.session.execute(delete(schema.Blob).where(schema.Blob.hash.in_(view)))
+	def delete_blobs_by_ids(self, blob_ids: List[int]):
+		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):
+			self.session.execute(delete(schema.Blob).where(schema.Blob.id.in_(view)))
 
 	def filtered_orphan_blob_hashes(self, hashes: List[str]) -> List[str]:
 		good_hashes: Set[str] = set()
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			good_hashes.update(
 				self.session.execute(
-					select(schema.File.blob_hash).where(schema.File.blob_hash.in_(view)).distinct()
+					select(schema.File.blob_hash).
+					where(schema.File.blob_hash.in_(view)).
+					distinct()
 				).scalars().all()
 			)
-		return list(filter(lambda h: h not in good_hashes, hashes))
+		return [
+			blob_hash for blob_hash in hashes
+			if blob_hash not in good_hashes
+		]
 
 	# ===================================== Chunk =====================================
 
@@ -268,16 +291,37 @@ class DbSession:
 	def get_chunk_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.Chunk)).scalar_one())
 
-	def get_chunk_opt(self, h: str) -> Optional[schema.Chunk]:
-		return self.session.get(schema.Chunk, h)
+	def get_chunk_by_id_opt(self, chunk_id: int) -> Optional[schema.Chunk]:
+		return self.session.get(schema.Chunk, chunk_id)
 
-	def get_chunk(self, h: str) -> schema.Chunk:
-		chunk = self.get_chunk_opt(h)
+	def get_chunk_by_id(self, chunk_id: int) -> schema.Chunk:
+		chunk = self.get_chunk_by_id_opt(chunk_id)
 		if chunk is None:
-			raise ChunkNotFound(h)
+			raise ChunkIdNotFound(chunk_id)
 		return chunk
 
-	def get_chunks(self, hashes: List[str]) -> Dict[str, Optional[schema.Chunk]]:
+	def get_chunk_by_hash_opt(self, h: str) -> Optional[schema.Chunk]:
+		return self.session.execute(
+	        select(schema.Chunk).where(schema.Chunk.hash == h)
+	    ).scalars().one_or_none()
+
+	def get_chunk_by_hash(self, h: str) -> schema.Chunk:
+		chunk = self.get_chunk_by_hash_opt(h)
+		if chunk is None:
+			raise ChunkHashNotFound(h)
+		return chunk
+
+	def get_chunks_by_ids(self, chunk_ids: List[int]) -> Dict[int, Optional[schema.Chunk]]:
+		"""
+		:return: a dict, id -> optional chunk. All given ids are in the dict
+		"""
+		result: Dict[int, Optional[schema.Chunk]] = {chunk_id: None for chunk_id in chunk_ids}
+		for view in collection_utils.slicing_iterate(chunk_ids, self.__safe_var_limit):
+			for chunk in self.session.execute(select(schema.Chunk).where(schema.Chunk.id.in_(view))).scalars().all():
+				result[chunk.id] = chunk
+		return result
+
+	def get_chunks_by_hashes(self, hashes: List[str]) -> Dict[str, Optional[schema.Chunk]]:
 		"""
 		:return: a dict, hash -> optional chunk. All given hashes are in the dict
 		"""
@@ -294,6 +338,25 @@ class DbSession:
 		if offset is not None:
 			s = s.offset(offset)
 		return _list_it(self.session.execute(s).scalars().all())
+
+	def filtered_orphan_chunk_ids(self, chunk_ids: List[int]) -> List[int]:
+		good_chunk_ids: Set[int] = set()
+		for view in collection_utils.slicing_iterate(chunk_ids, self.__safe_var_limit):
+			good_chunk_ids.update(
+				self.session.execute(
+					select(schema.ChunkGroupChunkBinding.chunk_id).
+					where(schema.ChunkGroupChunkBinding.chunk_id.in_(view)).
+					distinct()
+				).scalars().all()
+			)
+		return [
+			chunk_id for chunk_id in chunk_ids
+			if chunk_id not in good_chunk_ids
+		]
+
+	def delete_chunks_by_ids(self, chunk_ids: List[int]):
+		for view in collection_utils.slicing_iterate(chunk_ids, self.__safe_var_limit):
+			self.session.execute(delete(schema.Chunk).where(schema.Chunk.id.in_(view)))
 
 	# ===================================== ChunkGroup =====================================
 
@@ -318,17 +381,48 @@ class DbSession:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.ChunkGroup)).scalar_one())
 
 	def get_chunk_group_opt(self, h: str) -> Optional[schema.ChunkGroup]:
-		return self.session.get(schema.ChunkGroup, h)
+		return self.session.execute(
+	        select(schema.ChunkGroup).where(schema.ChunkGroup.hash == h)
+	    ).scalars().one_or_none()
 
-	def get_chunk_groups(self, hashes: List[str]) -> Dict[str, Optional[schema.ChunkGroup]]:
+	def get_chunk_groups_by_ids(self, chunk_group_ids: List[int]) -> Dict[int, Optional[schema.ChunkGroup]]:
+		"""
+		:return: a dict, id -> optional chunk group. All given ids are in the dict
+		"""
+		result: Dict[int, Optional[schema.ChunkGroup]] = {chunk_group_id: None for chunk_group_id in chunk_group_ids}
+		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
+			for chunk_group in self.session.execute(select(schema.ChunkGroup).where(schema.ChunkGroup.id.in_(view))).scalars().all():
+				result[chunk_group.id] = chunk_group
+		return result
+
+	def get_chunk_groups_by_hashes(self, hashes: List[str]) -> Dict[str, Optional[schema.ChunkGroup]]:
 		"""
 		:return: a dict, hash -> optional chunk group. All given hashes are in the dict
 		"""
-		result: Dict[str, Optional[schema.Chunk]] = {h: None for h in hashes}
+		result: Dict[str, Optional[schema.ChunkGroup]] = {h: None for h in hashes}
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			for chunk_group in self.session.execute(select(schema.ChunkGroup).where(schema.ChunkGroup.hash.in_(view))).scalars().all():
 				result[chunk_group.hash] = chunk_group
 		return result
+
+	def filtered_orphan_chunk_group_ids(self, chunk_group_ids: List[int]) -> List[int]:
+		good_chunk_group_ids: Set[int] = set()
+		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
+			good_chunk_group_ids.update(
+				self.session.execute(
+					select(schema.BlobChunkGroupBinding.chunk_group_id).
+					where(schema.BlobChunkGroupBinding.chunk_group_id.in_(view)).
+					distinct()
+				).scalars().all()
+			)
+		return [
+			chunk_id for chunk_id in chunk_group_ids
+			if chunk_id not in good_chunk_group_ids
+		]
+
+	def delete_chunk_groups_by_ids(self, chunk_group_ids: List[int]):
+		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
+			self.session.execute(delete(schema.ChunkGroup).where(schema.ChunkGroup.id.in_(view)))
 
 	# ===================================== ChunkGroupChunkBinding =====================================
 
@@ -351,6 +445,30 @@ class DbSession:
 	def get_chunk_group_chunk_binding_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.ChunkGroupChunkBinding)).scalar_one())
 
+	def get_chunk_group_chunk_binding_for_chunk_group(self, chunk_group_id: int) -> List[schema.ChunkGroupChunkBinding]:
+		return _list_it(self.session.execute(
+			select(schema.ChunkGroupChunkBinding).
+			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
+		).scalars().all())
+
+	def list_chunk_group_chunks(self, chunk_group_id: int) -> Dict[int, schema.Chunk]:  # offset -> chunk
+		stmt = (
+			select(schema.ChunkGroupChunkBinding.chunk_offset, schema.Chunk).
+			join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
+			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
+		)
+		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
+		return {offset: chunk for offset, chunk in result}
+
+	def delete_chunk_group_chunk_bindings(self, identifiers: List[Union[schema.ChunkGroupChunkBinding, ChunkGroupChunkBindingIdentifier]]):
+		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit):
+			self.session.query(schema.ChunkGroupChunkBinding).filter(
+				tuple_(schema.ChunkGroupChunkBinding.chunk_group_id, schema.ChunkGroupChunkBinding.chunk_offset).in_([
+					(ident.chunk_group_id, ident.chunk_offset)
+					for ident in view
+				])
+			).delete()
+
 	# ===================================== BlobChunkGroupBinding =====================================
 
 	class CreateBlobChunkGroupBindingKwargs(TypedDict):
@@ -371,6 +489,30 @@ class DbSession:
 
 	def get_blob_chunk_group_binding_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.BlobChunkGroupBinding)).scalar_one())
+
+	def get_blob_chunk_group_bindings_for_blob(self, blob_id: int) -> List[schema.BlobChunkGroupBinding]:
+		return _list_it(self.session.execute(
+			select(schema.BlobChunkGroupBinding).
+			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
+		).scalars().all())
+
+	def list_blob_chunk_groups(self, blob_id: int) -> Dict[int, schema.Chunk]:  # offset -> chunk group
+		stmt = (
+			select(schema.BlobChunkGroupBinding.chunk_group_offset, schema.ChunkGroup).
+			join(schema.ChunkGroup, schema.BlobChunkGroupBinding.chunk_group_id == schema.ChunkGroup.id).
+			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
+		)
+		result: Sequence[Row[Tuple[int, schema.ChunkGroup]]] = self.session.execute(stmt).all()
+		return {offset: chunk_group for offset, chunk_group in result}
+
+	def delete_blob_chunk_group_bindings(self, identifiers: List[Union[schema.BlobChunkGroupBinding, BlobChunkGroupBindingIdentifier]]):
+		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit):
+			self.session.query(schema.BlobChunkGroupBinding).filter(
+				tuple_(schema.BlobChunkGroupBinding.blob_id, schema.BlobChunkGroupBinding.chunk_group_offset).in_([
+					(ident.blob_id, ident.chunk_group_offset)
+					for ident in view
+				])
+			).delete()
 
 	# ===================================== File =====================================
 
@@ -709,7 +851,7 @@ class DbSession:
 	def delete_fileset(self, fileset: schema.Fileset):
 		self.session.delete(fileset)
 
-	def list_fileset(self, is_base: Optional[bool] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Fileset]:
+	def list_filesets(self, is_base: Optional[bool] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Fileset]:
 		s = select(schema.Fileset)
 		if is_base is not None:
 			if is_base:
@@ -733,7 +875,7 @@ class DbSession:
 	def iterate_fileset_batch(self, *, batch_size: int = 1000) -> Iterator[List[schema.Fileset]]:
 		limit, offset = batch_size, 0
 		while True:
-			filesets = self.list_fileset(limit=limit, offset=offset)
+			filesets = self.list_filesets(limit=limit, offset=offset)
 			if len(filesets) == 0:
 				break
 			yield filesets
@@ -748,7 +890,10 @@ class DbSession:
 						select(field).where(field.in_(view)).distinct()
 					).scalars().all()
 				)
-		return list(filter(lambda h: h not in good_fileset_ids, fileset_ids))
+		return [
+			fileset_id for fileset_id in fileset_ids
+			if fileset_id not in good_fileset_ids
+		]
 
 	# ==================================== Backup ====================================
 

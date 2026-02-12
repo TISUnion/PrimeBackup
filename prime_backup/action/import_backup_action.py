@@ -177,7 +177,7 @@ class ImportBackupAction(Action[BackupInfo]):
 				with member.open() as f:
 					sah_dict[i] = hash_utils.calc_reader_size_and_hash(f)
 
-		blobs = session.get_blobs([sah.hash for sah in sah_dict.values()])
+		blobs = session.get_blobs_by_hashes([sah.hash for sah in sah_dict.values()])
 		for h, blob in blobs.items():
 			self.__blob_cache[h] = blob
 

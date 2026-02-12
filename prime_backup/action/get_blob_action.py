@@ -4,7 +4,7 @@ from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
-from prime_backup.exceptions import BlobNotFound, BlobHashNotUnique
+from prime_backup.exceptions import BlobHashNotFound, BlobHashNotUnique
 from prime_backup.types.blob_info import BlobInfo
 
 
@@ -42,7 +42,7 @@ class GetBlobByHashPrefixAction(Action[BlobInfo]):
 		with DbAccess.open_session() as session:
 			blobs = session.list_blob_with_hash_prefix(self.blob_hash_prefix, limit=3)
 			if len(blobs) == 0:
-				raise BlobNotFound(self.blob_hash_prefix)
+				raise BlobHashNotFound(self.blob_hash_prefix)
 			elif len(blobs) > 1:
 				raise BlobHashNotUnique(self.blob_hash_prefix, list(sorted(map(BlobInfo.of, blobs))))
 

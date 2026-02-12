@@ -10,7 +10,7 @@ from mcdreforged.api.all import CommandSource, RText, RColor, RAction, RStyle, P
 from sqlalchemy.exc import OperationalError
 
 from prime_backup import logger
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound, BlobIdNotFound, ChunkIdNotFound, ChunkHashNotFound
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.mcdr.task.basic_task import HeavyTask, LightTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
@@ -65,8 +65,10 @@ class _TaskWorker:
 			lines = [tr('error.fileset_not_found', e.fileset_id)]
 		elif isinstance(e, FilesetFileNotFound):
 			lines = [tr('error.fileset_file_not_found', e.fileset_id, e.path)]
-		elif isinstance(e, BlobNotFound):
-			lines = [tr('error.blob_not_found', e.blob_hash)]
+		elif isinstance(e, BlobIdNotFound):
+			lines = [tr('error.blob_id_not_found', e.blob_id)]
+		elif isinstance(e, BlobHashNotFound):
+			lines = [tr('error.blob_hash_not_found', e.blob_hash)]
 		elif isinstance(e, BlobHashNotUnique):
 			lines = [
 				tr('error.blob_hash_not_unique', e.blob_hash_prefix),
@@ -75,6 +77,10 @@ class _TaskWorker:
 					for b in e.candidates
 				])),
 			]
+		elif isinstance(e, ChunkIdNotFound):
+			lines = [tr('error.chunk_id_not_found', e.chunk_id)]
+		elif isinstance(e, ChunkHashNotFound):
+			lines = [tr('error.chunk_hash_not_found', e.chunk_hash)]
 		else:
 			return False
 

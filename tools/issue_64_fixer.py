@@ -133,7 +133,7 @@ class DatabaseBlobFixer:
 							'stored_size': file.blob_stored_size,
 						}
 
-				existing_blobs = session.get_blobs(list(blob_hashes))
+				existing_blobs = session.get_blobs_by_hashes(list(blob_hashes))
 				for blob_hash in blob_hashes:
 					if existing_blobs.get(blob_hash) is None:
 						blob_row = all_blob_rows[blob_hash]

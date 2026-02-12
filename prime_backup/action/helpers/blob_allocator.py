@@ -147,7 +147,7 @@ class BlobByHashFetcher(BatchFetcherBase):
 	@override
 	def _batch_run(self):
 		with self.time_costs.measure_time_cost(TimeCostKey.kind_db):
-			blobs = self.session.get_blobs(list(self.hashes))
+			blobs = self.session.get_blobs_by_hashes(list(self.hashes))
 		self.result_cache.update(blobs)
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for h, callback in reversed(self.tasks):
@@ -439,7 +439,7 @@ class BlobAllocator:
 
 			process_start_time = time.time()
 			with self.__time_costs.measure_time_cost(TimeCostKey.kind_db):
-				known_db_chunks = self.session.get_chunks([chunk.hash for chunk in chunks])
+				known_db_chunks = self.session.get_chunks_by_hashes([chunk.hash for chunk in chunks])
 			new_db_chunks: List[schema.Chunk] = []
 			offset_to_chunk_hash: Dict[int, str] = {}
 			blob_raw_size_sum = 0

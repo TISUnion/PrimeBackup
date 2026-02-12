@@ -5,10 +5,12 @@ from typing import List, Dict, Optional, Collection
 from typing_extensions import override
 
 from prime_backup.action import Action
+from prime_backup.action.delete_chunk_group_action import DeleteOrphanChunkGroupsAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.exceptions import BlobNotFound
+from prime_backup.db.values import BlobStorageMethod
+from prime_backup.exceptions import BlobHashNotFound, BlobIdNotFound
 from prime_backup.types.blob_info import BlobInfo, BlobListSummary
 from prime_backup.utils import collection_utils
 
@@ -28,16 +30,17 @@ class _BlobTrashBin:
 	def erase_all(self):
 		for trash in self.trash_blobs:
 			try:
-				trash.blob_path.unlink(missing_ok=True)
+				trash.blob_file_path.unlink(missing_ok=True)
 			except Exception as e:
-				self.logger.error('Error erasing blob {} at {!r}'.format(trash.hash, trash.blob_path))
+				self.logger.error('Error erasing blob {} at {!r}'.format(trash.hash, trash.blob_file_path))
 				self.errors.append(e)
 
 
 class DeleteBlobsAction(Action[BlobListSummary]):
-	def __init__(self, blob_hashes: List[str], *, raise_if_not_found: bool = True):
+	def __init__(self, *, ids: Collection[int] = (), hashes: Collection[str] = (), raise_if_not_found: bool = True):
 		super().__init__()
-		self.blob_hashes = blob_hashes
+		self.blob_ids = collection_utils.deduplicated_list(ids)
+		self.blob_hashes = collection_utils.deduplicated_list(hashes)
 		self.raise_if_not_found = raise_if_not_found
 
 	@override
@@ -47,25 +50,34 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
 		"""
 		trash_bin = _BlobTrashBin(self.logger)
-		self_blob_hashes_set = set(self.blob_hashes)
 
 		with contextlib.ExitStack() as es:
 			if session is None:
 				session = es.enter_context(DbAccess.open_session())
 
-			blobs: Dict[str, schema.Blob] = session.get_blobs(self.blob_hashes)
-			collected_hashes: List[str] = []
-			for blob_hash, blob in blobs.items():
-				if blob is None and self.raise_if_not_found:
-					raise BlobNotFound(blob_hash)
-				else:
-					if blob_hash not in self_blob_hashes_set:
-						raise AssertionError('got unexpected blob hash {!r}, should be in {}'.format(blob_hash, self_blob_hashes_set))
-					collected_hashes.append(blob_hash)
-					trash_bin.add(BlobInfo.of(blob))
+			all_to_delete_blobs = self.__collect_blobs_to_delete(session)
+			for blob in all_to_delete_blobs.values():
+				trash_bin.add(blob)
 
-			session.delete_blobs(self.blob_hashes)
-			session.commit()
+			if len(all_to_delete_blobs) > 0:
+				# 1. delete Blob-ChunkGroup bindings
+				# 2. delete blobs
+				# 3. check orphan chunk groups
+				affected_chunk_group_ids: Dict[int, None] = {}  # ordered set
+				for blob in all_to_delete_blobs.values():  # TODO: optimize, batch it
+					if blob.storage_method == BlobStorageMethod.chunked:
+						blob_chunk_group_bindings = session.get_blob_chunk_group_bindings_for_blob(blob.id)
+						for bcg in blob_chunk_group_bindings:
+							affected_chunk_group_ids[bcg.chunk_group_id] = None
+						session.delete_blob_chunk_group_bindings(blob_chunk_group_bindings)
+
+				session.delete_blobs_by_ids(list(all_to_delete_blobs.keys()))
+				if len(affected_chunk_group_ids) > 0:
+					DeleteOrphanChunkGroupsAction(ids=affected_chunk_group_ids.keys()).run(session=session)
+				else:
+					session.commit()
+			else:
+				session.commit()
 
 		s = trash_bin.make_summary()
 		trash_bin.erase_all()
@@ -75,6 +87,29 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 			raise errors[0]
 
 		return s
+
+	def __collect_blobs_to_delete(self, session: DbSession) -> Dict[int, BlobInfo]:
+		self_blob_ids_set = set(self.blob_ids)
+		self_blob_hashes_set = set(self.blob_hashes)
+		all_to_delete_blobs: Dict[int, BlobInfo] = {}
+
+		blobs_by_id: Dict[int, schema.Blob] = session.get_blobs_by_ids(self.blob_ids)
+		for blob_id, blob in blobs_by_id.items():
+			if blob is None and self.raise_if_not_found:
+				raise BlobIdNotFound(blob_id)
+			if blob_id not in self_blob_ids_set:
+				raise AssertionError('got unexpected blob id {!r}, should be in {}'.format(blob_id, self_blob_ids_set))
+			all_to_delete_blobs[blob.id] = BlobInfo.of(blob)
+
+		blobs_by_hash: Dict[str, schema.Blob] = session.get_blobs_by_hashes(self.blob_hashes)
+		for blob_hash, blob in blobs_by_hash.items():
+			if blob is None and self.raise_if_not_found:
+				raise BlobHashNotFound(blob_hash)
+			if blob_hash not in self_blob_hashes_set:
+				raise AssertionError('got unexpected blob hash {!r}, should be in {}'.format(blob_hash, self_blob_hashes_set))
+			all_to_delete_blobs[blob.id] = BlobInfo.of(blob)
+
+		return all_to_delete_blobs
 
 
 class DeleteOrphanBlobsAction(Action[BlobListSummary]):
@@ -95,7 +130,7 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 			orphan_blob_hashes = session.filtered_orphan_blob_hashes(self.blob_hashes_to_check)
 
 			if len(orphan_blob_hashes) > 0:
-				action = DeleteBlobsAction(orphan_blob_hashes, raise_if_not_found=True)
+				action = DeleteBlobsAction(hashes=orphan_blob_hashes, raise_if_not_found=True)
 				bls = action.run(session=session)
 			else:
 				bls = BlobListSummary.zero()

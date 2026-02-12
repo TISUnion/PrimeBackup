@@ -531,9 +531,12 @@ prime_backup:
     backup_file_not_found: Backup {} does not have file {}
     fileset_not_found: Fileset with ID {} does not exist
     fileset_file_not_found: Fileset {} does not have file {}
+    blob_id_not_found: Blob with id {} does not exist
+    blob_hash_not_found: Blob with hash {} does not exist
     blob_hash_not_unique: 'The given hash {} cannot uniquely identify a blob'
     blob_hash_not_unique.candidates: 'Found at least {} candidates: {}'
-    blob_not_found: Blob with hash {} does not exist
+    chunk_id_not_found: Chunk with id {} does not exist
+    chunk_hash_not_found: Chunk with hash {} does not exist
     db_locked: Task {} execution error cuz the database is locked. Please retry later
     initializing: Plugin initializing
     disabled: Plugin disabled

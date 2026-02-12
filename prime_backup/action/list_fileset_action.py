@@ -17,7 +17,7 @@ class ListFilesetAction(Action[List[FilesetInfo]]):
 	@override
 	def run(self) -> List[FilesetInfo]:
 		with DbAccess.open_session() as session:
-			return [FilesetInfo.of(Fileset) for Fileset in session.list_fileset(is_base=self.is_base)]
+			return [FilesetInfo.of(Fileset) for Fileset in session.list_filesets(is_base=self.is_base)]
 
 
 class ListFilesetIdAction(Action[List[int]]):

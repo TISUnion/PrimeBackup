@@ -49,7 +49,7 @@ class BlobInfo:
 		)
 
 	@property
-	def blob_path(self) -> Path:
+	def blob_file_path(self) -> Path:
 		from prime_backup.utils import blob_utils
 		return blob_utils.get_blob_path(self.hash)
 

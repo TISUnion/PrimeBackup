@@ -47,7 +47,7 @@ class ScanUnknownBlobFilesAction(Action[ScanUnknownBlobFilesResult]):
 					for name in os.listdir(blob_dir)
 					if (blob_dir / name).is_file()
 				]
-				blobs = session.get_blobs(file_names)
+				blobs = session.get_blobs_by_hashes(file_names)
 				for blob_hash, blob in blobs.items():
 					if blob is None:
 						unknown_blob_file: Path = blob_dir / blob_hash

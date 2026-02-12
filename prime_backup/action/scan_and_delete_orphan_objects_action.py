@@ -111,7 +111,7 @@ class ScanAndDeleteOrphanFilesetsAction(Action[FilesetListSummary]):
 			limit_reached = False
 
 			with DbAccess.open_session() as session:
-				filesets = session.list_fileset()
+				filesets = session.list_filesets()
 				self.logger.info('Checking {} fileset objects'.format(len(filesets)))
 
 				orphan_fileset_ids = set(session.filtered_orphan_fileset_ids([fileset.id for fileset in filesets]))

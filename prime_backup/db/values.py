@@ -1,3 +1,4 @@
+import dataclasses
 import enum
 from typing import Dict, Any, List
 
@@ -8,6 +9,24 @@ class BlobStorageMethod(enum.IntEnum):
 	unknown = 0
 	direct = 1   # at blob store (regular method)
 	chunked = 2  # at chunk store (cdc chunked)
+
+
+@dataclasses.dataclass(frozen=True)
+class ChunkGroupChunkBindingIdentifier:
+	chunk_group_id: int
+	chunk_offset: int
+
+
+@dataclasses.dataclass(frozen=True)
+class BlobChunkGroupBindingIdentifier:
+	blob_id: int
+	chunk_group_offset: int
+
+
+@dataclasses.dataclass(frozen=True)
+class FileIdentifier:
+	fileset_id: int
+	path: str
 
 
 class FileRole(enum.IntEnum):

@@ -59,7 +59,7 @@ class ChunkGrouper:
 				current_group = _RawChunkGroup()
 
 		# create new chunk groups
-		known_chunk_groups = self.session.get_chunk_groups([rcg.hash for rcg in raw_chunk_groups])
+		known_chunk_groups = self.session.get_chunk_groups_by_hashes([rcg.hash for rcg in raw_chunk_groups])
 		new_chunk_group_hashes: List[str] = []
 		for cg_hash, cg_chunks in chunk_group_hashes_to_chunks.items():
 			if known_chunk_groups[cg_hash] is None:

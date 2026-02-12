@@ -43,15 +43,19 @@ class FilesetNotFound(PrimeBackupError):
 
 
 class BlobNotFound(PrimeBackupError):
+	pass
+
+
+class BlobIdNotFound(BlobNotFound):
+	def __init__(self, blob_id: int):
+		super().__init__()
+		self.blob_id = blob_id
+
+
+class BlobHashNotFound(BlobNotFound):
 	def __init__(self, blob_hash: str):
 		super().__init__()
 		self.blob_hash = blob_hash
-
-
-class ChunkNotFound(PrimeBackupError):
-	def __init__(self, chunk_hash: str):
-		super().__init__()
-		self.chunk_hash = chunk_hash
 
 
 class BlobHashNotUnique(PrimeBackupError):
@@ -59,6 +63,22 @@ class BlobHashNotUnique(PrimeBackupError):
 		super().__init__()
 		self.blob_hash_prefix = blob_hash_prefix
 		self.candidates = candidates
+
+
+class ChunkNotFound(PrimeBackupError):
+	pass
+
+
+class ChunkIdNotFound(ChunkNotFound):
+	def __init__(self, chunk_id: int):
+		super().__init__()
+		self.chunk_id = chunk_id
+
+
+class ChunkHashNotFound(ChunkNotFound):
+	def __init__(self, chunk_hash: str):
+		super().__init__()
+		self.chunk_hash = chunk_hash
 
 
 class UnsupportedFileFormat(PrimeBackupError):

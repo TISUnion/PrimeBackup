@@ -78,7 +78,7 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 				if len(file.content) == 0:
 					result.add_bad(file, BadFileItemType.invalid, 'symlink without content')
 
-		hash_to_blob = session.get_blobs(sorted(blob_hashes))
+		hash_to_blob = session.get_blobs_by_hashes(sorted(blob_hashes))
 		if self.is_interrupted.is_set():
 			return
 		filesets = session.get_filesets(sorted(fileset_ids))

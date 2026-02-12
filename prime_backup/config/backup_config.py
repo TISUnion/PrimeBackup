@@ -27,6 +27,13 @@ class BackupConfig(Serializable):
 		'**',
 	]
 
+	# Content-Define-Chunking for Large files
+	cdc_enabled: bool = True
+	cdc_file_size_threshold: int = 100 * 1048576  # 100MiB
+	cdc_patterns: List[str] = [
+		'**',
+	]
+
 	# Storage
 	hash_method: HashMethod = HashMethod.blake3
 	compress_method: CompressMethod = CompressMethod.zstd

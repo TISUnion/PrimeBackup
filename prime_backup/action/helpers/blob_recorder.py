@@ -17,20 +17,20 @@ class BlobRecorder:
 
 		self.__new_blobs: List[BlobInfo] = []
 		self.__new_blobs_summary: Optional[BlobListSummary] = None
-		self.__blobs_rollbackers: List[Callable[[], Any]] = []
+		self.__file_rollbackers: List[Callable[[], Any]] = []
 
 	def add_remove_file_rollbacker(self, file_to_remove: Path):
 		def func():
 			create_backup_utils.remove_file(file_to_remove, what='rollback')
 
-		self.__blobs_rollbackers.append(func)
+		self.__file_rollbackers.append(func)
 
-	def apply_blob_rollback(self):
-		if len(self.__blobs_rollbackers) > 0:
+	def apply_file_rollback(self):
+		if len(self.__file_rollbackers) > 0:
 			self.logger.warning('Error occurs during backup creation, applying rollback')
-			for rollback_func in self.__blobs_rollbackers:
+			for rollback_func in self.__file_rollbackers:
 				rollback_func()
-			self.__blobs_rollbackers.clear()
+			self.__file_rollbackers.clear()
 
 	def create_blob(self, session: DbSession, **kwargs: Unpack[DbSession.CreateBlobKwargs]) -> schema.Blob:
 		blob = session.create_and_add_blob(**kwargs)

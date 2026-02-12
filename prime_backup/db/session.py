@@ -14,7 +14,7 @@ from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
 from prime_backup.db.values import FileRole, BackupTagDict
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, ChunkNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.utils import collection_utils, db_utils, validation_utils
 
@@ -139,6 +139,7 @@ class DbSession:
 	# ===================================== Blob =====================================
 
 	class CreateBlobKwargs(TypedDict):
+		storage_method: int
 		hash: str
 		compress: str
 		raw_size: int
@@ -158,13 +159,22 @@ class DbSession:
 	def get_blob_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.Blob)).scalar_one())
 
-	def get_blob_opt(self, h: str) -> Optional[schema.Blob]:
-		return self.session.get(schema.Blob, h)
+	def get_blob_by_hash_opt(self, h: str) -> Optional[schema.Blob]:
+		return self.get_blobs([h])[h]
 
-	def get_blob(self, h: str) -> schema.Blob:
-		blob = self.get_blob_opt(h)
+	def get_blob_by_hash(self, h: str) -> schema.Blob:
+		blob = self.get_blob_by_hash_opt(h)
 		if blob is None:
 			raise BlobNotFound(h)
+		return blob
+
+	def get_blob_by_id_opt(self, blob_id: int) -> Optional[schema.Blob]:
+		return self.session.get(schema.Blob, blob_id)
+
+	def get_blob_by_id(self, blob_id: int) -> schema.Blob:
+		blob = self.get_blob_by_id_opt(blob_id)
+		if blob is None:
+			raise BlobNotFound(blob_id)  # FIXME: support blob id
 		return blob
 
 	def get_blobs(self, hashes: List[str]) -> Dict[str, Optional[schema.Blob]]:
@@ -235,6 +245,132 @@ class DbSession:
 				).scalars().all()
 			)
 		return list(filter(lambda h: h not in good_hashes, hashes))
+
+	# ===================================== Chunk =====================================
+
+	class CreateChunkKwargs(TypedDict):
+		hash: str
+		compress: str
+		raw_size: int
+		stored_size: int
+
+	@classmethod
+	def create_chunk(cls, **kwargs: Unpack[CreateChunkKwargs]) -> schema.Chunk:
+		chunk = schema.Chunk(**kwargs)
+		cls.__validate_int_fields_range(chunk)
+		return chunk
+
+	def create_and_add_chunk(self, **kwargs: Unpack[CreateChunkKwargs]) -> schema.Chunk:
+		chunk = self.create_chunk(**kwargs)
+		self.add(chunk)
+		return chunk
+
+	def get_chunk_count(self) -> int:
+		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.Chunk)).scalar_one())
+
+	def get_chunk_opt(self, h: str) -> Optional[schema.Chunk]:
+		return self.session.get(schema.Chunk, h)
+
+	def get_chunk(self, h: str) -> schema.Chunk:
+		chunk = self.get_chunk_opt(h)
+		if chunk is None:
+			raise ChunkNotFound(h)
+		return chunk
+
+	def get_chunks(self, hashes: List[str]) -> Dict[str, Optional[schema.Chunk]]:
+		"""
+		:return: a dict, hash -> optional chunk. All given hashes are in the dict
+		"""
+		result: Dict[str, Optional[schema.Chunk]] = {h: None for h in hashes}
+		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+			for chunk in self.session.execute(select(schema.Chunk).where(schema.Chunk.hash.in_(view))).scalars().all():
+				result[chunk.hash] = chunk
+		return result
+
+	def list_chunks(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Chunk]:
+		s = select(schema.Chunk)
+		if limit is not None:
+			s = s.limit(limit)
+		if offset is not None:
+			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
+
+	# ===================================== ChunkGroup =====================================
+
+	class CreateChunkGroupKwargs(TypedDict):
+		hash: str
+		chunk_count: int
+		chunk_raw_size_sum: int
+		chunk_stored_size_sum: int
+
+	@classmethod
+	def create_chunk_group(cls, **kwargs: Unpack[CreateChunkGroupKwargs]) -> schema.ChunkGroup:
+		chunk_group = schema.ChunkGroup(**kwargs)
+		cls.__validate_int_fields_range(chunk_group)
+		return chunk_group
+
+	def create_and_add_chunk_group(self, **kwargs: Unpack[CreateChunkGroupKwargs]) -> schema.ChunkGroup:
+		chunk_group = self.create_chunk_group(**kwargs)
+		self.add(chunk_group)
+		return chunk_group
+
+	def get_chunk_group_count(self) -> int:
+		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.ChunkGroup)).scalar_one())
+
+	def get_chunk_group_opt(self, h: str) -> Optional[schema.ChunkGroup]:
+		return self.session.get(schema.ChunkGroup, h)
+
+	def get_chunk_groups(self, hashes: List[str]) -> Dict[str, Optional[schema.ChunkGroup]]:
+		"""
+		:return: a dict, hash -> optional chunk group. All given hashes are in the dict
+		"""
+		result: Dict[str, Optional[schema.Chunk]] = {h: None for h in hashes}
+		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+			for chunk_group in self.session.execute(select(schema.ChunkGroup).where(schema.ChunkGroup.hash.in_(view))).scalars().all():
+				result[chunk_group.hash] = chunk_group
+		return result
+
+	# ===================================== ChunkGroupChunkList =====================================
+
+	class CreateChunkGroupChunkListKwargs(TypedDict):
+		chunk_group_id: int
+		chunk_offset: int
+		chunk_id: int
+
+	@classmethod
+	def create_chunk_group_chunk_list(cls, **kwargs: Unpack[CreateChunkGroupChunkListKwargs]) -> schema.ChunkGroupChunkList:
+		cgc = schema.ChunkGroupChunkList(**kwargs)
+		cls.__validate_int_fields_range(cgc)
+		return cgc
+
+	def create_and_add_chunk_group_chunk_list(self, **kwargs: Unpack[CreateChunkGroupChunkListKwargs]) -> schema.ChunkGroupChunkList:
+		cgc = self.create_chunk_group_chunk_list(**kwargs)
+		self.add(cgc)
+		return cgc
+
+	def get_chunk_group_chunk_list_count(self) -> int:
+		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.ChunkGroupChunkList)).scalar_one())
+
+	# ===================================== BlobChunkGroupList =====================================
+
+	class CreateBlobLayoutKwargs(TypedDict):
+		blob_id: int
+		chunk_group_offset: int
+		chunk_group_id: int
+
+	@classmethod
+	def create_blob_chunk_group_list(cls, **kwargs: Unpack[CreateBlobLayoutKwargs]) -> schema.BlobChunkGroupList:
+		bcg = schema.BlobChunkGroupList(**kwargs)
+		cls.__validate_int_fields_range(bcg)
+		return bcg
+
+	def create_and_add_blob_chunk_group_list(self, **kwargs: Unpack[CreateBlobLayoutKwargs]) -> schema.BlobChunkGroupList:
+		bcg = self.create_blob_chunk_group_list(**kwargs)
+		self.add(bcg)
+		return bcg
+
+	def get_blob_chunk_group_list_count(self) -> int:
+		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.BlobChunkGroupList)).scalar_one())
 
 	# ===================================== File =====================================
 
@@ -426,8 +562,7 @@ class DbSession:
 
 	def has_file_with_hash(self, h: str):
 		q = self.session.query(schema.File).filter_by(blob_hash=h).exists()
-		exists = self.session.query(q).scalar()
-		return exists
+		return bool(self.session.query(q).scalar())
 
 	def calc_file_stored_size_sum(self, fileset_id: int) -> int:
 		return _int_or_0(self.session.execute(
@@ -622,7 +757,7 @@ class DbSession:
 		"""
 		SQLite does not support json query, and the backup filter contains tag filter
 		"""
-		return not cls.__supports_json_query() and backup_filter is not None and len(backup_filter.tag_filters) > 0
+		return backup_filter is not None and len(backup_filter.tag_filters) > 0 and not cls.__supports_json_query()
 
 	@classmethod
 	def __manual_backup_tag_filter(cls, backup: schema.Backup, backup_filter: BackupFilter) -> bool:

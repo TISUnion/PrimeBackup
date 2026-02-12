@@ -1,0 +1,10 @@
+HASH_METHOD = 'blake3'
+
+CDC_AVG_SIZE = 256 * 1024         # 256KiB
+CDC_MIN_SIZE = CDC_AVG_SIZE // 4  # 64KiB
+CDC_MAX_SIZE = CDC_AVG_SIZE * 4   # 1MiB
+
+# 128chunk/group * (256KiB/chunk * 1.2) == ~40MiB/group  -->  ~100 groups for a 4GB file
+CHUNK_GROUP_AVG_SIZE = 128
+CHUNK_GROUP_MIN_SIZE = 32
+CHUNK_GROUP_MAX_SIZE = 512

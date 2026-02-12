@@ -224,5 +224,5 @@ class ImportBackupAction(Action[BackupInfo]):
 			return info
 
 		except Exception:
-			self.__blob_recorder.apply_blob_rollback()
+			self.__blob_recorder.apply_file_rollback()
 			raise

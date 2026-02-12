@@ -8,7 +8,7 @@ from prime_backup.exceptions import BlobNotFound, BlobHashNotUnique
 from prime_backup.types.blob_info import BlobInfo
 
 
-class GetBlobAction(Action[BlobInfo]):
+class GetBlobByHashAction(Action[BlobInfo]):
 	def __init__(self, blob_hash: str, *, count_files: bool = False, sample_file_num: Optional[int] = None):
 		super().__init__()
 		self.blob_hash = blob_hash
@@ -21,7 +21,7 @@ class GetBlobAction(Action[BlobInfo]):
 		:raise: BlobNotFound
 		"""
 		with DbAccess.open_session() as session:
-			blob = session.get_blob(self.blob_hash)
+			blob = session.get_blob_by_hash(self.blob_hash)
 			file_count = session.get_file_count_by_blob_hashes([blob.hash]) if self.count_files else 0
 			file_samples = session.get_file_by_blob_hashes([blob.hash], limit=self.sample_file_num) if self.sample_file_num is not None else None
 			return BlobInfo.of(blob, file_count=file_count, file_samples=file_samples)

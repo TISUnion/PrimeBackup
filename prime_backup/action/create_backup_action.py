@@ -352,7 +352,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			with session_context as session:
 				info = self.__create_backup(session_context, session, blob_recorder)
 		except Exception as e:
-			blob_recorder.apply_blob_rollback()
+			blob_recorder.apply_file_rollback()
 			raise e
 
 		s = blob_recorder.get_new_blobs_summary()

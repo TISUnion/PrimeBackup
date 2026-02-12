@@ -137,7 +137,7 @@ class DatabaseBlobFixer:
 				for blob_hash in blob_hashes:
 					if existing_blobs.get(blob_hash) is None:
 						blob_row = all_blob_rows[blob_hash]
-						session.add(session.create_blob(**blob_row))
+						session.add(session.create_blob(**blob_row))  # FIXME: storage_method
 						recover_count_total += 1
 
 		self.logger.info('Recovered {} database blob objects in total'.format(recover_count_total))

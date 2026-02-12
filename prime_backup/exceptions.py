@@ -48,6 +48,12 @@ class BlobNotFound(PrimeBackupError):
 		self.blob_hash = blob_hash
 
 
+class ChunkNotFound(PrimeBackupError):
+	def __init__(self, chunk_hash: str):
+		super().__init__()
+		self.chunk_hash = chunk_hash
+
+
 class BlobHashNotUnique(PrimeBackupError):
 	def __init__(self, blob_hash_prefix: str, candidates: List['BlobInfo']):
 		super().__init__()

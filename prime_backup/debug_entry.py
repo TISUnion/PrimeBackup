@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import time
 from pathlib import Path
@@ -8,6 +9,7 @@ from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.export_backup_action_directory import ExportBackupToDirectoryAction
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.export_backup_action_zip import ExportBackupToZipAction
+from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.import_backup_action import ImportBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.action.migrate_compress_method_action import MigrateCompressMethodAction
@@ -87,13 +89,21 @@ def main():
 		print(MigrateCompressMethodAction(CompressMethod.gzip).run())
 		# print(MigrateCompressMethodAction(CompressMethod.lzma).run())
 
+	def overview():
+		o = GetDbOverviewAction().run()
+		print('============= DbOverview =============')
+		for k, v in dataclasses.asdict(o).items():
+			print(f'{k}: {v}')
+		print('============= DbOverview =============')
+
 	create(1)
-	delete(1)
+	# delete(1)
 	# export()
 	# import_()
 	# list_()
 	# delete()
 	# migrate()
+	overview()
 
 
 if __name__ == '__main__':

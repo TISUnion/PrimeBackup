@@ -8,10 +8,14 @@ if TYPE_CHECKING:
 	from prime_backup.types.hash_method import Hasher, HashMethod
 
 
+def get_configured_hash_method() -> 'HashMethod':
+	from prime_backup.db.access import DbAccess
+	return DbAccess.get_hash_method()
+
+
 def create_hasher(*, hash_method: Optional['HashMethod'] = None) -> 'Hasher':
 	if hash_method is None:
-		from prime_backup.db.access import DbAccess
-		hash_method = DbAccess.get_hash_method()
+		hash_method = get_configured_hash_method()
 	return hash_method.value.create_hasher()
 
 
@@ -29,7 +33,7 @@ def calc_reader_size_and_hash(
 		buf_size: int = _READ_BUF_SIZE,
 		hash_method: Optional['HashMethod'] = None,
 ) -> SizeAndHash:
-	reader = BypassReader(file_obj, True, hash_method=hash_method)
+	reader = BypassReader(file_obj, calc_hash=True, hash_method=hash_method)
 	while reader.read(buf_size):
 		pass
 	return SizeAndHash(reader.get_read_len(), reader.get_hash())

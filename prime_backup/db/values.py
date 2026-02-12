@@ -4,6 +4,12 @@ from typing import Dict, Any, List
 BackupTagDict = Dict[str, Any]
 
 
+class BlobStorageMethod(enum.IntEnum):
+	unknown = 0
+	direct = 1   # at blob store (regular method)
+	chunked = 2  # at chunk store (cdc chunked)
+
+
 class FileRole(enum.IntEnum):
 	unknown = 0
 	standalone = 1

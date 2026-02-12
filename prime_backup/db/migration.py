@@ -29,6 +29,7 @@ class DbMigration:
 		self.migrations: Dict[int, Callable[[Session], Any]] = {
 			2: self.__migrate_1_2,  # 1 -> 2
 			3: self.__migrate_2_3,  # 2 -> 3
+			4: self.__migrate_3_4,  # 3 -> 4
 		}
 
 	def check_and_migrate(self, *, create: bool, migrate: bool):
@@ -123,3 +124,10 @@ class DbMigration:
 		"""
 		from prime_backup.db.migrations.migration_2_3 import MigrationImpl2To3
 		MigrationImpl2To3(self.engine, self.temp_dir, session).migrate()
+
+	def __migrate_3_4(self, session: Session):
+		"""
+		v1.13.0 changes: cdc chunked blob
+		"""
+		from prime_backup.db.migrations.migration_3_4 import MigrationImpl3To4
+		MigrationImpl3To4(self.engine, self.temp_dir, session).migrate()

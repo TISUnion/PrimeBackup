@@ -6,6 +6,7 @@ from typing_extensions import Self
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
+from prime_backup.db.values import BlobStorageMethod
 from prime_backup.utils import misc_utils
 
 if TYPE_CHECKING:
@@ -14,6 +15,9 @@ if TYPE_CHECKING:
 
 @dataclasses.dataclass(frozen=True)
 class BlobInfo:
+	id: int
+	storage_method: BlobStorageMethod
+
 	hash: str
 	compress: CompressMethod
 	raw_size: int
@@ -27,8 +31,15 @@ class BlobInfo:
 		"""
 		Notes: should be inside a session
 		"""
+		try:
+			storage_method = BlobStorageMethod(blob.storage_method)
+		except (KeyError, ValueError):
+			storage_method = BlobStorageMethod.unknown
+
 		from prime_backup.types.file_info import FileInfo
 		return BlobInfo(
+			id=blob.id,
+			storage_method=storage_method,
 			hash=blob.hash,
 			compress=CompressMethod[blob.compress],
 			raw_size=blob.raw_size,

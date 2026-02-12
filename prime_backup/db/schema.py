@@ -33,13 +33,76 @@ class DbMeta(Base):
 
 class Blob(Base):
 	__tablename__ = 'blob'
+	__table_args__ = {'sqlite_autoincrement': True}
 
-	hash: Mapped[str] = mapped_column(String, primary_key=True)
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+	storage_method: Mapped[int] = mapped_column(Integer, default=0)  # see enum BlobStorageMethod
+
+	hash: Mapped[str] = mapped_column(String, unique=True)
 	compress: Mapped[str] = mapped_column(String)
 	raw_size: Mapped[int] = mapped_column(BigInteger, index=True)
 	stored_size: Mapped[int] = mapped_column(BigInteger)
 
 	__fields_end__: bool
+
+
+class Chunk(Base):
+	__tablename__ = 'chunk'
+	__table_args__ = {'sqlite_autoincrement': True}
+
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+	hash: Mapped[str] = mapped_column(String, unique=True)  # blake3
+	compress: Mapped[str] = mapped_column(String)
+	raw_size: Mapped[int] = mapped_column(BigInteger, index=True)
+	stored_size: Mapped[int] = mapped_column(BigInteger)
+
+	__fields_end__: bool
+
+
+class ChunkGroup(Base):
+	__tablename__ = 'chunk_group'
+	__table_args__ = {'sqlite_autoincrement': True}
+
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+	hash: Mapped[str] = mapped_column(String, unique=True)  # blake3 of b'\0'.join(chunk hashes)
+	chunk_count: Mapped[int] = mapped_column(Integer)
+	chunk_raw_size_sum: Mapped[int] = mapped_column(BigInteger)
+	chunk_stored_size_sum: Mapped[int] = mapped_column(BigInteger)
+
+	__fields_end__: bool
+
+
+class ChunkGroupChunkList(Base):
+	"""
+	ChunkGroup == [Chunk0, Chunk1, Chunk2, ...]
+	"""
+
+	__tablename__ = 'chunk_group_chunk_list'
+
+	chunk_group_id: Mapped[int] = mapped_column(ForeignKey('chunk_group.id'), primary_key=True)
+	chunk_offset: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # &chunk[0] - &chunk_group[0]
+	chunk_id: Mapped[int] = mapped_column(ForeignKey('chunk.id'), index=True)
+
+	__fields_end__: bool
+
+	chunk: Mapped['Chunk'] = relationship(viewonly=True, foreign_keys=[chunk_id])
+
+
+class BlobChunkGroupList(Base):
+	"""
+	Blob == [ChunkGroup0, ChunkGroup1, ChunkGroup2, ...]
+	"""
+
+	__tablename__ = 'blob_chunk_group_list'
+
+	blob_id: Mapped[int] = mapped_column(ForeignKey('blob.id'), primary_key=True)
+	chunk_group_offset: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+	chunk_group_id: Mapped[int] = mapped_column(ForeignKey('chunk_group.id'), index=True)
+
+	__fields_end__: bool
+
+	blob: Mapped['Blob'] = relationship(viewonly=True, foreign_keys=[blob_id])
+	chunk_group: Mapped['ChunkGroup'] = relationship(viewonly=True, foreign_keys=[chunk_group_id])
 
 
 class File(Base):
@@ -73,7 +136,7 @@ class Fileset(Base):
 	__tablename__ = 'fileset'
 	__table_args__ = {'sqlite_autoincrement': True}
 
-	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)  # XXX: no `index=True`?
 	base_id: Mapped[int] = mapped_column(Integer)  # 0: is base fileset; >0: is delta fileset, and the value is the associated base fileset
 	file_object_count: Mapped[int] = mapped_column(BigInteger)
 
@@ -90,7 +153,7 @@ class Backup(Base):
 	__tablename__ = 'backup'
 	__table_args__ = {'sqlite_autoincrement': True}
 
-	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)  # XXX: no `index=True`?
 	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in us
 	creator: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)

@@ -1,11 +1,11 @@
 import dataclasses
 import enum
 import importlib
-from typing import Protocol
+from typing import Protocol, Union
 
 
 class Hasher(Protocol):
-	def update(self, b: bytes):
+	def update(self, b: Union[bytes, bytearray, memoryview]):
 		...
 
 	def hexdigest(self) -> str:

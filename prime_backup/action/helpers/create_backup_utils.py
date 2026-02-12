@@ -1,7 +1,7 @@
 import contextlib
 import enum
 from pathlib import Path
-from typing import Generator, Literal, BinaryIO, TYPE_CHECKING, List
+from typing import Generator, Literal, BinaryIO, TYPE_CHECKING, List, Dict
 
 from typing_extensions import Self
 
@@ -9,7 +9,6 @@ from prime_backup.action.helpers.fileset_allocator import FilesetAllocateArgs, F
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.utils.path_like import PathLike
-
 
 if TYPE_CHECKING:
 	from prime_backup.config.config import Config
@@ -76,3 +75,8 @@ def finalize_backup_and_files(config: 'Config', session: DbSession, backup: sche
 
 	session.add(backup)
 	session.flush()  # this generates backup.id
+
+
+def finalize_blob_and_chunks(session: DbSession, blob: schema.Blob, blob_chunks: Dict[int, schema.Chunk]):
+	from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
+	ChunkGrouper(session).create_chunk_groups(blob, blob_chunks)

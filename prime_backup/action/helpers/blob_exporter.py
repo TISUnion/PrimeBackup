@@ -1,8 +1,9 @@
+import contextlib
 import dataclasses
 import functools
 import shutil
 from pathlib import Path
-from typing import Optional, Callable, Any, IO, ContextManager, List
+from typing import Optional, Callable, Any, List, Generator
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.compressors import Compressor
@@ -64,25 +65,39 @@ class _OpenedChunk:
 
 
 class _CombinedChunksReader:
-	def __init__(self, chunks: List[_OpenedChunk]):
+	def __init__(self, chunks_gen: Generator[_OpenedChunk, None, None]):
 		self.idx = 0
-		self.chunks = chunks
+		self.chunks_gen = chunks_gen
+		self.current: Optional[_OpenedChunk] = None
+		self.reach_end = False
 
 	def read(self, length: int = -1) -> bytes:
-		if self.idx >= len(self.chunks):
+		if self.reach_end:
 			return b''
+		if self.current is None:
+			if not self.__switch_to_next():
+				return b''
 
 		results: List[bytes] = []
 		total_read = 0
-		while (length < 0 or total_read < length) and self.idx < len(self.chunks):
+		while length < 0 or total_read < length:
 			to_read = length - total_read
-			buf = self.chunks[self.idx].reader.read(to_read)
+			buf = self.current.reader.read(to_read)
 			total_read += len(buf)
 			results.append(buf)
 			if len(buf) < to_read:
-				self.chunks[self.idx].verify_callback()
-				self.idx += 1
+				self.current.verify_callback()
+				if not self.__switch_to_next():
+					break
 		return b''.join(results)
+
+	def __switch_to_next(self) -> bool:
+		try:
+			self.current = next(self.chunks_gen)
+			return True
+		except StopIteration:
+			self.reach_end = True
+			return False
 
 
 class BlobExporter:
@@ -167,33 +182,37 @@ class BlobExporter:
 	def __export_as_reader_chunked(self, reader_csm: Callable[[SupportsReadBytes], Any]):
 		blob_chunks = self.session.list_blob_chunks(self.blob.id)
 
-		chunk_cm_list: List[ContextManager[IO[bytes]]] = []
-		try:
-			to_read_chunks: List[_OpenedChunk] = []
+		def open_chunk_gen() -> Generator[_OpenedChunk, None, None]:
 			for oc in blob_chunks:
 				compressor = Compressor.create(oc.chunk.compress)
 				chunk_path = chunk_utils.get_chunk_path(oc.chunk.hash)
 				bypass_reader: Optional[BypassReader] = None
 
-				f_in_cm: ContextManager[IO[bytes]] = compressor.open_decompressed(chunk_path)
-				f_in = f_in_cm.__enter__()
-				chunk_cm_list.append(f_in_cm)
-				if self.verify_blob:
-					def verify_callback(ck: schema.Chunk, br: BypassReader):
-						self.__verify_exported_chunk(ck, br.get_read_len(), br.get_hash())
+				with compressor.open_decompressed(chunk_path) as f_in:
+					if self.verify_blob:
+						def verify_callback(ck: schema.Chunk, br: BypassReader):
+							self.__verify_exported_chunk(ck, br.get_read_len(), br.get_hash())
 
-					bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=chunk_utils.get_hash_method())
-					to_read_chunks.append(_OpenedChunk(bypass_reader, functools.partial(verify_callback, oc.chunk, bypass_reader)))
-				else:
-					to_read_chunks.append(_OpenedChunk(bypass_reader, lambda: None))
+						bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=chunk_utils.get_hash_method())
+						yield _OpenedChunk(bypass_reader, functools.partial(verify_callback, oc.chunk, bypass_reader))
+					else:
+						yield _OpenedChunk(bypass_reader, lambda: None)
 
-			peek_reader = _PeekReader(_CombinedChunksReader(to_read_chunks), 32 * 1024)
+				nonlocal exit_flag
+				if exit_flag:
+					break
+
+		exit_flag = False
+		chunk_gen = open_chunk_gen()
+		try:
+			peek_reader = _PeekReader(_CombinedChunksReader(chunk_gen), 32 * 1024)
 			peek_reader.peek()
 			reader_csm(peek_reader)
 		finally:
-			for cm in chunk_cm_list:
-				# TODO: pass exception values?
-				cm.__exit__(None, None, None)
+			# ensure possible opened chunk file is closed
+			exit_flag = True
+			with contextlib.suppress(StopIteration):
+				next(chunk_gen)
 
 	def __verify_exported_blob(self, written_size: int, written_hash: str):
 		self.__verify_exported_data(lambda: 'blob', self.blob.raw_size, self.blob.hash, written_size, written_hash)

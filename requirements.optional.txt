@@ -1,2 +1,5 @@
 # compress
 lz4
+
+# cdc
+pyfastcdc

@@ -1,6 +1,7 @@
 import contextlib
 import dataclasses
 import functools
+import operator
 import shutil
 import sqlite3
 import time
@@ -451,14 +452,17 @@ class DbSession:
 			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
 		).scalars().all())
 
-	def list_chunk_group_chunks(self, chunk_group_id: int) -> Dict[int, schema.Chunk]:  # offset -> chunk
+	def list_chunk_group_chunks(self, chunk_group_id: int) -> Dict[int, schema.Chunk]:
+		"""
+		offset (sorted) -> chunk
+		"""
 		stmt = (
 			select(schema.ChunkGroupChunkBinding.chunk_offset, schema.Chunk).
 			join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
 			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
 		)
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
-		return {offset: chunk for offset, chunk in result}
+		return {offset: chunk for offset, chunk in sorted(result, key=operator.itemgetter(0))}
 
 	def delete_chunk_group_chunk_bindings(self, identifiers: List[Union[schema.ChunkGroupChunkBinding, ChunkGroupChunkBindingIdentifier]]):
 		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit):
@@ -496,14 +500,41 @@ class DbSession:
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
 		).scalars().all())
 
-	def list_blob_chunk_groups(self, blob_id: int) -> Dict[int, schema.Chunk]:  # offset -> chunk group
+	def list_blob_chunk_groups(self, blob_id: int) -> Dict[int, schema.Chunk]:
+		"""
+		offset (sorted) -> chunk group
+		"""
 		stmt = (
 			select(schema.BlobChunkGroupBinding.chunk_group_offset, schema.ChunkGroup).
 			join(schema.ChunkGroup, schema.BlobChunkGroupBinding.chunk_group_id == schema.ChunkGroup.id).
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
 		)
 		result: Sequence[Row[Tuple[int, schema.ChunkGroup]]] = self.session.execute(stmt).all()
-		return {offset: chunk_group for offset, chunk_group in result}
+		return {offset: chunk_group for offset, chunk_group in sorted(result, key=operator.itemgetter(0))}
+
+	def list_blob_chunks(self, blob_id: int) -> Dict[int, schema.Chunk]:
+		"""
+		offset (sorted) -> chunk
+		"""
+		stmt = (
+			select(
+				(schema.BlobChunkGroupBinding.chunk_group_offset + schema.ChunkGroupChunkBinding.chunk_offset).label("absolute_offset"),
+				schema.Chunk
+			).
+			select_from(schema.BlobChunkGroupBinding).
+			join(
+				schema.ChunkGroupChunkBinding,
+				schema.BlobChunkGroupBinding.chunk_group_id == schema.ChunkGroupChunkBinding.chunk_group_id
+			).
+			join(
+				schema.Chunk,
+				schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id
+			).
+			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
+		)
+
+		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
+		return {offset: chunk for offset, chunk in sorted(result, key=operator.itemgetter(0))}
 
 	def delete_blob_chunk_group_bindings(self, identifiers: List[Union[schema.BlobChunkGroupBinding, BlobChunkGroupBindingIdentifier]]):
 		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit):

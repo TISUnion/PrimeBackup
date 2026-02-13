@@ -3,12 +3,14 @@ from abc import abstractmethod, ABC
 from typing_extensions import override, TypedDict, NotRequired
 
 from prime_backup.action import Action
+from prime_backup.action.helpers.blob_exporter import BlobExporter
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.exceptions import PrimeBackupError, VerificationError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.export_failure import ExportFailures
+from prime_backup.types.file_info import FileInfo
 from prime_backup.utils import misc_utils
 
 
@@ -54,6 +56,9 @@ class _ExportBackupActionBase(Action[ExportFailures], ABC):
 		if not self.create_meta:
 			raise RuntimeError('calling _create_meta_buf() with create_meta set to False')
 		return BackupInfo.of(backup).create_meta_buf()
+
+	def _create_blob_exporter(self, session: DbSession, file: schema.File) -> BlobExporter:
+		return BlobExporter(session, FileInfo.of(file).blob, file_path=file.path, verify_blob=self.verify_blob)
 
 	@classmethod
 	def _on_unsupported_file_mode(cls, file: schema.File):

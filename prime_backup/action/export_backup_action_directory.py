@@ -12,15 +12,13 @@ from typing import Optional, List, Dict, Tuple
 import pathspec
 from typing_extensions import override, Unpack
 
-from prime_backup.constants import constants
 from prime_backup import logger
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
-from prime_backup.compressors import Compressor, CompressMethod
+from prime_backup.constants import constants
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.types.export_failure import ExportFailures
-from prime_backup.utils import file_utils, blob_utils, hash_utils, path_utils, collection_utils
-from prime_backup.utils.bypass_io import BypassReader
+from prime_backup.utils import file_utils, path_utils, collection_utils
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 
 
@@ -208,31 +206,14 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			trash_bin.add(file_path, item.path)
 		file_path.parent.mkdir(parents=True, exist_ok=True)
 
-	def __export_file(self, item: _ExportItem, exported_directories: 'queue.Queue[Tuple[schema.File, Path]]'):
+	def __export_file(self, session: DbSession, item: _ExportItem, exported_directories: 'queue.Queue[Tuple[schema.File, Path]]'):
 		file = item.file
 		file_path = self.output_path / item.path
 
 		if stat.S_ISREG(file.mode):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('write file {}'.format(file.path))
-			blob_path = blob_utils.get_blob_path(file.blob_hash)
-			compressor = Compressor.create(file.blob_compress)
-			if compressor.get_method() == CompressMethod.plain:
-				file_utils.copy_file_fast(blob_path, file_path)
-				if self.verify_blob:
-					sah = hash_utils.calc_file_size_and_hash(file_path)
-					self._verify_exported_blob(file, sah.size, sah.hash)
-			else:
-				with compressor.open_decompressed(blob_path) as f_in:
-					with open(file_path, 'wb') as f_out:
-						if self.verify_blob:
-							reader = BypassReader(f_in, calc_hash=True)
-							shutil.copyfileobj(reader, f_out)
-						else:
-							reader = None
-							shutil.copyfileobj(f_in, f_out)
-				if reader is not None:
-					self._verify_exported_blob(file, reader.get_read_len(), reader.get_hash())
+			self._create_blob_exporter(session, file).export_to_fs(file_path)
 
 		elif stat.S_ISDIR(file.mode):
 			if self.LOG_FILE_CREATION:
@@ -307,7 +288,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 				def export_worker(item_: ExportBackupToDirectoryAction._ExportItem):
 					with failures.handling_exception(item_.file):
 						try:
-							self.__export_file(item_, directories)
+							self.__export_file(session, item_, directories)
 						except Exception as e_:
 							self.logger.error('Export file {!r} to path {} failed: {}'.format(item_.file.path, item_.path, e_))
 							raise

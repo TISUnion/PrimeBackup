@@ -4,7 +4,7 @@ import tarfile
 import time
 from io import BytesIO
 from pathlib import Path
-from typing import Optional, IO, Any, Union, BinaryIO, Generator
+from typing import Union, BinaryIO, Generator
 
 from typing_extensions import override, Unpack
 
@@ -12,45 +12,11 @@ from prime_backup.action.export_backup_action_base import _ExportBackupActionBas
 from prime_backup.compressors import Compressor
 from prime_backup.constants.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
+from prime_backup.db.session import DbSession
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.tar_format import TarFormat
-from prime_backup.utils import blob_utils, platform_utils
-from prime_backup.utils.bypass_io import BypassReader
-
-
-class PeekReader:
-	def __init__(self, file_obj: IO[bytes], peek_size: int):
-		self.file_obj = file_obj
-		self.peek_size = peek_size
-		self.peek_buf: Optional[bytes] = None
-		self.peek_buf_idx = 0
-
-	def peek(self):
-		if self.peek_buf is not None:
-			raise RuntimeError('double peek')
-		self.peek_buf = self.file_obj.read(self.peek_size)
-
-	def read(self, n: int = -1) -> bytes:
-		if self.peek_buf is None:
-			raise RuntimeError('read before peek')
-
-		if self.peek_buf_idx == len(self.peek_buf):
-			return self.file_obj.read(n)
-
-		if n == -1:
-			data = self.peek_buf[self.peek_buf_idx:] + self.file_obj.read(n)
-			self.peek_buf_idx = len(self.peek_buf)
-			return data
-		else:
-			remaining = len(self.peek_buf) - self.peek_buf_idx
-			if n <= remaining:
-				data = self.peek_buf[self.peek_buf_idx:self.peek_buf_idx + n]
-				self.peek_buf_idx += n
-				return data
-			else:
-				data = self.peek_buf[self.peek_buf_idx:] + self.file_obj.read(n - remaining)
-				self.peek_buf_idx = len(self.peek_buf)
-				return data
+from prime_backup.utils import platform_utils
+from prime_backup.utils.io_types import SupportsReadBytes
 
 
 class ExportBackupToTarAction(_ExportBackupActionBase):
@@ -77,7 +43,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 				with tarfile.open(fileobj=f_compressed, mode=self.tar_format.value.mode_w) as tar:
 					yield tar
 
-	def __export_file(self, tar: tarfile.TarFile, file: schema.File):
+	def __export_file(self, session: DbSession, tar: tarfile.TarFile, file: schema.File):
 		info = tarfile.TarInfo(name=file.path)
 		info.mode = file.mode
 
@@ -96,26 +62,11 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 				self.logger.debug('add file {} to tarfile'.format(file.path))
 			info.type = tarfile.REGTYPE
 			info.size = file.blob_raw_size
-			blob_path = blob_utils.get_blob_path(file.blob_hash)
 
-			with Compressor.create(file.blob_compress).open_decompressed(blob_path) as stream:
-				# Exception raised in TarFile.addfile might nuke the whole remaining tar file, which is bad
-				# We read a few bytes from the stream, to *hopefully* trigger potential decompress exception in advanced,
-				# make it fail before affecting the actual tar file
-				peek_reader = PeekReader(stream, 32 * 1024)
-				peek_reader.peek()
+			def reader_csm(reader: SupportsReadBytes):
+				tar.addfile(tarinfo=info, fileobj=reader)
 
-				if self.verify_blob:
-					reader = BypassReader(peek_reader, calc_hash=True)
-					tar.addfile(tarinfo=info, fileobj=reader)
-				else:
-					reader = None
-					peek_reader: Any
-					tar.addfile(tarinfo=info, fileobj=peek_reader)
-			if reader is not None:
-				# notes: the read len is always <= info.size
-				self._verify_exported_blob(file, reader.get_read_len(), reader.get_hash())
-
+			self._create_blob_exporter(session, file).export_as_reader(reader_csm)
 		elif stat.S_ISDIR(file.mode):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('add dir {} to tarfile'.format(file.path))
@@ -155,7 +106,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 
 					with failures.handling_exception(file):
 						try:
-							self.__export_file(tar, file)
+							self.__export_file(session, tar, file)
 						except Exception as e:
 							self.logger.error('Export file {!r} to tar {} failed: {}'.format(file.path, self.output_dest, e))
 							raise

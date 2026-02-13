@@ -28,9 +28,10 @@ class BackupConfig(Serializable):
 	]
 
 	# Content-Define-Chunking for Large files
-	cdc_enabled: bool = True
+	cdc_enabled: bool = True  # FIXME: dev only state
 	cdc_file_size_threshold: int = 100 * 1048576  # 100MiB
 	cdc_patterns: List[str] = [
+		# '**/*.db', # FIXME: dev only state
 		'**',
 	]
 

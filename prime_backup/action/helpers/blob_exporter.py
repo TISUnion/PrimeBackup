@@ -18,6 +18,11 @@ from prime_backup.utils.io_types import SupportsReadBytes
 
 
 class _PeekReader:
+	"""
+	Exception raised in TarFile.addfile might nuke the whole remaining tar file, which is bad
+	We read a few bytes from the stream, to *hopefully* trigger potential decompress exception in advanced,
+	make it fail before affecting the actual tar file
+	"""
 	def __init__(self, file_obj: SupportsReadBytes, peek_size: int):
 		self.file_obj = file_obj
 		self.peek_size = peek_size
@@ -52,7 +57,7 @@ class _PeekReader:
 				return data
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class _OpenedChunk:
 	reader: SupportsReadBytes
 	verify_callback: Callable[[], None]
@@ -75,6 +80,7 @@ class _CombinedChunksReader:
 			total_read += len(buf)
 			results.append(buf)
 			if len(buf) < to_read:
+				self.chunks[self.idx].verify_callback()
 				self.idx += 1
 		return b''.join(results)
 
@@ -145,9 +151,6 @@ class BlobExporter:
 
 		bypass_reader: Optional[BypassReader] = None
 		with Compressor.create(self.blob.compress).open_decompressed(blob_path) as stream:
-			# Exception raised in TarFile.addfile might nuke the whole remaining tar file, which is bad
-			# We read a few bytes from the stream, to *hopefully* trigger potential decompress exception in advanced,
-			# make it fail before affecting the actual tar file
 			peek_reader = _PeekReader(stream, 32 * 1024)
 			peek_reader.peek()
 
@@ -176,28 +179,30 @@ class BlobExporter:
 				f_in = f_in_cm.__enter__()
 				chunk_cm_list.append(f_in_cm)
 				if self.verify_blob:
-					def verify_callback(br: BypassReader):
-						self.__verify_exported_chunk(oc.chunk, br.get_read_len(), br.get_hash())
+					def verify_callback(ck: schema.Chunk, br: BypassReader):
+						self.__verify_exported_chunk(ck, br.get_read_len(), br.get_hash())
 
 					bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=chunk_utils.get_hash_method())
-					to_read_chunks.append(_OpenedChunk(bypass_reader, functools.partial(verify_callback, bypass_reader)))
+					to_read_chunks.append(_OpenedChunk(bypass_reader, functools.partial(verify_callback, oc.chunk, bypass_reader)))
 				else:
 					to_read_chunks.append(_OpenedChunk(bypass_reader, lambda: None))
 
-			reader_csm(_CombinedChunksReader(to_read_chunks))
+			peek_reader = _PeekReader(_CombinedChunksReader(to_read_chunks), 32 * 1024)
+			peek_reader.peek()
+			reader_csm(peek_reader)
 		finally:
 			for cm in chunk_cm_list:
 				# TODO: pass exception values?
 				cm.__exit__(None, None, None)
 
 	def __verify_exported_blob(self, written_size: int, written_hash: str):
-		self.__verify_exported_data(self.blob.raw_size, self.blob.hash, written_size, written_hash)
+		self.__verify_exported_data(lambda: 'blob', self.blob.raw_size, self.blob.hash, written_size, written_hash)
 
 	def __verify_exported_chunk(self, chunk: schema.Chunk, written_size: int, written_hash: str):
-		self.__verify_exported_data(chunk.raw_size, chunk.hash, written_size, written_hash)
+		self.__verify_exported_data(lambda: f'chunk {chunk.hash}', chunk.raw_size, chunk.hash, written_size, written_hash)
 
-	def __verify_exported_data(self, expected_size: int, expected_hash: str, written_size: int, written_hash: str):
+	def __verify_exported_data(self, what: Callable[[], str], expected_size: int, expected_hash: str, written_size: int, written_hash: str):
 		if written_size != expected_size:
-			raise VerificationError('raw size mismatched for {}, expected {}, actual written {}'.format(self.file_path, expected_size, written_size))
+			raise VerificationError('raw size mismatched for {} ({}), expected {}, actual written {}'.format(self.file_path, what(), expected_size, written_size))
 		if written_hash != expected_hash:
-			raise VerificationError('hash mismatched for {}, expected {}, actual written {}'.format(self.file_path, expected_hash, written_hash))
+			raise VerificationError('hash mismatched for {} ({}), expected {}, actual written {}'.format(self.file_path, what(), expected_hash, written_hash))

@@ -20,9 +20,6 @@ class ChunkInfo:
 
 	@classmethod
 	def of(cls, chunk: schema.Chunk) -> 'ChunkInfo':
-		"""
-		Notes: should be inside a session
-		"""
 		return ChunkInfo(
 			id=chunk.id,
 			hash=chunk.hash,
@@ -59,9 +56,6 @@ class ChunkListSummary:
 
 	@classmethod
 	def of(cls, chunks: Iterable[ChunkInfo]) -> Self:
-		"""
-		Notes: should be inside a session
-		"""
 		cnt, raw_size_sum, stored_size_sum = 0, 0, 0
 		for chunk in chunks:
 			cnt += 1

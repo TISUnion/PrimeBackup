@@ -14,9 +14,6 @@ class ChunkGroupInfo:
 
 	@classmethod
 	def of(cls, chunk_group: schema.ChunkGroup) -> 'ChunkGroupInfo':
-		"""
-		Notes: should be inside a session
-		"""
 		return ChunkGroupInfo(
 			id=chunk_group.id,
 			hash=chunk_group.hash,

@@ -51,7 +51,7 @@ class ChunkGrouper:
 			needs_cut |= i == len(blob_chunks) - 1  # last chunk group
 			if len(current_group.chunks) >= chunk_constants.CHUNK_GROUP_MIN_SIZE:
 				needs_cut |= len(current_group.chunks) >= chunk_constants.CHUNK_GROUP_MAX_SIZE  # reach max size
-				needs_cut |= chunk.hash.endswith('00') or chunk.hash.endswith('80')  # 1/256 chance
+				needs_cut |= chunk.hash.endswith('00') or chunk.hash.endswith('80')  # 1/128 chance
 			if needs_cut:
 				current_group.hash = chunk_utils.create_chunk_group_hash(chunk.hash for chunk in current_group.chunks)
 				raw_chunk_groups.append(current_group)

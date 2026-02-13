@@ -40,8 +40,8 @@ class OffsetChunkInfo:
 	chunk: ChunkInfo
 
 	@classmethod
-	def of(cls, oc: OffsetChunk) -> 'OffsetChunkInfo':
-		return cls(oc.offset, ChunkInfo.of(oc.chunk))
+	def of(cls, offset_chunk: OffsetChunk) -> 'OffsetChunkInfo':
+		return cls(offset_chunk.offset, ChunkInfo.of(offset_chunk.chunk))
 
 
 @dataclasses.dataclass

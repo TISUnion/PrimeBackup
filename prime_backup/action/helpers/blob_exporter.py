@@ -2,8 +2,12 @@ import contextlib
 import dataclasses
 import functools
 import shutil
+import threading
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Callable, Any, List, Generator
+
+from typing_extensions import override
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.compressors import Compressor
@@ -12,10 +16,28 @@ from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import VerificationError
 from prime_backup.types.blob_info import BlobInfo
+from prime_backup.types.chunk_info import OffsetChunkInfo
 from prime_backup.utils import blob_utils, chunk_utils
 from prime_backup.utils import file_utils, hash_utils
 from prime_backup.utils.bypass_io import BypassReader
 from prime_backup.utils.io_types import SupportsReadBytes
+
+
+class BlobChunksGetter(ABC):
+	@abstractmethod
+	def get(self, blob_id: int) -> List[OffsetChunkInfo]:
+		...
+
+
+class ThreadSafeBlobChunksGetter(BlobChunksGetter):
+	def __init__(self, session: DbSession):
+		self.session = session
+		self.lock = threading.Lock()
+
+	@override
+	def get(self, blob_id: int) -> List[OffsetChunkInfo]:
+		with self.lock:
+			return [OffsetChunkInfo.of(oc) for oc in self.session.get_blob_chunks(blob_id)]
 
 
 class _PeekReader:
@@ -101,8 +123,8 @@ class _CombinedChunksReader:
 
 
 class BlobExporter:
-	def __init__(self, session: DbSession, blob: BlobInfo, *, file_path: str, verify_blob: bool):
-		self.session = session
+	def __init__(self, blob_chunks_getter: BlobChunksGetter, blob: BlobInfo, *, file_path: str, verify_blob: bool):
+		self.blob_chunks_getter = blob_chunks_getter
 		self.file_path = file_path
 		self.blob = blob
 		self.verify_blob = verify_blob
@@ -136,7 +158,7 @@ class BlobExporter:
 				self.__verify_exported_blob(bypass_reader.get_read_len(), bypass_reader.get_hash())
 
 	def __export_to_fs_chunked(self, output_path: Path):
-		blob_chunks = self.session.list_blob_chunks(self.blob.id)
+		blob_chunks = self.blob_chunks_getter.get(self.blob.id)
 
 		with open(output_path, 'wb') as f_out:
 			for oc in blob_chunks:
@@ -180,7 +202,7 @@ class BlobExporter:
 			self.__verify_exported_blob(bypass_reader.get_read_len(), bypass_reader.get_hash())
 
 	def __export_as_reader_chunked(self, reader_csm: Callable[[SupportsReadBytes], Any]):
-		blob_chunks = self.session.list_blob_chunks(self.blob.id)
+		blob_chunks = self.blob_chunks_getter.get(self.blob.id)
 
 		def open_chunk_gen() -> Generator[_OpenedChunk, None, None]:
 			for oc in blob_chunks:

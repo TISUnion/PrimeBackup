@@ -45,5 +45,5 @@ class GetBlobChunksAction(Action[List[OffsetChunkInfo]]):
 	@override
 	def run(self) -> List[OffsetChunkInfo]:
 		with DbAccess.open_session() as session:
-			oc_list = session.list_blob_chunks(self.blob_id)
+			oc_list = session.get_blob_chunks(self.blob_id)
 			return [OffsetChunkInfo.of(oc) for oc in oc_list]

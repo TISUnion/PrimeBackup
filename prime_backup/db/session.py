@@ -451,7 +451,7 @@ class DbSession:
 			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
 		).scalars().all())
 
-	def list_chunk_group_chunks(self, chunk_group_id: int) -> List[OffsetChunk]:
+	def get_chunk_group_chunks(self, chunk_group_id: int) -> List[OffsetChunk]:
 		"""
 		result is sorted
 		"""
@@ -499,7 +499,7 @@ class DbSession:
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
 		).scalars().all())
 
-	def list_blob_chunk_groups(self, blob_id: int) -> List[OffsetChunkGroup]:
+	def get_blob_chunk_groups(self, blob_id: int) -> List[OffsetChunkGroup]:
 		"""
 		result is sorted
 		"""
@@ -511,7 +511,7 @@ class DbSession:
 		result: Sequence[Row[Tuple[int, schema.ChunkGroup]]] = self.session.execute(stmt).all()
 		return sorted(OffsetChunkGroup(offset, chunk_group) for offset, chunk_group in result)
 
-	def list_blob_chunks(self, blob_id: int) -> List[OffsetChunk]:
+	def get_blob_chunks(self, blob_id: int) -> List[OffsetChunk]:
 		"""
 		result is sorted
 		"""

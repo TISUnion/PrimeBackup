@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 from typing_extensions import override, TypedDict, NotRequired
 
 from prime_backup.action import Action
-from prime_backup.action.helpers.blob_exporter import BlobExporter
+from prime_backup.action.helpers.blob_exporter import BlobExporter, BlobChunksGetter
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
@@ -57,8 +57,8 @@ class _ExportBackupActionBase(Action[ExportFailures], ABC):
 			raise RuntimeError('calling _create_meta_buf() with create_meta set to False')
 		return BackupInfo.of(backup).create_meta_buf()
 
-	def _create_blob_exporter(self, session: DbSession, file: schema.File) -> BlobExporter:
-		return BlobExporter(session, FileInfo.of(file).blob, file_path=file.path, verify_blob=self.verify_blob)
+	def _create_blob_exporter(self, blob_chunks_getter: BlobChunksGetter, file: schema.File) -> BlobExporter:
+		return BlobExporter(blob_chunks_getter, FileInfo.of(file).blob, file_path=file.path, verify_blob=self.verify_blob)
 
 	@classmethod
 	def _on_unsupported_file_mode(cls, file: schema.File):

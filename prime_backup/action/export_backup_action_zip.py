@@ -9,9 +9,9 @@ from pathlib import Path
 from typing_extensions import override, Unpack
 
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
+from prime_backup.action.helpers.blob_exporter import BlobChunksGetter, ThreadSafeBlobChunksGetter
 from prime_backup.constants.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
-from prime_backup.db.session import DbSession
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.utils.io_types import SupportsReadBytes
 
@@ -25,7 +25,7 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 	def is_interruptable(self) -> bool:
 		return True
 
-	def __export_file(self, session: DbSession, zipf: zipfile.ZipFile, file: schema.File):
+	def __export_file(self, blob_chunks_getter: BlobChunksGetter, zipf: zipfile.ZipFile, file: schema.File):
 		# reference: zipf.writestr -> zipfile.ZipInfo.from_file
 		if file.mtime is not None:
 			date_time = time.localtime(file.mtime / 1e6)
@@ -50,7 +50,7 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 				with zipf.open(info, 'w') as zip_item:
 					shutil.copyfileobj(reader, zip_item)
 
-			self._create_blob_exporter(session, file).export_as_reader(reader_csm)
+			self._create_blob_exporter(blob_chunks_getter, file).export_as_reader(reader_csm)
 		elif stat.S_ISDIR(file.mode):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('add dir {} to zipfile'.format(file.path))
@@ -70,6 +70,7 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 		self.logger.info('Exporting backup {} to zipfile {}'.format(backup, self.output_path))
 		self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
+		ts_bcg = ThreadSafeBlobChunksGetter(session)
 		try:
 			with zipfile.ZipFile(self.output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
 				for file in session.get_backup_files(backup):
@@ -79,7 +80,7 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 
 					with failures.handling_exception(file):
 						try:
-							self.__export_file(session, zipf, file)
+							self.__export_file(ts_bcg, zipf, file)
 						except Exception as e:
 							self.logger.error('Export file {!r} to zip {} failed: {}'.format(file.path, self.output_path, e))
 							raise

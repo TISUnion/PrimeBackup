@@ -9,10 +9,10 @@ from typing import Union, BinaryIO, Generator
 from typing_extensions import override, Unpack
 
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
+from prime_backup.action.helpers.blob_exporter import BlobChunksGetter, ThreadSafeBlobChunksGetter
 from prime_backup.compressors import Compressor
 from prime_backup.constants.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
-from prime_backup.db.session import DbSession
 from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils import platform_utils
@@ -43,7 +43,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 				with tarfile.open(fileobj=f_compressed, mode=self.tar_format.value.mode_w) as tar:
 					yield tar
 
-	def __export_file(self, session: DbSession, tar: tarfile.TarFile, file: schema.File):
+	def __export_file(self, blob_chunks_getter: BlobChunksGetter, tar: tarfile.TarFile, file: schema.File):
 		info = tarfile.TarInfo(name=file.path)
 		info.mode = file.mode
 
@@ -66,7 +66,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 			def reader_csm(reader: SupportsReadBytes):
 				tar.addfile(tarinfo=info, fileobj=reader)
 
-			self._create_blob_exporter(session, file).export_as_reader(reader_csm)
+			self._create_blob_exporter(blob_chunks_getter, file).export_as_reader(reader_csm)
 		elif stat.S_ISDIR(file.mode):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('add dir {} to tarfile'.format(file.path))
@@ -97,6 +97,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		else:
 			self.logger.info('Exporting backup {} to given BinaryIO object'.format(backup))
 
+		ts_bcg = ThreadSafeBlobChunksGetter(session)
 		try:
 			with self.__open_tar() as tar:
 				for file in session.get_backup_files(backup):
@@ -106,7 +107,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 
 					with failures.handling_exception(file):
 						try:
-							self.__export_file(session, tar, file)
+							self.__export_file(ts_bcg, tar, file)
 						except Exception as e:
 							self.logger.error('Export file {!r} to tar {} failed: {}'.format(file.path, self.output_dest, e))
 							raise

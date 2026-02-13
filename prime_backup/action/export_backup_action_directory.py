@@ -14,6 +14,7 @@ from typing_extensions import override, Unpack
 
 from prime_backup import logger
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
+from prime_backup.action.helpers.blob_exporter import BlobChunksGetter, ThreadSafeBlobChunksGetter
 from prime_backup.constants import constants
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
@@ -206,14 +207,14 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			trash_bin.add(file_path, item.path)
 		file_path.parent.mkdir(parents=True, exist_ok=True)
 
-	def __export_file(self, session: DbSession, item: _ExportItem, exported_directories: 'queue.Queue[Tuple[schema.File, Path]]'):
+	def __export_file(self, blob_chunks_getter: BlobChunksGetter, item: _ExportItem, exported_directories: 'queue.Queue[Tuple[schema.File, Path]]'):
 		file = item.file
 		file_path = self.output_path / item.path
 
 		if stat.S_ISREG(file.mode):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('write file {}'.format(file.path))
-			self._create_blob_exporter(session, file).export_to_fs(file_path)
+			self._create_blob_exporter(blob_chunks_getter, file).export_to_fs(file_path)
 
 		elif stat.S_ISDIR(file.mode):
 			if self.LOG_FILE_CREATION:
@@ -283,12 +284,13 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 				with failures.handling_exception(item.file):
 					self.__prepare_for_export(item, export_temp_dir.trash_bin)
 
+			ts_bcg = ThreadSafeBlobChunksGetter(session)
 			directories: 'queue.Queue[Tuple[schema.File, Path]]' = queue.Queue()
 			with FailFastBlockingThreadPool('export') as pool:
 				def export_worker(item_: ExportBackupToDirectoryAction._ExportItem):
 					with failures.handling_exception(item_.file):
 						try:
-							self.__export_file(session, item_, directories)
+							self.__export_file(ts_bcg, item_, directories)
 						except Exception as e_:
 							self.logger.error('Export file {!r} to path {} failed: {}'.format(item_.file.path, item_.path, e_))
 							raise

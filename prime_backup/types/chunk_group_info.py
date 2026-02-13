@@ -29,5 +29,5 @@ class OffsetChunkGroupInfo:
 	chunk_group: ChunkGroupInfo
 
 	@classmethod
-	def of(cls, ocg: OffsetChunkGroup) -> 'OffsetChunkGroupInfo':
-		return cls(ocg.offset, ChunkGroupInfo.of(ocg.chunk_group))
+	def of(cls, offset_chunk_group: OffsetChunkGroup) -> 'OffsetChunkGroupInfo':
+		return cls(offset_chunk_group.offset, ChunkGroupInfo.of(offset_chunk_group.chunk_group))

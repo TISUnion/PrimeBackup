@@ -4,9 +4,10 @@ from typing import List, Dict
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.compressors import Compressor
+from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
+from prime_backup.db.values import BlobStorageMethod
 from prime_backup.types.blob_info import BlobInfo
 from prime_backup.types.file_info import FileInfo
 from prime_backup.utils import blob_utils, hash_utils
@@ -49,38 +50,52 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 		hash_to_blobs: Dict[str, BlobInfo] = {}  # store "good" blobs only
 
 		def validate_one_blob(blob: BlobInfo):
-			blob_path = blob_utils.get_blob_path(blob.hash)
-
-			if not blob_path.is_file():
-				result.missing.append(BadBlobItem(blob, 'blob file does not exist'))
+			if not blob.id:
+				result.invalid.append(BadBlobItem(blob, f'blob with invalid id {blob.id!r}'))
+				return
+			if blob.storage_method == BlobStorageMethod.unknown:
+				result.invalid.append(BadBlobItem(blob, 'blob with unknown storage_method'))
 				return
 
-			try:
-				# Notes: There are some codes that use `CompressMethod[blob.compress]`,
-				# which might fail hard if the blob.compress is invalid.
-				# Maybe we need to make them fail-proof somehow?
-				compressor = Compressor.create(blob.compress)
-			except ValueError:
-				result.invalid.append(BadBlobItem(blob, f'unknown compress method {blob.compress!r}'))
-				return
+			if blob.storage_method == BlobStorageMethod.direct:
+				blob_path = blob_utils.get_blob_path(blob.hash)
 
-			try:
-				with compressor.open_decompressed_bypassed(blob_path) as (reader, f_decompressed):
-					sah = hash_utils.calc_reader_size_and_hash(f_decompressed)
-			except Exception as e:
-				result.corrupted.append(BadBlobItem(blob, f'cannot read and decompress blob file: ({type(e)} {e}'))
-				return
+				if not blob_path.is_file():
+					result.missing.append(BadBlobItem(blob, 'blob file does not exist'))
+					return
 
-			file_size = reader.get_read_len()
-			if file_size != blob.stored_size:
-				result.mismatched.append(BadBlobItem(blob, f'stored size mismatch, expect {blob.stored_size}, found {file_size}'))
-				return
-			if sah.hash != blob.hash:
-				result.mismatched.append(BadBlobItem(blob, f'hash mismatch, expect {blob.hash}, found {sah.hash}'))
-				return
-			if sah.size != blob.raw_size:
-				result.mismatched.append(BadBlobItem(blob, f'raw size mismatch, expect {blob.raw_size}, found {sah.size}'))
-				return
+				try:
+					# Notes: There are some codes that use `CompressMethod[blob.compress]`,
+					# which might fail hard if the blob.compress is invalid.
+					# Maybe we need to make them fail-proof somehow?
+					compressor = Compressor.create(blob.compress)
+				except ValueError:
+					result.invalid.append(BadBlobItem(blob, f'unknown compress method {blob.compress!r}'))
+					return
+
+				try:
+					with compressor.open_decompressed_bypassed(blob_path) as (reader, f_decompressed):
+						sah = hash_utils.calc_reader_size_and_hash(f_decompressed)
+				except Exception as e:
+					result.corrupted.append(BadBlobItem(blob, f'cannot read and decompress blob file: ({type(e)} {e}'))
+					return
+
+				file_size = reader.get_read_len()
+				if file_size != blob.stored_size:
+					result.mismatched.append(BadBlobItem(blob, f'stored size mismatch, expect {blob.stored_size}, found {file_size}'))
+					return
+				if sah.hash != blob.hash:
+					result.mismatched.append(BadBlobItem(blob, f'hash mismatch, expect {blob.hash}, found {sah.hash}'))
+					return
+				if sah.size != blob.raw_size:
+					result.mismatched.append(BadBlobItem(blob, f'raw size mismatch, expect {blob.raw_size}, found {sah.size}'))
+					return
+			elif blob.storage_method == BlobStorageMethod.chunked:
+				if blob.compress != CompressMethod.plain:
+					result.corrupted.append(BadBlobItem(blob, f'the compress field of chunked blob should always be plain, found {blob.compress}'))
+				# NOTES: validation for the chunks are done in ValidateChunksAction
+			else:
+				raise AssertionError()
 
 			# it's a good blob
 			hash_to_blobs[blob.hash] = blob

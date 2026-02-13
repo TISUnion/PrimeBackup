@@ -69,7 +69,7 @@ class _CombinedChunksReader:
 
 		results: List[bytes] = []
 		total_read = 0
-		while (length < 0 or total_read < length) or self.idx < len(self.chunks):
+		while (length < 0 or total_read < length) and self.idx < len(self.chunks):
 			to_read = length - total_read
 			buf = self.chunks[self.idx].reader.read(to_read)
 			total_read += len(buf)
@@ -124,7 +124,7 @@ class BlobExporter:
 				bypass_reader: Optional[BypassReader] = None
 				with compressor.open_decompressed(chunk_path) as f_in:
 					if self.verify_blob:
-						bypass_reader = BypassReader(f_in, calc_hash=True)
+						bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=chunk_utils.get_hash_method())
 						shutil.copyfileobj(bypass_reader, f_out)
 					else:
 						shutil.copyfileobj(f_in, f_out)
@@ -179,7 +179,7 @@ class BlobExporter:
 					def verify_callback(br: BypassReader):
 						self.__verify_exported_chunk(oc.chunk, br.get_read_len(), br.get_hash())
 
-					bypass_reader = BypassReader(f_in, calc_hash=True)
+					bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=chunk_utils.get_hash_method())
 					to_read_chunks.append(_OpenedChunk(bypass_reader, functools.partial(verify_callback, bypass_reader)))
 				else:
 					to_read_chunks.append(_OpenedChunk(bypass_reader, lambda: None))

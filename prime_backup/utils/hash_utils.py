@@ -52,7 +52,8 @@ def calc_file_hash(path: Path, **kwargs) -> str:
 	return calc_file_size_and_hash(path, **kwargs).hash
 
 
-def calc_bytes_hash(buf: bytes) -> str:
-	hasher = create_hasher()
+def calc_bytes_hash(buf: bytes, hasher: Optional['Hasher'] = None) -> str:
+	if hasher is None:
+		hasher = create_hasher()
 	hasher.update(buf)
 	return hasher.hexdigest()

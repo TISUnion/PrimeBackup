@@ -1,7 +1,7 @@
 import dataclasses
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterator, TYPE_CHECKING, List, Union, Generator
+from typing import Iterator, TYPE_CHECKING, List, Generator
 
 from prime_backup.constants import chunk_constants
 from prime_backup.types.hash_method import HashMethod, Hasher
@@ -10,7 +10,13 @@ from prime_backup.utils import blob_utils, misc_utils
 if TYPE_CHECKING:
 	import pyfastcdc
 
-__HASHER_FACTORY = HashMethod[chunk_constants.HASH_METHOD].value.create_hasher
+
+__HASH_METHOD = HashMethod[chunk_constants.HASH_METHOD]
+__HASHER_FACTORY = __HASH_METHOD.value.create_hasher
+
+
+def get_hash_method() -> HashMethod:
+	return __HASH_METHOD
 
 
 def create_hasher() -> Hasher:

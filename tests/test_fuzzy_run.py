@@ -361,17 +361,26 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 
 	def __modify_file(self, file_path: Path) -> None:
 		old_size = file_path.stat().st_size
-		mod_type: str = self.rnd.choice(['append', 'truncate', 'rewrite', 'rebuild'])
+		mod_type: str = self.rnd.choice([
+			*(['append'] * 5),
+			'truncate', 'rewrite', 'rebuild'
+		])
 		self.logger.info(f'ENV: modify file {file_path}, mod_type: {mod_type}')
+		def get_random_len_for_data():
+			return self.rnd.randint(512, self.rnd.randint(512, self.rnd.randint(512, 1048576)))
 		if mod_type == 'append':
-			with open(file_path, 'ab') as f:
-				f.write(_randbytes(self.rnd, self.rnd.randint(512, 1024 * 10)))
+			current_size: int = file_path.stat().st_size
+			if current_size < 10 * 1048576:
+				with open(file_path, 'ab') as f:
+					f.write(_randbytes(self.rnd, get_random_len_for_data()))
 			_TestStats.get().file_append += 1
 		elif mod_type == 'truncate':
 			current_size: int = file_path.stat().st_size
 			if current_size > 1024:
+				mn = max(512, current_size // 2)
+				mx = max(mn, current_size - 512)
 				with open(file_path, 'ab') as f:
-					f.truncate(self.rnd.randint(512, current_size - 512))
+					f.truncate(self.rnd.randint(mn, mx))
 			_TestStats.get().file_truncate += 1
 		else:  # rewrite / rebuild
 			if mod_type == 'rebuild':
@@ -379,7 +388,7 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 				_TestStats.get().file_rebuild += 1
 			else:
 				_TestStats.get().file_rewrite += 1
-			file_content = self.__file_gen.generate(0, self.rnd.randint(0, 1024 * 100))
+			file_content = self.__file_gen.generate(0, get_random_len_for_data())
 			with open(file_path, 'wb') as f:
 				f.write(file_content)
 		random_time: float = time.time() - self.rnd.randint(0, 7 * 24 * 3600)
@@ -455,6 +464,9 @@ class FuzzyRunTestCase(unittest.TestCase):
 		Config.get().backup.targets = [env_dir.name]
 		Config.get().backup.hash_method = HashMethod.xxh128
 		Config.get().backup.compress_method = CompressMethod.plain
+		Config.get().backup.cdc_enabled = True
+		Config.get().backup.cdc_file_size_threshold = 1 * 1048756  # 1MiB
+		Config.get().backup.cdc_patterns = ['**']
 		DbAccess.init(create=True, migrate=False)
 
 		with contextlib.ExitStack() as es:
@@ -632,6 +644,10 @@ class FuzzyRunTestCase(unittest.TestCase):
 			db_overview = GetDbOverviewAction().run()
 			self.logger.info(f'Checking if the database is empty: {db_overview}')
 			self.assertEqual(0, db_overview.blob_count)
+			self.assertEqual(0, db_overview.chunk_count)
+			self.assertEqual(0, db_overview.chunk_group_count)
+			self.assertEqual(0, db_overview.chunk_group_chunk_binding_count)
+			self.assertEqual(0, db_overview.blob_chunk_group_binding_count)
 			self.assertEqual(0, db_overview.file_object_count)
 			self.assertEqual(0, db_overview.file_total_count)
 			self.assertEqual(0, db_overview.fileset_count)

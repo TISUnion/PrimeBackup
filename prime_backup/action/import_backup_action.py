@@ -6,7 +6,7 @@ from typing import IO, Optional, List, Dict, Tuple
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.action.helpers import create_backup_utils
+from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.packed_backup_file_reader import PackedBackupFileReader, TarBackupReader, ZipBackupReader, PackedBackupFileMember, PackedBackupFileHolder
 from prime_backup.compressors import Compressor, CompressMethod
@@ -192,7 +192,7 @@ class ImportBackupAction(Action[BackupInfo]):
 
 			files.append(file)
 
-		create_backup_utils.finalize_backup_and_files(self.config, session, backup, files)
+		BackupFinalizer(session).finalize_files_and_backup(backup, files)
 		return backup
 
 	@override

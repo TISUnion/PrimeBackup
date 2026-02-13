@@ -522,6 +522,8 @@ class DbSession:
 		role: int
 		mode: int
 		content: Optional[bytes]
+		blob_id: NotRequired[Optional[int]]
+		blob_storage_method: NotRequired[Optional[int]]
 		blob_hash: NotRequired[Optional[str]]
 		blob_compress: NotRequired[Optional[str]]
 		blob_raw_size: NotRequired[Optional[int]]
@@ -534,6 +536,8 @@ class DbSession:
 	def create_file(cls, *, blob: Optional[schema.Blob] = None, **kwargs: Unpack[CreateFileKwargs]) -> schema.File:
 		if blob is not None:
 			kwargs.update(
+				blob_id=blob.id,
+				blob_storage_method=blob.storage_method,
 				blob_hash=blob.hash,
 				blob_compress=blob.compress,
 				blob_raw_size=blob.raw_size,

@@ -1,17 +1,11 @@
 import contextlib
 import enum
 from pathlib import Path
-from typing import Generator, Literal, BinaryIO, TYPE_CHECKING, List, Dict
+from typing import Generator, Literal, BinaryIO
 
 from typing_extensions import Self
 
-from prime_backup.action.helpers.fileset_allocator import FilesetAllocateArgs, FilesetAllocator
-from prime_backup.db import schema
-from prime_backup.db.session import DbSession
 from prime_backup.utils.path_like import PathLike
-
-if TYPE_CHECKING:
-	from prime_backup.config.config import Config
 
 
 class TimeCostKey(enum.Enum):
@@ -60,23 +54,3 @@ def remove_file(file_to_remove: Path, *, what: str):
 	except OSError as e:
 		from prime_backup import logger
 		logger.get().error('({}) remove file {!r} failed: {}'.format(what, file_to_remove, e))
-
-
-def finalize_backup_and_files(config: 'Config', session: DbSession, backup: schema.Backup, files: List[schema.File]):
-	allocate_args = FilesetAllocateArgs.from_config(config)
-	allocate_result = FilesetAllocator(session, files).allocate(allocate_args)
-	fs_base, fs_delta = allocate_result.fileset_base, allocate_result.fileset_delta
-
-	backup.fileset_id_base = fs_base.id
-	backup.fileset_id_delta = fs_delta.id
-	backup.file_count = fs_base.file_count + fs_delta.file_count
-	backup.file_raw_size_sum = fs_base.file_raw_size_sum + fs_delta.file_raw_size_sum
-	backup.file_stored_size_sum = fs_base.file_stored_size_sum + fs_delta.file_stored_size_sum
-
-	session.add(backup)
-	session.flush()  # this generates backup.id
-
-
-def finalize_blob_and_chunks(session: DbSession, blob: schema.Blob, blob_chunks: Dict[int, schema.Chunk]):
-	from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
-	ChunkGrouper(session).create_chunk_groups(blob, blob_chunks)

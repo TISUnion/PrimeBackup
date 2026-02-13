@@ -8,7 +8,7 @@ from typing_extensions import Self
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
-from prime_backup.db.values import FileRole
+from prime_backup.db.values import FileRole, BlobStorageMethod
 from prime_backup.types.blob_info import BlobInfo, BlobListSummary
 from prime_backup.utils import misc_utils
 
@@ -57,7 +57,14 @@ class FileInfo:
 				from prime_backup import logger
 				logger.get().warning('Bad blob_compress {!r} for file {!r}'.format(file.blob_compress, file))
 			else:
+				try:
+					storage_method = BlobStorageMethod(file.blob_storage_method)
+				except (KeyError, ValueError):
+					storage_method = BlobStorageMethod.unknown
+
 				blob = BlobInfo(
+					id=file.blob_id,
+					storage_method=storage_method,
 					hash=str(file.blob_hash),
 					compress=CompressMethod[file.blob_compress],
 					raw_size=file.blob_raw_size,

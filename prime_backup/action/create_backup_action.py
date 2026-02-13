@@ -11,7 +11,7 @@ import pathspec
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.action.helpers import create_backup_utils
+from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
 from prime_backup.action.helpers.blob_allocator import BlobAllocator, GetOrCreateBlobResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.create_backup_utils import TimeCostKey, SourceFileNotFoundWrapper
@@ -233,6 +233,8 @@ class CreateBackupAction(Action[BackupInfo]):
 				role=FileRole.unknown.value,
 				mode=sqlalchemy_utils.mapped_cast(reused_file.mode),
 				content=sqlalchemy_utils.mapped_cast(reused_file.content),
+				blob_id=sqlalchemy_utils.mapped_cast(reused_file.blob_id),
+				blob_storage_method=sqlalchemy_utils.mapped_cast(reused_file.blob_storage_method),
 				blob_hash=sqlalchemy_utils.mapped_cast(reused_file.blob_hash),
 				blob_compress=sqlalchemy_utils.mapped_cast(reused_file.blob_compress),
 				blob_raw_size=sqlalchemy_utils.mapped_cast(reused_file.blob_raw_size),
@@ -329,7 +331,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			])
 
 		with self.__time_costs.measure_time_cost(TimeCostKey.stage_finalize):
-			create_backup_utils.finalize_backup_and_files(self.config, session, backup, files)
+			BackupFinalizer(session).finalize_files_and_backup(backup, files)
 		info = BackupInfo.of(backup)
 
 		with self.__time_costs.measure_time_cost(TimeCostKey.stage_flush_db, TimeCostKey.kind_db):

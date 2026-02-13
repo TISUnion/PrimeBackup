@@ -17,6 +17,7 @@ from typing_extensions import NoReturn, override
 
 from prime_backup.action.helpers import create_backup_utils
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
+from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
 from prime_backup.action.helpers.create_backup_utils import TimeCostKey, SourceFileNotFoundWrapper
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
@@ -525,7 +526,7 @@ class BlobAllocator:
 			self.session.flush()  # creates blob.id, chunk.id
 
 		chunk_hash_chunk = {db_chunk.hash: db_chunk for db_chunk in known_db_chunks.values()}
-		create_backup_utils.finalize_blob_and_chunks(self.session, blob, {
+		ChunkGrouper(self.session).create_chunk_groups(blob, {
 			offset: chunk_hash_chunk[chunk_hash]
 			for offset, chunk_hash in offset_to_chunk_hash.items()
 		})

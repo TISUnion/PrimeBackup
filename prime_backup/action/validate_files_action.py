@@ -100,6 +100,10 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 				blob = hash_to_blob.get(file_blob.hash)
 				if blob is None:
 					result.add_bad(file, BadFileItemType.file_blob_mismatched, f'file with missing blob {file_blob.hash}')
+				elif file_blob.id != blob.id:
+					result.add_bad(file, BadFileItemType.file_blob_mismatched, f'mismatched blob data, blob id should be {blob.id}, but file blob id is {file_blob.id}')
+				elif file_blob.storage_method != blob.storage_method:
+					result.add_bad(file, BadFileItemType.file_blob_mismatched, f'mismatched blob data, blob storage_method should be {blob.storage_method}, but file blob storage_method is {file_blob.storage_method}')
 				elif file_blob.hash != blob.hash:
 					result.add_bad(file, BadFileItemType.file_blob_mismatched, f'mismatched blob data, blob hash should be {blob.hash}, but file blob hash is {file_blob.hash}')
 				elif file_blob.compress.name != blob.compress:

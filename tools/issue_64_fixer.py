@@ -2,6 +2,7 @@
 """
 https://github.com/TISUnion/PrimeBackup/issues/64
 Tested and works with Prime Backup v1.9.4
+TODO: do not allow PB > v1.13 to use this
 """
 import argparse
 import collections

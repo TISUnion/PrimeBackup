@@ -36,7 +36,7 @@ class Blob(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-	storage_method: Mapped[int] = mapped_column(Integer, default=0)  # see enum BlobStorageMethod
+	storage_method: Mapped[int] = mapped_column(Integer)  # see enum BlobStorageMethod
 
 	hash: Mapped[str] = mapped_column(String, unique=True)
 	compress: Mapped[str] = mapped_column(String)
@@ -117,12 +117,15 @@ class File(Base):
 	# whole file content for special files, e.g. target of symlink
 	content: Mapped[Optional[bytes]] = mapped_column(LargeBinary)
 
-	# store all Blob fields here to speed up blob attribute accessing
+	# associated Blob object, and all the blob's fields
+	blob_id: Mapped[Optional[int]] = mapped_column(ForeignKey('blob.id'), index=True)
+	blob_storage_method: Mapped[Optional[int]] = mapped_column(Integer)  # see enum BlobStorageMethod
 	blob_hash: Mapped[Optional[str]] = mapped_column(ForeignKey('blob.hash'), index=True)
 	blob_compress: Mapped[Optional[str]] = mapped_column(String)
 	blob_raw_size: Mapped[Optional[int]] = mapped_column(BigInteger)
 	blob_stored_size: Mapped[Optional[int]] = mapped_column(BigInteger)
 
+	# other file meta
 	uid: Mapped[Optional[int]] = mapped_column(Integer)
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
 	mtime: Mapped[Optional[int]] = mapped_column(BigInteger)  # timestamp in us

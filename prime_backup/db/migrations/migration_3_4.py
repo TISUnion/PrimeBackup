@@ -1,6 +1,7 @@
 import dataclasses
 import time
 from pathlib import Path
+from typing import Dict
 
 from sqlalchemy import text, inspect, Engine
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from typing_extensions import override
 
 from prime_backup.db import schema
 from prime_backup.db.migrations import MigrationImplBase
+from prime_backup.db.values import BlobStorageMethod
 
 
 class _V4:
@@ -18,6 +20,7 @@ class _V4:
 	ChunkGroup = schema.ChunkGroup
 	ChunkGroupChunkBinding = schema.ChunkGroupChunkBinding
 	BlobChunkGroupBinding = schema.BlobChunkGroupBinding
+	File = schema.File
 
 
 @dataclasses.dataclass
@@ -56,27 +59,60 @@ class MigrationImpl3To4(MigrationImplBase):
 		inspector = inspect(self.engine)
 		if 'old_blob_3to4' not in inspector.get_table_names():
 			self.session.execute(text('CREATE TABLE old_blob_3to4 AS SELECT * FROM blob'))
+		if 'old_file_3to4' not in inspector.get_table_names():
+			self.session.execute(text('CREATE TABLE old_file_3to4 AS SELECT * FROM file'))
 		self.session.execute(text('DROP TABLE IF EXISTS blob'))
+		self.session.execute(text('DROP TABLE IF EXISTS file'))
 
 		self.logger.info('Creating the new chunk tables')
 		_V4.Base.metadata.create_all(self.engine, tables=[
 			_V4.Base.metadata.tables[declarative.__tablename__]
 			for declarative in [
+				_V4.Base,
 				_V4.Chunk,
 				_V4.ChunkGroup,
 				_V4.ChunkGroupChunkBinding,
 				_V4.BlobChunkGroupBinding,
+				_V4.File,
 			]
 		])
 
 	def __step_rebuild(self):
-		# rebuild blobs
-		self.session.execute(text('''
-			INSERT INTO blob (storage_method, hash, compress, raw_size, stored_size)
-			SELECT 1, hash, compress, raw_size, stored_size
-			FROM old_blob_3to4
-		'''))
+		def get_mapped_insert_sql(src_table: str, dst_table: str, mapping: Dict[str, str]):
+			select_fields = ', '.join(mapping.keys())
+			insert_fields = ', '.join(mapping.values())
+			sql = f'''
+				INSERT INTO {dst_table} ({select_fields})
+				SELECT ({insert_fields})
+				FROM {src_table}
+			'''
+			self.logger.debug('mapped insert {} -> {}: {!r}'.format(src_table, dst_table, sql))
+			return text(sql)
 
+		# rebuild blobs
+		self.session.execute(get_mapped_insert_sql('old_blob_3to4', 'blob', {
+			'storage_method': str(BlobStorageMethod.direct.value),
+			**{name: name for name in ['hash', 'compress', 'raw_size', 'stored_size']},
+		}))
+
+		# rebuild files
+		self.session.execute(get_mapped_insert_sql('old_file_3to4', 'file', {
+			**{name: name for name in ['fileset_id', 'path', 'role', 'mode', 'content']},
+			'blob_id': 'NULL',
+			'blob_storage_method': str(BlobStorageMethod.direct.value),
+			**{name: name for name in [
+				'blob_hash', 'blob_compress', 'blob_raw_size', 'blob_stored_size',
+				'uid', 'gid', 'mtime',
+			]},
+		}))
+		self.session.execute(text('''
+			UPDATE file SET blob_id = (
+			SELECT blob.id
+				FROM blob
+				WHERE blob.hash = file.blob_hash
+			)
+			WHERE file.blob_hash IS NOT NULL
+		'''))
 		# TODO: rebuild mtime?
 
 	def __step_cleanup_and_report(self):
@@ -87,6 +123,8 @@ class MigrationImpl3To4(MigrationImplBase):
 		))
 		self.logger.info('Cleaning up')
 		self.session.execute(text('DROP TABLE old_blob_3to4'))
+		self.session.execute(text('DROP TABLE old_file_3to4'))
 
 		cnt_blob = self.session.execute(text(f'SELECT COUNT(*) FROM blob')).scalar_one()
-		self.logger.info('Done. Reconstructed {} blobs in total'.format(cnt_blob))
+		cnt_file = self.session.execute(text(f'SELECT COUNT(*) FROM file')).scalar_one()
+		self.logger.info('Done. Reconstructed {} blobs, {} files in total'.format(cnt_blob, cnt_file))

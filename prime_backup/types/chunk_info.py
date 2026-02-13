@@ -6,6 +6,7 @@ from typing_extensions import Self
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
+from prime_backup.db.values import OffsetChunk
 from prime_backup.utils import misc_utils
 
 
@@ -34,6 +35,16 @@ class ChunkInfo:
 	def chunk_file_path(self) -> Path:
 		from prime_backup.utils import chunk_utils
 		return chunk_utils.get_chunk_path(self.hash)
+
+
+@dataclasses.dataclass(frozen=True)
+class OffsetChunkInfo:
+	offset: int
+	chunk: ChunkInfo
+
+	@classmethod
+	def of(cls, oc: OffsetChunk) -> 'OffsetChunkInfo':
+		return cls(oc.offset, ChunkInfo.of(oc.chunk))
 
 
 @dataclasses.dataclass

@@ -2,7 +2,7 @@ import dataclasses
 import functools
 import shutil
 from pathlib import Path
-from typing import Optional, Callable, Any, Dict, IO, ContextManager, List
+from typing import Optional, Callable, Any, IO, ContextManager, List
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.compressors import Compressor
@@ -11,7 +11,6 @@ from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import VerificationError
 from prime_backup.types.blob_info import BlobInfo
-from prime_backup.types.file_info import FileInfo
 from prime_backup.utils import blob_utils, chunk_utils
 from prime_backup.utils import file_utils, hash_utils
 from prime_backup.utils.bypass_io import BypassReader
@@ -119,9 +118,9 @@ class BlobExporter:
 		blob_chunks = self.session.list_blob_chunks(self.blob.id)
 
 		with open(output_path, 'wb') as f_out:
-			for chunk in blob_chunks.values():
-				compressor = Compressor.create(chunk.compress)
-				chunk_path = chunk_utils.get_chunk_path(chunk.hash)
+			for oc in blob_chunks:
+				compressor = Compressor.create(oc.chunk.compress)
+				chunk_path = chunk_utils.get_chunk_path(oc.chunk.hash)
 				bypass_reader: Optional[BypassReader] = None
 				with compressor.open_decompressed(chunk_path) as f_in:
 					if self.verify_blob:
@@ -131,7 +130,7 @@ class BlobExporter:
 						shutil.copyfileobj(f_in, f_out)
 
 				if self.verify_blob and bypass_reader is not None:
-					self.__verify_exported_chunk(chunk, bypass_reader.get_read_len(), bypass_reader.get_hash())
+					self.__verify_exported_chunk(oc.chunk, bypass_reader.get_read_len(), bypass_reader.get_hash())
 
 	def export_as_reader(self, reader_csm: Callable[[SupportsReadBytes], Any]):
 		if self.blob.storage_method == BlobStorageMethod.direct:
@@ -168,9 +167,9 @@ class BlobExporter:
 		chunk_cm_list: List[ContextManager[IO[bytes]]] = []
 		try:
 			to_read_chunks: List[_OpenedChunk] = []
-			for chunk in blob_chunks.values():
-				compressor = Compressor.create(chunk.compress)
-				chunk_path = chunk_utils.get_chunk_path(chunk.hash)
+			for oc in blob_chunks:
+				compressor = Compressor.create(oc.chunk.compress)
+				chunk_path = chunk_utils.get_chunk_path(oc.chunk.hash)
 				bypass_reader: Optional[BypassReader] = None
 
 				f_in_cm: ContextManager[IO[bytes]] = compressor.open_decompressed(chunk_path)
@@ -178,7 +177,7 @@ class BlobExporter:
 				chunk_cm_list.append(f_in_cm)
 				if self.verify_blob:
 					def verify_callback(br: BypassReader):
-						self.__verify_exported_chunk(chunk, br.get_read_len(), br.get_hash())
+						self.__verify_exported_chunk(oc.chunk, br.get_read_len(), br.get_hash())
 
 					bypass_reader = BypassReader(f_in, calc_hash=True)
 					to_read_chunks.append(_OpenedChunk(bypass_reader, functools.partial(verify_callback, bypass_reader)))

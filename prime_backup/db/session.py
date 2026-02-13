@@ -1,7 +1,6 @@
 import contextlib
 import dataclasses
 import functools
-import operator
 import shutil
 import sqlite3
 import time
@@ -14,8 +13,8 @@ from sqlalchemy.orm import Session
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
-from prime_backup.db.values import FileRole, BackupTagDict, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, ChunkNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound
+from prime_backup.db.values import FileRole, BackupTagDict, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, OffsetChunk, OffsetChunkGroup
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.utils import collection_utils, db_utils, validation_utils
 
@@ -452,9 +451,9 @@ class DbSession:
 			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
 		).scalars().all())
 
-	def list_chunk_group_chunks(self, chunk_group_id: int) -> Dict[int, schema.Chunk]:
+	def list_chunk_group_chunks(self, chunk_group_id: int) -> List[OffsetChunk]:
 		"""
-		offset (sorted) -> chunk
+		result is sorted
 		"""
 		stmt = (
 			select(schema.ChunkGroupChunkBinding.chunk_offset, schema.Chunk).
@@ -462,7 +461,7 @@ class DbSession:
 			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
 		)
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
-		return {offset: chunk for offset, chunk in sorted(result, key=operator.itemgetter(0))}
+		return sorted(OffsetChunk(offset, chunk) for offset, chunk in result)
 
 	def delete_chunk_group_chunk_bindings(self, identifiers: List[Union[schema.ChunkGroupChunkBinding, ChunkGroupChunkBindingIdentifier]]):
 		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit):
@@ -500,9 +499,9 @@ class DbSession:
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
 		).scalars().all())
 
-	def list_blob_chunk_groups(self, blob_id: int) -> Dict[int, schema.Chunk]:
+	def list_blob_chunk_groups(self, blob_id: int) -> List[OffsetChunkGroup]:
 		"""
-		offset (sorted) -> chunk group
+		result is sorted
 		"""
 		stmt = (
 			select(schema.BlobChunkGroupBinding.chunk_group_offset, schema.ChunkGroup).
@@ -510,11 +509,11 @@ class DbSession:
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
 		)
 		result: Sequence[Row[Tuple[int, schema.ChunkGroup]]] = self.session.execute(stmt).all()
-		return {offset: chunk_group for offset, chunk_group in sorted(result, key=operator.itemgetter(0))}
+		return sorted(OffsetChunkGroup(offset, chunk_group) for offset, chunk_group in result)
 
-	def list_blob_chunks(self, blob_id: int) -> Dict[int, schema.Chunk]:
+	def list_blob_chunks(self, blob_id: int) -> List[OffsetChunk]:
 		"""
-		offset (sorted) -> chunk
+		result is sorted
 		"""
 		stmt = (
 			select(
@@ -534,7 +533,7 @@ class DbSession:
 		)
 
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
-		return {offset: chunk for offset, chunk in sorted(result, key=operator.itemgetter(0))}
+		return sorted(OffsetChunk(offset, chunk) for offset, chunk in result)
 
 	def delete_blob_chunk_group_bindings(self, identifiers: List[Union[schema.BlobChunkGroupBinding, BlobChunkGroupBindingIdentifier]]):
 		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit):

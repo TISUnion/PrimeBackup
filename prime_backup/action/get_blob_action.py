@@ -18,7 +18,7 @@ class GetBlobByHashAction(Action[BlobInfo]):
 	@override
 	def run(self) -> BlobInfo:
 		"""
-		:raise: BlobNotFound
+		:raise: BlobHashNotFound
 		"""
 		with DbAccess.open_session() as session:
 			blob = session.get_blob_by_hash(self.blob_hash)
@@ -37,7 +37,7 @@ class GetBlobByHashPrefixAction(Action[BlobInfo]):
 	@override
 	def run(self) -> BlobInfo:
 		"""
-		:raise: BlobNotFound or BlobHashNotUnique
+		:raise: BlobHashNotFound or BlobHashNotUnique
 		"""
 		with DbAccess.open_session() as session:
 			blobs = session.list_blob_with_hash_prefix(self.blob_hash_prefix, limit=3)

@@ -1,6 +1,7 @@
 import dataclasses
 
 from prime_backup.db import schema
+from prime_backup.db.values import OffsetChunkGroup
 
 
 @dataclasses.dataclass(frozen=True)
@@ -23,3 +24,13 @@ class ChunkGroupInfo:
 			chunk_raw_size_sum=chunk_group.chunk_raw_size_sum,
 			chunk_stored_size_sum=chunk_group.chunk_stored_size_sum,
 		)
+
+
+@dataclasses.dataclass(frozen=True)
+class OffsetChunkGroupInfo:
+	offset: int
+	chunk_group: ChunkGroupInfo
+
+	@classmethod
+	def of(cls, ocg: OffsetChunkGroup) -> 'OffsetChunkGroupInfo':
+		return cls(ocg.offset, ChunkGroupInfo.of(ocg.chunk_group))

@@ -1,6 +1,9 @@
 import dataclasses
 import enum
-from typing import Dict, Any, List
+from typing import Dict, Any, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+	from prime_backup.db import schema
 
 BackupTagDict = Dict[str, Any]
 
@@ -9,6 +12,24 @@ class BlobStorageMethod(enum.IntEnum):
 	unknown = 0
 	direct = 1   # at blob store (regular method)
 	chunked = 2  # at chunk store (cdc chunked)
+
+
+@dataclasses.dataclass(frozen=True)
+class OffsetChunk:
+	offset: int
+	chunk: 'schema.Chunk'
+
+	def __lt__(self, other: 'OffsetChunk'):
+		return self.offset < other.offset
+
+
+@dataclasses.dataclass(frozen=True)
+class OffsetChunkGroup:
+	offset: int
+	chunk_group: 'schema.ChunkGroup'
+
+	def __lt__(self, other: 'OffsetChunkGroup'):
+		return self.offset < other.offset
 
 
 @dataclasses.dataclass(frozen=True)

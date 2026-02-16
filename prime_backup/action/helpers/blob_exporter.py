@@ -208,17 +208,19 @@ class BlobExporter:
 			for oc in blob_chunks:
 				compressor = Compressor.create(oc.chunk.compress)
 				chunk_path = chunk_utils.get_chunk_path(oc.chunk.hash)
-				bypass_reader: Optional[BypassReader] = None
 
 				with compressor.open_decompressed(chunk_path) as f_in:
+					peek_reader = _PeekReader(f_in, 32 * 1024)
+					peek_reader.peek()
+
 					if self.verify_blob:
 						def verify_callback(ck: schema.Chunk, br: BypassReader):
 							self.__verify_exported_chunk(ck, br.get_read_len(), br.get_hash())
 
-						bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=chunk_utils.get_hash_method())
+						bypass_reader = BypassReader(peek_reader, calc_hash=True, hash_method=chunk_utils.get_hash_method())
 						yield _OpenedChunk(bypass_reader, functools.partial(verify_callback, oc.chunk, bypass_reader))
 					else:
-						yield _OpenedChunk(bypass_reader, lambda: None)
+						yield _OpenedChunk(peek_reader, lambda: None)
 
 				nonlocal exit_flag
 				if exit_flag:
@@ -227,9 +229,7 @@ class BlobExporter:
 		exit_flag = False
 		chunk_gen = open_chunk_gen()
 		try:
-			peek_reader = _PeekReader(_CombinedChunksReader(chunk_gen), 32 * 1024)
-			peek_reader.peek()
-			reader_csm(peek_reader)
+			reader_csm(_CombinedChunksReader(chunk_gen))
 		finally:
 			# ensure possible opened chunk file is closed
 			exit_flag = True

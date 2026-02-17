@@ -422,7 +422,7 @@ class BlobAllocator:
 				raise AssertionError('bad policy {!r}'.format(policy))
 
 			chunker = chunk_utils.FileChunker(actual_path_to_read, need_entire_file_hash=True)
-			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read_cdc) as cdc_cost:
+			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as cdc_cost:
 				chunks = chunker.cut_all()
 			blob_hash = chunker.get_entire_file_hash()
 			blob_size = chunker.get_read_file_size()

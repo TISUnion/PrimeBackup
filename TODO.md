@@ -17,6 +17,7 @@ CDC chunking
 - [ ] DB Validation tasks
 - [ ] Performance optimization
 - [ ] Fuse support
+- [ ] TODO cleanup
 - [ ] Document
 
 ## QOL

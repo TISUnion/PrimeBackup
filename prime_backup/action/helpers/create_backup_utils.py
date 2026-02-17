@@ -8,7 +8,7 @@ from typing_extensions import Self
 from prime_backup.utils.path_like import PathLike
 
 
-class TimeCostKey(enum.Enum):
+class CreateBackupTimeCostKey(enum.Enum):
 	kind_db = enum.auto()
 	kind_fs = enum.auto()
 	kind_io_read = enum.auto()

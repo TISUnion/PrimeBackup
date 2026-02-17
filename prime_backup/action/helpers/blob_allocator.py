@@ -18,7 +18,7 @@ from typing_extensions import NoReturn, override
 from prime_backup.action.helpers import create_backup_utils
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
-from prime_backup.action.helpers.create_backup_utils import TimeCostKey, SourceFileNotFoundWrapper
+from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
@@ -62,7 +62,7 @@ class BatchFetcherBase(ABC):
 	Callback = Callable
 	tasks: dict
 
-	def __init__(self, session: DbSession, max_batch_size: int, time_costs: TimeCostStats[TimeCostKey]):
+	def __init__(self, session: DbSession, max_batch_size: int, time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		self.session = session
 		self.max_batch_size = max_batch_size
 		self.first_task_scheduled_time = time.time()
@@ -99,7 +99,7 @@ class BlobBySizeFetcher(BatchFetcherBase):
 	Callback = Callable[[Rsp], None]
 	tasks: Dict[int, List[Callback]]
 
-	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[int, bool], time_costs: TimeCostStats[TimeCostKey]):
+	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[int, bool], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		super().__init__(session, max_batch_size, time_costs)
 		self.tasks: List[Tuple[int, BlobBySizeFetcher.Callback]] = []
 		self.sizes: Set[int] = set()
@@ -112,7 +112,7 @@ class BlobBySizeFetcher(BatchFetcherBase):
 
 	@override
 	def _batch_run(self):
-		with self.time_costs.measure_time_cost(TimeCostKey.kind_db):
+		with self.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 			existence = self.session.has_blob_with_size_batched(list(self.sizes))
 		self.result_cache.update(existence)
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
@@ -134,7 +134,7 @@ class BlobByHashFetcher(BatchFetcherBase):
 	Callback = Callable[[Rsp], None]
 	tasks: Dict[str, List[Callback]]
 
-	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[str, schema.Blob], time_costs: TimeCostStats[TimeCostKey]):
+	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[str, schema.Blob], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		super().__init__(session, max_batch_size, time_costs)
 		self.tasks: List[Tuple[str, BlobByHashFetcher.Callback]] = []
 		self.hashes: Set[str] = set()
@@ -147,7 +147,7 @@ class BlobByHashFetcher(BatchFetcherBase):
 
 	@override
 	def _batch_run(self):
-		with self.time_costs.measure_time_cost(TimeCostKey.kind_db):
+		with self.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 			blobs = self.session.get_blobs_by_hashes(list(self.hashes))
 		self.result_cache.update(blobs)
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
@@ -162,7 +162,7 @@ BqmRsp = Union[BlobBySizeFetcher.Rsp, BlobByHashFetcher.Rsp]
 
 
 class BatchQueryManager:
-	def __init__(self, session: DbSession, size_result_cache: dict, hash_result_cache: dict, time_costs: TimeCostStats[TimeCostKey], *, max_batch_size: int = 100):
+	def __init__(self, session: DbSession, size_result_cache: dict, hash_result_cache: dict, time_costs: TimeCostStats[CreateBackupTimeCostKey], *, max_batch_size: int = 100):
 		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size, size_result_cache, time_costs)
 		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size, hash_result_cache, time_costs)
 
@@ -198,7 +198,7 @@ class BlobAllocator:
 	def __init__(
 			self,
 			session: DbSession,
-			time_costs: TimeCostStats[TimeCostKey],
+			time_costs: TimeCostStats[CreateBackupTimeCostKey],
 			blob_recorder: BlobRecorder,
 			source_path: Path,
 			temp_path: Path,
@@ -262,7 +262,7 @@ class BlobAllocator:
 		elif not can_copy_on_write:  # do tricks iff. no COW copy
 			if st.st_size <= _READ_ALL_SIZE_THRESHOLD:
 				policy = _DirectBlobCreatePolicy.read_all
-				with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_read):
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 					with SourceFileNotFoundWrapper.open_rb(src_path, 'rb') as f:
 						blob_content = f.read(_READ_ALL_SIZE_THRESHOLD + 1)
 				if len(blob_content) > _READ_ALL_SIZE_THRESHOLD:
@@ -281,7 +281,7 @@ class BlobAllocator:
 					policy = _DirectBlobCreatePolicy.hash_once
 		if policy is None:
 			policy = _DirectBlobCreatePolicy.default
-			with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_read):
+			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 				with SourceFileNotFoundWrapper.wrap(src_path):
 					blob_hash = hash_utils.calc_file_hash(src_path)
 
@@ -319,9 +319,9 @@ class BlobAllocator:
 			# copy to temp file, calc hash, then compress to blob store
 			misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
 			with self.__make_temp_file(src_path_md5) as temp_file_path:
-				with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_copy):
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 					file_utils.copy_file_fast(src_path, temp_file_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
-				with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_read):
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 					tmp_size, blob_hash = hash_utils.calc_file_size_and_hash(temp_file_path)
 
 				misc_utils.assert_true(last_chance, 'only last_chance=True is allowed for the copy_hash policy')
@@ -332,7 +332,7 @@ class BlobAllocator:
 					return cache
 
 				blob_path = get_blob_path_for_write(blob_hash)
-				with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_copy):
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 					cr = compressor.copy_compressed(temp_file_path, blob_path, calc_hash=False)
 				raw_size, stored_size = cr.read_size, cr.write_size
 
@@ -340,7 +340,7 @@ class BlobAllocator:
 			# read once, compress+hash to temp file, then move
 			misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
 			with self.__make_temp_file(src_path_md5) as temp_file_path:
-				with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_copy):
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True, open_r_func=SourceFileNotFoundWrapper.open_rb)
 				check_changes(cr.read_size, None)  # the size must be unchanged, to satisfy the uniqueness
 
@@ -349,13 +349,13 @@ class BlobAllocator:
 
 				# reference: shutil.move, but os.replace is used
 				try:
-					with self.__time_costs.measure_time_cost(TimeCostKey.kind_fs):
+					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_fs):
 						os.replace(temp_file_path, blob_path)
 				except OSError:
 					# The temp dir is in the different file system to the blob store?
 					# Whatever, use file copy as the fallback
 					# the temp file will be deleted automatically
-					with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_copy):
+					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 						file_utils.copy_file_fast(temp_file_path, blob_path)
 
 		else:
@@ -365,21 +365,21 @@ class BlobAllocator:
 			if policy == _DirectBlobCreatePolicy.read_all:
 				# the file content is already in memory, just write+compress to blob store
 				misc_utils.assert_true(blob_content is not None, 'blob_content is None')
-				with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_write):
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
 					with compressor.open_compressed_bypassed(blob_path) as (writer, f):
 						f.write(blob_content)
 				raw_size, stored_size = len(blob_content), writer.get_write_len()
 			elif policy == _DirectBlobCreatePolicy.default:
 				if can_copy_on_write and compress_method == CompressMethod.plain:
 					# fast copy, then calc size and hash to verify
-					with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_copy):
+					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 						file_utils.copy_file_fast(src_path, blob_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
-					with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_read):
+					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 						actual_sah = hash_utils.calc_file_size_and_hash(blob_path)
 					raw_size = stored_size = actual_sah.size
 				else:
 					# copy+compress+hash to blob store
-					with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_copy):
+					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True, open_r_func=SourceFileNotFoundWrapper.open_rb)
 					raw_size, stored_size = cr.read_size, cr.write_size
 					actual_sah = SizeAndHash(cr.read_size, cr.read_hash)
@@ -415,14 +415,14 @@ class BlobAllocator:
 			elif policy == _ChunkedBlobCreatePolicy.copy_hash:
 				# copy to temp file, then do whatever processing
 				temp_file_path = es.enter_context(self.__make_temp_file(src_path_md5))
-				with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_copy):  # copy fast, no bypass tricks, since it's a volatile file
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):  # copy fast, no bypass tricks, since it's a volatile file
 					file_utils.copy_file_fast(src_path, temp_file_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
 				actual_path_to_read = temp_file_path
 			else:
 				raise AssertionError('bad policy {!r}'.format(policy))
 
 			chunker = chunk_utils.FileChunker(actual_path_to_read, need_entire_file_hash=True)
-			with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_read_cdc) as cdc_cost:
+			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read_cdc) as cdc_cost:
 				chunks = chunker.cut_all()
 			blob_hash = chunker.get_entire_file_hash()
 			blob_size = chunker.get_read_file_size()
@@ -445,7 +445,7 @@ class BlobAllocator:
 			# so it's efficient enough to directly query for chunks from DB here
 
 			process_start_time = time.time()
-			with self.__time_costs.measure_time_cost(TimeCostKey.kind_db):
+			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 				known_db_chunks = self.session.get_chunks_by_hashes([chunk.hash for chunk in chunks])
 			new_db_chunks: List[schema.Chunk] = []
 			offset_to_chunk_hash: Dict[int, str] = {}
@@ -459,7 +459,7 @@ class BlobAllocator:
 					misc_utils.assert_true(chunk.length > 0, 'chunk with zero length')
 
 					if (db_chunk := known_db_chunks[chunk.hash]) is None:
-						with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_read):
+						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 							chunk_buf = src_file.read(chunk.length)
 						if len(chunk_buf) != chunk.length:
 							log_and_raise_blob_file_changed('Blob size mismatch, fail to read {} byte at offset {}, actual read {}'.format(chunk.length, offset, len(chunk_buf)))
@@ -472,7 +472,7 @@ class BlobAllocator:
 						chunk_path = chunk_utils.get_chunk_path(chunk.hash)
 						self.__blob_recorder.add_remove_file_rollbacker(chunk_path)
 
-						with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_write):
+						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
 							with compressor.open_compressed_bypassed(chunk_path) as (writer, f):
 								f.write(chunk_buf)
 
@@ -528,11 +528,11 @@ class BlobAllocator:
 			raw_size=blob_raw_size_sum,
 			stored_size=blob_stored_size_sum,
 		)
-		with self.__time_costs.measure_time_cost(TimeCostKey.kind_db):
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 			self.session.flush()  # creates blob.id, chunk.id
 
 		chunk_hash_chunk = {db_chunk.hash: db_chunk for db_chunk in known_db_chunks.values()}
-		ChunkGrouper(self.session).create_chunk_groups(blob, {
+		ChunkGrouper(self.session, self.__time_costs).create_chunk_groups(blob, {
 			offset: chunk_hash_chunk[chunk_hash]
 			for offset, chunk_hash in offset_to_chunk_hash.items()
 		})
@@ -614,7 +614,7 @@ class BlobAllocator:
 		raise VolatileBlobFile('blob file {} keeps changing'.format(src_path_str))
 
 	def init_blob_store(self):
-		with self.__time_costs.measure_time_cost(TimeCostKey.stage_prepare_blob_store, TimeCostKey.kind_fs):
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_prepare_blob_store, CreateBackupTimeCostKey.kind_fs):
 			blob_utils.prepare_blob_directories()
 			chunk_utils.prepare_chunk_directories()
 

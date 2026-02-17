@@ -3,10 +3,12 @@ import logging
 import time
 from typing import Dict, List
 
+from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey
 from prime_backup.constants import chunk_constants
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.utils import chunk_utils
+from prime_backup.utils.time_cost_stats import TimeCostStats
 
 
 @dataclasses.dataclass
@@ -17,13 +19,14 @@ class _RawChunkGroup:
 
 
 class ChunkGrouper:
-	def __init__(self, session: DbSession):
+	def __init__(self, session: DbSession, time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		from prime_backup import logger
 		from prime_backup.config.config import Config
 		self.logger: logging.Logger = logger.get()
 		self.config: Config = Config.get()
 
 		self.session = session
+		self.__time_costs = time_costs
 
 	def create_chunk_groups(self, blob: schema.Blob, blob_chunks: Dict[int, schema.Chunk]):
 		"""
@@ -59,7 +62,8 @@ class ChunkGrouper:
 				current_group = _RawChunkGroup()
 
 		# create new chunk groups
-		known_chunk_groups = self.session.get_chunk_groups_by_hashes([rcg.hash for rcg in raw_chunk_groups])
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
+			known_chunk_groups = self.session.get_chunk_groups_by_hashes([rcg.hash for rcg in raw_chunk_groups])
 		new_chunk_group_hashes: List[str] = []
 		for cg_hash, cg_chunks in chunk_group_hashes_to_chunks.items():
 			if known_chunk_groups[cg_hash] is None:
@@ -72,7 +76,8 @@ class ChunkGrouper:
 				known_chunk_groups[cg_hash] = new_chunk_group
 				new_chunk_group_hashes.append(new_chunk_group.hash)
 		if len(new_chunk_group_hashes) > 0:
-			self.session.flush()  # creates chunk_group.id
+			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
+				self.session.flush()  # creates chunk_group.id
 
 		# create bindings for new chunk groups
 		for cg_hash in new_chunk_group_hashes:

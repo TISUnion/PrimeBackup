@@ -14,7 +14,7 @@ from prime_backup.action import Action
 from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
 from prime_backup.action.helpers.blob_allocator import BlobAllocator, GetOrCreateBlobResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
-from prime_backup.action.helpers.create_backup_utils import TimeCostKey, SourceFileNotFoundWrapper
+from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
@@ -69,7 +69,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		self.tags = tags
 
 		self.__source_path: Path = source_path or self.config.source_path
-		self.__time_costs: TimeCostStats[TimeCostKey] = TimeCostStats()
+		self.__time_costs: TimeCostStats[CreateBackupTimeCostKey] = TimeCostStats()
 		self.__pre_calc_result = _PreCalculationResult()
 		self.__new_blobs_summary: Optional[BlobListSummary] = None
 
@@ -124,7 +124,7 @@ class CreateBackupAction(Action[BackupInfo]):
 				scan(symlink_target_full_path, True)
 
 		self.logger.debug(f'Scan file start, target patterns: {self.config.backup.targets}')
-		with self.__time_costs.measure_time_cost(TimeCostKey.kind_fs) as scan_cost:
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_fs) as scan_cost:
 			target_patterns = pathspec.GitIgnoreSpec.from_lines(self.config.backup.targets)
 			target_paths: List[Path] = []
 			for candidate_target_name in sorted(os.listdir(self.__source_path)):
@@ -150,7 +150,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			stats[file_entry.path] = file_entry.stat
 
 	def __reuse_unchanged_files(self, session: DbSession, scan_result: _ScanResult):
-		with self.__time_costs.measure_time_cost(TimeCostKey.kind_db):
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 			backup = session.get_last_backup()
 		if backup is None:
 			return
@@ -164,7 +164,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			gid: int
 			mtime_us: int
 
-		with self.__time_costs.measure_time_cost(TimeCostKey.kind_db):
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 			backup_files = session.get_backup_files(backup.id)
 
 		stat_to_files: Dict[StatKey, schema.File] = {}
@@ -210,7 +210,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		def hash_worker(pth: Path):
 			hashes[pth] = hash_utils.calc_file_hash(pth)
 
-		with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_read):
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 			with FailFastBlockingThreadPool(name='hasher') as pool:
 				for file_entry in file_entries_to_hash:
 					if existing_sizes[file_entry.stat.st_size]:
@@ -245,7 +245,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			)
 
 		if (st := self.__pre_calc_result.stats.pop(path, None)) is None:
-			with SourceFileNotFoundWrapper.wrap(path), self.__time_costs.measure_time_cost(TimeCostKey.kind_fs):
+			with SourceFileNotFoundWrapper.wrap(path), self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_fs):
 				st = path.lstat()
 
 		blob: Optional[schema.Blob] = None
@@ -299,7 +299,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		self.logger.info('Scanning file for backup creation at path {!r}, targets: {}'.format(
 			self.__source_path.as_posix(), self.config.backup.targets,
 		))
-		with self.__time_costs.measure_time_cost(TimeCostKey.stage_scan_files):
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_scan_files):
 			scan_result = self.__scan_files()
 		backup = session.create_backup(
 			creator=str(self.creator),
@@ -314,27 +314,27 @@ class CreateBackupAction(Action[BackupInfo]):
 
 		self.__pre_calculate_stats(scan_result)
 		if self.config.backup.reuse_stat_unchanged_file:
-			with self.__time_costs.measure_time_cost(TimeCostKey.stage_reuse_unchanged_files):
+			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_reuse_unchanged_files):
 				self.__reuse_unchanged_files(session, scan_result)
 			self.logger.info('Reused {} / {} stat unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
 		if self.config.get_effective_concurrency() > 1:
-			with self.__time_costs.measure_time_cost(TimeCostKey.stage_pre_calculate_hash):
+			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_pre_calculate_hash):
 				self.__pre_calculate_hash(session, blob_allocator, scan_result)
 			self.logger.info('Pre-calculate all file hash done')
 
 		blob_allocator.init_blob_store()
 
-		with self.__time_costs.measure_time_cost(TimeCostKey.stage_create_files):
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_create_files):
 			files = blob_allocator.schedule_loop([
 				self.__create_file(session, blob_allocator, file_entry.path)
 				for file_entry in scan_result.all_files
 			])
 
-		with self.__time_costs.measure_time_cost(TimeCostKey.stage_finalize):
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_finalize):
 			BackupFinalizer(session).finalize_files_and_backup(backup, files)
 		info = BackupInfo.of(backup)
 
-		with self.__time_costs.measure_time_cost(TimeCostKey.stage_flush_db, TimeCostKey.kind_db):
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_flush_db, CreateBackupTimeCostKey.kind_db):
 			session_context.__exit__(None, None, None)
 		return info
 
@@ -344,7 +344,7 @@ class CreateBackupAction(Action[BackupInfo]):
 
 		# TODO: prevent re-run
 		self.__time_costs.reset()
-		with self.__time_costs.measure_time_cost(*TimeCostKey):
+		with self.__time_costs.measure_time_cost(*CreateBackupTimeCostKey):
 			pass
 		action_start_ts = time.time()
 

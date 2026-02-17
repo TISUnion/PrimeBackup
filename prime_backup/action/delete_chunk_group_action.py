@@ -42,6 +42,7 @@ class DeleteChunkGroupsAction(Action[None]):
 				DeleteOrphanChunksAction(ids=affected_chunk_ids.keys()).run(session=session)
 			else:
 				session.commit()
+		self.logger.debug('Deleted {} chunk groups'.format(len(all_to_delete_chunk_group_ids)))
 
 	def __collect_chunk_group_ids_to_delete(self, session: DbSession) -> List[int]:
 		self_chunk_group_ids_set = set(self.chunk_group_ids)
@@ -83,6 +84,7 @@ class DeleteOrphanChunkGroupsAction(Action[None]):
 				session = es.enter_context(DbAccess.open_session())
 
 			orphan_chunk_group_ids = session.filtered_orphan_chunk_group_ids(self.chunk_ids_to_check)
+			self.logger.debug('Found {}/{} orphan chunk groups to delete'.format(len(orphan_chunk_group_ids), len(self.chunk_ids_to_check)))
 
 			if len(orphan_chunk_group_ids) > 0:
 				DeleteChunkGroupsAction(ids=orphan_chunk_group_ids, raise_if_not_found=True).run(session=session)

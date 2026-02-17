@@ -84,9 +84,10 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 
 		s = trash_bin.make_summary()
 		trash_bin.erase_all()
+		self.logger.debug('Deleted {} blobs: {}'.format(len(all_to_delete_blobs), s))
 
 		if len(errors := trash_bin.errors) > 0:
-			self.logger.error('Found {} blob erasing failure in total'.format(len(errors)))
+			self.logger.error('Found {} blob erasing failures in total'.format(len(errors)))
 			raise errors[0]
 
 		return s
@@ -131,6 +132,7 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 				session = es.enter_context(DbAccess.open_session())
 
 			orphan_blob_hashes = session.filtered_orphan_blob_hashes(self.blob_hashes_to_check)
+			self.logger.debug('Found {}/{} orphan blobs to delete'.format(len(orphan_blob_hashes), len(self.blob_hashes_to_check)))
 
 			if len(orphan_blob_hashes) > 0:
 				action = DeleteBlobsAction(hashes=orphan_blob_hashes, raise_if_not_found=True)

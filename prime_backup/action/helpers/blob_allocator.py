@@ -401,6 +401,7 @@ class BlobAllocator:
 
 	def __try_get_or_create_chunked_blob(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool) -> Generator[Any, Any, schema.Blob]:
 		log_and_raise_blob_file_changed = functools.partial(self.__log_and_raise_blob_file_changed, last_chance=last_chance)
+		src_path_str = repr(src_path.as_posix())
 
 		if last_chance:
 			policy = _ChunkedBlobCreatePolicy.copy_hash
@@ -421,10 +422,15 @@ class BlobAllocator:
 				raise AssertionError('bad policy {!r}'.format(policy))
 
 			chunker = chunk_utils.FileChunker(actual_path_to_read, need_entire_file_hash=True)
-			with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_read):
+			with self.__time_costs.measure_time_cost(TimeCostKey.kind_io_read_cdc) as cdc_cost:
 				chunks = chunker.cut_all()
 			blob_hash = chunker.get_entire_file_hash()
 			blob_size = chunker.get_read_file_size()
+			self.logger.debug('CDC chunked+hash file {} with size {} in {:.2f}s ({}/s)'.format(
+				src_path_str, ByteCount(blob_size).auto_str(), cdc_cost(), ByteCount(blob_size / cdc_cost()).auto_str(),
+			))
+			if blob_size == 0:
+				log_and_raise_blob_file_changed('Blob size becomes zero')
 
 			if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
 				return cache
@@ -498,15 +504,15 @@ class BlobAllocator:
 				if len(extra_buf) > 0:
 					log_and_raise_blob_file_changed('Blob size mismatch, actual size larger than expected size {}'.format(blob_size))
 
-		self.logger.debug('Chunked large file {} in {:.2f}s, size {}/{}, chunk cnt: {} (+{})'.format(
-			repr(src_path.as_posix()), time.time() - process_start_time,
+		self.logger.debug('Created chunked file {} in {:.2f}s, size {}/{}, chunk cnt: {} (+{})'.format(
+			src_path_str, time.time() - process_start_time,
 			blob_stored_size_sum, blob_raw_size_sum, len(offset_to_chunk_hash), len(new_db_chunks),
 		))
 		if len(new_db_chunks) >= max(500, int(len(known_db_chunks) * 0.25)):
 			# 500 chunks == ~150MiB
 			self.logger.warning('Chunked a large file with lots of new chunks, please consider if it should really be in the CDC target patterns')
 			self.logger.warning('File path: {} size {}, chunk cnt {}, new chunk cnt {} ({:.1f}%), new chunk size {}'.format(
-				repr(src_path.as_posix()), ByteCount(blob_raw_size_sum).auto_str(), len(known_db_chunks),
+				src_path_str, ByteCount(blob_raw_size_sum).auto_str(), len(known_db_chunks),
 				len(new_db_chunks), 100.0 * len(new_db_chunks) / len(known_db_chunks),
 				ByteCount(sum(db_chunk.raw_size for db_chunk in new_db_chunks)).auto_str(),
 			))
@@ -560,7 +566,11 @@ class BlobAllocator:
 			return self.__cdc_patterns.match_file(rel_path)
 
 	def __try_get_or_create_blob_once(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool) -> Generator[Any, Any, schema.Blob]:
-		if self.config.backup.cdc_enabled and st.st_size >= self.config.backup.cdc_file_size_threshold and self.__matches_cdc_pattern(src_path):
+		if (
+				self.config.backup.cdc_enabled and
+				st.st_size > 0 and st.st_size >= self.config.backup.cdc_file_size_threshold and
+				self.__matches_cdc_pattern(src_path)
+		):
 			gen = self.__try_get_or_create_chunked_blob(src_path, src_path_md5, st, last_chance)
 		else:
 			gen = self.__try_get_or_create_direct_blob(src_path, src_path_md5, st, last_chance)

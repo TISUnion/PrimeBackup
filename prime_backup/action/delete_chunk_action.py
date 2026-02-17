@@ -62,9 +62,10 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 
 		s = trash_bin.make_summary()
 		trash_bin.erase_all()
+		self.logger.debug('Deleted {} chunks: {}'.format(len(all_to_delete_chunks), s))
 
 		if len(errors := trash_bin.errors) > 0:
-			self.logger.error('Found {} chunk erasing failure in total'.format(len(errors)))
+			self.logger.error('Found {} chunk erasing failures in total'.format(len(errors)))
 			raise errors[0]
 
 		return s
@@ -109,6 +110,7 @@ class DeleteOrphanChunksAction(Action[ChunkListSummary]):
 				session = es.enter_context(DbAccess.open_session())
 
 			orphan_chunk_ids = session.filtered_orphan_chunk_ids(self.chunk_ids_to_check)
+			self.logger.debug('Found {}/{} orphan chunks to delete'.format(len(orphan_chunk_ids), len(self.chunk_ids_to_check)))
 
 			if len(orphan_chunk_ids) > 0:
 				action = DeleteChunksAction(

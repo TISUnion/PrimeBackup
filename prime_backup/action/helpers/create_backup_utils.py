@@ -12,6 +12,7 @@ class TimeCostKey(enum.Enum):
 	kind_db = enum.auto()
 	kind_fs = enum.auto()
 	kind_io_read = enum.auto()
+	kind_io_read_cdc = enum.auto()
 	kind_io_write = enum.auto()
 	kind_io_copy = enum.auto()
 

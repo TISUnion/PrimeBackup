@@ -5,6 +5,7 @@ import stat
 import time
 import zipfile
 from pathlib import Path
+from typing import Union, BinaryIO, Generator
 
 from typing_extensions import override, Unpack
 
@@ -17,13 +18,18 @@ from prime_backup.utils.io_types import SupportsReadBytes
 
 
 class ExportBackupToZipAction(_ExportBackupActionBase):
-	def __init__(self, backup_id: int, output_path: Path, **kwargs: Unpack[ExportBackupActionCommonInitKwargs]):
+	def __init__(self, backup_id: int, output_dest: Union[Path, BinaryIO], **kwargs: Unpack[ExportBackupActionCommonInitKwargs]):
 		super().__init__(backup_id, **kwargs)
-		self.output_path = output_path
+		self.output_dest = output_dest
 
 	@override
 	def is_interruptable(self) -> bool:
 		return True
+
+	@contextlib.contextmanager
+	def __open_zipf(self) -> Generator[zipfile.ZipFile, None, None]:
+		with zipfile.ZipFile(self.output_dest, 'w', zipfile.ZIP_DEFLATED) as zipf:
+			yield zipf
 
 	def __export_file(self, blob_chunks_getter: BlobChunksGetter, zipf: zipfile.ZipFile, file: schema.File):
 		# reference: zipf.writestr -> zipfile.ZipInfo.from_file
@@ -67,12 +73,16 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 	@override
 	def _export_backup(self, session, backup: schema.Backup) -> ExportFailures:
 		failures = ExportFailures(self.fail_soft)
-		self.logger.info('Exporting backup {} to zipfile {}'.format(backup, self.output_path))
-		self.output_path.parent.mkdir(parents=True, exist_ok=True)
+
+		if isinstance(self.output_dest, Path):
+			self.logger.info('Exporting backup {} to zipfile {}'.format(backup, self.output_dest))
+			self.output_dest.parent.mkdir(parents=True, exist_ok=True)
+		else:
+			self.logger.info('Exporting backup {} to given BinaryIO object'.format(backup))
 
 		ts_bcg = ThreadSafeBlobChunksGetter(session)
 		try:
-			with zipfile.ZipFile(self.output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+			with self.__open_zipf() as zipf:
 				for file in session.get_backup_files(backup):
 					if self.is_interrupted.is_set():
 						self.logger.info('Export to zipfile interrupted')
@@ -82,7 +92,8 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 						try:
 							self.__export_file(ts_bcg, zipf, file)
 						except Exception as e:
-							self.logger.error('Export file {!r} to zip {} failed: {}'.format(file.path, self.output_path, e))
+							output_dest_str = str(self.output_dest) if isinstance(self.output_dest, Path) else str(type(self.output_dest))
+							self.logger.error('Export file {!r} to zip {} failed: {}'.format(file.path, output_dest_str, e))
 							raise
 
 				if self.create_meta:
@@ -94,8 +105,9 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 						f.write(meta_buf)
 
 		except Exception as e:
-			with contextlib.suppress(OSError):
-				self.output_path.unlink(missing_ok=True)
+			if isinstance(self.output_dest, Path):
+				with contextlib.suppress(OSError):
+					self.output_dest.unlink(missing_ok=True)
 			if not isinstance(e, self._ExportInterrupted):
 				raise
 

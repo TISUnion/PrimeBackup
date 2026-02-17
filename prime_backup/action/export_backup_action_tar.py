@@ -109,7 +109,8 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 						try:
 							self.__export_file(ts_bcg, tar, file)
 						except Exception as e:
-							self.logger.error('Export file {!r} to tar {} failed: {}'.format(file.path, self.output_dest, e))
+							output_dest_str = str(self.output_dest) if isinstance(self.output_dest, Path) else str(type(self.output_dest))
+							self.logger.error('Export file {!r} to tar {} failed: {}'.format(file.path, output_dest_str, e))
 							raise
 
 				if self.create_meta:

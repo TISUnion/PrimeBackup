@@ -11,8 +11,8 @@ CDC chunking
 
 - [x] FastCDC 2020 lib
 - [x] Backup create
-- [ ] Backup export
-- [ ] DB migration
+- [x] Backup export
+- [x] DB migration
 - [ ] Blob size display texts updates
 - [ ] DB Validation tasks
 - [ ] Performance optimization

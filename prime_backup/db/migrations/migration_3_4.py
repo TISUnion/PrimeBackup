@@ -68,7 +68,7 @@ class MigrationImpl3To4(MigrationImplBase):
 		_V4.Base.metadata.create_all(self.engine, tables=[
 			_V4.Base.metadata.tables[declarative.__tablename__]
 			for declarative in [
-				_V4.Base,
+				_V4.Blob,
 				_V4.Chunk,
 				_V4.ChunkGroup,
 				_V4.ChunkGroupChunkBinding,
@@ -83,40 +83,47 @@ class MigrationImpl3To4(MigrationImplBase):
 			insert_fields = ', '.join(mapping.values())
 			sql = f'''
 				INSERT INTO {dst_table} ({select_fields})
-				SELECT ({insert_fields})
+				SELECT {insert_fields}
 				FROM {src_table}
 			'''
 			self.logger.debug('mapped insert {} -> {}: {!r}'.format(src_table, dst_table, sql))
 			return text(sql)
 
 		# rebuild blobs
+		self.logger.info('(blob table) Migrating data from old table')
 		self.session.execute(get_mapped_insert_sql('old_blob_3to4', 'blob', {
 			'storage_method': str(BlobStorageMethod.direct.value),
 			**{name: name for name in ['hash', 'compress', 'raw_size', 'stored_size']},
 		}))
 
 		# rebuild files
+		self.logger.info('(file table) Migrating data from old table')
 		self.session.execute(get_mapped_insert_sql('old_file_3to4', 'file', {
 			**{name: name for name in ['fileset_id', 'path', 'role', 'mode', 'content']},
 			'blob_id': 'NULL',
-			'blob_storage_method': str(BlobStorageMethod.direct.value),
+			'blob_storage_method': 'NULL',
 			**{name: name for name in [
 				'blob_hash', 'blob_compress', 'blob_raw_size', 'blob_stored_size',
 				'uid', 'gid', 'mtime',
 			]},
 		}))
+		self.logger.info('(file table) Filling blob_id column')
 		self.session.execute(text('''
 			UPDATE file SET blob_id = (
-			SELECT blob.id
-				FROM blob
-				WHERE blob.hash = file.blob_hash
+				SELECT blob.id
+					FROM blob
+					WHERE blob.hash = file.blob_hash
 			)
 			WHERE file.blob_hash IS NOT NULL
 		'''))
-		# TODO: rebuild mtime?
+		self.logger.info('(file table) Filling blob_storage_method column')
+		self.session.execute(text('''
+			UPDATE file SET blob_storage_method = :blob_storage_method
+			WHERE file.blob_hash IS NOT NULL
+		''').bindparams(blob_storage_method=str(BlobStorageMethod.direct.value))),
 
 	def __step_cleanup_and_report(self):
-		self.logger.info('Migration 2to3 done, cost {}s (prepare {}s, rebuild {}s)'.format(
+		self.logger.info('Migration 3to4 done, cost {}s (prepare {}s, rebuild {}s)'.format(
 			round(self.__stats.get_elapsed_sec(), 2),
 			round(self.__stats.prepare_cost, 2),
 			round(self.__stats.rebuild_cost, 2),

@@ -2,6 +2,7 @@ import functools
 import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor, Future
+from typing import List
 
 from typing_extensions import override
 
@@ -22,7 +23,7 @@ class FailFastBlockingThreadPool(ThreadPoolExecutor):
 
 		super().__init__(max_workers=max_workers, thread_name_prefix=thread_name_prefix)
 		self.__sem = threading.Semaphore(max_workers)
-		self.__all_futures: 'queue.Queue[Future]' = queue.Queue()
+		self.__all_futures: List[Future] = []
 		self.__error_futures: 'queue.Queue[Future]' = queue.Queue()
 
 	@override
@@ -47,15 +48,17 @@ class FailFastBlockingThreadPool(ThreadPoolExecutor):
 			f.result()
 
 		future = super().submit(wrapper_func)
-		self.__all_futures.put(future)
+		self.__all_futures.append(future)
 		return future
 
 	@override
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		if exc_type is None:
 			# check task exception if no error occurs
-			from prime_backup.utils import collection_utils
-			for future in collection_utils.drain_queue(self.__all_futures):
-				future.result()
+			self.wait_and_ensure_no_error()
 
 		super().__exit__(exc_type, exc_val, exc_tb)
+
+	def wait_and_ensure_no_error(self):
+		for future in self.__all_futures:
+			future.result()

@@ -27,6 +27,7 @@ from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, chunk_utils
 from prime_backup.utils.hash_utils import SizeAndHash
+from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 from prime_backup.utils.time_cost_stats import TimeCostStats
 
 
@@ -387,9 +388,9 @@ class BlobAllocator:
 			else:
 				raise AssertionError('bad policy {!r}'.format(policy))
 
-		misc_utils.assert_true(blob_hash is not None, f'blob_hash is None, policy {policy}')
-		misc_utils.assert_true(raw_size is not None, f'raw_size is None, policy {policy}')
-		misc_utils.assert_true(stored_size is not None, f'stored_size is None, policy {policy}')
+		misc_utils.assert_true(blob_hash is not None, lambda: f'blob_hash is None, policy {policy}')
+		misc_utils.assert_true(raw_size is not None, lambda: f'raw_size is None, policy {policy}')
+		misc_utils.assert_true(stored_size is not None, lambda: f'stored_size is None, policy {policy}')
 		return self.__blob_recorder.create_blob(
 			self.session,
 			storage_method=BlobStorageMethod.direct.value,
@@ -448,15 +449,12 @@ class BlobAllocator:
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 				known_db_chunks = self.session.get_chunks_by_hashes([chunk.hash for chunk in chunks])
 			new_db_chunks: List[schema.Chunk] = []
-			offset_to_chunk_hash: Dict[int, str] = {}
-			blob_raw_size_sum = 0
-			blob_stored_size_sum = 0
-			with open(actual_path_to_read, 'rb') as src_file:
+			offset_to_db_chunk: Dict[int, schema.Chunk] = {}
+			with open(actual_path_to_read, 'rb') as src_file, FailFastBlockingThreadPool('chunk_write') as pool:
 				offset = 0
-				# TODO: multithreading
 				for chunk in chunks:
-					misc_utils.assert_true(offset == chunk.offset, f'offset mismatch {offset} {chunk.offset}')
-					misc_utils.assert_true(chunk.length > 0, 'chunk with zero length')
+					misc_utils.assert_true(offset == chunk.offset, lambda: f'offset mismatch {offset} {chunk.offset}')
+					misc_utils.assert_true(chunk.length > 0, lambda: 'chunk with zero length')
 
 					if (db_chunk := known_db_chunks[chunk.hash]) is None:
 						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
@@ -469,21 +467,27 @@ class BlobAllocator:
 
 						compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(chunk.length)
 						compressor = Compressor.create(compress_method)
-						chunk_path = chunk_utils.get_chunk_path(chunk.hash)
-						self.__blob_recorder.add_remove_file_rollbacker(chunk_path)
-
-						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
-							with compressor.open_compressed_bypassed(chunk_path) as (writer, f):
-								f.write(chunk_buf)
 
 						db_chunk = self.session.create_chunk(
 							hash=chunk.hash,
 							compress=compress_method.name,
 							raw_size=len(chunk_buf),
-							stored_size=writer.get_write_len(),
+							stored_size=-1,
 						)
 						new_db_chunks.append(db_chunk)
 						known_db_chunks[db_chunk.hash] = db_chunk
+
+						def write_task(db_chunk_=db_chunk, chunk_buf_=chunk_buf):
+							chunk_path = chunk_utils.get_chunk_path(db_chunk_.hash)
+							self.__blob_recorder.add_remove_file_rollbacker(chunk_path)
+
+							with compressor.open_compressed_bypassed(chunk_path) as (writer, f):
+								f.write(chunk_buf_)
+
+							db_chunk_.stored_size = writer.get_write_len()
+
+						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
+							pool.submit(write_task)
 					else:
 						if src_file.seekable():
 							src_file.seek(offset + chunk.length)
@@ -492,21 +496,30 @@ class BlobAllocator:
 							if n_read != chunk.length:
 								log_and_raise_blob_file_changed('Blob size mismatch, fail to read {} byte at offset {}, actual read {}'.format(chunk.length, offset, n_read))
 
-					blob_raw_size_sum += db_chunk.raw_size
-					blob_stored_size_sum += db_chunk.stored_size
-					offset_to_chunk_hash[offset] = db_chunk.hash
+					offset_to_db_chunk[offset] = db_chunk
 					offset += chunk.length
-
-				misc_utils.assert_true(blob_raw_size_sum == offset, f'blob_raw_size_sum {blob_raw_size_sum} should be equal to offset {offset}')
-				misc_utils.assert_true(blob_raw_size_sum == blob_size, f'blob_raw_size_sum {blob_raw_size_sum} should be equal to blob_size {blob_size}')
 
 				extra_buf = src_file.read(1)
 				if len(extra_buf) > 0:
 					log_and_raise_blob_file_changed('Blob size mismatch, actual size larger than expected size {}'.format(blob_size))
 
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
+					pool.wait_and_ensure_no_error()
+
+				blob_raw_size_sum = 0
+				blob_stored_size_sum = 0
+				for db_chunk in offset_to_db_chunk.values():
+					blob_raw_size_sum += db_chunk.raw_size
+					blob_stored_size_sum += db_chunk.stored_size
+				misc_utils.assert_true(blob_raw_size_sum == offset, lambda: f'blob_raw_size_sum {blob_raw_size_sum} should be equal to offset {offset}')
+				misc_utils.assert_true(blob_raw_size_sum == blob_size, lambda: f'blob_raw_size_sum {blob_raw_size_sum} should be equal to blob_size {blob_size}')
+
+			# end src_file reading
+		# end ExitStack for the temp file
+
 		self.logger.debug('Created chunked file {} in {:.2f}s, size {}/{}, chunk cnt: {} (+{})'.format(
 			src_path_str, time.time() - process_start_time,
-			blob_stored_size_sum, blob_raw_size_sum, len(offset_to_chunk_hash), len(new_db_chunks),
+			blob_stored_size_sum, blob_raw_size_sum, len(offset_to_db_chunk), len(new_db_chunks),
 		))
 		if len(new_db_chunks) >= max(500, int(len(known_db_chunks) * 0.25)):
 			# 500 chunks == ~150MiB
@@ -519,6 +532,7 @@ class BlobAllocator:
 			self.logger.warning('You can safely ignore this warning if this is the first backup containing the file')
 
 		for new_db_chunk in new_db_chunks:
+			misc_utils.assert_true(db_chunk.stored_size >= 0, lambda: f'bad stored_size {db_chunk}')
 			self.session.add(new_db_chunk)
 		blob = self.__blob_recorder.create_blob(
 			self.session,
@@ -531,11 +545,7 @@ class BlobAllocator:
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 			self.session.flush()  # creates blob.id, chunk.id
 
-		chunk_hash_chunk = {db_chunk.hash: db_chunk for db_chunk in known_db_chunks.values()}
-		ChunkGrouper(self.session, self.__time_costs).create_chunk_groups(blob, {
-			offset: chunk_hash_chunk[chunk_hash]
-			for offset, chunk_hash in offset_to_chunk_hash.items()
-		})
+		ChunkGrouper(self.session, self.__time_costs).create_chunk_groups(blob, offset_to_db_chunk)
 		return blob
 
 	@functools.cached_property

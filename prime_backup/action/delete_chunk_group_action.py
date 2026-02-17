@@ -9,7 +9,6 @@ from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.exceptions import ChunkIdNotFound, ChunkHashNotFound
-from prime_backup.types.chunk_group_info import ChunkGroupInfo
 from prime_backup.utils import collection_utils
 
 
@@ -35,12 +34,9 @@ class DeleteChunkGroupsAction(Action[None]):
 				# 1. delete ChunkGroup-Chunk bindings
 				# 2. delete chunk groups
 				# 3. check orphan chunks
-				affected_chunk_ids: Dict[int, None] = {}  # ordered set
-				for chunk_group_id in all_to_delete_chunk_group_ids:  # TODO: optimize, batch it
-					chunk_group_chunk_bindings = session.get_chunk_group_chunk_binding_for_chunk_group(chunk_group_id)
-					for cgc in chunk_group_chunk_bindings:
-						affected_chunk_ids[cgc.chunk_id] = None
-					session.delete_chunk_group_chunk_bindings(chunk_group_chunk_bindings)
+				bindings = session.get_chunk_group_chunk_bindings_for_chunk_groups(all_to_delete_chunk_group_ids)
+				affected_chunk_ids = {cgc.chunk_id: None for cgc in bindings}  # ordered set
+				session.delete_chunk_group_chunk_bindings_for_chunk_groups(all_to_delete_chunk_group_ids)
 
 				session.delete_chunk_groups_by_ids(all_to_delete_chunk_group_ids)
 				DeleteOrphanChunksAction(ids=affected_chunk_ids.keys()).run(session=session)

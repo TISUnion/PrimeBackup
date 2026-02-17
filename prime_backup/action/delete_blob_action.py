@@ -64,12 +64,15 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 				# 2. delete blobs
 				# 3. check orphan chunk groups
 				affected_chunk_group_ids: Dict[int, None] = {}  # ordered set
-				for blob in all_to_delete_blobs.values():  # TODO: optimize, batch it
-					if blob.storage_method == BlobStorageMethod.chunked:
-						blob_chunk_group_bindings = session.get_blob_chunk_group_bindings_for_blob(blob.id)
-						for bcg in blob_chunk_group_bindings:
-							affected_chunk_group_ids[bcg.chunk_group_id] = None
-						session.delete_blob_chunk_group_bindings(blob_chunk_group_bindings)
+				chunked_blob_ids: List[int] = [
+					blob.id for blob in all_to_delete_blobs.values()
+					if blob.storage_method == BlobStorageMethod.chunked
+				]
+				if len(chunked_blob_ids) > 0:
+					bindings = session.get_blob_chunk_group_bindings_for_blobs(chunked_blob_ids)
+					for bcg in bindings:
+						affected_chunk_group_ids[bcg.chunk_group_id] = None
+					session.delete_blob_chunk_group_bindings_for_blobs(chunked_blob_ids)
 
 				session.delete_blobs_by_ids(list(all_to_delete_blobs.keys()))
 				if len(affected_chunk_group_ids) > 0:

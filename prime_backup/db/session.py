@@ -8,12 +8,12 @@ from pathlib import Path
 from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, tuple_, Row
+from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row
 from sqlalchemy.orm import Session
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
-from prime_backup.db.values import FileRole, BackupTagDict, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, OffsetChunk, OffsetChunkGroup
+from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.utils import collection_utils, db_utils, validation_utils
@@ -451,6 +451,15 @@ class DbSession:
 			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
 		).scalars().all())
 
+	def get_chunk_group_chunk_bindings_for_chunk_groups(self, chunk_group_ids: List[int]) -> List[schema.ChunkGroupChunkBinding]:
+		result: List[schema.ChunkGroupChunkBinding] = []
+		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
+			result.extend(self.session.execute(
+				select(schema.ChunkGroupChunkBinding).
+				where(schema.ChunkGroupChunkBinding.chunk_group_id.in_(view))
+			).scalars().all())
+		return result
+
 	def get_chunk_group_chunks(self, chunk_group_id: int) -> List[OffsetChunk]:
 		"""
 		result is sorted
@@ -463,14 +472,12 @@ class DbSession:
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
 		return sorted(OffsetChunk(offset, chunk) for offset, chunk in result)
 
-	def delete_chunk_group_chunk_bindings(self, identifiers: List[Union[schema.ChunkGroupChunkBinding, ChunkGroupChunkBindingIdentifier]]):
-		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit):
-			self.session.query(schema.ChunkGroupChunkBinding).filter(
-				tuple_(schema.ChunkGroupChunkBinding.chunk_group_id, schema.ChunkGroupChunkBinding.chunk_offset).in_([
-					(ident.chunk_group_id, ident.chunk_offset)
-					for ident in view
-				])
-			).delete()
+	def delete_chunk_group_chunk_bindings_for_chunk_groups(self, chunk_group_ids: List[int]):
+		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
+			self.session.execute(
+				delete(schema.ChunkGroupChunkBinding).
+				where(schema.ChunkGroupChunkBinding.chunk_group_id.in_(view))
+			)
 
 	# ===================================== BlobChunkGroupBinding =====================================
 
@@ -498,6 +505,15 @@ class DbSession:
 			select(schema.BlobChunkGroupBinding).
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
 		).scalars().all())
+
+	def get_blob_chunk_group_bindings_for_blobs(self, blob_ids: List[int]) -> List[schema.BlobChunkGroupBinding]:
+		result: List[schema.BlobChunkGroupBinding] = []
+		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):
+			result.extend(self.session.execute(
+				select(schema.BlobChunkGroupBinding).
+				where(schema.BlobChunkGroupBinding.blob_id.in_(view))
+			).scalars().all())
+		return result
 
 	def get_blob_chunk_groups(self, blob_id: int) -> List[OffsetChunkGroup]:
 		"""
@@ -535,14 +551,12 @@ class DbSession:
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
 		return sorted(OffsetChunk(offset, chunk) for offset, chunk in result)
 
-	def delete_blob_chunk_group_bindings(self, identifiers: List[Union[schema.BlobChunkGroupBinding, BlobChunkGroupBindingIdentifier]]):
-		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit):
-			self.session.query(schema.BlobChunkGroupBinding).filter(
-				tuple_(schema.BlobChunkGroupBinding.blob_id, schema.BlobChunkGroupBinding.chunk_group_offset).in_([
-					(ident.blob_id, ident.chunk_group_offset)
-					for ident in view
-				])
-			).delete()
+	def delete_blob_chunk_group_bindings_for_blobs(self, blob_ids: List[int]):
+		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):
+			self.session.execute(
+				delete(schema.BlobChunkGroupBinding).
+				where(schema.BlobChunkGroupBinding.blob_id.in_(view))
+			)
 
 	# ===================================== File =====================================
 

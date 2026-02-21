@@ -27,7 +27,11 @@ from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.scan_unknown_blob_files import ScanUnknownBlobFilesAction
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
 from prime_backup.action.validate_backups_action import ValidateBackupsAction
+from prime_backup.action.validate_blob_chunk_group_bindings_action import ValidateBlobChunkGroupBindingsAction
 from prime_backup.action.validate_blobs_action import ValidateBlobsAction
+from prime_backup.action.validate_chunk_group_chunk_bindings_action import ValidateChunkGroupChunkBindingsAction
+from prime_backup.action.validate_chunk_groups_action import ValidateChunkGroupsAction
+from prime_backup.action.validate_chunks_action import ValidateChunksAction
 from prime_backup.action.validate_files_action import ValidateFilesAction
 from prime_backup.action.validate_filesets_action import ValidateFilesetsAction
 from prime_backup.compressors import CompressMethod
@@ -525,28 +529,30 @@ class FuzzyRunTestCase(unittest.TestCase):
 					self.assertEqual(initial_snapshot, current_snapshot, f'Backup {bid} data changed at iteration {i}')
 
 				# Validate database
-				r0 = ValidateBlobsAction().run()
-				r1 = ValidateFilesAction().run()
-				r2 = ValidateFilesetsAction().run()
-				r3 = ValidateBackupsAction().run()
+				validate_results = {
+					'ValidateBlobsAction': ValidateBlobsAction().run(),
+					'ValidateChunkGroupsAction': ValidateChunkGroupsAction().run(),
+					'ValidateChunksAction': ValidateChunksAction().run(),
+					'ValidateChunkGroupChunkBindingsAction': ValidateChunkGroupChunkBindingsAction().run(),
+					'ValidateBlobChunkGroupBindingsAction': ValidateBlobChunkGroupBindingsAction().run(),
+					'ValidateFilesAction': ValidateFilesAction().run(),
+					'ValidateFilesetsAction': ValidateFilesetsAction().run(),
+					'ValidateBackupsAction': ValidateBackupsAction().run(),
+				}
 				try:
-					self.assertEqual(0, r0.bad, f'ValidateBlobsAction has bad: {r0}')
-					self.assertEqual(0, r1.bad, f'ValidateFilesAction has bad: {r1}')
-					self.assertEqual(0, r2.bad, f'ValidateFilesetsAction has bad: {r2}')
-					self.assertEqual(0, r3.bad, f'ValidateBackupsAction has bad: {r3}')
+					for what, ret in validate_results.items():
+						self.assertEqual(0, ret.bad, f'{what} has bad: {ret}')
 				except AssertionError as e:
 					self.logger.error(f'Validate DB failed: {e}')
-					self.logger.error(repr(r0))
-					self.logger.error(repr(r1))
-					self.logger.error(repr(r2))
-					self.logger.error(repr(r3))
+					for what, ret in validate_results.items():
+						self.logger.error(f'{what}: {ret!r}')
 					raise
 
 				# check dangling / unused stuffs
 				r_ub = ScanUnknownBlobFilesAction(delete=False, result_sample_limit=100).run()
 				for ub in r_ub.samples:
 					self.logger.info(str(ub))
-				self.assertEqual(0, r_ub.count, 'ScanUnknownBlobFilesAction found {} unknown blobs'.format(r_ub.count))
+				self.assertEqual(0, r_ub.count, 'ScanUnknownBlobFilesAction found {} unknown blob files'.format(r_ub.count))
 
 				# tidying
 				VacuumSqliteAction().run()

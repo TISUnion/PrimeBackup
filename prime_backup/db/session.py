@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
-from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup
+from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.utils import collection_utils, db_utils, validation_utils
@@ -242,6 +242,7 @@ class DbSession:
 		return result
 
 	def get_blob_stored_size_sum(self) -> int:
+		# FIXME: chunked blob
 		return _int_or_0(self.session.execute(func.sum(schema.Blob.stored_size).select()).scalar_one())
 
 	def get_blob_raw_size_sum(self) -> int:
@@ -339,6 +340,15 @@ class DbSession:
 			s = s.offset(offset)
 		return _list_it(self.session.execute(s).scalars().all())
 
+	def iterate_chunk_batch(self, *, batch_size: int) -> Iterator[List[schema.Chunk]]:
+		limit, offset = batch_size, 0
+		while True:
+			chunks = self.list_chunks(limit=limit, offset=offset)
+			if len(chunks) == 0:
+				break
+			yield chunks
+			offset += limit
+
 	def filtered_orphan_chunk_ids(self, chunk_ids: List[int]) -> List[int]:
 		good_chunk_ids: Set[int] = set()
 		for view in collection_utils.slicing_iterate(chunk_ids, self.__safe_var_limit):
@@ -405,6 +415,23 @@ class DbSession:
 				result[chunk_group.hash] = chunk_group
 		return result
 
+	def list_chunk_groups(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.ChunkGroup]:
+		s = select(schema.ChunkGroup)
+		if limit is not None:
+			s = s.limit(limit)
+		if offset is not None:
+			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
+
+	def iterate_chunk_group_batch(self, *, batch_size: int) -> Iterator[List[schema.ChunkGroup]]:
+		limit, offset = batch_size, 0
+		while True:
+			chunk_groups = self.list_chunk_groups(limit=limit, offset=offset)
+			if len(chunk_groups) == 0:
+				break
+			yield chunk_groups
+			offset += limit
+
 	def filtered_orphan_chunk_group_ids(self, chunk_group_ids: List[int]) -> List[int]:
 		good_chunk_group_ids: Set[int] = set()
 		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
@@ -460,6 +487,23 @@ class DbSession:
 			).scalars().all())
 		return result
 
+	def list_chunk_group_chunk_bindings(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.ChunkGroupChunkBinding]:
+		s = select(schema.ChunkGroupChunkBinding)
+		if limit is not None:
+			s = s.limit(limit)
+		if offset is not None:
+			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
+
+	def iterate_chunk_group_chunk_binding_batch(self, *, batch_size: int) -> Iterator[List[schema.ChunkGroupChunkBinding]]:
+		limit, offset = batch_size, 0
+		while True:
+			bindings = self.list_chunk_group_chunk_bindings(limit=limit, offset=offset)
+			if len(bindings) == 0:
+				break
+			yield bindings
+			offset += limit
+
 	def get_chunk_group_chunks(self, chunk_group_id: int) -> List[OffsetChunk]:
 		"""
 		result is sorted
@@ -471,6 +515,21 @@ class DbSession:
 		)
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
 		return sorted(OffsetChunk(offset, chunk) for offset, chunk in result)
+
+	def list_orphan_chunk_group_chunk_bindings(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.ChunkGroupChunkBinding]:
+		"""
+		Find all ChunkGroupChunkBinding, whose chunk_group_id points to a non-existent ChunkGroup
+		"""
+		stmt = (
+			select(schema.ChunkGroupChunkBinding).
+			outerjoin(schema.ChunkGroup, schema.ChunkGroupChunkBinding.chunk_group_id == schema.ChunkGroup.id).
+			where(schema.ChunkGroup.id.is_(None))
+		)
+		if limit is not None:
+			stmt = stmt.limit(limit)
+		if offset is not None:
+			stmt = stmt.offset(offset)
+		return _list_it(self.session.execute(stmt).scalars().all())
 
 	def delete_chunk_group_chunk_bindings_for_chunk_groups(self, chunk_group_ids: List[int]):
 		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
@@ -515,6 +574,23 @@ class DbSession:
 			).scalars().all())
 		return result
 
+	def list_blob_chunk_group_bindings(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.BlobChunkGroupBinding]:
+		s = select(schema.BlobChunkGroupBinding)
+		if limit is not None:
+			s = s.limit(limit)
+		if offset is not None:
+			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
+
+	def iterate_blob_chunk_group_binding_batch(self, *, batch_size: int) -> Iterator[List[schema.BlobChunkGroupBinding]]:
+		limit, offset = batch_size, 0
+		while True:
+			bindings = self.list_blob_chunk_group_bindings(limit=limit, offset=offset)
+			if len(bindings) == 0:
+				break
+			yield bindings
+			offset += limit
+
 	def get_blob_chunk_groups(self, blob_id: int) -> List[OffsetChunkGroup]:
 		"""
 		result is sorted
@@ -550,6 +626,35 @@ class DbSession:
 
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
 		return sorted(OffsetChunk(offset, chunk) for offset, chunk in result)
+
+	@dataclasses.dataclass(frozen=True)
+	class ListBlobChunkGroupBindingsItem:
+		binding: schema.BlobChunkGroupBinding
+		blob: Optional[schema.Blob]
+
+	def list_orphan_blob_chunk_group_bindings(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[ListBlobChunkGroupBindingsItem]:
+		"""
+		Find all BlobChunkGroupBinding, whose blob_id points to (any of the following):
+		1. A non-existent Blob
+		2. A Blob whose storage_method is not `BlobStorageMethod.chunked`
+		"""
+		stmt = (
+			select(schema.BlobChunkGroupBinding, schema.Blob).
+			outerjoin(schema.Blob, schema.BlobChunkGroupBinding.blob_id == schema.Blob.id).
+			where(
+				or_(
+					schema.Blob.id.is_(None),
+					schema.Blob.storage_method != BlobStorageMethod.chunked.value,
+				)
+			)
+		)
+		if limit is not None:
+			stmt = stmt.limit(limit)
+		if offset is not None:
+			stmt = stmt.offset(offset)
+
+		result: Sequence[Row[Tuple[schema.BlobChunkGroupBinding, Optional[schema.Blob]]]] = self.session.execute(stmt).all()
+		return [self.ListBlobChunkGroupBindingsItem(binding, blob) for binding, blob in result]
 
 	def delete_blob_chunk_group_bindings_for_blobs(self, blob_ids: List[int]):
 		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):

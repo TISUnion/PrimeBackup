@@ -17,6 +17,8 @@ from typing import Dict, List, Optional, Set
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
+from prime_backup.action.validate_blobs_action import BadBlobItemType
+
 FilesetFileBackups = Dict[int, Dict[str, dict]]  # fileset_id -> (path -> row dict)
 
 
@@ -218,9 +220,10 @@ class BlobFileFixer:
 			else:
 				from prime_backup.config.config import Config
 				self.logger.info('There are still {} bad blobs, see {} for more information'.format(result.bad, Config.get().storage_path / 'logs' / 'validate.log'))
-				if len(result.missing) > 0:
-					self.logger.info('There are still {} missing blobs'.format(len(result.missing)))
-				if len(result.missing) == result.bad:
+				missing_cnt = sum(1 for bbi in result.bad_blobs if bbi.typ == BadBlobItemType.missing)
+				if missing_cnt > 0:
+					self.logger.info('There are still {} missing blobs'.format(missing_cnt))
+				if missing_cnt == result.bad:
 					self.logger.info('Thankfully all bad blobs are blob-with-missing-file')
 
 

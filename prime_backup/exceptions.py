@@ -81,6 +81,22 @@ class ChunkHashNotFound(ChunkNotFound):
 		self.chunk_hash = chunk_hash
 
 
+class ChunkGroupNotFound(PrimeBackupError):
+	pass
+
+
+class ChunkGroupIdNotFound(ChunkGroupNotFound):
+	def __init__(self, chunk_group_id: int):
+		super().__init__()
+		self.chunk_group_id = chunk_group_id
+
+
+class ChunkGroupHashNotFound(ChunkGroupNotFound):
+	def __init__(self, chunk_group_hash: str):
+		super().__init__()
+		self.chunk_group_hash = chunk_group_hash
+
+
 class UnsupportedFileFormat(PrimeBackupError):
 	def __init__(self, mode: int):
 		self.mode = mode

@@ -97,7 +97,7 @@ def main():
 		print('============= DbOverview =============')
 
 	create(1)
-	# delete(1)
+	delete()
 	# export()
 	# import_()
 	# list_()

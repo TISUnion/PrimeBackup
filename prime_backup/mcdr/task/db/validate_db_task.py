@@ -1,3 +1,4 @@
+import collections
 import enum
 import logging
 import time
@@ -9,7 +10,9 @@ from typing_extensions import override
 from prime_backup.action import Action
 from prime_backup.action.get_object_counts_action import GetObjectCountsAction
 from prime_backup.action.validate_backups_action import ValidateBackupsAction
-from prime_backup.action.validate_blobs_action import ValidateBlobsAction, BadBlobItem
+from prime_backup.action.validate_blobs_action import ValidateBlobsAction, BadBlobItem, BadBlobItemType
+from prime_backup.action.validate_chunk_groups_action import ValidateChunkGroupsAction
+from prime_backup.action.validate_chunks_action import ValidateChunksAction
 from prime_backup.action.validate_files_action import ValidateFilesAction, BadFileItemType
 from prime_backup.action.validate_filesets_action import ValidateFilesetsAction, BadFilesetItemType
 from prime_backup.mcdr.task.basic_task import HeavyTask
@@ -21,6 +24,7 @@ from prime_backup.utils import log_utils
 
 class ValidatePart(enum.Flag):
 	blobs = enum.auto()
+	chunks = enum.auto()
 	files = enum.auto()
 	filesets = enum.auto()
 	backups = enum.auto()
@@ -71,11 +75,15 @@ class ValidateDbTask(HeavyTask[None]):
 					self.reply(text)
 
 		self.reply(self.tr('validate_blobs.found_bad_blobs', TextComponents.number(result.bad), TextComponents.number(result.validated)).set_color(RColor.red))
-		show('invalid', result.invalid)
-		show('missing', result.missing)
-		show('corrupted', result.corrupted)
-		show('mismatched', result.mismatched)
-		show('orphan', result.orphan)
+		bad_blob_items_by_type: Dict[BadBlobItemType, List[BadBlobItem]] = collections.defaultdict(list)
+		for bbi in result.bad_blobs:
+			bad_blob_items_by_type[bbi.typ].append(bbi)
+		show('invalid', bad_blob_items_by_type[BadBlobItemType.invalid])
+		show('missing', bad_blob_items_by_type[BadBlobItemType.missing])
+		show('corrupted', bad_blob_items_by_type[BadBlobItemType.corrupted])
+		show('mismatched', bad_blob_items_by_type[BadBlobItemType.mismatched])
+		show('bad_layout', bad_blob_items_by_type[BadBlobItemType.bad_layout])
+		show('orphan', bad_blob_items_by_type[BadBlobItemType.orphan])
 
 		counts = GetObjectCountsAction().run()
 
@@ -107,6 +115,10 @@ class ValidateDbTask(HeavyTask[None]):
 		self.reply_tr('validate_blobs.see_log', str(vlogger.log_file))
 
 		return False
+
+	def __validate_chunks(self, vlogger: logging.Logger) -> bool:
+		result_c = self.run_action(ValidateChunksAction())
+		result_cg = self.run_action(ValidateChunkGroupsAction())
 
 	def __validate_files(self, vlogger: logging.Logger) -> bool:
 		result = self.run_action(ValidateFilesAction())
@@ -190,6 +202,7 @@ class ValidateDbTask(HeavyTask[None]):
 
 			validators: Dict[ValidatePart, Callable[[logging.Logger], bool]] = {
 				ValidatePart.blobs: self.__validate_blobs,
+				ValidatePart.chunks: self.__validate_chunks,
 				ValidatePart.files: self.__validate_files,
 				ValidatePart.filesets: self.__validate_filesets,
 				ValidatePart.backups: self.__validate_backups,

@@ -310,6 +310,7 @@ prime_backup:
         missing: '文件缺失的数据对象: {}个'
         corrupted: '文件损坏的数据对象: {}个'
         mismatched: '信息不匹配的数据对象: {}个'
+        bad_layout: '分块布局异常的数据对象: {}个'
         orphan: '孤儿数据对象: {}个'
         affected: '影响范围: {}/{}个文件对象, {}/{}个文件集, {}/{}个备份'
         see_log: '见日志文件 {} 以了解这些数据对象的详细信息及影响范围'
@@ -537,6 +538,8 @@ prime_backup:
     blob_hash_not_unique.candidates: '找到了至少{}个可能的数据对象: {}'
     chunk_id_not_found: ID为{}的数据块不存在
     chunk_hash_not_found: 哈希值为{}的数据块不存在
+    chunk_group_id_not_found: ID为{}的数据块组不存在
+    chunk_group_hash_not_found: 哈希值为{}的数据块组不存在
     db_locked: 任务{}执行失败, 数据库已被锁定。请稍候再试
     initializing: 插件初始化中
     disabled: 插件已禁用

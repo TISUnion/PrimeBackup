@@ -310,6 +310,7 @@ prime_backup:
         missing: 'Missing blob amount: {}'
         corrupted: 'Corrupted blob amount: {}'
         mismatched: 'Mismatched blob amount: {}'
+        bad_layout: 'Bad-layout blob amount: {}'
         orphan: 'Orphan blob amount: {}'
         affected: 'Affected range: {} / {} file objects, {} / {} filesets, {} / {} backups'
         see_log: 'See log file {} for details and affected stuffs of these bad blobs'
@@ -537,6 +538,8 @@ prime_backup:
     blob_hash_not_unique.candidates: 'Found at least {} candidates: {}'
     chunk_id_not_found: Chunk with id {} does not exist
     chunk_hash_not_found: Chunk with hash {} does not exist
+    chunk_group_id_not_found: Chunk group with id {} does not exist
+    chunk_group_hash_not_found: Chunk group with hash {} does not exist
     db_locked: Task {} execution error cuz the database is locked. Please retry later
     initializing: Plugin initializing
     disabled: Plugin disabled

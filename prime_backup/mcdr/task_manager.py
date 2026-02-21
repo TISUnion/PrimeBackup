@@ -10,7 +10,7 @@ from mcdreforged.api.all import CommandSource, RText, RColor, RAction, RStyle, P
 from sqlalchemy.exc import OperationalError
 
 from prime_backup import logger
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound, BlobIdNotFound, ChunkIdNotFound, ChunkHashNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound, BlobIdNotFound, ChunkIdNotFound, ChunkHashNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.mcdr.task.basic_task import HeavyTask, LightTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
@@ -81,6 +81,10 @@ class _TaskWorker:
 			lines = [tr('error.chunk_id_not_found', e.chunk_id)]
 		elif isinstance(e, ChunkHashNotFound):
 			lines = [tr('error.chunk_hash_not_found', e.chunk_hash)]
+		elif isinstance(e, ChunkGroupIdNotFound):
+			lines = [tr('error.chunk_group_id_not_found', e.chunk_group_id)]
+		elif isinstance(e, ChunkGroupHashNotFound):
+			lines = [tr('error.chunk_group_hash_not_found', e.chunk_group_hash)]
 		else:
 			return False
 

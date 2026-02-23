@@ -68,13 +68,13 @@ class DeleteChunkGroupsAction(Action[None]):
 		return list(all_to_delete_chunk_groups.keys())
 
 
-class DeleteOrphanChunkGroupsAction(Action[None]):
+class DeleteOrphanChunkGroupsAction(Action[int]):
 	def __init__(self, *, ids: Collection[int]):
 		super().__init__()
 		self.chunk_ids_to_check = collection_utils.deduplicated_list(ids)
 
 	@override
-	def run(self, *, session: Optional[DbSession] = None) -> None:
+	def run(self, *, session: Optional[DbSession] = None) -> int:
 		"""
 		:param session: If provided, use this session for DB operations.
 		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
@@ -90,3 +90,5 @@ class DeleteOrphanChunkGroupsAction(Action[None]):
 				DeleteChunkGroupsAction(ids=orphan_chunk_group_ids, raise_if_not_found=True).run(session=session)
 			else:
 				session.commit()
+
+		return len(orphan_chunk_group_ids)

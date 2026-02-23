@@ -13,8 +13,8 @@ from sqlalchemy.orm import Session
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
-from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound
+from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.utils import collection_utils, db_utils, validation_utils
 
@@ -469,6 +469,30 @@ class DbSession:
 		self.add(cgc)
 		return cgc
 
+	def get_chunk_group_chunk_bindings_opt(self, identifiers: List[ChunkGroupChunkBindingIdentifier]) -> Dict[ChunkGroupChunkBindingIdentifier, Optional[schema.ChunkGroupChunkBinding]]:
+		"""
+		All given identifiers are in the dict
+		"""
+		result: Dict[ChunkGroupChunkBindingIdentifier, Optional[schema.ChunkGroupChunkBinding]] = {id_: None for id_ in identifiers}
+		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit // 2):
+			conditions = []
+			for identifier in view:
+				conditions.append(and_(
+					schema.ChunkGroupChunkBinding.chunk_group_id == identifier.chunk_group_id,
+					schema.ChunkGroupChunkBinding.chunk_offset == identifier.chunk_offset
+				))
+			combined_condition = or_(*conditions)
+			for binding in self.session.execute(select(schema.ChunkGroupChunkBinding).where(combined_condition)).scalars().all():
+				result[ChunkGroupChunkBindingIdentifier(binding.chunk_group_id, binding.chunk_offset)] = binding
+		return result
+
+	def get_chunk_group_chunk_bindings(self, identifiers: List[ChunkGroupChunkBindingIdentifier]) -> Dict[ChunkGroupChunkBindingIdentifier, schema.ChunkGroupChunkBinding]:
+		result = self.get_chunk_group_chunk_bindings_opt(identifiers)
+		for id_, binding in result.items():
+			if binding is None:
+				raise ChunkGroupChunkBindingNotFound(id_.chunk_group_id, id_.chunk_offset)
+		return result
+
 	def get_chunk_group_chunk_binding_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.ChunkGroupChunkBinding)).scalar_one())
 
@@ -538,6 +562,20 @@ class DbSession:
 				where(schema.ChunkGroupChunkBinding.chunk_group_id.in_(view))
 			)
 
+	def delete_chunk_group_chunk_binding(self, binding: schema.ChunkGroupChunkBinding):
+		self.session.delete(binding)
+
+	def delete_chunk_group_chunk_bindings(self, identifiers: List[ChunkGroupChunkBindingIdentifier]):
+		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit // 2):
+			conditions = []
+			for identifier in view:
+				conditions.append(and_(
+					schema.ChunkGroupChunkBinding.chunk_group_id == identifier.chunk_group_id,
+					schema.ChunkGroupChunkBinding.chunk_offset == identifier.chunk_offset
+				))
+			combined_condition = or_(*conditions)
+			self.session.execute(delete(schema.ChunkGroupChunkBinding).where(combined_condition))
+
 	# ===================================== BlobChunkGroupBinding =====================================
 
 	class CreateBlobChunkGroupBindingKwargs(TypedDict):
@@ -555,6 +593,30 @@ class DbSession:
 		bcg = self.create_blob_chunk_group_binding(**kwargs)
 		self.add(bcg)
 		return bcg
+
+	def get_blob_chunk_group_bindings_opt(self, identifiers: List[BlobChunkGroupBindingIdentifier]) -> Dict[BlobChunkGroupBindingIdentifier, Optional[schema.BlobChunkGroupBinding]]:
+		"""
+		All given identifiers are in the dict
+		"""
+		result: Dict[BlobChunkGroupBindingIdentifier, Optional[schema.BlobChunkGroupBinding]] = {id_: None for id_ in identifiers}
+		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit // 2):
+			conditions = []
+			for identifier in view:
+				conditions.append(and_(
+					schema.BlobChunkGroupBinding.blob_id == identifier.blob_id,
+					schema.BlobChunkGroupBinding.chunk_group_offset == identifier.chunk_group_offset
+				))
+			combined_condition = or_(*conditions)
+			for binding in self.session.execute(select(schema.BlobChunkGroupBinding).where(combined_condition)).scalars().all():
+				result[BlobChunkGroupBindingIdentifier(binding.blob_id, binding.chunk_group_offset)] = binding
+		return result
+
+	def get_blob_chunk_group_bindings(self, identifiers: List[BlobChunkGroupBindingIdentifier]) -> Dict[BlobChunkGroupBindingIdentifier, schema.BlobChunkGroupBinding]:
+		result = self.get_blob_chunk_group_bindings_opt(identifiers)
+		for id_, binding in result.items():
+			if binding is None:
+				raise BlobChunkGroupBindingNotFound(id_.blob_id, id_.chunk_group_offset)
+		return result
 
 	def get_blob_chunk_group_binding_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.BlobChunkGroupBinding)).scalar_one())
@@ -663,6 +725,20 @@ class DbSession:
 				where(schema.BlobChunkGroupBinding.blob_id.in_(view))
 			)
 
+	def delete_blob_chunk_group_binding(self, binding: schema.BlobChunkGroupBinding):
+		self.session.delete(binding)
+
+	def delete_blob_chunk_group_bindings(self, identifiers: List[BlobChunkGroupBindingIdentifier]):
+		for view in collection_utils.slicing_iterate(identifiers, self.__safe_var_limit // 2):
+			conditions = []
+			for identifier in view:
+				conditions.append(and_(
+					schema.BlobChunkGroupBinding.blob_id == identifier.blob_id,
+					schema.BlobChunkGroupBinding.chunk_group_offset == identifier.chunk_group_offset
+				))
+			combined_condition = or_(*conditions)
+			self.session.execute(delete(schema.BlobChunkGroupBinding).where(combined_condition))
+
 	# ===================================== File =====================================
 
 	class CreateFileKwargs(TypedDict):
@@ -741,15 +817,16 @@ class DbSession:
 		All given identifiers are in the dict
 		"""
 		result: Dict[FileIdentifier, Optional[schema.File]] = {fid: None for fid in file_identifiers}
-		for view in collection_utils.slicing_iterate(file_identifiers, self.__safe_var_limit):
-			view_fileset_identifiers = [file_identifier.fileset_id for file_identifier in view]
-			view_paths = [file_identifier.path for file_identifier in view]
-			for file in self.session.execute(
-					select(schema.File).
-					where(schema.File.fileset_id.in_(view_fileset_identifiers)).
-					where(schema.File.path.in_(view_paths))
-			).scalars().all():
-				result[FileIdentifier(file.fileset_id, file.path)] = file
+		for view in collection_utils.slicing_iterate(file_identifiers, self.__safe_var_limit // 2):
+			conditions = []
+			for identifier in view:
+				conditions.append(and_(
+					schema.File.fileset_id == identifier.fileset_id,
+					schema.File.path == identifier.path
+				))
+				combined_condition = or_(*conditions)
+				for file in self.session.execute(select(schema.File).where(combined_condition)).scalars().all():
+					result[FileIdentifier(file.fileset_id, file.path)] = file
 		return result
 
 	def get_file_objects(self, file_identifiers: List[FileIdentifier]) -> Dict[FileIdentifier, schema.File]:

@@ -7,7 +7,7 @@ from typing_extensions import override
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.types.chunk_group_info import BlobChunkGroupBindingInfo
+from prime_backup.types.blob_chunk_group_binding_info import BlobChunkGroupBindingInfo
 
 
 class BadBlobChunkGroupBindingItemType(enum.Enum):

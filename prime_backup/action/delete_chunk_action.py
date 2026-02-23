@@ -117,9 +117,9 @@ class DeleteOrphanChunksAction(Action[ChunkListSummary]):
 					ids=orphan_chunk_ids,
 					raise_if_not_found=True,
 				)
-				bls = action.run(session=session)
+				summary = action.run(session=session)
 			else:
-				bls = ChunkListSummary.zero()
+				summary = ChunkListSummary.zero()
 				session.commit()
 
-		return bls
+		return summary

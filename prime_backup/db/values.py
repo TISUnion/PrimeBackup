@@ -37,17 +37,38 @@ class ChunkGroupChunkBindingIdentifier:
 	chunk_group_id: int
 	chunk_offset: int
 
+	@classmethod
+	def of(cls, binding: 'schema.ChunkGroupChunkBinding') -> 'ChunkGroupChunkBindingIdentifier':
+		return ChunkGroupChunkBindingIdentifier(
+			chunk_group_id=binding.chunk_group_id,
+			chunk_offset=binding.chunk_offset,
+		)
+
 
 @dataclasses.dataclass(frozen=True)
 class BlobChunkGroupBindingIdentifier:
 	blob_id: int
 	chunk_group_offset: int
 
+	@classmethod
+	def of(cls, binding: 'schema.BlobChunkGroupBinding') -> 'BlobChunkGroupBindingIdentifier':
+		return BlobChunkGroupBindingIdentifier(
+			blob_id=binding.blob_id,
+			chunk_group_offset=binding.chunk_group_offset,
+		)
+
 
 @dataclasses.dataclass(frozen=True)
 class FileIdentifier:
 	fileset_id: int
 	path: str
+
+	@classmethod
+	def of(cls, file: 'schema.File') -> 'FileIdentifier':
+		return FileIdentifier(
+			fileset_id=file.fileset_id,
+			path=file.path,
+		)
 
 
 class FileRole(enum.IntEnum):

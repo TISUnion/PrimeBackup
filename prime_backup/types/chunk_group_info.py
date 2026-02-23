@@ -1,12 +1,12 @@
 import dataclasses
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from prime_backup.db import schema
 from prime_backup.db.values import OffsetChunkGroup
+from prime_backup.utils import misc_utils
 
 if TYPE_CHECKING:
-	from prime_backup.types.blob_info import BlobInfo
-	from prime_backup.types.chunk_info import ChunkInfo
+	from prime_backup.types.chunk_info import ChunkListSummary
 
 
 @dataclasses.dataclass(frozen=True)
@@ -38,49 +38,19 @@ class OffsetChunkGroupInfo:
 		return cls(offset_chunk_group.offset, ChunkGroupInfo.of(offset_chunk_group.chunk_group))
 
 
-@dataclasses.dataclass(frozen=True)
-class ChunkGroupChunkBindingInfo:
-	chunk_group_id: int
-	chunk_offset: int
-	chunk_id: int
-
-	chunk_group: Optional[ChunkGroupInfo] = None
-	chunk: Optional['ChunkInfo'] = None
+@dataclasses.dataclass
+class ChunkGroupListSummary:
+	count: int
+	chunk_summary: 'ChunkListSummary'
 
 	@classmethod
-	def of(
-			cls, binding: schema.ChunkGroupChunkBinding, *,
-			chunk_group: Optional[ChunkGroupInfo] = None,
-			chunk: Optional['ChunkInfo'] = None
-	) -> 'ChunkGroupChunkBindingInfo':
-		return cls(
-			chunk_group_id=binding.chunk_group_id,
-			chunk_offset=binding.chunk_offset,
-			chunk_id=binding.chunk_id,
-			chunk_group=chunk_group,
-			chunk=chunk,
-		)
+	def zero(cls) -> 'ChunkGroupListSummary':
+		from prime_backup.types.chunk_info import ChunkListSummary
+		return cls(0, ChunkListSummary.zero())
 
-
-@dataclasses.dataclass(frozen=True)
-class BlobChunkGroupBindingInfo:
-	blob_id: int
-	chunk_group_offset: int
-	chunk_group_id: int
-
-	blob: Optional['BlobInfo'] = None
-	chunk_group: Optional[ChunkGroupInfo] = None
-
-	@classmethod
-	def of(
-			cls, binding: schema.BlobChunkGroupBinding, *,
-			blob: Optional['BlobInfo'] = None,
-			chunk_group: Optional[ChunkGroupInfo] = None,
-	) -> 'BlobChunkGroupBindingInfo':
-		return cls(
-			blob_id=binding.blob_id,
-			chunk_group_offset=binding.chunk_group_offset,
-			chunk_group_id=binding.chunk_group_id,
-			blob=blob,
-			chunk_group=chunk_group,
+	def __add__(self, other: 'ChunkGroupListSummary') -> 'ChunkGroupListSummary':
+		misc_utils.ensure_type(other, type(self))
+		return ChunkGroupListSummary(
+			count=self.count + other.count,
+			chunk_summary=self.chunk_summary + other.chunk_summary,
 		)

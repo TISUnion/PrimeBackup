@@ -97,6 +97,20 @@ class ChunkGroupHashNotFound(ChunkGroupNotFound):
 		self.chunk_group_hash = chunk_group_hash
 
 
+class ChunkGroupChunkBindingNotFound(PrimeBackupError):
+	def __init__(self, chunk_group_id: int, chunk_offset: int):
+		super().__init__()
+		self.chunk_group_id = chunk_group_id
+		self.chunk_offset = chunk_offset
+
+
+class BlobChunkGroupBindingNotFound(PrimeBackupError):
+	def __init__(self, blob_id: int, chunk_group_offset: int):
+		super().__init__()
+		self.blob_id = blob_id
+		self.chunk_group_offset = chunk_group_offset
+
+
 class UnsupportedFileFormat(PrimeBackupError):
 	def __init__(self, mode: int):
 		self.mode = mode

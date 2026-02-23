@@ -19,7 +19,7 @@ CDC chunking
 - [ ] Performance optimization
 - [ ] Fuse support
 - [ ] TODO cleanup
-- [ ] Compress migration
+- [x] Compress migration
 - [ ] Document
 
 ## QOL

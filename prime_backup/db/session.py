@@ -245,6 +245,12 @@ class DbSession:
 		# FIXME: chunked blob
 		return _int_or_0(self.session.execute(func.sum(schema.Blob.stored_size).select()).scalar_one())
 
+	def get_direct_blob_stored_size_sum(self) -> int:
+		return _int_or_0(self.session.execute(
+			func.sum(schema.Blob.stored_size).select().
+			where(schema.Blob.storage_method == BlobStorageMethod.direct.value)
+		).scalar_one())
+
 	def get_blob_raw_size_sum(self) -> int:
 		return _int_or_0(self.session.execute(func.sum(schema.Blob.raw_size).select()).scalar_one())
 
@@ -269,6 +275,13 @@ class DbSession:
 			blob_hash for blob_hash in hashes
 			if blob_hash not in good_hashes
 		]
+
+	def calc_chunked_blob_stored_size_sum(self, blob_id: int) -> int:
+		return _int_or_0(self.session.execute(
+			select(func.sum(schema.ChunkGroup.chunk_stored_size_sum)).
+			join(schema.BlobChunkGroupBinding, schema.ChunkGroup.id == schema.BlobChunkGroupBinding.chunk_group_id).
+			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
+		).scalar_one())
 
 	# ===================================== Chunk =====================================
 
@@ -331,6 +344,9 @@ class DbSession:
 			for chunk in self.session.execute(select(schema.Chunk).where(schema.Chunk.hash.in_(view))).scalars().all():
 				result[chunk.hash] = chunk
 		return result
+
+	def get_chunk_stored_size_sum(self) -> int:
+		return _int_or_0(self.session.execute(func.sum(schema.Chunk.stored_size).select()).scalar_one())
 
 	def list_chunks(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Chunk]:
 		s = select(schema.Chunk)
@@ -762,6 +778,13 @@ class DbSession:
 				))
 			combined_condition = or_(*conditions)
 			self.session.execute(delete(schema.BlobChunkGroupBinding).where(combined_condition))
+
+	def calc_chunk_group_stored_size_sum(self, chunk_group_id: int) -> int:
+		return _int_or_0(self.session.execute(
+			select(func.sum(schema.Chunk.stored_size)).
+			join(schema.ChunkGroupChunkBinding, schema.Chunk.id == schema.ChunkGroupChunkBinding.chunk_id).
+			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
+		).scalar_one())
 
 	# ===================================== File =====================================
 

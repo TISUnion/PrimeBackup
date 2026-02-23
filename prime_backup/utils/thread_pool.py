@@ -2,11 +2,14 @@ import functools
 import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor, Future
-from typing import List
+from typing import List, TypeVar, Callable
 
-from typing_extensions import override
+from typing_extensions import override, ParamSpec
 
 from prime_backup.utils import misc_utils
+
+_T = TypeVar('_T')
+_P = ParamSpec('_P')
 
 
 class FailFastBlockingThreadPool(ThreadPoolExecutor):
@@ -27,7 +30,7 @@ class FailFastBlockingThreadPool(ThreadPoolExecutor):
 		self.__error_futures: 'queue.Queue[Future]' = queue.Queue()
 
 	@override
-	def submit(self, __fn, *args, **kwargs):
+	def submit(self, __fn: Callable[_P, _T], *args: _P.args, **kwargs: _P.kwargs) -> Future[_T]:
 		func = functools.partial(__fn, *args, **kwargs)
 
 		def wrapper_func():

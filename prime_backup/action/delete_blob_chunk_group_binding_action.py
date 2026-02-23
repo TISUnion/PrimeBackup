@@ -18,10 +18,6 @@ class DeleteBlobChunkGroupBindingsAction(Action[None]):
 
 	@override
 	def run(self, *, session: Optional[DbSession] = None) -> None:
-		"""
-		:param session: If provided, use this session for DB operations.
-		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
-		"""
 		session: DbSession
 		with contextlib.ExitStack() as es:
 			if session is None:

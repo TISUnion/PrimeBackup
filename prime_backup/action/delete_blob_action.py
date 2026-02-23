@@ -99,16 +99,24 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 
 		blobs_by_id: Dict[int, schema.Blob] = session.get_blobs_by_ids(self.blob_ids)
 		for blob_id, blob in blobs_by_id.items():
-			if blob is None and self.raise_if_not_found:
-				raise BlobIdNotFound(blob_id)
+			if blob is None:
+				if self.raise_if_not_found:
+					raise BlobIdNotFound(blob_id)
+				else:
+					self.logger.warning('Blob with id {} does not exist'.format(blob_id))
+					continue
 			if blob_id not in self_blob_ids_set:
 				raise AssertionError('got unexpected blob id {!r}, should be in {}'.format(blob_id, self_blob_ids_set))
 			all_to_delete_blobs[blob.id] = BlobInfo.of(blob)
 
 		blobs_by_hash: Dict[str, schema.Blob] = session.get_blobs_by_hashes(self.blob_hashes)
 		for blob_hash, blob in blobs_by_hash.items():
-			if blob is None and self.raise_if_not_found:
-				raise BlobHashNotFound(blob_hash)
+			if blob is None:
+				if self.raise_if_not_found:
+					raise BlobHashNotFound(blob_hash)
+				else:
+					self.logger.warning('Blob with hash {} does not exist'.format(blob_hash))
+					continue
 			if blob_hash not in self_blob_hashes_set:
 				raise AssertionError('got unexpected blob hash {!r}, should be in {}'.format(blob_hash, self_blob_hashes_set))
 			all_to_delete_blobs[blob.id] = BlobInfo.of(blob)
@@ -135,7 +143,7 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 			self.logger.debug('Found {}/{} orphan blobs to delete'.format(len(orphan_blob_hashes), len(self.blob_hashes_to_check)))
 
 			if len(orphan_blob_hashes) > 0:
-				action = DeleteBlobsAction(hashes=orphan_blob_hashes, raise_if_not_found=True)
+				action = DeleteBlobsAction(hashes=orphan_blob_hashes, raise_if_not_found=False)
 				bls = action.run(session=session)
 			else:
 				bls = BlobListSummary.zero()

@@ -1,7 +1,8 @@
 import collections
+import contextlib
 import dataclasses
 import enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from typing_extensions import override
 
@@ -125,11 +126,13 @@ class ValidateChunkGroupsAction(Action[ValidateChunkGroupsResult]):
 			validate_one_chunk_group(cg)
 
 	@override
-	def run(self) -> ValidateChunkGroupsResult:
+	def run(self, *, session: Optional[DbSession] = None) -> ValidateChunkGroupsResult:
 		self.logger.info('Chunk group validation start')
 		result = ValidateChunkGroupsResult()
 
-		with DbAccess.open_session() as session:
+		with contextlib.ExitStack() as es:
+			if session is None:
+				session = es.enter_context(DbAccess.open_session())
 			result.total = session.get_chunk_group_count()
 			cnt = 0
 			for chunk_groups in session.iterate_chunk_group_batch(batch_size=40):  # 40 ~= 5000 / chunk_constants.CHUNK_GROUP_AVG_SIZE

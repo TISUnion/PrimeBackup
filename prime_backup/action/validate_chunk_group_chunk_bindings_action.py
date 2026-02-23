@@ -1,6 +1,7 @@
+import contextlib
 import dataclasses
 import enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from typing_extensions import override
 
@@ -22,7 +23,7 @@ class BadChunkGroupChunkBindingItem:
 
 
 @dataclasses.dataclass
-class ValidateChunkGroupsResult:
+class ValidateChunkGroupChunkBindingsResult:
 	total: int = 0
 	bad_bindings: List[BadChunkGroupChunkBindingItem] = dataclasses.field(default_factory=list)
 
@@ -44,18 +45,20 @@ class ValidateChunkGroupsResult:
 		return result
 
 
-class ValidateChunkGroupChunkBindingsAction(Action[ValidateChunkGroupsResult]):
+class ValidateChunkGroupChunkBindingsAction(Action[ValidateChunkGroupChunkBindingsResult]):
 	"""
-	NOTE: BlobChunkGroupBinding's .chunk_offset and .chunk_id checks are done in ValidateChunkGroupsAction
+	NOTE: ChunkGroupChunkBinding's .chunk_offset and .chunk_id checks are done in ValidateChunkGroupsAction
 	"""
 
 	@override
-	def run(self) -> ValidateChunkGroupsResult:
+	def run(self, *, session: Optional[DbSession] = None) -> ValidateChunkGroupChunkBindingsResult:
 		self.logger.info('Scanning all chunk group chunk bindings for orphan check')
-		result = ValidateChunkGroupsResult()
+		result = ValidateChunkGroupChunkBindingsResult()
 
 		session: DbSession
-		with DbAccess.open_session() as session:
+		with contextlib.ExitStack() as es:
+			if session is None:
+				session = es.enter_context(DbAccess.open_session())
 			result.total = session.get_chunk_group_chunk_binding_count()
 			for binding in session.list_orphan_chunk_group_chunk_bindings(limit=1000):
 				result.add_bad(ChunkGroupChunkBindingInfo.of(binding), BadChunkGroupChunkBindingItemType.orphan, f'orphan binding refers to a non-existent chunk group {binding.chunk_group_id}')

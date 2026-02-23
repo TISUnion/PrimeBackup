@@ -14,10 +14,12 @@ CDC chunking
 - [x] Backup export
 - [x] DB migration
 - [ ] Blob size display texts updates
-- [ ] DB Validation tasks
+- [x] DB Validation tasks
+- [x] DB Prune tasks
 - [ ] Performance optimization
 - [ ] Fuse support
 - [ ] TODO cleanup
+- [ ] Compress migration
 - [ ] Document
 
 ## QOL

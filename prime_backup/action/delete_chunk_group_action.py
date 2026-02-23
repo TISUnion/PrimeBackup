@@ -51,16 +51,24 @@ class DeleteChunkGroupsAction(Action[None]):
 
 		chunk_groups_by_id: Dict[int, schema.ChunkGroup] = session.get_chunk_groups_by_ids(self.chunk_group_ids)
 		for chunk_group_id, chunk_group in chunk_groups_by_id.items():
-			if chunk_group is None and self.raise_if_not_found:
-				raise ChunkIdNotFound(chunk_group_id)
+			if chunk_group is None:
+				if self.raise_if_not_found:
+					raise ChunkIdNotFound(chunk_group_id)
+				else:
+					self.logger.warning('Chunk group with id {} does not exist'.format(chunk_group_id))
+					continue
 			if chunk_group_id not in self_chunk_group_ids_set:
 				raise AssertionError('got unexpected chunk group id {!r}, should be in {}'.format(chunk_group_id, self_chunk_group_ids_set))
 			all_to_delete_chunk_groups[chunk_group.id] = None
 
 		chunk_groups_by_hash: Dict[str, schema.ChunkGroup] = session.get_chunk_groups_by_hashes(self.chunk_group_hashes)
 		for chunk_group_hash, chunk_group in chunk_groups_by_hash.items():
-			if chunk_group is None and self.raise_if_not_found:
-				raise ChunkHashNotFound(chunk_group_hash)
+			if chunk_group is None:
+				if self.raise_if_not_found:
+					raise ChunkHashNotFound(chunk_group_hash)
+				else:
+					self.logger.warning('Chunk group with hash {} does not exist'.format(chunk_group_hash))
+					continue
 			if chunk_group_hash not in self_chunk_group_hashes_set:
 				raise AssertionError('got unexpected chunk group hash {!r}, should be in {}'.format(chunk_group_hash, self_chunk_group_hashes_set))
 			all_to_delete_chunk_groups[chunk_group.id] = None
@@ -87,7 +95,7 @@ class DeleteOrphanChunkGroupsAction(Action[int]):
 			self.logger.debug('Found {}/{} orphan chunk groups to delete'.format(len(orphan_chunk_group_ids), len(self.chunk_ids_to_check)))
 
 			if len(orphan_chunk_group_ids) > 0:
-				DeleteChunkGroupsAction(ids=orphan_chunk_group_ids, raise_if_not_found=True).run(session=session)
+				DeleteChunkGroupsAction(ids=orphan_chunk_group_ids, raise_if_not_found=False).run(session=session)
 			else:
 				session.commit()
 

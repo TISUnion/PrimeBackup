@@ -287,7 +287,7 @@ prime_backup:
     db_prune:
       name: prune database
       start: Pruning database, deleting useless objects inside, please wait...
-      done: Pruning done, deleted {} orphan objects (including {} blobs, {} files and {} filesets), {} unused fileset files and {} unknown blob files
+      done: Pruning done, deleted {} orphan objects (including {} blobs, {} files and {} filesets), {} unused fileset files, {} unknown blob files, {} unknown chunk files
       done_clean: Pruning done, deleted 0 object, the database is already clean
     db_vacuum:
       name: tidy up database
@@ -307,12 +307,13 @@ prime_backup:
         done: Validated {} / {} blobs
         all_ok: All {} blobs are healthy
         found_bad_blobs: Found {} / {} bad blobs in total
-        invalid: 'Invalid blob amount: {}'
-        missing: 'Missing blob amount: {}'
-        corrupted: 'Corrupted blob amount: {}'
-        mismatched: 'Mismatched blob amount: {}'
-        bad_layout: 'Bad-layout blob amount: {}'
-        orphan: 'Orphan blob amount: {}'
+        bad_type:
+          invalid: 'Invalid blob amount: {}'
+          missing: 'Missing blob amount: {}'
+          corrupted: 'Corrupted blob amount: {}'
+          mismatched: 'Mismatched blob amount: {}'
+          bad_layout: 'Bad-layout blob amount: {}'
+          orphan: 'Orphan blob amount: {}'
         affected: 'Affected range: {} / {} file objects, {} / {} filesets, {} / {} backups'
         see_log: 'See log file {} for details and affected stuffs of these bad blobs'
       validate_chunks:
@@ -334,11 +335,11 @@ prime_backup:
             bad_layout: 'Bad chunk group layout: {}'
             bad_chunk_stats: 'Bad chunk group stats: {}'
         chunk_group_chunk_binding:
-          found_bad_chunk_group_chunk_bindings: Found {} / {} bad chunk group chunk bindings in total
+          found_bad_bindings: Found {} / {} bad chunk group chunk bindings in total
           bad_type:
             orphan: 'Orphan chunk group chunk binding: {}'
         blob_chunk_group_binding:
-          found_bad_blob_chunk_group_bindings: Found {} / {} bad blob chunk group bindings in total
+          found_bad_bindings: Found {} / {} bad blob chunk group bindings in total
           bad_type:
             orphan: 'Orphan blob chunk group binding: {}'
             bad_storage_method: 'Unexpected blob storage_method: {}'

@@ -4,16 +4,17 @@ import time
 from typing import List, Optional, TypeVar, Tuple, Callable, Dict, Union
 
 from mcdreforged.api.all import CommandSource, RTextBase, RTextList, RColor, RAction
-from typing_extensions import override
+from typing_extensions import override, Protocol
 
 from prime_backup.action import Action
-from prime_backup.action.get_object_counts_action import GetObjectCountsAction
+from prime_backup.action.get_object_counts_action import GetObjectCountsAction, ObjectCounts
 from prime_backup.action.validate_backups_action import ValidateBackupsAction, BadBackupItem
-from prime_backup.action.validate_blob_chunk_group_bindings_action import ValidateBlobChunkGroupBindingsAction, BadBlobChunkGroupBindingItem
+from prime_backup.action.validate_blob_chunk_group_bindings_action import BadBlobChunkGroupBindingItem, ValidateBlobChunkGroupBindingsResult
 from prime_backup.action.validate_blobs_action import ValidateBlobsAction, BadBlobItem
-from prime_backup.action.validate_chunk_group_chunk_bindings_action import ValidateChunkGroupChunkBindingsAction, BadChunkGroupChunkBindingItem
-from prime_backup.action.validate_chunk_groups_action import ValidateChunkGroupsAction, BadChunkGroupItem
-from prime_backup.action.validate_chunks_action import ValidateChunksAction, BadChunkItem
+from prime_backup.action.validate_chunk_group_chunk_bindings_action import BadChunkGroupChunkBindingItem, ValidateChunkGroupChunkBindingsResult
+from prime_backup.action.validate_chunk_groups_action import BadChunkGroupItem, ValidateChunkGroupsResult
+from prime_backup.action.validate_chunk_objects_action import ValidateChunkObjectsAction
+from prime_backup.action.validate_chunks_action import BadChunkItem, ValidateChunksResult
 from prime_backup.action.validate_files_action import ValidateFilesAction, BadFileItemType
 from prime_backup.action.validate_filesets_action import ValidateFilesetsAction, BadFilesetItemType
 from prime_backup.mcdr.task.basic_task import HeavyTask
@@ -42,6 +43,13 @@ _T = TypeVar('_T')
 _Action = TypeVar('_Action', bound=Action)
 
 
+class _ResultWithFileAndBackupSamples(Protocol):
+	affected_file_count: int
+	affected_file_samples: List[FileInfo]
+	affected_fileset_ids: List[int]
+	affected_backup_ids: List[int]
+
+
 class ValidateDbTask(HeavyTask[None]):
 	def __init__(self, source: CommandSource, parts: ValidatePart):
 		super().__init__(source)
@@ -63,24 +71,7 @@ class ValidateDbTask(HeavyTask[None]):
 			vlogger.info(text.to_plain_text())
 			self.reply(text)
 
-	def __validate_blobs(self, vlogger: log_utils.FileLogger) -> bool:
-		result = self.run_action(ValidateBlobsAction())
-
-		vlogger.info('Validate blobs result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
-		self.reply_tr('validate_blobs.done', TextComponents.number(result.validated), TextComponents.number(result.total))
-		if result.ok == result.validated:
-			self.reply(self.tr('validate_blobs.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
-			return True
-
-		self.reply(self.tr('validate_blobs.found_bad_blobs', TextComponents.number(result.bad), TextComponents.number(result.validated)).set_color(RColor.red))
-		for bad_type, bad_items in result.group_bad_by_type().items():
-			def item_formatter(item: BadBlobItem) -> str:
-				return f'{item.blob.hash}: {item.desc}'
-			vlogger.info('bad blob with category "{}" (len={})'.format(bad_type, len(bad_items)))
-			self.reply_tr(f'validate_blobs.{bad_type.name}', TextComponents.number(len(bad_items)))
-			self.__show_bad_objects(vlogger, bad_items, item_formatter)
-		counts = GetObjectCountsAction().run()
-
+	def __show_affected_file_and_backup(self, result: _ResultWithFileAndBackupSamples, counts: ObjectCounts, vlogger: log_utils.FileLogger):
 		vlogger.info('Affected file objects / total file objects: {} / {}'.format(result.affected_file_count, counts.file_object_count))
 		vlogger.info('Affected file samples (len={}):'.format(len(result.affected_file_samples)))
 		for file in result.affected_file_samples:
@@ -108,10 +99,28 @@ class ValidateDbTask(HeavyTask[None]):
 		)
 		self.reply_tr('validate_blobs.see_log', str(vlogger.log_file))
 
+	def __validate_blobs(self, vlogger: log_utils.FileLogger) -> bool:
+		result = self.run_action(ValidateBlobsAction())
+
+		vlogger.info('Validate blobs result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
+		self.reply_tr('validate_blobs.done', TextComponents.number(result.validated), TextComponents.number(result.total))
+		if result.ok == result.validated:
+			self.reply(self.tr('validate_blobs.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
+			return True
+
+		self.reply(self.tr('validate_blobs.found_bad_blobs', TextComponents.number(result.bad), TextComponents.number(result.validated)).set_color(RColor.red))
+		for bad_type, bad_items in result.group_bad_by_type().items():
+			def item_formatter(item: BadBlobItem) -> str:
+				return f'{item.blob.hash}: {item.desc}'
+			vlogger.info('bad blob with category "{}" (len={})'.format(bad_type, len(bad_items)))
+			self.reply_tr(f'validate_blobs.bad_type.{bad_type.name}', TextComponents.number(len(bad_items)))
+			self.__show_bad_objects(vlogger, bad_items, item_formatter)
+
+		counts = GetObjectCountsAction().run()
+		self.__show_affected_file_and_backup(result, counts, vlogger)
 		return False
 
-	def __validate_chunks(self, vlogger: logging.Logger) -> Tuple[bool, int]:
-		result = self.run_action(ValidateChunksAction())
+	def __validate_chunks(self, result: ValidateChunksResult, vlogger: logging.Logger) -> Tuple[bool, int]:
 		vlogger.info('Validate chunks result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
 		if result.ok == result.validated:
 			return True, result.validated
@@ -125,8 +134,7 @@ class ValidateDbTask(HeavyTask[None]):
 			self.__show_bad_objects(vlogger, bad_items, item_formatter)
 		return False, result.validated
 
-	def __validate_chunk_groups(self, vlogger: logging.Logger) -> Tuple[bool, int]:
-		result = self.run_action(ValidateChunkGroupsAction())
+	def __validate_chunk_groups(self, result: ValidateChunkGroupsResult, vlogger: logging.Logger) -> Tuple[bool, int]:
 		vlogger.info('Validate chunk groups result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
 		if result.ok == result.validated:
 			return True, result.validated
@@ -140,9 +148,7 @@ class ValidateDbTask(HeavyTask[None]):
 			self.__show_bad_objects(vlogger, bad_items, item_formatter)
 		return False, result.validated
 
-	def __validate_chunk_relation_bindings(self, vlogger: logging.Logger) -> Tuple[bool, int, int]:
-		result_cgc = self.run_action(ValidateChunkGroupChunkBindingsAction())
-		result_bcg = self.run_action(ValidateBlobChunkGroupBindingsAction())
+	def __validate_chunk_relation_bindings(self, result_cgc: ValidateChunkGroupChunkBindingsResult, result_bcg: ValidateBlobChunkGroupBindingsResult, vlogger: logging.Logger) -> Tuple[bool, int, int]:
 		vlogger.info('Validate chunk relation bindings result: ChunkGroupChunkBinding total={} ok={}, BlobChunkGroupBinding total={} ok={}'.format(
 			result_cgc.total, result_cgc.ok, result_bcg.total, result_bcg.ok,
 		))
@@ -165,13 +171,21 @@ class ValidateDbTask(HeavyTask[None]):
 		ok = result_cgc.ok == result_cgc.total and result_bcg.ok == result_bcg.total
 		return ok, result_cgc.total, result_bcg.total
 
-	def __validate_chunk_entry(self, vlogger: logging.Logger) -> bool:
-		chunk_ok, chunk_cnt = self.__validate_chunks(vlogger)
-		chunk_group_ok, chunk_group_cnt = self.__validate_chunk_groups(vlogger)
-		binding_ok, chunk_group_chunk_binding_cnt, blob_chunk_group_binding_cnt = self.__validate_chunk_relation_bindings(vlogger)
+	def __validate_chunk_objects(self, vlogger: log_utils.FileLogger) -> bool:
+		all_result = self.run_action(ValidateChunkObjectsAction())
+		chunk_ok, chunk_cnt = self.__validate_chunks(all_result.chunk_result, vlogger)
+		chunk_group_ok, chunk_group_cnt = self.__validate_chunk_groups(all_result.chunk_group_result, vlogger)
+		binding_ok, chunk_group_chunk_binding_cnt, blob_chunk_group_binding_cnt = self.__validate_chunk_relation_bindings(all_result.chunk_group_chunk_bindings_result, all_result.blob_chunk_group_bindings_result,  vlogger)
 		if chunk_ok and chunk_group_ok and binding_ok:
 			self.reply(self.tr('validate_chunks.all_ok', chunk_cnt, chunk_group_cnt, chunk_group_chunk_binding_cnt, blob_chunk_group_binding_cnt).set_color(RColor.green))
 			return True
+		else:
+			counts = GetObjectCountsAction().run()
+			vlogger.info('Affected blob objects / total blob objects: {} / {}'.format(all_result.affected_blob_count, counts.blob_count))
+			vlogger.info('Affected blob samples (len={}):'.format(len(all_result.affected_blob_samples)))
+			for blob in all_result.affected_blob_samples:
+				vlogger.info('- {}'.format(blob.hash))
+			self.__show_affected_file_and_backup(all_result, counts, vlogger)
 		return False
 
 	def __validate_files(self, vlogger: logging.Logger) -> bool:
@@ -257,7 +271,7 @@ class ValidateDbTask(HeavyTask[None]):
 
 			validators: Dict[ValidatePart, Callable[[logging.Logger], bool]] = {
 				ValidatePart.blobs: self.__validate_blobs,
-				ValidatePart.chunks: self.__validate_chunk_entry,
+				ValidatePart.chunks: self.__validate_chunk_objects,
 				ValidatePart.files: self.__validate_files,
 				ValidatePart.filesets: self.__validate_filesets,
 				ValidatePart.backups: self.__validate_backups,

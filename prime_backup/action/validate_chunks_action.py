@@ -1,6 +1,7 @@
+import contextlib
 import dataclasses
 import enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from typing_extensions import override
 
@@ -112,11 +113,14 @@ class ValidateChunksAction(Action[ValidateChunksResult]):
 		check_orphan_chunks()
 
 	@override
-	def run(self) -> ValidateChunksResult:
+	def run(self, *, session: Optional[DbSession] = None) -> ValidateChunksResult:
 		self.logger.info('Chunk validation start')
 		result = ValidateChunksResult()
 
-		with DbAccess.open_session() as session:
+		with contextlib.ExitStack() as es:
+			if session is None:
+				session = es.enter_context(DbAccess.open_session())
+
 			result.total = session.get_chunk_count()
 			cnt = 0
 			for chunks in session.iterate_chunk_batch(batch_size=3000):

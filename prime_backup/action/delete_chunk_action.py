@@ -77,16 +77,24 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 
 		chunks_by_id: Dict[int, schema.Chunk] = session.get_chunks_by_ids(self.chunk_ids)
 		for chunk_id, chunk in chunks_by_id.items():
-			if chunk is None and self.raise_if_not_found:
-				raise ChunkIdNotFound(chunk_id)
+			if chunk is None:
+				if self.raise_if_not_found:
+					raise ChunkIdNotFound(chunk_id)
+				else:
+					self.logger.warning('Chunk with id {} does not exist'.format(chunk_id))
+					continue
 			if chunk_id not in self_chunk_ids_set:
 				raise AssertionError('got unexpected chunk id {!r}, should be in {}'.format(chunk_id, self_chunk_ids_set))
 			all_to_delete_chunks[chunk.id] = ChunkInfo.of(chunk)
 
 		chunks_by_hash: Dict[str, schema.Chunk] = session.get_chunks_by_hashes(self.chunk_hashes)
 		for chunk_hash, chunk in chunks_by_hash.items():
-			if chunk is None and self.raise_if_not_found:
-				raise ChunkHashNotFound(chunk_hash)
+			if chunk is None:
+				if self.raise_if_not_found:
+					raise ChunkHashNotFound(chunk_hash)
+				else:
+					self.logger.warning('Chunk with hash {} does not exist'.format(chunk_hash))
+					continue
 			if chunk_hash not in self_chunk_hashes_set:
 				raise AssertionError('got unexpected chunk hash {!r}, should be in {}'.format(chunk_hash, self_chunk_hashes_set))
 			all_to_delete_chunks[chunk.id] = ChunkInfo.of(chunk)
@@ -113,10 +121,7 @@ class DeleteOrphanChunksAction(Action[ChunkListSummary]):
 			self.logger.debug('Found {}/{} orphan chunks to delete'.format(len(orphan_chunk_ids), len(self.chunk_ids_to_check)))
 
 			if len(orphan_chunk_ids) > 0:
-				action = DeleteChunksAction(
-					ids=orphan_chunk_ids,
-					raise_if_not_found=True,
-				)
+				action = DeleteChunksAction(ids=orphan_chunk_ids, raise_if_not_found=False)
 				summary = action.run(session=session)
 			else:
 				summary = ChunkListSummary.zero()

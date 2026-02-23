@@ -190,8 +190,8 @@ class ScanAndDeleteOrphanChunkGroupChunkBindingsAction(Action[ChunkListSummary])
 			total_cnt = session.get_chunk_group_chunk_binding_count()
 		self.logger.info('Checking {} chunk group chunk bindings'.format(total_cnt))
 
-		for _ in range(self.MAX_LOOP):
-			with DbAccess.open_session() as session:
+		with DbAccess.open_session() as session:
+			for _ in range(self.MAX_LOOP):
 				bindings = [
 					ChunkGroupChunkBindingIdentifier.of(binding)
 					for binding in session.list_orphan_chunk_group_chunk_bindings(limit=1000)
@@ -200,6 +200,7 @@ class ScanAndDeleteOrphanChunkGroupChunkBindingsAction(Action[ChunkListSummary])
 					break
 				result.count += len(bindings)
 				DeleteChunkGroupChunkBindingsAction(bindings).run(session=session)
+				session.flush()
 		if result.count > 0:
 			self.logger.info('Found and deleted {} orphaned chunk group chunk bindings in total'.format(result.count))
 		else:
@@ -219,8 +220,8 @@ class ScanAndDeleteOrphanBlobChunkGroupBindingsAction(Action[ _SimpleSummary]):
 			total_cnt = session.get_blob_chunk_group_binding_count()
 		self.logger.info('Checking {} blob chunk group bindings'.format(total_cnt))
 
-		for _ in range(self.MAX_LOOP):
-			with DbAccess.open_session() as session:
+		with DbAccess.open_session() as session:
+			for _ in range(self.MAX_LOOP):
 				bindings = [
 					BlobChunkGroupBindingIdentifier.of(binding_item.binding)
 					for binding_item in session.list_orphan_blob_chunk_group_bindings(limit=1000)
@@ -229,6 +230,7 @@ class ScanAndDeleteOrphanBlobChunkGroupBindingsAction(Action[ _SimpleSummary]):
 					break
 				result.count += len(bindings)
 				DeleteBlobChunkGroupBindingsAction(bindings).run(session=session)
+				session.flush()
 		if result.count > 0:
 			self.logger.info('Found and deleted {} orphaned blob chunk group bindings in total'.format(result.count))
 		else:
@@ -347,7 +349,15 @@ class ScanAndDeleteOrphanObjectsResult:
 
 	@property
 	def total_orphan_count(self) -> int:
-		return self.orphan_blob_count + self.orphan_file_count + self.orphan_fileset_count
+		total = 0
+		total += self.orphan_blob_count
+		total += self.orphan_chunk_group_count
+		total += self.orphan_chunk_count
+		total += self.orphan_chunk_group_chunk_binding_count
+		total += self.orphan_blob_chunk_group_binding_count
+		total += self.orphan_file_count
+		total += self.orphan_fileset_count
+		return total
 
 
 class ScanAndDeleteOrphanObjectsAction(Action[ScanAndDeleteOrphanObjectsResult]):

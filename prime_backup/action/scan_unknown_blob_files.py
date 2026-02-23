@@ -60,8 +60,6 @@ class ScanUnknownBlobFilesAction(Action[ScanUnknownBlobFilesResult]):
 
 						self.logger.debug('Found unknown blob file at {} with size {}{}'.format(unknown_blob_file, size, ', deleting' if self.delete else ''))
 						if self.delete:
-							unknown_chunk_file.unlink(missing_ok=True)
-						if self.delete:
 							unknown_blob_file.unlink(missing_ok=True)
 
 						if len(unknown_blob_file_samples) < 5:

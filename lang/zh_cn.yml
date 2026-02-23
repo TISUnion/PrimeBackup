@@ -287,7 +287,7 @@ prime_backup:
     db_prune:
       name: 清理数据库
       start: 正在清理数据库, 删除其中的无效数据, 请稍等...
-      done: 清理完成, 共删除{}个孤儿对象 (含{}个数据对象、{}个文件对象、{}个文件集)、{}个未使用的文件集文件以及{}个未知的数据对象文件
+      done: 清理完成, 共删除{}个孤儿对象 (含{}个数据对象、{}个文件对象、{}个文件集)、{}个未使用的文件集文件、{}个未知的数据对象文件、{}个未知的数据块文件
       done_clean: 清理完成, 没有任何需删除的对象, 数据库是干净的
     db_vacuum:
       name: 整理数据库文件
@@ -307,12 +307,13 @@ prime_backup:
         done: 已验证{}/{}个数据对象
         all_ok: 全部{}个数据对象都是健康的
         found_bad_blobs: 发现了{}/{}个异常数据对象
-        invalid: '非法数据对象: {}个'
-        missing: '文件缺失的数据对象: {}个'
-        corrupted: '文件损坏的数据对象: {}个'
-        mismatched: '信息不匹配的数据对象: {}个'
-        bad_layout: '分块布局异常的数据对象: {}个'
-        orphan: '孤儿数据对象: {}个'
+        bad_type:
+          invalid: '非法数据对象: {}个'
+          missing: '文件缺失的数据对象: {}个'
+          corrupted: '文件损坏的数据对象: {}个'
+          mismatched: '信息不匹配的数据对象: {}个'
+          bad_layout: '分块布局异常的数据对象: {}个'
+          orphan: '孤儿数据对象: {}个'
         affected: '影响范围: {}/{}个文件对象, {}/{}个文件集, {}/{}个备份'
         see_log: '见日志文件 {} 以了解这些数据对象的详细信息及影响范围'
       validate_chunks:
@@ -334,11 +335,11 @@ prime_backup:
             bad_layout: '分块布局异常的数据块组: {}个'
             bad_chunk_stats: '统计信息异常的数据块组: {}个'
         chunk_group_chunk_binding:
-          found_bad_chunk_group_chunk_bindings: 发现了{}/{}个异常的数据块组-数据块绑定对象
+          found_bad_bindings: 发现了{}/{}个异常的数据块组-数据块绑定对象
           bad_type:
             orphan: '孤儿数据块组-数据块绑定对象: {}个'
         blob_chunk_group_binding:
-          found_bad_blob_chunk_group_bindings: 发现了{}/{}个异常的数据对象-数据块组绑定对象
+          found_bad_bindings: 发现了{}/{}个异常的数据对象-数据块组绑定对象
           bad_type:
             orphan: '孤儿数据对象-数据块组: {}个'
             bad_storage_method: '数据对象的storage_method非预期: {}'

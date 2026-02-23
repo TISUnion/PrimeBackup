@@ -27,3 +27,5 @@ class Action(Generic[_T], ABC):
 
 	def interrupt(self):
 		self.is_interrupted.set()
+
+	# TODO: run_sub_action for interrupt chain

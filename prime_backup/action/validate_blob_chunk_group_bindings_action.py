@@ -1,6 +1,7 @@
+import contextlib
 import dataclasses
 import enum
-from typing import List
+from typing import List, Optional
 
 from typing_extensions import override, Dict
 
@@ -51,12 +52,14 @@ class ValidateBlobChunkGroupBindingsAction(Action[ValidateBlobChunkGroupBindings
 	"""
 
 	@override
-	def run(self) -> ValidateBlobChunkGroupBindingsResult:
+	def run(self, *, session: Optional[DbSession] = None) -> ValidateBlobChunkGroupBindingsResult:
 		self.logger.info('Scanning all blob chunk group bindings for orphan check')
 		result = ValidateBlobChunkGroupBindingsResult()
 
 		session: DbSession
-		with DbAccess.open_session() as session:
+		with contextlib.ExitStack() as es:
+			if session is None:
+				session = es.enter_context(DbAccess.open_session())
 			result.total = session.get_blob_chunk_group_binding_count()
 
 			for lor in session.list_orphan_blob_chunk_group_bindings(limit=1000):

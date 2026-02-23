@@ -511,6 +511,18 @@ class DbSession:
 			).scalars().all())
 		return result
 
+	def get_chunk_group_ids_by_chunk_ids(self, chunk_ids: List[int]) -> List[int]:
+		chunk_group_ids: Set[int] = set()
+		for v_chunk_ids in collection_utils.slicing_iterate(chunk_ids, self.__safe_var_limit):
+			chunk_group_ids.update(
+				self.session.execute(
+					select(schema.ChunkGroupChunkBinding.chunk_group_id).
+					where(schema.ChunkGroupChunkBinding.chunk_id.in_(v_chunk_ids)).
+					distinct()
+				).scalars().all()
+			)
+		return list(sorted(chunk_group_ids))
+
 	def list_chunk_group_chunk_bindings(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.ChunkGroupChunkBinding]:
 		s = select(schema.ChunkGroupChunkBinding)
 		if limit is not None:
@@ -635,6 +647,18 @@ class DbSession:
 				where(schema.BlobChunkGroupBinding.blob_id.in_(view))
 			).scalars().all())
 		return result
+
+	def get_blobs_by_chunk_group_ids(self, chunk_group_ids: List[int]) -> List[schema.Blob]:
+		blob_by_ids: Dict[int, schema.Blob] = {}
+		for v_chunk_group_ids in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
+			for blob in self.session.execute(
+	            select(schema.Blob).
+	            join(schema.BlobChunkGroupBinding, schema.Blob.id == schema.BlobChunkGroupBinding.blob_id).
+	            where(schema.BlobChunkGroupBinding.chunk_group_id.in_(v_chunk_group_ids)).
+	            distinct()
+			).scalars().all():
+				blob_by_ids[blob.id] = blob
+		return list(blob_by_ids.values())
 
 	def list_blob_chunk_group_bindings(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.BlobChunkGroupBinding]:
 		s = select(schema.BlobChunkGroupBinding)

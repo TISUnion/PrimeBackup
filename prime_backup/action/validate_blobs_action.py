@@ -151,7 +151,6 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 				return
 
 			# NOTES: validations for the chunks are done in ValidateChunksAction
-			good_blob_hashes.add(blob.hash)
 
 			group_bindings = all_bindings_by_blob_id.get(blob.id, [])
 			if len(group_bindings) == 0:
@@ -180,6 +179,8 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 			if stored_size_sum != blob.stored_size:
 				result.add_bad(blob, BadBlobItemType.mismatched, f'stored size sum mismatch, expect {stored_size_sum}, found {blob.stored_size}')
 				return
+
+			good_blob_hashes.add(blob.hash)
 
 		good_blob_hashes = set()
 		for b in blobs:

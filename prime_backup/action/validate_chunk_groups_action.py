@@ -44,6 +44,12 @@ class ValidateChunkGroupsResult:
 	def add_bad(self, chunk_group: ChunkGroupInfo, typ: BadChunkGroupItemType, msg: str):
 		self.bad_chunk_groups.append(BadChunkGroupItem(chunk_group, typ, msg))
 
+	def group_bad_by_type(self) -> Dict[BadChunkGroupItemType, List[BadChunkGroupItem]]:
+		result: Dict[BadChunkGroupItemType, List[BadChunkGroupItem]] = {}
+		for bad_chunk in self.bad_chunk_groups:
+			result.setdefault(bad_chunk.typ, []).append(bad_chunk)
+		return result
+
 
 class ValidateChunkGroupsAction(Action[ValidateChunkGroupsResult]):
 	"""

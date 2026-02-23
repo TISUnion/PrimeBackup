@@ -298,6 +298,7 @@ prime_backup:
       nothing_to_validate: Nothing is requested to be validated
       part:
         blobs: blobs
+        chunks: chunks
         files: files
         filesets: filesets
         backups: backups
@@ -314,6 +315,33 @@ prime_backup:
         orphan: 'Orphan blob amount: {}'
         affected: 'Affected range: {} / {} file objects, {} / {} filesets, {} / {} backups'
         see_log: 'See log file {} for details and affected stuffs of these bad blobs'
+      validate_chunks:
+        . : Start validating chunks (chunks, chunk groups, relation bindings), please wait...
+        all_ok: All {} chunks, {} chunk groups, {} + {} bindings are healthy
+        chunk:
+          found_bad_chunks: Found {} / {} bad chunks in total
+          bad_type:
+            invalid: 'Invalid chunk meta: {}'
+            orphan: 'Orphan chunk: {}'
+            missing_file: 'Missing chunk file: {}'
+            corrupted: 'Corrupted chunk file: {}'
+            mismatched: 'Chunk stats mismatched: {}'
+        chunk_group:
+          found_bad_chunk_groups: Found {} / {} bad chunk groups in total
+          bad_type:
+            invalid: 'Invalid chunk group meta: {}'
+            orphan: 'Orphan chunk group: {}'
+            bad_layout: 'Bad chunk group layout: {}'
+            bad_chunk_stats: 'Bad chunk group stats: {}'
+        chunk_group_chunk_binding:
+          found_bad_chunk_group_chunk_bindings: Found {} / {} bad chunk group chunk bindings in total
+          bad_type:
+            orphan: 'Orphan chunk group chunk binding: {}'
+        blob_chunk_group_binding:
+          found_bad_blob_chunk_group_bindings: Found {} / {} bad blob chunk group bindings in total
+          bad_type:
+            orphan: 'Orphan blob chunk group binding: {}'
+            bad_storage_method: 'Unexpected blob storage_method: {}'
       validate_files:
         .: Start validating files (including file, directory and symlink), please wait...
         done: Validated {} / {} files

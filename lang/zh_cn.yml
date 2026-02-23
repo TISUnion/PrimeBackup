@@ -298,6 +298,7 @@ prime_backup:
       nothing_to_validate: 没有要验证的内容
       part:
         blobs: 数据对象
+        chunks: 数据块相关对象
         files: 文件对象
         filesets: 文件集
         backups: 备份
@@ -314,6 +315,33 @@ prime_backup:
         orphan: '孤儿数据对象: {}个'
         affected: '影响范围: {}/{}个文件对象, {}/{}个文件集, {}/{}个备份'
         see_log: '见日志文件 {} 以了解这些数据对象的详细信息及影响范围'
+      validate_chunks:
+        . : 正在验证所有数据块相关对象 (包括数据块、数据块组、关系绑定), 请稍等...
+        all_ok: 全部{}个数据块、{}个数据块组、{} + {} 个数据块关系绑定对象都是健康的
+        chunk:
+          found_bad_chunks: 发现了{}/{}个异常数据块
+          bad_type:
+            invalid: '非法数据块: {}个'
+            orphan: '孤儿数据块: {}个'
+            missing_file: '文件缺失的数据块: {}个'
+            corrupted: '文件损坏的数据块: {}个'
+            mismatched: '统计信息异常的数据块: {}个'
+        chunk_group:
+          found_bad_chunk_groups: 发现了{}/{}个异常的数据块组
+          bad_type:
+            invalid: '非法数据块组: {}个'
+            orphan: '孤儿数据块组: {}个'
+            bad_layout: '分块布局异常的数据块组: {}个'
+            bad_chunk_stats: '统计信息异常的数据块组: {}个'
+        chunk_group_chunk_binding:
+          found_bad_chunk_group_chunk_bindings: 发现了{}/{}个异常的数据块组-数据块绑定对象
+          bad_type:
+            orphan: '孤儿数据块组-数据块绑定对象: {}个'
+        blob_chunk_group_binding:
+          found_bad_blob_chunk_group_bindings: 发现了{}/{}个异常的数据对象-数据块组绑定对象
+          bad_type:
+            orphan: '孤儿数据对象-数据块组: {}个'
+            bad_storage_method: '数据对象的storage_method非预期: {}'
       validate_files:
         .: 正在验证所有文件对象 (包括文件、文件夹、符号链接), 请稍等...
         done: 已验证{}/{}个文件

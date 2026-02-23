@@ -412,6 +412,7 @@ class CommandManager:
 		builder.command('database inspect blob <blob_hash>', self.cmd_db_inspect_blob)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidatePart.blobs))
+		builder.command('database validate chunks', functools.partial(self.cmd_db_validate, parts=ValidatePart.chunks))
 		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidatePart.files))
 		builder.command('database validate filesets', functools.partial(self.cmd_db_validate, parts=ValidatePart.filesets))
 		builder.command('database validate backups', functools.partial(self.cmd_db_validate, parts=ValidatePart.backups))

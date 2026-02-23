@@ -185,6 +185,11 @@ class ScanAndDeleteOrphanChunkGroupChunkBindingsAction(Action[ChunkListSummary])
 	def run(self) -> _SimpleSummary:
 		result = _SimpleSummary()
 		session: DbSession
+
+		with DbAccess.open_session() as session:
+			total_cnt = session.get_chunk_group_chunk_binding_count()
+		self.logger.info('Checking {} chunk group chunk bindings'.format(total_cnt))
+
 		for _ in range(self.MAX_LOOP):
 			with DbAccess.open_session() as session:
 				bindings = [
@@ -209,6 +214,11 @@ class ScanAndDeleteOrphanBlobChunkGroupBindingsAction(Action[ _SimpleSummary]):
 	def run(self) -> _SimpleSummary:
 		result = _SimpleSummary()
 		session: DbSession
+
+		with DbAccess.open_session() as session:
+			total_cnt = session.get_blob_chunk_group_binding_count()
+		self.logger.info('Checking {} blob chunk group bindings'.format(total_cnt))
+
 		for _ in range(self.MAX_LOOP):
 			with DbAccess.open_session() as session:
 				bindings = [

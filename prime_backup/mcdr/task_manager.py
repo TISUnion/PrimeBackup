@@ -202,7 +202,7 @@ class TaskManager:
 	def do_confirm(self, source: CommandSource):
 		def check_confirm_able(holder: TaskHolder) -> bool:
 			if mcdr_utils.are_source_same(source, holder.source):
-				return True  # you can confirm you task
+				return True  # you can confirm your task
 
 			if source.get_permission_level() >= max(PermissionLevel.ADMIN, holder.source.get_permission_level()):
 				return True  # admin and above can confirm other people's tasks, if they have enough permission

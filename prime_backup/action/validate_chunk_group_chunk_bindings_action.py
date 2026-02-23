@@ -1,6 +1,6 @@
 import dataclasses
 import enum
-from typing import List
+from typing import List, Dict
 
 from typing_extensions import override
 
@@ -36,6 +36,12 @@ class ValidateChunkGroupsResult:
 
 	def add_bad(self, binding: ChunkGroupChunkBindingInfo, typ: BadChunkGroupChunkBindingItemType, msg: str):
 		self.bad_bindings.append(BadChunkGroupChunkBindingItem(binding, typ, msg))
+
+	def group_bad_by_type(self) -> Dict[BadChunkGroupChunkBindingItemType, List[BadChunkGroupChunkBindingItem]]:
+		result: Dict[BadChunkGroupChunkBindingItemType, List[BadChunkGroupChunkBindingItem]] = {}
+		for bad_chunk in self.bad_bindings:
+			result.setdefault(bad_chunk.typ, []).append(bad_chunk)
+		return result
 
 
 class ValidateChunkGroupChunkBindingsAction(Action[ValidateChunkGroupsResult]):

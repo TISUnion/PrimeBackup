@@ -2,7 +2,7 @@ import dataclasses
 import enum
 from typing import List
 
-from typing_extensions import override
+from typing_extensions import override, Dict
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
@@ -38,6 +38,12 @@ class ValidateBlobChunkGroupBindingsResult:
 	def add_bad(self, binding: BlobChunkGroupBindingInfo, typ: BadBlobChunkGroupBindingItemType, msg: str):
 		self.bad_bindings.append(BadBlobChunkGroupBindingItem(binding, typ, msg))
 
+	def group_bad_by_type(self) -> Dict[BadBlobChunkGroupBindingItemType, List[BadBlobChunkGroupBindingItem]]:
+		result: Dict[BadBlobChunkGroupBindingItemType, List[BadBlobChunkGroupBindingItem]] = {}
+		for bad_chunk in self.bad_bindings:
+			result.setdefault(bad_chunk.typ, []).append(bad_chunk)
+		return result
+
 
 class ValidateBlobChunkGroupBindingsAction(Action[ValidateBlobChunkGroupBindingsResult]):
 	"""
@@ -51,7 +57,6 @@ class ValidateBlobChunkGroupBindingsAction(Action[ValidateBlobChunkGroupBindings
 
 		session: DbSession
 		with DbAccess.open_session() as session:
-			self.logger.info('Scanning all blob chunk group bindings for orphan check')
 			result.total = session.get_blob_chunk_group_binding_count()
 
 			for lor in session.list_orphan_blob_chunk_group_bindings(limit=1000):

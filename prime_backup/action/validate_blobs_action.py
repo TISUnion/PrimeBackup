@@ -52,6 +52,12 @@ class ValidateBlobsResult:
 	def add_bad(self, blob: BlobInfo, typ: BadBlobItemType, msg: str):
 		self.bad_blobs.append(BadBlobItem(blob, typ, msg))
 
+	def group_bad_by_type(self) -> Dict[BadBlobItemType, List[BadBlobItem]]:
+		result: Dict[BadBlobItemType, List[BadBlobItem]] = {}
+		for bad_blob in self.bad_blobs:
+			result.setdefault(bad_blob.typ, []).append(bad_blob)
+		return result
+
 
 @dataclasses.dataclass(frozen=True)
 class _SubResultStore:

@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional, Sequence, Dict, Any, cast
 from typing import TypeVar, List
 
@@ -24,9 +23,8 @@ def _int_or_0(value: Optional[int]) -> int:
 
 
 class _V3DbSession:
-	def __init__(self, session: Session, db_path: Path = None):
+	def __init__(self, session: Session):
 		self.session = session
-		self.db_path = db_path
 		self.__safe_var_limit = 999 - 20
 
 	def v3_insert(self, table: str, data: Dict[str, Any], *, need_result: bool = False, id_key: str = 'id') -> Dict[str, Any]:
@@ -44,6 +42,8 @@ class _V3DbSession:
 		if need_result:
 			query_stmt = text(f'SELECT * FROM {table} WHERE {id_key} = :id').bindparams(id=insert_result.lastrowid)
 			result_row = self.session.execute(query_stmt).fetchone()
+			if result_row is None:
+				raise RuntimeError(f'failed to insert row into {table!r} with statement {query_stmt!r}')
 			# noinspection PyProtectedMember
 			return dict(result_row._mapping)
 		else:

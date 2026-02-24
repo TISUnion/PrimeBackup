@@ -55,7 +55,7 @@ class ChunkListSummary:
 		return cls(0, 0, 0)
 
 	@classmethod
-	def of(cls, chunks: Iterable[ChunkInfo]) -> Self:
+	def of(cls, chunks: Iterable[ChunkInfo]) -> 'ChunkListSummary':
 		cnt, raw_size_sum, stored_size_sum = 0, 0, 0
 		for chunk in chunks:
 			cnt += 1
@@ -67,7 +67,7 @@ class ChunkListSummary:
 			stored_size=stored_size_sum,
 		)
 
-	def __add__(self, other: Self) -> Self:
+	def __add__(self, other: Self) -> 'ChunkListSummary':
 		misc_utils.ensure_type(other, type(self))
 		return ChunkListSummary(
 			count=self.count + other.count,

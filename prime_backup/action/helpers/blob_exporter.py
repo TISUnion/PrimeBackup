@@ -5,7 +5,7 @@ import shutil
 import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Callable, Any, List, Generator
+from typing import Optional, Callable, Any, List, Generator, Union
 
 from typing_extensions import override
 
@@ -16,7 +16,7 @@ from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import VerificationError
 from prime_backup.types.blob_info import BlobInfo
-from prime_backup.types.chunk_info import OffsetChunkInfo
+from prime_backup.types.chunk_info import OffsetChunkInfo, ChunkInfo
 from prime_backup.utils import blob_utils, chunk_utils
 from prime_backup.utils import file_utils, hash_utils
 from prime_backup.utils.bypass_io import BypassReader
@@ -99,6 +99,7 @@ class _CombinedChunksReader:
 		if self.current is None:
 			if not self.__switch_to_next():
 				return b''
+			assert self.current is not None
 
 		results: List[bytes] = []
 		total_read = 0
@@ -203,6 +204,7 @@ class BlobExporter:
 
 	def __export_as_reader_chunked(self, reader_csm: Callable[[SupportsReadBytes], Any]):
 		blob_chunks = self.blob_chunks_getter.get(self.blob.id)
+		exit_flag = False
 
 		def open_chunk_gen() -> Generator[_OpenedChunk, None, None]:
 			for oc in blob_chunks:
@@ -214,7 +216,7 @@ class BlobExporter:
 					peek_reader.peek()
 
 					if self.verify_blob:
-						def verify_callback(ck: schema.Chunk, br: BypassReader):
+						def verify_callback(ck: ChunkInfo, br: BypassReader):
 							self.__verify_exported_chunk(ck, br.get_read_len(), br.get_hash())
 
 						bypass_reader = BypassReader(peek_reader, calc_hash=True, hash_method=chunk_utils.get_hash_method())
@@ -226,7 +228,6 @@ class BlobExporter:
 				if exit_flag:
 					break
 
-		exit_flag = False
 		chunk_gen = open_chunk_gen()
 		try:
 			reader_csm(_CombinedChunksReader(chunk_gen))
@@ -239,7 +240,7 @@ class BlobExporter:
 	def __verify_exported_blob(self, written_size: int, written_hash: str):
 		self.__verify_exported_data(lambda: 'blob', self.blob.raw_size, self.blob.hash, written_size, written_hash)
 
-	def __verify_exported_chunk(self, chunk: schema.Chunk, written_size: int, written_hash: str):
+	def __verify_exported_chunk(self, chunk: Union[schema.Chunk, ChunkInfo], written_size: int, written_hash: str):
 		self.__verify_exported_data(lambda: f'chunk {chunk.hash}', chunk.raw_size, chunk.hash, written_size, written_hash)
 
 	def __verify_exported_data(self, what: Callable[[], str], expected_size: int, expected_hash: str, written_size: int, written_hash: str):

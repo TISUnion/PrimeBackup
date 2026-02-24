@@ -1,10 +1,10 @@
 import io
-from typing import Union, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional
 
-from typing_extensions import override
+from typing_extensions import override, Buffer
 
 if TYPE_CHECKING:
-	from prime_backup.types.hash_method import HashMethod
+	from prime_backup.types.hash_method import HashMethod, Hasher
 
 
 class BypassReader(io.BytesIO):
@@ -13,11 +13,10 @@ class BypassReader(io.BytesIO):
 		self.file_obj: io.BytesIO = file_obj
 		self.read_len = 0
 
+		self.hasher: Optional['Hasher'] = None
 		if calc_hash:
 			from prime_backup.utils import hash_utils
 			self.hasher = hash_utils.create_hasher(hash_method=hash_method)
-		else:
-			self.hasher = None
 
 	@override
 	def read(self, size: Optional[int] = None) -> bytes:
@@ -31,12 +30,12 @@ class BypassReader(io.BytesIO):
 		raise NotImplementedError()
 
 	@override
-	def readinto(self, b: Union[bytearray, memoryview]):
+	def readinto(self, b: Buffer):
 		n = self.file_obj.readinto(b)
 		if n:
 			self.read_len += n
 			if self.hasher is not None:
-				self.hasher.update(b[:n])
+				self.hasher.update(memoryview(b)[:n])
 		return n
 
 	def get_read_len(self) -> int:

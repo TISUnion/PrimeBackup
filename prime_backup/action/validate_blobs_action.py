@@ -182,7 +182,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 
 			good_blob_hashes.add(blob.hash)
 
-		good_blob_hashes = set()
+		good_blob_hashes: Set[str] = set()
 		for b in blobs:
 			if self.is_interrupted.is_set():
 				break

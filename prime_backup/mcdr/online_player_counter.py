@@ -149,7 +149,7 @@ class OnlinePlayerCounter:
 		self.server.schedule_task(functools.partial(self.__on_load, prev, should_update_from_api))
 
 	def __on_load(self, prev: Any, should_update_from_api: bool):
-		if type(prev_lock := getattr(prev, 'data_lock', None)) is type(self.data_lock):
+		if type(prev_lock := getattr(prev, 'data_lock', None)) is threading.Lock:
 			with prev_lock:
 				prev_data_is_correct: bool = getattr(prev, 'data_is_correct', False)
 				prev_player_records: Optional[PlayerRecords] = getattr(prev, 'player_records', None)

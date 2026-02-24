@@ -20,7 +20,7 @@ class DateNode(ArgumentNode):
 	def parse(self, text: str) -> ParseResult:
 		result = QuotableText('temp').parse(text)
 		try:
-			ts = conversion_utils.date_to_timestamp_us(result.value.strip())
+			ts = conversion_utils.date_to_timestamp_us((result.value or '').strip())
 			return ParseResult(ts, result.char_read)
 		except ValueError:
 			raise BadDate(tr('error.node.bad_date'), result.char_read)
@@ -35,7 +35,7 @@ class BackupIdNode(Text):
 	def parse(self, text: str) -> ParseResult:
 		result = super().parse(text)
 		try:
-			_ = BackupIdParser(allow_db_access=True, dry_run=True).parse(result.value)
+			_ = BackupIdParser(allow_db_access=True, dry_run=True).parse(str(result.value))
 		except ValueError:
 			raise BadBackupId(tr('error.node.bad_backup_id'), result.char_read)
 		return result
@@ -76,7 +76,7 @@ class IdRangeNode(ArgumentNode):
 	@override
 	def parse(self, text: str) -> ParseResult:
 		result = QuotableText('temp').parse(text)
-		text: str = result.value.strip()
+		text: str = (result.value or '').strip()
 		for pattern in self.__patterns:
 			if (match := pattern.fullmatch(text)) is not None:
 				groups = match.groupdict()
@@ -101,7 +101,7 @@ class HexStringNode(Text):
 	@override
 	def parse(self, text: str) -> ParseResult:
 		result = super().parse(text)
-		h: str = result.value.lower()
+		h: str = (result.value or '').lower()
 		if not self.__pattern.fullmatch(h):
 			raise BadHexString(tr('error.node.bad_hex_string'), result.char_read)
 		return ParseResult(h, result.char_read)

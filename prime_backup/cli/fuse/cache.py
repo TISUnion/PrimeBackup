@@ -3,12 +3,13 @@ import dataclasses
 import functools
 import threading
 import time
-from typing import TypeVar, Generic, Callable
+from typing import TypeVar, Generic, Callable, Any, cast
 
-from typing_extensions import Unpack
+from typing_extensions import ParamSpec
 
 _K = TypeVar('_K')
 _V = TypeVar('_V')
+_P = ParamSpec('_P')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -62,24 +63,26 @@ class TTLLRUCache(Generic[_K, _V]):
 	def __contains__(self, key: _K) -> bool:
 		return self.has(key)
 
-	def wrap(self, func: Callable[[*Unpack[_K]], _V]) -> Callable[[*Unpack[_K]], _V]:
+	def wrap(self, func: Callable[_P, _V]) -> Callable[_P, _V]:
+		# it's not possible to ensure _P.args == _K with python typing :(
+
 		not_found = object()
 		lock = threading.Lock()
 
 		@functools.wraps(func)
-		def wrapper(*args: _K) -> _V:
-			lru_key = args
+		def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _V:
+			lru_key = cast(_K, args)
 			with lock:
 				result = self.get(lru_key, default=not_found)
 			if result is not not_found:
 				return result
 			else:
-				result = func(*args)
+				result = func(*args, **kwargs)
 				with lock:
 					self.set(lru_key, result)
 				return result
 
-		wrapper.cache = self
+		wrapper.cache = self  # type: ignore[attr-defined]
 		return wrapper
 
 	def prune_all(self):
@@ -89,9 +92,9 @@ class TTLLRUCache(Generic[_K, _V]):
 					self.__data.pop(k)
 
 
-def ttl_lru_cache(capacity: int, ttl: float):
-	def decorator(func):
-		cache = TTLLRUCache(capacity, ttl)
+def ttl_lru_cache(capacity: int, ttl: float) -> Callable[[Callable[_P, _V]], Callable[_P, _V]]:
+	def decorator(func: Callable[_P, _V]) -> Callable[_P, _V]:
+		cache: TTLLRUCache[Any, _V] = TTLLRUCache(capacity, ttl)
 		return cache.wrap(func)
 	return decorator
 

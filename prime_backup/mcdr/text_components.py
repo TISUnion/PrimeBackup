@@ -5,8 +5,8 @@ from typing import Any, Union, Optional, Iterable, List
 
 from mcdreforged.api.all import RTextBase, RText, RTextList, RColor, RAction, RStyle
 
-from prime_backup.constants import constants
 from prime_backup.compressors import CompressMethod
+from prime_backup.constants import constants
 from prime_backup.db.values import FileRole
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName
@@ -269,7 +269,7 @@ class TextComponents:
 
 	@classmethod
 	def file_name(cls, file_path: PathLike) -> RTextBase:
-		if isinstance(file_path, str):
+		if not isinstance(file_path, Path):
 			file_path = Path(file_path)
 		return RText(file_path.name, TextColors.file).h(file_path.as_posix())
 

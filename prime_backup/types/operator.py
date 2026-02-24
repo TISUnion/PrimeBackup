@@ -1,6 +1,8 @@
 import dataclasses
 from typing import Union, TYPE_CHECKING
 
+from mcdreforged.command.command_source import PlayerCommandSource
+
 from prime_backup.constants import constants
 
 if TYPE_CHECKING:
@@ -51,7 +53,7 @@ class Operator:
 		from mcdreforged.api.all import CommandSource
 		if isinstance(value, CommandSource):
 			if value.is_player:
-				# noinspection PyUnresolvedReferences
+				assert isinstance(value, PlayerCommandSource)
 				return cls.player(value.player)
 			elif value.is_console:
 				return cls.console()

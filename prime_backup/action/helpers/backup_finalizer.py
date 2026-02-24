@@ -18,7 +18,7 @@ class BackupFinalizer:
 	def finalize_files_and_backup(self, backup: schema.Backup, files: List[schema.File]):
 		self.session.flush()  # ensure all blobs has their blob.id allocated
 
-		file_blobs = self.session.get_blobs_by_hashes([
+		file_blobs = self.session.get_blobs_by_hashes_opt([
 			file.blob_hash for file in files
 			if file.blob_hash is not None
 		])

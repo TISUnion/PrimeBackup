@@ -3,18 +3,18 @@ import json
 import re
 import unittest
 from abc import ABC, abstractmethod
-from typing import Union, Tuple, Generic, Dict, TypeVar, NamedTuple
+from typing import Union, Tuple, Generic, Dict, TypeVar, NamedTuple, cast, List
 
 from typing_extensions import override
 
 from prime_backup.utils import misc_utils
 
-_T = TypeVar('_T')
+_T = TypeVar('_T', bound=Union[float, int])
 
 
 def _parse_number(s: str) -> Union[int, float]:
 	try:
-		value = int(s)
+		return int(s)
 	except ValueError:
 		try:
 			value = float(s)
@@ -22,7 +22,7 @@ def _parse_number(s: str) -> Union[int, float]:
 			raise ValueError('{!r} is not a number'.format(s)) from None
 		if value.is_integer():
 			value = round(value)
-	return value
+		return value
 
 
 def _split_unit(s: str) -> Tuple[float, str]:
@@ -83,7 +83,7 @@ class _UnitValueBase(Generic[_T], str, ABC):
 	@classmethod
 	def _auto_format(cls, val: _T) -> ValueUnitPair:
 		if val < 0:
-			uvp = cls._auto_format(-val)
+			uvp = cls._auto_format(cast(_T, -val))
 			return ValueUnitPair(-uvp.value, uvp.unit)
 		ret = None
 		for unit, k in cls._get_formatting_unit_map().items():
@@ -101,7 +101,7 @@ class _UnitValueBase(Generic[_T], str, ABC):
 	@classmethod
 	def _precise_format(cls, val: _T) -> ValueUnitPair:
 		if val < 0:
-			uvp = cls._auto_format(-val)
+			uvp = cls._auto_format(cast(_T, -val))
 			return ValueUnitPair(-uvp.value, uvp.unit)
 
 		units = list(reversed(cls._get_formatting_unit_map().items()))
@@ -259,10 +259,10 @@ class UnitTests(unittest.TestCase):
 	def test_1_types(self):
 		for cls in [Duration, Quantity, ByteCount]:
 			for val in [0, '18', 127, 1024, 1440]:
-				inst = cls(val + 's' if cls == Duration and isinstance(val, str) else val)
+				inst = cls(val + 's' if cls == Duration and isinstance(val, str) else val)  # type: ignore
 				self.assertEqual(cls, type(inst))
 				self.assertIsInstance(inst, str)
-				self.assertEqual(int(val), getattr(inst, 'value'))
+				self.assertEqual(int(val), getattr(inst, 'value'))  # type: ignore
 
 	def test_2_1_duration_format(self):
 		self.assertEqual(123, Duration(123).value)
@@ -304,13 +304,13 @@ class UnitTests(unittest.TestCase):
 	def test_3_convert(self):
 		from mcdreforged.api.utils import serializer
 		for cls in [Duration, Quantity, ByteCount]:
-			vals = [0, 127, 1024, 1440]
+			vals: List[Union[int, str]] = [0, 127, 1024, 1440]
 			if cls in [Duration]:
 				vals.extend(['0s', '18s', '36m'])
 			else:
 				vals += ['2Gi', '3M', '4ki']
 			for val in vals:
-				a = cls(val)
+				a = cls(val)  # type: ignore
 				self.assertEqual(str(a), serializer.serialize(a))
 
 				b = serializer.deserialize(serializer.serialize(a), cls)

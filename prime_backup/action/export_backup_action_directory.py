@@ -187,7 +187,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			u, g = int(file.uid), int(file.gid)
 			if is_link and hasattr(os, 'lchown'):
 				os.lchown(file_path, u, g)
-			else:
+			elif hasattr(os, 'chown'):
 				os.chown(file_path, u, g)
 
 		if not is_link:
@@ -223,6 +223,8 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			exported_directories.put((file, file_path))
 
 		elif stat.S_ISLNK(file.mode):
+			if not file.content:
+				raise AssertionError('symlink file {} has no content'.format(file))
 			link_target = file.content.decode('utf8')
 			os.symlink(link_target, file_path)
 			if self.LOG_FILE_CREATION:

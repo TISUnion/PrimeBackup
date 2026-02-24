@@ -34,6 +34,8 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 
 	def __update_files_for_blob_change(self, session: DbSession, changed_blobs_by_hash: Dict[str, schema.Blob]):
 		for file in session.get_file_by_blob_hashes(list(changed_blobs_by_hash.keys())):
+			if file.blob_hash is None:
+				raise AssertionError('File {!r} has no blob_hash'.format(file))
 			blob = changed_blobs_by_hash[file.blob_hash]
 			file.blob_compress = blob.compress
 			file.blob_stored_size = blob.stored_size
@@ -131,7 +133,9 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 
 		chunk_group_id_list = list(self.__affected_chunk_groups_ids)
 		chunk_groups = session.get_chunk_groups_by_ids(chunk_group_id_list)
-		for chunk_group in chunk_groups.values():
+		for chunk_group_id, chunk_group in chunk_groups.items():
+			if chunk_group is None:
+				raise AssertionError('Chunk group with id {!r} does not exists'.format(chunk_group_id))
 			chunk_group.chunk_stored_size_sum = session.calc_chunk_group_stored_size_sum(chunk_group.id)
 
 		affected_blobs = session.get_blobs_by_chunk_group_ids(chunk_group_id_list)

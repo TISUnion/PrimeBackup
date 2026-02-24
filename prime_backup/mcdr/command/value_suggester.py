@@ -3,7 +3,7 @@ import time
 from abc import abstractmethod, ABC
 from typing import Optional, Generic, TypeVar, List
 
-from mcdreforged.api.all import CommandSource, CommandContext
+from mcdreforged.api.all import CommandSource
 from typing_extensions import override
 
 from prime_backup import logger
@@ -13,7 +13,7 @@ from prime_backup.mcdr.task.db.get_backup_file_paths_task import GetBackupFilePa
 from prime_backup.mcdr.task.db.get_fileset_file_paths_task import GetFilesetFilePathsTask
 from prime_backup.mcdr.task.db.get_fileset_ids_task import GetFilesetIdsTask
 from prime_backup.mcdr.task_manager import TaskManager
-from prime_backup.mcdr.task_queue import TaskQueue
+from prime_backup.mcdr.task_queue import TooManyOngoingTask
 from prime_backup.utils import misc_utils
 from prime_backup.utils.waitable_value import WaitableValue
 
@@ -29,7 +29,7 @@ class ValueSuggestor(ABC, Generic[_T, _Arg]):
 		self.last_future: WaitableValue[_T] = WaitableValue()
 		self.current_future: WaitableValue[_T] = WaitableValue()
 		self.current_task_key: str = ''
-		self.last_fetch_time = 0
+		self.last_fetch_time: float = 0
 		self.__reset()
 
 	@abstractmethod
@@ -74,11 +74,11 @@ class ValueSuggestor(ABC, Generic[_T, _Arg]):
 					wv.set(self._create_fallback())
 
 			self.last_fetch_time = now
-			wv = WaitableValue()
+			wv: WaitableValue[_T] = WaitableValue()
 			task = self._create_value_task(source, arg)
 			try:
 				self.task_manager.add_task(task, callback, handle_tmo_err=False)
-			except TaskQueue.TooManyOngoingTask:
+			except TooManyOngoingTask:
 				return self.last_future
 			else:
 				self.last_future = self.current_future
@@ -98,11 +98,11 @@ class BackupIdSuggestor(ValueSuggestor[List[int], None]):
 		return []
 
 	@override
-	def _create_value_task(self, source: CommandSource, ctx: CommandContext) -> LightTask[List[int]]:
+	def _create_value_task(self, source: CommandSource, ctx: None) -> LightTask[List[int]]:
 		return GetBackupIdsTask(source)
 
 	@override
-	def _compute_task_key(self, source: CommandSource, ctx: CommandContext) -> str:
+	def _compute_task_key(self, source: CommandSource, ctx: None) -> str:
 		return ''
 
 
@@ -112,11 +112,11 @@ class FilesetIdSuggestor(ValueSuggestor[List[int], None]):
 		return []
 
 	@override
-	def _create_value_task(self, source: CommandSource, ctx: CommandContext) -> LightTask[List[int]]:
+	def _create_value_task(self, source: CommandSource, ctx: None) -> LightTask[List[int]]:
 		return GetFilesetIdsTask(source)
 
 	@override
-	def _compute_task_key(self, source: CommandSource, ctx: CommandContext) -> str:
+	def _compute_task_key(self, source: CommandSource, ctx: None) -> str:
 		return ''
 
 
@@ -139,7 +139,7 @@ class BackupFilePathSuggestor(ValueSuggestor[List[str], str]):
 		return 3
 
 	@override
-	def suggest(self, source: CommandSource, backup_id_arg: str, timeout: float = 0.2) -> _T:
+	def suggest(self, source: CommandSource, backup_id_arg: str, timeout: float = 0.2) -> List[str]:
 		return super().suggest(source, backup_id_arg, timeout)
 
 
@@ -162,7 +162,7 @@ class FilesetFilePathSuggestor(ValueSuggestor[List[str], int]):
 		return 3
 
 	@override
-	def suggest(self, source: CommandSource, fileset_id: int, timeout: float = 0.2) -> _T:
+	def suggest(self, source: CommandSource, fileset_id: int, timeout: float = 0.2) -> List[str]:
 		return super().suggest(source, fileset_id, timeout)
 
 

@@ -12,7 +12,7 @@ from prime_backup.utils import path_utils
 HAS_COPY_FILE_RANGE = callable(getattr(os, 'copy_file_range', None))
 
 
-def __is_cow_not_supported_error(e: int) -> bool:
+def __is_cow_not_supported_error(e: Optional[int]) -> bool:
 	# https://github.com/coreutils/coreutils/blob/c343bee1b5de6087b70fe80db9e1f81bb1fc535c/src/copy.c#L292
 	return e in (
 		errno.ENOSYS, errno.ENOTTY, errno.EOPNOTSUPP, errno.ENOTSUP,
@@ -32,7 +32,7 @@ def copy_file_fast(
 		total_read = 0
 		try:
 			with open_r_func(src_path, 'rb') as f_src, open_w_func(dst_path, 'wb+') as f_dst:
-				while n := os.copy_file_range(f_src.fileno(), f_dst.fileno(), 2 ** 30):
+				while n := os.copy_file_range(f_src.fileno(), f_dst.fileno(), 2 ** 30):  # type: ignore[attr-defined]
 					total_read += n
 			return
 		except OSError as e:

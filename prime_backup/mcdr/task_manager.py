@@ -4,7 +4,7 @@ import enum
 import sqlite3
 import threading
 from concurrent import futures
-from typing import Optional, Callable, Any, TypeVar
+from typing import Optional, Callable, Any, TypeVar, cast
 
 from mcdreforged.api.all import CommandSource, RText, RColor, RAction, RStyle, PermissionLevel
 from sqlalchemy.exc import OperationalError
@@ -13,7 +13,7 @@ from prime_backup import logger
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound, BlobIdNotFound, ChunkIdNotFound, ChunkHashNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.mcdr.task.basic_task import HeavyTask, LightTask, ImmediateTask
-from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback
+from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback, TooManyOngoingTask
 from prime_backup.types.units import Duration
 from prime_backup.utils import misc_utils, mcdr_utils
 from prime_backup.utils.mcdr_utils import tr, reply_message, mkcmd
@@ -93,7 +93,7 @@ class _TaskWorker:
 		return True
 
 	@classmethod
-	def run_task(cls, holder: TaskHolder) -> Optional[Exception]:
+	def run_task(cls, holder: TaskHolder):
 		try:
 			ret = holder.task.run()
 		except Exception as e:
@@ -129,12 +129,12 @@ class _TaskWorker:
 		if self.thread.is_alive():
 			try:
 				self.task_queue.put(task_holder)
-			except TaskQueue.TooManyOngoingTask as e:
+			except TooManyOngoingTask as e:
 				if not handle_tmo_err:
 					raise
 
-				holder: TaskHolder
-				if self.max_ongoing_task == 1 and (holder := e.current_item) is not TaskQueue.NONE:
+				if self.max_ongoing_task == 1 and e.current_item is not TaskQueue.NONE:
+					holder = cast(TaskHolder, e.current_item)
 					name = holder.task_name() if holder is not None else RText('?', RColor.gray)
 					reply_message(source, tr('error.too_much_ongoing_task.exclusive', name))
 					if holder.task.is_abort_able():
@@ -159,6 +159,7 @@ class _TaskWorker:
 	) -> _SendEventResult:
 		task_holder = self.task_queue.peek_first_unfinished_item()
 		if task_holder not in (None, TaskQueue.NONE):
+			assert isinstance(task_holder, TaskHolder)
 			if task_checker is not None and not task_checker(task_holder):
 				return _SendEventResult(_SendEventStatus.failed, None)
 

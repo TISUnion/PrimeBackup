@@ -50,6 +50,8 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 		if stat.S_ISREG(file.mode):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('add file {} to zipfile'.format(file.path))
+			if file.blob_raw_size is None:
+				raise AssertionError('file {!r} with ISREG mode has no blob_raw_size'.format(file))
 			info.file_size = file.blob_raw_size
 
 			def reader_csm(reader: SupportsReadBytes):
@@ -66,7 +68,7 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('add symlink {} to zipfile'.format(file.path))
 			with zipf.open(info, 'w') as zip_item:
-				zip_item.write(file.content)
+				zip_item.write(file.content or b'')
 		else:
 			self._on_unsupported_file_mode(file)
 

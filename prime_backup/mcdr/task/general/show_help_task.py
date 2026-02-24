@@ -1,10 +1,10 @@
-from typing import Optional, Union
+from typing import Optional, Union, Any, Dict
 
 from mcdreforged.api.all import CommandSource, RTextBase, RText, RColor, RAction
 from typing_extensions import override
 
-from prime_backup.constants import constants
 from prime_backup.compressors import CompressMethod
+from prime_backup.constants import constants
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.crontab_job import CrontabJobId
 from prime_backup.mcdr.task.basic_task import ImmediateTask
@@ -44,7 +44,7 @@ class ShowHelpTask(ImmediateTask[None]):
 
 	def __reply_help(self, msg: RTextBase, hide_for_permission: bool = False):
 		for h in help_message_utils.parse_help_message(msg):
-			if hide_for_permission and h.is_help() and not self.source.has_permission(h.permission):
+			if hide_for_permission and h.is_help() and h.permission is not None and not self.source.has_permission(h.permission):
 				continue
 			self.reply(h.text)
 
@@ -89,7 +89,7 @@ class ShowHelpTask(ImmediateTask[None]):
 					self.reply_tr('permission_denied', RText(self.what, RColor.gray))
 					return
 
-				kwargs = {'prefix': self.__cmd_prefix}
+				kwargs: Dict[str, Any] = {'prefix': self.__cmd_prefix}
 				if self.what == 'crontab':
 					kwargs['job_ids'] = ', '.join([f'{TextColors.job_id.mc_code}{jid.name}§r' for jid in CrontabJobId])
 				elif self.what == 'database':

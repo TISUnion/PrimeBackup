@@ -46,10 +46,10 @@ class FilesetListSummary:
 	file_summary: FileListSummary
 
 	@classmethod
-	def zero(cls) -> Self:
+	def zero(cls) -> 'FilesetListSummary':
 		return FilesetListSummary(0, FileListSummary.zero())
 
-	def __add__(self, other: Self) -> Self:
+	def __add__(self, other: Self) -> 'FilesetListSummary':
 		misc_utils.ensure_type(other, type(self))
 		return FilesetListSummary(
 			count=self.count + other.count,

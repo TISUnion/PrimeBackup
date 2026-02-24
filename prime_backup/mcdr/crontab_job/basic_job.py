@@ -3,7 +3,7 @@ import datetime
 import logging
 import threading
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Any, Callable
+from typing import TYPE_CHECKING, List, Optional, Callable, TypeVar, Generic, Tuple
 
 from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
@@ -18,7 +18,7 @@ from prime_backup.config.config import Config
 from prime_backup.config.config_common import CrontabJobSetting
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobEvent
 from prime_backup.mcdr.task import Task
-from prime_backup.mcdr.task_queue import TaskQueue
+from prime_backup.mcdr.task_queue import TaskHolder, TooManyOngoingTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.units import Duration
 from prime_backup.utils import misc_utils
@@ -27,6 +27,8 @@ from prime_backup.utils.waitable_value import WaitableValue
 
 if TYPE_CHECKING:
 	from prime_backup.mcdr.task_manager import TaskManager
+
+_T = TypeVar('_T')
 
 
 class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
@@ -42,9 +44,10 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 	# ============================= Job creation methods =============================
 
-	def __ensure_aps_job(self):
+	def __ensure_aps_job(self) -> Job:
 		if self.aps_job is None:
 			raise RuntimeError('job is not enabled yet')
+		return self.aps_job
 
 	def __ensure_running(self):
 		self.__ensure_aps_job()
@@ -98,13 +101,11 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 	@override
 	def pause(self):
-		self.__ensure_aps_job()
-		self.aps_job.pause()
+		self.__ensure_aps_job().pause()
 
 	@override
 	def resume(self):
-		self.__ensure_aps_job()
-		self.aps_job.resume()
+		self.__ensure_aps_job().resume()
 
 	def reschedule(self) -> bool:
 		if self.aps_job is not None:
@@ -122,18 +123,18 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 	def get_seconds_until_next_run(self) -> float:
 		self.__ensure_running()
-		nrt = self.aps_job.next_run_time
+		nrt = self.__ensure_aps_job().next_run_time
 		return (nrt - datetime.datetime.now(nrt.tzinfo)).total_seconds()
 
 	@override
 	def get_duration_until_next_run_text(self) -> RTextBase:
 		self.__ensure_running()
-		return TextComponents.date_diff(self.aps_job.next_run_time)
+		return TextComponents.date_diff(self.__ensure_aps_job().next_run_time)
 
 	@override
 	def get_next_run_date(self) -> RTextBase:
 		self.__ensure_aps_job()
-		nrt: datetime.datetime = self.aps_job.next_run_time
+		nrt: datetime.datetime = self.__ensure_aps_job().next_run_time
 		if nrt is not None:
 			return TextComponents.date(nrt)
 		else:
@@ -153,10 +154,10 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 	# ==================================== Utils ====================================
 
-	def __create_run_tasks_delays(self) -> List[int]:
-		delays = [0]
+	def __create_run_tasks_delays(self) -> List[float]:
+		delays: List[float] = [0]
 		wait_max = self.get_seconds_until_next_run() * 0.2  # 20% of the minimum next run wait
-		wait_sum = 0
+		wait_sum: float = 0
 		for d in [Duration('10s'), Duration('1m'), Duration('5m')]:
 			wait_sum += d.value
 			if wait_sum >= wait_max:
@@ -165,9 +166,9 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 		return delays
 
 	@dataclasses.dataclass(frozen=True)
-	class RunTaskWithRetryResult(ABC):
+	class RunTaskWithRetryResult(ABC, Generic[_T]):
 		executed: bool
-		ret: Optional[Any]
+		ret: Optional[_T]
 		error: Optional[Exception]
 
 		@abstractmethod
@@ -180,8 +181,8 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			...
 
 	def run_task_with_retry(
-			self, task: Task, can_retry: bool, *,
-			requirement: Callable[[], bool] = None,
+			self, task: Task[_T], can_retry: bool, *,
+			requirement: Optional[Callable[[], bool]] = None,
 			delays: Optional[List[float]] = None,
 			broadcast: bool = False
 	) -> RunTaskWithRetryResult:
@@ -203,7 +204,7 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 		this, base_tr = self, self.__base_tr
 
-		class RunTaskWithRetryResultImpl(self.RunTaskWithRetryResult):
+		class RunTaskWithRetryResultImpl(BasicCrontabJob.RunTaskWithRetryResult):
 			@override
 			def report(self):
 				if self.executed:
@@ -223,10 +224,13 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			try:
 				def callback(*args):
 					wv.set(args)
-				wv = WaitableValue()
+				wv: WaitableValue[Tuple[Optional[_T], Optional[Exception]]] = WaitableValue()
 				self.task_manager.add_task(task, callback, handle_tmo_err=False)
-			except TaskQueue.TooManyOngoingTask as e:
-				current_task = e.current_item.task_name() if e.current_item is not None else self.tr('found_ongoing.unknown').set_color(RColor.gray)
+			except TooManyOngoingTask as e:
+				if isinstance(e.current_item, TaskHolder):
+					current_task = e.current_item.task_name()
+				else:
+					current_task = self.tr('found_ongoing.unknown').set_color(RColor.gray)
 				is_not_last = i < len(delays) - 1
 				if is_not_last and can_retry:
 					next_wait = delays[i + 1]

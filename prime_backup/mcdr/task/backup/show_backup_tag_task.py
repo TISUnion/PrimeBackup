@@ -52,6 +52,7 @@ class ShowBackupTagTask(LightTask[None]):
 		return 'backup_show_tag'
 
 	def __show_tag(self, backup: BackupInfo, key: str, value: Any):
+		t_key: RTextBase
 		try:
 			tag_name = BackupTagName[key]
 		except KeyError:

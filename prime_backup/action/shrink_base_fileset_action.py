@@ -89,8 +89,9 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 				files_to_delete.extend(unused_base_files.values())
 				for delta_fileset in delta_filesets:
 					for delta_file in session.get_fileset_files(delta_fileset.id):
-						if (unused_base_file := unused_base_files.get(delta_file.path)) is None:
+						if (unused_base_file_opt := unused_base_files.get(delta_file.path)) is None:
 							continue
+						unused_base_file = unused_base_file_opt
 						if delta_file.role in [FileRole.delta_override.value, FileRole.delta_remove.value]:
 							if delta_file.role == FileRole.delta_override.value:
 								if _DEBUG_LOG:

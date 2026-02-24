@@ -152,7 +152,8 @@ class ValidateDbTask(HeavyTask[None]):
 		vlogger.info('Validate chunk relation bindings result: ChunkGroupChunkBinding total={} ok={}, BlobChunkGroupBinding total={} ok={}'.format(
 			result_cgc.total, result_cgc.ok, result_bcg.total, result_bcg.ok,
 		))
-		if result_cgc.bad > 0:
+
+		def show_chunk_group_chunk_binding():
 			self.reply(self.tr('validate_chunks.chunk_group_chunk_binding.found_bad_bindings', TextComponents.number(result_cgc.bad), TextComponents.number(result_cgc.total)).set_color(RColor.red))
 			for bad_type, bad_items in result_cgc.group_bad_by_type().items():
 				def item_formatter(item: BadChunkGroupChunkBindingItem) -> str:
@@ -160,7 +161,8 @@ class ValidateDbTask(HeavyTask[None]):
 				vlogger.info('bad chunk group binding with category {!r} (len={})'.format(bad_type.name, len(bad_items)))
 				self.reply_tr(f'validate_chunks.chunk_group_chunk_binding.bad_type.{bad_type.name}', TextComponents.number(len(bad_items)))
 				self.__show_bad_objects(vlogger, bad_items, item_formatter)
-		if result_bcg.bad > 0:
+
+		def show_blob_chunk_group_binding():
 			self.reply(self.tr('validate_chunks.blob_chunk_group_binding.found_bad_bindings', TextComponents.number(result_bcg.bad), TextComponents.number(result_bcg.total)).set_color(RColor.red))
 			for bad_type, bad_items in result_bcg.group_bad_by_type().items():
 				def item_formatter(item: BadBlobChunkGroupBindingItem) -> str:
@@ -168,6 +170,11 @@ class ValidateDbTask(HeavyTask[None]):
 				vlogger.info('bad blob chunk group binding with category {!r} (len={})'.format(bad_type.name, len(bad_items)))
 				self.reply_tr(f'validate_chunks.blob_chunk_group_binding.bad_type.{bad_type.name}', TextComponents.number(len(bad_items)))
 				self.__show_bad_objects(vlogger, bad_items, item_formatter)
+
+		if result_cgc.bad > 0:
+			show_chunk_group_chunk_binding()
+		if result_bcg.bad > 0:
+			show_blob_chunk_group_binding()
 		ok = result_cgc.ok == result_cgc.total and result_bcg.ok == result_bcg.total
 		return ok, result_cgc.total, result_bcg.total
 
@@ -269,7 +276,7 @@ class ValidateDbTask(HeavyTask[None]):
 		with log_utils.open_file_logger('validate') as validate_logger:
 			validate_logger.info('Validation start, parts: {}'.format(self.parts))
 
-			validators: Dict[ValidatePart, Callable[[logging.Logger], bool]] = {
+			validators: Dict[ValidatePart, Callable[[log_utils.FileLogger], bool]] = {
 				ValidatePart.blobs: self.__validate_blobs,
 				ValidatePart.chunks: self.__validate_chunk_objects,
 				ValidatePart.files: self.__validate_files,

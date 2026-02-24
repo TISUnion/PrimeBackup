@@ -1,8 +1,8 @@
+import math
 import os
 import stat
 
 import fuse
-import math
 from typing_extensions import Self
 
 from prime_backup.action.get_db_overview_action import DbOverviewResult
@@ -106,6 +106,6 @@ class PrimeBackupFuseStatVfs(fuse.StatVfs):
 		st.f_files = overview.file_total_count  # inode count (equal to number of files)
 		st.f_ffree = 0  # free inode count
 		st.f_favail = 0  # free inode count
-		st.f_flag = os.ST_NOATIME | os.ST_NODEV | os.ST_NODIRATIME | os.ST_RDONLY  # flags
+		st.f_flag = os.ST_NOATIME | os.ST_NODEV | os.ST_NODIRATIME | os.ST_RDONLY  # type: ignore[attr-defined] # flags
 		st.f_namemax = 255  # maximum filename length
 		return st

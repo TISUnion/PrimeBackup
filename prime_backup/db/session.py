@@ -5,7 +5,7 @@ import shutil
 import sqlite3
 import time
 from pathlib import Path
-from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple
+from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple, Any
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row
@@ -19,6 +19,7 @@ from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, Back
 from prime_backup.utils import collection_utils, db_utils, validation_utils
 
 _T = TypeVar('_T')
+_TP = TypeVar('_TP', bound=Tuple[Any, ...])
 
 
 class UnsupportedDatabaseOperation(PrimeBackupError):
@@ -39,6 +40,10 @@ def _list_it(seq: Sequence[_T]) -> List[_T]:
 	return seq
 
 
+def _drop_none(seq: Iterable[Optional[_T]]) -> Iterable[_T]:
+	return (item for item in seq if item is not None)
+
+
 def _int_or_0(value: Optional[int]) -> int:
 	if value is None:
 		return 0
@@ -52,7 +57,7 @@ def _ensure_not_none(value: Optional[_T]) -> _T:
 
 
 class DbSession:
-	def __init__(self, session: Session, db_path: Path = None):
+	def __init__(self, session: Session, db_path: Optional[Path] = None):
 		self.session = session
 		self.db_path = db_path
 
@@ -195,7 +200,7 @@ class DbSession:
 				result[blob.id] = blob
 		return result
 
-	def get_blobs_by_hashes(self, hashes: List[str]) -> Dict[str, Optional[schema.Blob]]:
+	def get_blobs_by_hashes_opt(self, hashes: List[str]) -> Dict[str, Optional[schema.Blob]]:
 		"""
 		:return: a dict, hash -> optional blob. All given hashes are in the dict
 		"""
@@ -203,6 +208,17 @@ class DbSession:
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			for blob in self.session.execute(select(schema.Blob).where(schema.Blob.hash.in_(view))).scalars().all():
 				result[blob.hash] = blob
+		return result
+
+	def get_blobs_by_hashes(self, hashes: List[str]) -> Dict[str, schema.Blob]:
+		"""
+		:return: a dict, hash -> blob. All given hashes are in the dict
+		"""
+		result: Dict[str, schema.Blob] = {}
+		for blob_hash, blob in self.get_blobs_by_hashes_opt(hashes).items():
+			if blob is None:
+				raise BlobHashNotFound(blob_hash)
+			result[blob_hash] = blob
 		return result
 
 	def list_blobs(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Blob]:
@@ -264,13 +280,13 @@ class DbSession:
 	def filtered_orphan_blob_hashes(self, hashes: List[str]) -> List[str]:
 		good_hashes: Set[str] = set()
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
-			good_hashes.update(
+			good_hashes.update(_drop_none(
 				self.session.execute(
 					select(schema.File.blob_hash).
 					where(schema.File.blob_hash.in_(view)).
 					distinct()
 				).scalars().all()
-			)
+			))
 		return [
 			blob_hash for blob_hash in hashes
 			if blob_hash not in good_hashes
@@ -503,10 +519,11 @@ class DbSession:
 		return result
 
 	def get_chunk_group_chunk_bindings(self, identifiers: List[ChunkGroupChunkBindingIdentifier]) -> Dict[ChunkGroupChunkBindingIdentifier, schema.ChunkGroupChunkBinding]:
-		result = self.get_chunk_group_chunk_bindings_opt(identifiers)
-		for id_, binding in result.items():
+		result: Dict[ChunkGroupChunkBindingIdentifier, schema.ChunkGroupChunkBinding] = {}
+		for id_, binding in self.get_chunk_group_chunk_bindings_opt(identifiers).items():
 			if binding is None:
 				raise ChunkGroupChunkBindingNotFound(id_.chunk_group_id, id_.chunk_offset)
+			result[id_] = binding
 		return result
 
 	def get_chunk_group_chunk_binding_count(self) -> int:
@@ -640,10 +657,11 @@ class DbSession:
 		return result
 
 	def get_blob_chunk_group_bindings(self, identifiers: List[BlobChunkGroupBindingIdentifier]) -> Dict[BlobChunkGroupBindingIdentifier, schema.BlobChunkGroupBinding]:
-		result = self.get_blob_chunk_group_bindings_opt(identifiers)
-		for id_, binding in result.items():
+		result: Dict[BlobChunkGroupBindingIdentifier, schema.BlobChunkGroupBinding] = {}
+		for id_, binding in self.get_blob_chunk_group_bindings_opt(identifiers).items():
 			if binding is None:
 				raise BlobChunkGroupBindingNotFound(id_.blob_id, id_.chunk_group_offset)
+			result[id_] = binding
 		return result
 
 	def get_blob_chunk_group_binding_count(self) -> int:
@@ -755,8 +773,8 @@ class DbSession:
 		if offset is not None:
 			stmt = stmt.offset(offset)
 
-		result: Sequence[Row[Tuple[schema.BlobChunkGroupBinding, Optional[schema.Blob]]]] = self.session.execute(stmt).all()
-		return [self.ListBlobChunkGroupBindingsItem(binding, blob) for binding, blob in result]
+		result: Sequence[Row[Tuple[schema.BlobChunkGroupBinding, schema.Blob]]] = self.session.execute(stmt).all()
+		return [self.ListBlobChunkGroupBindingsItem(binding, blob if blob.id is not None else None) for binding, blob in result]
 
 	def delete_blob_chunk_group_bindings_for_blobs(self, blob_ids: List[int]):
 		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):
@@ -807,14 +825,12 @@ class DbSession:
 	@classmethod
 	def create_file(cls, *, blob: Optional[schema.Blob] = None, **kwargs: Unpack[CreateFileKwargs]) -> schema.File:
 		if blob is not None:
-			kwargs.update(
-				blob_id=blob.id,
-				blob_storage_method=blob.storage_method,
-				blob_hash=blob.hash,
-				blob_compress=blob.compress,
-				blob_raw_size=blob.raw_size,
-				blob_stored_size=blob.stored_size,
-			)
+			kwargs['blob_id'] = blob.id
+			kwargs['blob_storage_method'] = blob.storage_method
+			kwargs['blob_hash'] = blob.hash
+			kwargs['blob_compress'] = blob.compress
+			kwargs['blob_raw_size'] = blob.raw_size
+			kwargs['blob_stored_size'] = blob.stored_size
 		file = schema.File(**kwargs)
 		cls.__validate_int_fields_range(file)
 		return file
@@ -822,7 +838,7 @@ class DbSession:
 	@classmethod
 	def create_delta_remove_file(cls, *, path: str, fileset_id: Optional[int] = None) -> schema.File:
 		return cls.create_file(
-			**(dict(fileset_id=fileset_id) if fileset_id is not None else {}),
+			**(dict(fileset_id=fileset_id) if fileset_id is not None else {}),  # type: ignore
 			path=path,
 			role=FileRole.delta_remove.value,
 			mode=0,
@@ -881,10 +897,11 @@ class DbSession:
 		All given identifiers are in the dict
 		:raise FilesetFileNotFound
 		"""
-		result = self.get_file_objects_opt(file_identifiers)
-		for file_identifier, file in result.items():
+		result: Dict[FileIdentifier, schema.File] = {}
+		for file_identifier, file in self.get_file_objects_opt(file_identifiers).items():
 			if file is None:
 				raise FilesetFileNotFound(file_identifier.fileset_id, file_identifier.path)
+			result[file_identifier] = file
 		return result
 
 	def get_file_object_count(self) -> int:
@@ -910,7 +927,7 @@ class DbSession:
 
 	def get_file_by_blob_hashes(self, hashes: List[str], *, limit: Optional[int] = None) -> List[schema.File]:
 		hashes = collection_utils.deduplicated_list(hashes)
-		result = []
+		result: List[schema.File] = []
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			st = select(schema.File).where(schema.File.blob_hash.in_(view))
 			if limit is not None:
@@ -1016,17 +1033,25 @@ class DbSession:
 			raise FilesetNotFound(fileset_id)
 		return fileset
 
-	def get_filesets(self, fileset_ids: List[int]) -> Dict[int, schema.Fileset]:
+	def get_filesets_opt(self, fileset_ids: List[int]) -> Dict[int, Optional[schema.Fileset]]:
 		"""
-		:return: a dict, fileset id -> Fileset. All given ids are in the dict
+		:return: a dict, fileset id -> optional Fileset. All given ids are in the dict
 		"""
 		result: Dict[int, Optional[schema.Fileset]] = {fsid: None for fsid in fileset_ids}
 		for view in collection_utils.slicing_iterate(fileset_ids, self.__safe_var_limit):
 			for fileset in self.session.execute(select(schema.Fileset).where(schema.Fileset.id.in_(view))).scalars().all():
 				result[fileset.id] = fileset
-		for fileset_id, fileset in result.items():
-			if fileset is None:
+		return result
+
+	def get_filesets(self, fileset_ids: List[int]) -> Dict[int, schema.Fileset]:
+		"""
+		:return: a dict, fileset id -> Fileset. All given ids are in the dict
+		"""
+		result: Dict[int, schema.Fileset] = {}
+		for fileset_id, fileset_opt in self.get_filesets_opt(fileset_ids).items():
+			if fileset_opt is None:
 				raise FilesetNotFound(fileset_id)
+			result[fileset_id] = fileset_opt
 		return result
 
 	def check_filesets_existence(self, fileset_ids: List[int]) -> Dict[int, bool]:
@@ -1108,7 +1133,7 @@ class DbSession:
 		}
 
 	def get_fileset_ids_by_blob_hashes(self, hashes: List[str]) -> List[int]:
-		fileset_ids = set()
+		fileset_ids: Set[int] = set()
 		for v_hashes in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
 			fileset_ids.update(
 				self.session.execute(
@@ -1203,7 +1228,7 @@ class DbSession:
 		return True
 
 	@classmethod
-	def __sql_backup_tag_filter(cls, s: Select[_T], backup_filter: BackupFilter) -> Select[_T]:
+	def __sql_backup_tag_filter(cls, s: Select[_TP], backup_filter: BackupFilter) -> Select[_TP]:
 		for tf in backup_filter.tag_filters:
 			element = schema.Backup.tags[tf.name.name]
 			if tf.policy == BackupTagFilter.Policy.exists:
@@ -1211,6 +1236,8 @@ class DbSession:
 			elif tf.policy == BackupTagFilter.Policy.not_exists:
 				s = s.filter(element == JSON.NULL)
 			elif tf.policy in [BackupTagFilter.Policy.equals, BackupTagFilter.Policy.not_equals, BackupTagFilter.Policy.exists_and_not_equals]:
+				js_value: Any
+				value: Any
 				value_type = tf.name.value.type
 				if value_type == bool:
 					js_value, value = element.as_boolean(), bool(tf.value)
@@ -1238,7 +1265,7 @@ class DbSession:
 		return s
 
 	@classmethod
-	def __apply_backup_filter(cls, s: Select[_T], backup_filter: BackupFilter) -> Select[_T]:
+	def __apply_backup_filter(cls, s: Select[_TP], backup_filter: BackupFilter) -> Select[_TP]:
 		if backup_filter.id_start is not None:
 			s = s.where(schema.Backup.id >= backup_filter.id_start)
 		if backup_filter.id_end is not None:
@@ -1296,14 +1323,15 @@ class DbSession:
 
 	def get_backup_count(self, backup_filter: Optional[BackupFilter] = None) -> int:
 		if self.__needs_manual_backup_tag_filter(backup_filter):
-			s = self.__apply_backup_filter(select(schema.Backup), backup_filter)
-			backups = [backup for backup in self.session.execute(s).scalars().all() if self.__manual_backup_tag_filter(backup, backup_filter)]
+			assert backup_filter is not None
+			s0 = self.__apply_backup_filter(select(schema.Backup), backup_filter)
+			backups = [backup for backup in self.session.execute(s0).scalars().all() if self.__manual_backup_tag_filter(backup, backup_filter)]
 			return len(backups)
 		else:
-			s = select(func.count()).select_from(schema.Backup)
+			s1 = select(func.count()).select_from(schema.Backup)
 			if backup_filter is not None:
-				s = self.__apply_backup_filter(s, backup_filter)
-			return _int_or_0(self.session.execute(s).scalar_one())
+				s1 = self.__apply_backup_filter(s1, backup_filter)
+			return _int_or_0(self.session.execute(s1).scalar_one())
 
 	def get_backup_opt(self, backup_id: int) -> Optional[schema.Backup]:
 		return self.session.get(schema.Backup, backup_id)
@@ -1337,11 +1365,11 @@ class DbSession:
 		return list(path_to_file.values())
 
 	@overload
-	def get_backup_files(self, backup_id: int) -> List[schema.File]: ...
+	def get_backup_files(self, backup_id: int, /) -> List[schema.File]: ...
 	@overload
-	def get_backup_files(self, backup: schema.Backup) -> List[schema.File]: ...
+	def get_backup_files(self, backup: schema.Backup, /) -> List[schema.File]: ...
 
-	def get_backup_files(self, backup_or_backup_id: Union[int, schema.Backup]) -> List[schema.File]:
+	def get_backup_files(self, backup_or_backup_id: Union[int, schema.Backup], /) -> List[schema.File]:
 		backup = self.__convert_backup_or_backup_id_to_backup(backup_or_backup_id)
 		files_base = self.get_fileset_files(backup.fileset_id_base)
 		files_delta = self.get_fileset_files(backup.fileset_id_delta)
@@ -1357,21 +1385,29 @@ class DbSession:
 				file_paths.pop(path, None)
 		return list(file_paths.keys())
 
-	def get_backups(self, backup_ids: List[int]) -> Dict[int, schema.Backup]:
+	def get_backups_opt(self, backup_ids: List[int]) -> Dict[int, Optional[schema.Backup]]:
 		"""
-		:return: a dict, backup id -> Backup. All given ids are in the dict
+		:return: a dict, backup id -> optional Backup. All given ids are in the dict
 		"""
 		result: Dict[int, Optional[schema.Backup]] = {bid: None for bid in backup_ids}
 		for view in collection_utils.slicing_iterate(backup_ids, self.__safe_var_limit):
 			for backup in self.session.execute(select(schema.Backup).where(schema.Backup.id.in_(view))).scalars().all():
 				result[backup.id] = backup
-		for backup_id, backup in result.items():
+		return result
+
+	def get_backups(self, backup_ids: List[int]) -> Dict[int, schema.Backup]:
+		"""
+		:return: a dict, backup id -> Backup. All given ids are in the dict
+		"""
+		result: Dict[int, schema.Backup] = {}
+		for backup_id, backup in self.get_backups_opt(backup_ids).items():
 			if backup is None:
 				raise BackupNotFound(backup_id)
+			result[backup_id] = backup
 		return result
 
 	def get_backup_ids_by_fileset_ids(self, fileset_ids: List[int]) -> List[int]:
-		backup_ids = set()
+		backup_ids: Set[int] = set()
 		for v_fs_ids in collection_utils.slicing_iterate(fileset_ids, self.__safe_var_limit):
 			backup_ids.update(
 				self.session.execute(

@@ -74,9 +74,9 @@ class _DbHelper:
 			self.__query_backup_files = ttl_lru_cache(ttl=1, capacity=4)(self.__query_backup_files_no_cache)
 			# noinspection PyUnresolvedReferences
 			self.__ttl_lru_caches.extend([
-				self.__parse_backup_id.cache,
-				self.__query_all_backups.cache,
-				self.__query_backup_files.cache,
+				self.__parse_backup_id.cache,  # type: ignore[attr-defined]
+				self.__query_all_backups.cache,  # type: ignore[attr-defined]
+				self.__query_backup_files.cache,  # type: ignore[attr-defined]
 			])
 			threading.Thread(name='CacheCleaner', target=self.__cache_cleaner_thread, daemon=True).start()
 
@@ -262,9 +262,9 @@ class PrimeBackupFuseFs(fuse.Fuse):
 	def readdir(self, fuse_path: str, offset: int) -> List[fuse.Direntry]:
 		if offset != 0:
 			raise FuseErrnoReturnError(errno.EINVAL)
+		result: List[fuse.Direntry] = []
 		if fuse_path == '/':
 			backup_ids = ListBackupIdAction().run()
-			result: List[fuse.Direntry] = []
 			for backup_id in backup_ids:
 				result.append(PrimeBackupFuseDirentry(str(backup_id), type=stat.S_IFDIR))
 			for bia in BackupIdAlternatives:
@@ -273,10 +273,10 @@ class PrimeBackupFuseFs(fuse.Fuse):
 
 		spr = self.__helper.split_path(fuse_path, allow_alternative=False)
 		files = self.__helper.query_backup_dir_files(spr.backup_id, spr.path)
-		result: List[PrimeBackupFuseDirentry] = [
+		result.extend(
 			PrimeBackupFuseDirentry(Path(file.path).name, type=stat.S_IFMT(file.mode))
 			for file in sorted(files)
-		]
+		)
 		if spr.path == '':
 			result.append(PrimeBackupFuseDirentry(BACKUP_META_FILE_NAME, type=stat.S_IFREG))
 		return result
@@ -293,7 +293,7 @@ class PrimeBackupFuseFs(fuse.Fuse):
 		if not file.is_link():
 			raise FuseErrnoReturnError(errno.EINVAL)
 
-		return file.content.decode('utf8') or ''
+		return (file.content or b'').decode('utf8')
 
 	@fuse_operation_wrapper()
 	def statfs(self) -> fuse.StatVfs:

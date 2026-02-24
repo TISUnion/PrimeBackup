@@ -1,5 +1,5 @@
 import operator
-from typing import Callable, List, TypeVar, Any
+from typing import Callable, List, TypeVar, Any, Optional
 
 from mcdreforged.api.all import CommandSource, RTextBase, RText, RTextList, RColor, PermissionLevel
 from typing_extensions import override
@@ -69,17 +69,18 @@ class DiffBackupTask(LightTask[None]):
 			reply_single(file, RText('[-]', RColor.red))
 
 		for old_file, new_file in sorted(result.changed, key=operator.itemgetter(0)):
-			def make_hover(what_old: _T, what_new: _T, what_mapper: Callable[[_T], Any] = lambda x: x):
+			hover_lines: List[RTextBase] = []
+
+			def make_hover(what_old: Optional[_T], what_new: Optional[_T], what_mapper: Callable[[_T], Any] = lambda x: x):
 				nonlocal hover_lines
 				hover_lines = [
 					RTextBase.format('{}: {}', t_bid_old, what_mapper(what_old) if what_old is not None else t_na),
 					RTextBase.format('{}: {}', t_bid_new, what_mapper(what_new) if what_new is not None else t_na),
 				]
 
-			def map_or_none(value: _T, maper: Callable[[_T], Any]):
+			def map_or_none(value: Optional[_T], maper: Callable[[_T], Any]):
 				return maper(value) if value is not None else None
 
-			hover_lines: List[RTextBase] = []
 			if old_file.mode != new_file.mode:
 				t_change = self.tr('diff.mode')
 				make_hover(pretty_mode(old_file.mode), pretty_mode(new_file.mode))

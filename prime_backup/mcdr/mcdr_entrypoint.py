@@ -2,7 +2,7 @@ import contextlib
 import functools
 import threading
 import time
-from typing import Optional
+from typing import Optional, cast
 
 from mcdreforged.api.all import PluginServerInterface, Info
 
@@ -28,6 +28,7 @@ init_thread: Optional[threading.Thread] = None
 
 
 def __check_config(server: PluginServerInterface):
+	assert config is not None
 	db_hash_method = DbAccess.get_hash_method()
 	db_hash_str = db_hash_method.name
 	cfg_hash_str = config.backup.hash_method.name
@@ -41,7 +42,7 @@ def __check_config(server: PluginServerInterface):
 
 
 def is_enabled() -> bool:
-	return config.enabled
+	return config is not None and config.enabled
 
 
 def on_load(server: PluginServerInterface, old):
@@ -64,6 +65,9 @@ def on_load(server: PluginServerInterface, old):
 			DbAccess.init(create=True, migrate=True)
 			__check_config(server)
 
+			assert task_manager is not None
+			assert crontab_manager is not None
+			assert command_manager is not None
 			task_manager.start()
 			crontab_manager.start()
 			command_manager.construct_command_tree()
@@ -74,7 +78,7 @@ def on_load(server: PluginServerInterface, old):
 
 	global config, task_manager, command_manager, crontab_manager, online_player_counter
 	with handle_init_error():
-		config = server.load_config_simple(target_class=Config, failure_policy='raise')
+		config = cast(Config, server.load_config_simple(target_class=Config, failure_policy='raise'))
 		set_config_instance(config)
 
 		disabled_command_helper = DisabledCommandHelper(server, self_name)
@@ -168,8 +172,10 @@ def on_unload(server: PluginServerInterface):
 
 def on_info(server: PluginServerInterface, info: Info):
 	if init_ok and not info.is_user:
+		assert config is not None
 		for pattern in config.server.saved_world_regex:
 			if pattern.fullmatch(info.content):
+				assert task_manager is not None
 				task_manager.on_world_saved()
 				break
 
@@ -186,6 +192,7 @@ def on_server_start(server: PluginServerInterface):
 def on_server_stop(server: PluginServerInterface, server_return_code: int):
 	__reset_online_player_counter('stop')
 	if init_ok:
+		assert task_manager is not None
 		task_manager.on_server_stopped()
 
 

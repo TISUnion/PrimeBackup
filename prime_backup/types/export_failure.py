@@ -25,9 +25,7 @@ class ExportFailures:
 			yield
 		except Exception as e:
 			if self.__fail_soft:
-				if isinstance(file, schema.File):
-					file = FileInfo.of(file)
-				self.failures.append(ExportFailure(file, e))
+				self.failures.append(ExportFailure(FileInfo.of(file), e))
 			else:
 				raise
 

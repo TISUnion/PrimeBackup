@@ -2,7 +2,7 @@ import dataclasses
 import datetime
 import functools
 import json
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Optional
 
 from typing_extensions import Self
 
@@ -43,7 +43,7 @@ class BackupInfo:
 		return conversion_utils.timestamp_to_local_date_str_us(self.timestamp_us)
 
 	@classmethod
-	def of(cls, backup: schema.Backup, *, backup_files: List[schema.File] = None) -> 'Self':
+	def of(cls, backup: schema.Backup, *, backup_files: Optional[List[schema.File]] = None) -> 'Self':
 		"""
 		Notes: should be inside a session
 		"""

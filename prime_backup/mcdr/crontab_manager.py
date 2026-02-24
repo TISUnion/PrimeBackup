@@ -1,5 +1,5 @@
 import threading
-from typing import Dict, Iterable
+from typing import Dict, Iterable, List, Type
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -27,13 +27,13 @@ class CrontabManager:
 				)
 			},
 		)
-		job_classes = [
+		job_classes: List[Type[CrontabJob]] = [
 			CreateDbBackupJob,
 			PruneBackupJob,
 			ScheduledBackupJob,
 			VacuumSqliteJob,
 		]
-		jobs = [clazz(self.scheduler, self.task_manager) for clazz in job_classes]
+		jobs: List[CrontabJob] = [clazz(self.scheduler, self.task_manager) for clazz in job_classes]
 		self.jobs: Dict[CrontabJobId, CrontabJob] = {job.id: job for job in jobs}
 
 		self.__no_more_event = False

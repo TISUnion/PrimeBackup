@@ -1,6 +1,6 @@
 import dataclasses
 import enum
-from typing import List, Set, Dict, Tuple
+from typing import List, Set, Dict, Tuple, Optional
 
 from typing_extensions import override
 
@@ -75,10 +75,10 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 			elif file.is_link():
 				if file.blob is not None:
 					result.add_bad(file, BadFileItemType.bad_blob_relation, 'symlink with blob')
-				if len(file.content) == 0:
+				if file.content is None or len(file.content) == 0:
 					result.add_bad(file, BadFileItemType.invalid, 'symlink without content')
 
-		hash_to_blob = session.get_blobs_by_hashes(sorted(blob_hashes))
+		hash_to_blob = session.get_blobs_by_hashes_opt(sorted(blob_hashes))
 		if self.is_interrupted.is_set():
 			return
 		filesets = session.get_filesets(sorted(fileset_ids))
@@ -95,7 +95,7 @@ class ValidateFilesAction(Action[ValidateFilesResult]):
 				if file.role not in [FileRole.delta_override, FileRole.delta_add, FileRole.delta_remove]:
 					result.add_bad(file, BadFileItemType.bad_fileset_relation, f'bad file role. fileset {file.fileset_id} is a delta fileset, but file role is {file.role}')
 
-			file_blob: BlobInfo = file.blob
+			file_blob: Optional[BlobInfo] = file.blob
 			if file.is_file() and file_blob is not None:
 				blob = hash_to_blob.get(file_blob.hash)
 				if blob is None:

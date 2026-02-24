@@ -1,5 +1,7 @@
 import threading
-from typing import TypeVar, Generic, Union
+from typing import TypeVar, Generic, Union, Optional
+
+from typing_extensions import overload
 
 _T = TypeVar('_T')
 
@@ -18,12 +20,13 @@ class WaitableValue(Generic[_T]):
 	def __init__(self):
 		self.__lock = threading.Lock()
 		self.__event = threading.Event()
-		self.__value = self.EMPTY
+		self.__value: Union[_T, _Empty] = self.EMPTY
 
 	def get(self) -> _T:
 		with self.__lock:
 			if not self.__event.is_set():
 				raise ValueError('value is unset')
+			assert not isinstance(self.__value, _Empty)
 			return self.__value
 
 	def set(self, value: _T):
@@ -34,7 +37,12 @@ class WaitableValue(Generic[_T]):
 	def is_set(self) -> bool:
 		return self.__event.is_set()
 
-	def wait(self, timeout: float = None) -> Union[_T, _Empty]:
+	@overload
+	def wait(self) -> _T: ...
+	@overload
+	def wait(self, timeout: float) -> Union[_T, _Empty]: ...
+
+	def wait(self, timeout: Optional[float] = None) -> Union[_T, _Empty]:
 		if self.__event.wait(timeout):
 			return self.get()
 		else:

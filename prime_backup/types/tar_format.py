@@ -1,8 +1,11 @@
 import dataclasses
 import enum
-from typing import Tuple, List
+from typing import Tuple, List, Literal, cast
 
 from prime_backup.compressors import CompressMethod
+
+_ModeR = Literal['r:', 'r:gz', 'r:bz2', 'r:xz']
+_ModeW = Literal['w:', 'w:gz', 'w:bz2', 'w:xz']
 
 
 @dataclasses.dataclass(frozen=True)
@@ -17,12 +20,12 @@ class _TarFormatItem:
 		return [self.extension, *self.extra_extensions]
 
 	@property
-	def mode_r(self) -> str:
-		return 'r' + self.mode_extra
+	def mode_r(self) -> _ModeR:
+		return cast(_ModeR, 'r' + self.mode_extra)
 
 	@property
-	def mode_w(self) -> str:
-		return 'w' + self.mode_extra
+	def mode_w(self) -> _ModeW:
+		return cast(_ModeW, 'w' + self.mode_extra)
 
 
 class TarFormat(enum.Enum):

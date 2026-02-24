@@ -49,7 +49,7 @@ class DeleteChunkGroupsAction(Action[None]):
 		self_chunk_group_hashes_set = set(self.chunk_group_hashes)
 		all_to_delete_chunk_groups: Dict[int, None] = {}  # ordered set
 
-		chunk_groups_by_id: Dict[int, schema.ChunkGroup] = session.get_chunk_groups_by_ids(self.chunk_group_ids)
+		chunk_groups_by_id: Dict[int, Optional[schema.ChunkGroup]] = session.get_chunk_groups_by_ids(self.chunk_group_ids)
 		for chunk_group_id, chunk_group in chunk_groups_by_id.items():
 			if chunk_group is None:
 				if self.raise_if_not_found:
@@ -61,7 +61,7 @@ class DeleteChunkGroupsAction(Action[None]):
 				raise AssertionError('got unexpected chunk group id {!r}, should be in {}'.format(chunk_group_id, self_chunk_group_ids_set))
 			all_to_delete_chunk_groups[chunk_group.id] = None
 
-		chunk_groups_by_hash: Dict[str, schema.ChunkGroup] = session.get_chunk_groups_by_hashes(self.chunk_group_hashes)
+		chunk_groups_by_hash: Dict[str, Optional[schema.ChunkGroup]] = session.get_chunk_groups_by_hashes(self.chunk_group_hashes)
 		for chunk_group_hash, chunk_group in chunk_groups_by_hash.items():
 			if chunk_group is None:
 				if self.raise_if_not_found:

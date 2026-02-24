@@ -1,7 +1,5 @@
 import dataclasses
 
-from typing_extensions import Self
-
 
 @dataclasses.dataclass
 class FuseConfig:
@@ -10,7 +8,7 @@ class FuseConfig:
 	no_meta: bool = False
 
 	@classmethod
-	def get(cls) -> Self:
+	def get(cls) -> 'FuseConfig':
 		return _config
 
 

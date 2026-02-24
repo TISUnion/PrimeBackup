@@ -1,7 +1,7 @@
 import dataclasses
 import operator
 import queue
-from typing import TypeVar, Generator, List, Iterator, Generic, Dict, Callable, Iterable
+from typing import TypeVar, Generator, List, Iterator, Generic, Dict, Callable, Iterable, Optional
 
 _T = TypeVar('_T')
 _K = TypeVar('_K')
@@ -25,6 +25,13 @@ def drain_queue(q: 'queue.Queue[_T]') -> Iterator[_T]:
 			yield q.get(block=False)
 		except queue.Empty:
 			break
+
+
+def no_none_dict(d: Dict[_K, Optional[_V]]) -> Dict[_K, _V]:
+	return {
+		k: v for k, v in d.items()
+		if v is not None
+	}
 
 
 @dataclasses.dataclass(frozen=True)

@@ -71,7 +71,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		self.__source_path: Path = source_path or self.config.source_path
 		self.__time_costs: TimeCostStats[CreateBackupTimeCostKey] = TimeCostStats()
 		self.__pre_calc_result = _PreCalculationResult()
-		self.__new_blobs_summary: Optional[BlobListSummary] = None
+		self.__new_blobs_summary = BlobListSummary.zero()
 
 	def __file_path_to_db_path(self, path: Path) -> str:
 		return path.relative_to(self.__source_path).as_posix()
@@ -170,6 +170,8 @@ class CreateBackupAction(Action[BackupInfo]):
 		stat_to_files: Dict[StatKey, schema.File] = {}
 		for file in backup_files:
 			if stat.S_ISREG(file.mode):
+				if file.uid is None or file.gid is None or file.mtime is None:
+					raise AssertionError('file {!r} with ISREG mode has missing fields')
 				key = StatKey(
 					path=file.path,
 					size=file.blob_raw_size,
@@ -190,8 +192,8 @@ class CreateBackupAction(Action[BackupInfo]):
 					gid=file_entry.stat.st_gid,
 					mtime_us=file_entry.stat.st_mtime_ns // 1000
 				)
-				if (file := stat_to_files.get(key)) is not None:
-					self.__pre_calc_result.reused_files[file_entry.path] = file
+				if (file_opt := stat_to_files.get(key)) is not None:
+					self.__pre_calc_result.reused_files[file_entry.path] = file_opt
 
 	def __pre_calculate_hash(self, session: DbSession, blob_allocator: BlobAllocator, scan_result: _ScanResult):
 		hashes = self.__pre_calc_result.hashes
@@ -259,7 +261,7 @@ class CreateBackupAction(Action[BackupInfo]):
 					query = gen.send(result)
 			except StopIteration as e:
 				goc_result: GetOrCreateBlobResult = e.value
-				blob: schema.Blob = goc_result.blob
+				blob = goc_result.blob
 				st = goc_result.st
 				# notes: st.st_size might be incorrect, use blob.raw_size instead if needed
 		elif stat.S_ISDIR(st.st_mode):
@@ -340,8 +342,6 @@ class CreateBackupAction(Action[BackupInfo]):
 
 	@override
 	def run(self) -> BackupInfo:
-		super().run()
-
 		# TODO: prevent re-run
 		self.__time_costs.reset()
 		with self.__time_costs.measure_time_cost(*CreateBackupTimeCostKey):

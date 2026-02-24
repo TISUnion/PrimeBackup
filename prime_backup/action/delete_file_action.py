@@ -61,11 +61,12 @@ class DeleteFilesAction(Action[FileListSummary]):
 			collected_files: List[schema.File] = []
 
 			for file_identifier, file in files.items():
-				if file is None and self.raise_if_not_found:
-					raise FilesetFileNotFound(file_identifier.fileset_id, file_identifier.path)
-				else:
-					if file_identifier not in self_file_identifiers_set:
-						raise AssertionError('got unexpected file_identifier {!r}, should be in {}'.format(file_identifier, self_file_identifiers_set))
-					collected_files.append(file)
+				if file is None:
+					if self.raise_if_not_found:
+						raise FilesetFileNotFound(file_identifier.fileset_id, file_identifier.path)
+					continue
+				if file_identifier not in self_file_identifiers_set:
+					raise AssertionError('got unexpected file_identifier {!r}, should be in {}'.format(file_identifier, self_file_identifiers_set))
+				collected_files.append(file)
 
 			return DeleteFilesStep(session, collected_files).run()

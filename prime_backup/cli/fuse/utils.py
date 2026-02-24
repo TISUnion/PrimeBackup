@@ -49,6 +49,6 @@ def fuse_operation_wrapper(func_name: Optional[str] = None) -> Callable:
 
 			return ret
 
-		wrapper.__signature__ = inspect.signature(func)
+		wrapper.__signature__ = inspect.signature(func)  # type: ignore
 		return wrapper
 	return decorator

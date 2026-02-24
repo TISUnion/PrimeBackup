@@ -75,7 +75,7 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 		self_chunk_hashes_set = set(self.chunk_hashes)
 		all_to_delete_chunks: Dict[int, ChunkInfo] = {}
 
-		chunks_by_id: Dict[int, schema.Chunk] = session.get_chunks_by_ids(self.chunk_ids)
+		chunks_by_id: Dict[int, Optional[schema.Chunk]] = session.get_chunks_by_ids(self.chunk_ids)
 		for chunk_id, chunk in chunks_by_id.items():
 			if chunk is None:
 				if self.raise_if_not_found:
@@ -87,7 +87,7 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 				raise AssertionError('got unexpected chunk id {!r}, should be in {}'.format(chunk_id, self_chunk_ids_set))
 			all_to_delete_chunks[chunk.id] = ChunkInfo.of(chunk)
 
-		chunks_by_hash: Dict[str, schema.Chunk] = session.get_chunks_by_hashes(self.chunk_hashes)
+		chunks_by_hash: Dict[str, Optional[schema.Chunk]] = session.get_chunks_by_hashes(self.chunk_hashes)
 		for chunk_hash, chunk in chunks_by_hash.items():
 			if chunk is None:
 				if self.raise_if_not_found:

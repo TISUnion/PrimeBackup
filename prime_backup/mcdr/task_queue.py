@@ -30,16 +30,18 @@ class TaskHolder(Generic[_T]):
 		if err is not None:
 			self.future.set_exception(err)
 		else:
+			assert ret is not None
 			self.future.set_result(ret)
 		if self.callback is not None:
 			self.callback(ret, err)
 
 
-class TaskQueue(Generic[_T]):
-	class TooManyOngoingTask(PrimeBackupError):
-		def __init__(self, current_item: _T):
-			self.current_item: _T = current_item
+class TooManyOngoingTask(PrimeBackupError, Generic[_T]):
+	def __init__(self, current_item: _T):
+		self.current_item: _T = current_item
 
+
+class TaskQueue(Generic[_T]):
 	class _NoneItem:
 		pass
 
@@ -51,13 +53,13 @@ class TaskQueue(Generic[_T]):
 		self.__lock = threading.Lock()
 		self.__not_empty = threading.Condition(self.__lock)
 		self.__semaphore = threading.Semaphore(max_ongoing_task)
-		self.__current_item = self.NONE
+		self.__current_item: Union[TaskQueue._NoneItem, _T] = self.NONE
 
 	def put(self, task: _T):
 		if self.__semaphore.acquire(blocking=False):
 			self.put_direct(task)
 		else:
-			raise self.TooManyOngoingTask(self.__current_item)
+			raise TooManyOngoingTask(self.__current_item)
 
 	def put_direct(self, task: _T):
 		with self.__lock:

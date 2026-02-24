@@ -18,7 +18,6 @@ class DeleteBlobChunkGroupBindingsAction(Action[None]):
 
 	@override
 	def run(self, *, session: Optional[DbSession] = None) -> None:
-		session: DbSession
 		with contextlib.ExitStack() as es:
 			if session is None:
 				session = es.enter_context(DbAccess.open_session())

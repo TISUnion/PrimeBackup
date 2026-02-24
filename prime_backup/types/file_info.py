@@ -53,6 +53,17 @@ class FileInfo:
 		"""
 		blob: Optional[BlobInfo] = None
 		if file.blob_hash is not None:
+			if file.blob_id is None:
+				raise ValueError('file.blob_id is None for file {!r}'.format(file))
+			if file.blob_storage_method is None:
+				raise ValueError('file.blob_storage_method is None for file {!r}'.format(file))
+			if file.blob_compress is None:
+				raise ValueError('file.blob_compress is None for file {!r}'.format(file))
+			if file.blob_raw_size is None:
+				raise ValueError('file.blob_raw_size is None for file {!r}'.format(file))
+			if file.blob_stored_size is None:
+				raise ValueError('file.blob_stored_size is None for file {!r}'.format(file))
+
 			if file.blob_compress not in CompressMethod.__members__:
 				from prime_backup import logger
 				logger.get().warning('Bad blob_compress {!r} for file {!r}'.format(file.blob_compress, file))
@@ -143,7 +154,7 @@ class FileListSummary:
 	def zero(cls) -> Self:
 		return cls(0, BlobListSummary.zero())
 
-	def __add__(self, other: Self) -> Self:
+	def __add__(self, other: Self) -> 'FileListSummary':
 		misc_utils.ensure_type(other, type(self))
 		return FileListSummary(
 			count=self.count + other.count,

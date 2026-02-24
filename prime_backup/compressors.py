@@ -159,6 +159,7 @@ class _GzipLikeLibrary(Protocol):
 
 class _GzipLikeCompressorBase(Compressor, ABC):
 	@classmethod
+	@abstractmethod
 	def _lib(cls) -> _GzipLikeLibrary:
 		...
 

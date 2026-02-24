@@ -61,7 +61,7 @@ class _ChunkedBlobCreatePolicy(enum.Enum):
 
 class BatchFetcherBase(ABC):
 	Callback = Callable
-	tasks: dict
+	tasks: list
 
 	def __init__(self, session: DbSession, max_batch_size: int, time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		self.session = session
@@ -98,11 +98,11 @@ class BlobBySizeFetcher(BatchFetcherBase):
 		exists: bool
 
 	Callback = Callable[[Rsp], None]
-	tasks: Dict[int, List[Callback]]
+	tasks: List[Tuple[int, Callback]]
 
 	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[int, bool], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		super().__init__(session, max_batch_size, time_costs)
-		self.tasks: List[Tuple[int, BlobBySizeFetcher.Callback]] = []
+		self.tasks = []
 		self.sizes: Set[int] = set()
 		self.result_cache = result_cache
 
@@ -133,11 +133,11 @@ class BlobByHashFetcher(BatchFetcherBase):
 		blob: Optional[schema.Blob]
 
 	Callback = Callable[[Rsp], None]
-	tasks: Dict[str, List[Callback]]
+	tasks: List[Tuple[str, Callback]]
 
 	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[str, schema.Blob], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		super().__init__(session, max_batch_size, time_costs)
-		self.tasks: List[Tuple[str, BlobByHashFetcher.Callback]] = []
+		self.tasks = []
 		self.hashes: Set[str] = set()
 		self.result_cache = result_cache
 
@@ -149,8 +149,10 @@ class BlobByHashFetcher(BatchFetcherBase):
 	@override
 	def _batch_run(self):
 		with self.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
-			blobs = self.session.get_blobs_by_hashes(list(self.hashes))
-		self.result_cache.update(blobs)
+			blobs = self.session.get_blobs_by_hashes_opt(list(self.hashes))
+		for blob_hash, blob in blobs.items():
+			if blob is not None:
+				self.result_cache[blob_hash] = blob
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
 		for h, callback in reversed(self.tasks):
 			callback(self.Rsp(blobs[h]))
@@ -172,7 +174,7 @@ class BatchQueryManager:
 	@overload
 	def query(self, query: BlobByHashFetcher.Req, callback: Callable[[BlobByHashFetcher.Rsp], None]): ...
 
-	def query(self,query: BqmReq, callback: Callable[[BqmRsp], None]):
+	def query(self, query: BqmReq, callback: Callable[[Any], None]):
 		if isinstance(query, BlobBySizeFetcher.Req):
 			self.fetcher_size.query(query, callback)
 		elif isinstance(query, BlobByHashFetcher.Req):
@@ -245,7 +247,7 @@ class BlobAllocator:
 				file_utils.HAS_COPY_FILE_RANGE and
 				compress_method == CompressMethod.plain and
 				self.__blob_store_in_cow_fs and
-				st.st_dev == self.__blob_store_st.st_dev
+				self.__blob_store_st is not None and st.st_dev == self.__blob_store_st.st_dev
 		)
 
 		policy: Optional[_DirectBlobCreatePolicy] = None
@@ -323,7 +325,7 @@ class BlobAllocator:
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 					file_utils.copy_file_fast(src_path, temp_file_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
-					tmp_size, blob_hash = hash_utils.calc_file_size_and_hash(temp_file_path)
+					blob_hash = hash_utils.calc_file_hash(temp_file_path)
 
 				misc_utils.assert_true(last_chance, 'only last_chance=True is allowed for the copy_hash policy')
 				if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
@@ -361,11 +363,13 @@ class BlobAllocator:
 
 		else:
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
+			assert blob_hash is not None  # make mypy happy
 			blob_path = get_blob_path_for_write(blob_hash)
 
 			if policy == _DirectBlobCreatePolicy.read_all:
 				# the file content is already in memory, just write+compress to blob store
 				misc_utils.assert_true(blob_content is not None, 'blob_content is None')
+				assert blob_content is not None  # make mypy happy
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
 					with compressor.open_compressed_bypassed(blob_path) as (writer, f):
 						f.write(blob_content)
@@ -428,7 +432,7 @@ class BlobAllocator:
 			blob_hash = chunker.get_entire_file_hash()
 			blob_size = chunker.get_read_file_size()
 			self.logger.debug('CDC chunked+hash file {} with size {} in {:.2f}s ({}/s)'.format(
-				src_path_str, ByteCount(blob_size).auto_str(), cdc_cost(), ByteCount(blob_size / cdc_cost()).auto_str(),
+				src_path_str, ByteCount(blob_size).auto_str(), cdc_cost(), ByteCount(blob_size / cdc_cost() if cdc_cost() > 0 else 0).auto_str(),
 			))
 			if blob_size == 0:
 				log_and_raise_blob_file_changed('Blob size becomes zero')
@@ -532,7 +536,7 @@ class BlobAllocator:
 			self.logger.warning('You can safely ignore this warning if this is the first backup containing the file')
 
 		for new_db_chunk in new_db_chunks:
-			misc_utils.assert_true(db_chunk.stored_size >= 0, lambda: f'bad stored_size {db_chunk}')
+			misc_utils.assert_true(new_db_chunk.stored_size >= 0, lambda: f'bad stored_size {new_db_chunk}')
 			self.session.add(new_db_chunk)
 		blob = self.__blob_recorder.create_blob(
 			self.session,

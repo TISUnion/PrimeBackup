@@ -97,7 +97,7 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 		self_blob_hashes_set = set(self.blob_hashes)
 		all_to_delete_blobs: Dict[int, BlobInfo] = {}
 
-		blobs_by_id: Dict[int, schema.Blob] = session.get_blobs_by_ids(self.blob_ids)
+		blobs_by_id: Dict[int, Optional[schema.Blob]] = session.get_blobs_by_ids(self.blob_ids)
 		for blob_id, blob in blobs_by_id.items():
 			if blob is None:
 				if self.raise_if_not_found:
@@ -109,7 +109,7 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 				raise AssertionError('got unexpected blob id {!r}, should be in {}'.format(blob_id, self_blob_ids_set))
 			all_to_delete_blobs[blob.id] = BlobInfo.of(blob)
 
-		blobs_by_hash: Dict[str, schema.Blob] = session.get_blobs_by_hashes(self.blob_hashes)
+		blobs_by_hash: Dict[str, Optional[schema.Blob]] = session.get_blobs_by_hashes_opt(self.blob_hashes)
 		for blob_hash, blob in blobs_by_hash.items():
 			if blob is None:
 				if self.raise_if_not_found:

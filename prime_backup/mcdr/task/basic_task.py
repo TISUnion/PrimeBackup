@@ -68,7 +68,7 @@ class _BasicTask(Task[_T], ABC):
 	def get_aborted_text(self) -> RTextBase:
 		return self.__base_tr('aborted', self.get_name_text())
 
-	def wait_confirm(self, confirm_target_text: Optional[RTextBase] = None, time_wait: Optional[Duration] = None) -> bool:
+	def wait_confirm(self, confirm_target_text: RTextBase, time_wait: Optional[Duration] = None) -> bool:
 		if time_wait is None:
 			time_wait = self.config.command.confirm_time_wait
 

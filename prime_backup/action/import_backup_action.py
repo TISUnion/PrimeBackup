@@ -96,6 +96,7 @@ class ImportBackupAction(Action[BackupInfo]):
 
 		if member.is_file():
 			misc_utils.assert_true(file_sah is not None, 'file_sah should not be None for files')
+			assert file_sah is not None  # make mypy happy
 			if (blob := self.__blob_cache.get(file_sah.hash)) is None:
 				with member.open() as f:
 					blob = self.__create_blob(session, f, file_sah)
@@ -177,11 +178,12 @@ class ImportBackupAction(Action[BackupInfo]):
 				with member.open() as f:
 					sah_dict[i] = hash_utils.calc_reader_size_and_hash(f)
 
-		blobs = session.get_blobs_by_hashes([sah.hash for sah in sah_dict.values()])
+		blobs = session.get_blobs_by_hashes_opt([sah.hash for sah in sah_dict.values()])
 		for h, blob in blobs.items():
-			self.__blob_cache[h] = blob
+			if blob is not None:
+				self.__blob_cache[h] = blob
 
-		files = []
+		files: List[schema.File] = []
 		blob_utils.prepare_blob_directories()
 		for i, member in enumerate(members):
 			try:
@@ -202,7 +204,6 @@ class ImportBackupAction(Action[BackupInfo]):
 		else:
 			tar_format = None
 
-		super().run()
 		self.__blob_cache.clear()
 
 		try:

@@ -178,7 +178,7 @@ class ScanAndDeleteOrphanChunksAction(_ScanAndDeleteObjectsActionBase[schema.Chu
 		result += action.run(session=session)
 
 
-class ScanAndDeleteOrphanChunkGroupChunkBindingsAction(Action[ChunkListSummary]):
+class ScanAndDeleteOrphanChunkGroupChunkBindingsAction(Action[_SimpleSummary]):
 	MAX_LOOP = 1000
 
 	@override

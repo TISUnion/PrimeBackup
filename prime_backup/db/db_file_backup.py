@@ -1,7 +1,9 @@
 import contextlib
 import shutil
 from pathlib import Path
-from typing import IO, Generator
+from typing import Generator
+
+from prime_backup.utils.io_types import SupportsReadBytes, SupportsWriteBytes
 
 
 class _DbFileBackupHelper:
@@ -18,7 +20,7 @@ class _DbFileBackupHelper:
 			self.backup_file = self.backup_dir / (self.backup_base_name + '.gz')
 
 	@contextlib.contextmanager
-	def __open_backup_for_write(self) -> Generator[IO[bytes], None, None]:
+	def __open_backup_for_write(self) -> Generator[SupportsWriteBytes, None, None]:
 		self.backup_dir.mkdir(exist_ok=True, parents=True)
 		if self.__has_zstd:
 			import zstandard
@@ -30,7 +32,7 @@ class _DbFileBackupHelper:
 				yield gzf
 
 	@contextlib.contextmanager
-	def __open_backup_for_read(self) -> Generator[IO[bytes], None, None]:
+	def __open_backup_for_read(self) -> Generator[SupportsReadBytes, None, None]:
 		if self.__has_zstd:
 			import zstandard
 			with zstandard.open(self.backup_file, 'rb') as f_decompressed:

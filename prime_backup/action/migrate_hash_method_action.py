@@ -53,6 +53,8 @@ class MigrateHashMethodAction(Action[None]):
 			blob.hash = new_hash
 
 		for file in session.get_file_by_blob_hashes(list(hash_mapping.keys())):
+			if file.blob_hash is None:
+				raise AssertionError('file {!r} has no blob_hash'.format(file))
 			file.blob_hash = hash_mapping[file.blob_hash]
 
 	@override
@@ -73,7 +75,6 @@ class MigrateHashMethodAction(Action[None]):
 				all_hash_set = set(all_hashes)
 				cnt = 0
 				for blob_hashes in collection_utils.slicing_iterate(all_hashes, 1000):
-					blob_hashes: List[str] = list(blob_hashes)
 					cnt += len(blob_hashes)
 					self.logger.info('Migrating blobs {} / {}'.format(cnt, total_blob_count))
 
@@ -85,7 +86,7 @@ class MigrateHashMethodAction(Action[None]):
 
 			self.logger.info('Syncing config and variables')
 			DbAccess.sync_hash_method()
-			self.config.backup.hash_method = self.new_hash_method.name
+			self.config.backup.hash_method = self.new_hash_method
 
 			self.logger.info('Hash method migration done, cost {}s'.format(round(time.time() - t, 2)))
 

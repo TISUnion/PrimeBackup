@@ -90,7 +90,7 @@ class MigrationImpl2To3(MigrationImplBase):
 	def __init__(self, engine: Engine, temp_dir: Path, session: Session):
 		super().__init__(engine, temp_dir, session)
 		self.__stats = _Stats()
-		self.fileset_files_cache = LruDict(max_size=8)
+		self.fileset_files_cache: LruDict[int, List[dict]] = LruDict(max_size=8)
 
 	@override
 	def _migrate(self):
@@ -134,18 +134,18 @@ class MigrationImpl2To3(MigrationImplBase):
 
 		for backup_id_batch in collection_utils.slicing_iterate(old_backup_ids, 10):
 			sql_in_arg = '({})'.format(','.join(map(str, backup_id_batch)))
-			old_backup_rows = list(self.session.execute(text(f'SELECT * FROM old_backup_2to3 WHERE id IN {sql_in_arg}')))
-			old_file_rows = list(self.session.execute(text(f'SELECT * FROM old_file_2to3 WHERE backup_id IN {sql_in_arg}')))
-			self.logger.debug('Selected {} old backups with {} old file'.format(len(backup_id_batch), len(old_file_rows)))
+			all_old_backup_rows = list(self.session.execute(text(f'SELECT * FROM old_backup_2to3 WHERE id IN {sql_in_arg}')))
+			all_old_file_rows = list(self.session.execute(text(f'SELECT * FROM old_file_2to3 WHERE backup_id IN {sql_in_arg}')))
+			self.logger.debug('Selected {} old backups with {} old file'.format(len(backup_id_batch), len(all_old_file_rows)))
 
 			old_backup_by_backup_id: Dict[int, RowMapping] = {}
-			for old_backup_row in old_backup_rows:
+			for old_backup_row in all_old_backup_rows:
 				# noinspection PyProtectedMember
 				old_backup_row_mapping = old_backup_row._mapping
 				old_backup_by_backup_id[old_backup_row_mapping['id']] = old_backup_row_mapping
 
 			old_file_rows_by_backup_id: Dict[int, List[RowMapping]] = collections.defaultdict(list)
-			for old_file_row in old_file_rows:
+			for old_file_row in all_old_file_rows:
 				# noinspection PyProtectedMember
 				old_file_row_mapping = old_file_row._mapping
 				old_file_rows_by_backup_id[old_file_row_mapping['backup_id']].append(old_file_row_mapping)

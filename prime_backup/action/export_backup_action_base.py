@@ -58,7 +58,10 @@ class _ExportBackupActionBase(Action[ExportFailures], ABC):
 		return BackupInfo.of(backup).create_meta_buf()
 
 	def _create_blob_exporter(self, blob_chunks_getter: BlobChunksGetter, file: schema.File) -> BlobExporter:
-		return BlobExporter(blob_chunks_getter, FileInfo.of(file).blob, file_path=file.path, verify_blob=self.verify_blob)
+		file_info = FileInfo.of(file)
+		if file_info.blob is None:
+			raise AssertionError('file {!r} has no blob'.format(file))
+		return BlobExporter(blob_chunks_getter, file_info.blob, file_path=file.path, verify_blob=self.verify_blob)
 
 	@classmethod
 	def _on_unsupported_file_mode(cls, file: schema.File):

@@ -110,6 +110,7 @@ class PrimeBackupFuseFile:
 	def __init__(self, *, blob: Optional[BlobInfo] = None, buf: Optional[bytes] = None):
 		self.logger: logging.Logger = logger.get()
 		self.reader: _FileReader
+		self.blob: Optional[BlobInfo]
 		if blob is not None:
 			self.blob = blob
 			self.reader = self.__create_reader_from_blob(blob)

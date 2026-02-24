@@ -3,11 +3,13 @@ from pathlib import Path
 from mcdreforged.api.all import CommandSource, RText, RColor
 from typing_extensions import override
 
+from prime_backup.action import Action
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.export_backup_action_zip import ExportBackupToZipAction
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
+from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.standalone_backup_format import ZipFormat, StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils.timer import Timer
@@ -56,6 +58,7 @@ class ExportBackupTask(HeavyTask[None]):
 			verify_blob=self.verify_blob,
 			create_meta=self.create_meta,
 		)
+		action: Action[ExportFailures]
 		if isinstance(efv, TarFormat):
 			path = make_output(efv.value.extension)
 			action = ExportBackupToTarAction(self.backup_id, path, efv, **kwargs)

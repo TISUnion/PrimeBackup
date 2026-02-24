@@ -7,7 +7,7 @@ from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCost
 from prime_backup.constants import chunk_constants
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
-from prime_backup.utils import chunk_utils
+from prime_backup.utils import chunk_utils, collection_utils
 from prime_backup.utils.time_cost_stats import TimeCostStats
 
 
@@ -63,10 +63,10 @@ class ChunkGrouper:
 
 		# create new chunk groups
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
-			known_chunk_groups = self.session.get_chunk_groups_by_hashes([rcg.hash for rcg in raw_chunk_groups])
+			known_chunk_groups = collection_utils.no_none_dict(self.session.get_chunk_groups_by_hashes([rcg.hash for rcg in raw_chunk_groups]))
 		new_chunk_group_hashes: List[str] = []
 		for cg_hash, cg_chunks in chunk_group_hashes_to_chunks.items():
-			if known_chunk_groups[cg_hash] is None:
+			if cg_hash not in known_chunk_groups:
 				new_chunk_group = self.session.create_and_add_chunk_group(
 					hash=cg_hash,
 					chunk_count=len(cg_chunks),

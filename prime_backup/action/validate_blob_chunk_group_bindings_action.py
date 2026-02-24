@@ -56,7 +56,6 @@ class ValidateBlobChunkGroupBindingsAction(Action[ValidateBlobChunkGroupBindings
 		self.logger.info('Scanning all blob chunk group bindings for orphan check')
 		result = ValidateBlobChunkGroupBindingsResult()
 
-		session: DbSession
 		with contextlib.ExitStack() as es:
 			if session is None:
 				session = es.enter_context(DbAccess.open_session())

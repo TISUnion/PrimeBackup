@@ -60,6 +60,8 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		if stat.S_ISREG(file.mode):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('add file {} to tarfile'.format(file.path))
+			if file.blob_raw_size is None:
+				raise AssertionError('file.blob_raw_size is None for file {!r}'.format(file))
 			info.type = tarfile.REGTYPE
 			info.size = file.blob_raw_size
 
@@ -75,6 +77,8 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		elif stat.S_ISLNK(file.mode):
 			if self.LOG_FILE_CREATION:
 				self.logger.debug('add symlink {} to tarfile'.format(file.path))
+			if not file.content:
+				raise AssertionError('symlink file {} has no content'.format(file))
 			link_target = file.content.decode('utf8')
 			info.type = tarfile.SYMTYPE
 			info.linkname = link_target

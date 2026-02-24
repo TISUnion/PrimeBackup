@@ -5,7 +5,7 @@ from typing import Optional
 
 from typing_extensions import override
 
-from prime_backup.constants import constants
+from prime_backup.action import Action
 from prime_backup.action.export_backup_action_base import ExportBackupActionCommonInitKwargs
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.export_backup_action_zip import ExportBackupToZipAction
@@ -13,6 +13,8 @@ from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.cli import cli_utils
 from prime_backup.cli.cmd import CliCommandHandlerBase, CommonCommandArgs, CliCommandAdapterBase
 from prime_backup.cli.return_codes import ErrorReturnCodes
+from prime_backup.constants import constants
+from prime_backup.types.export_failure import ExportFailures
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 
@@ -44,6 +46,7 @@ class ExportCommandHandler(CliCommandHandlerBase):
 			verify_blob=not self.args.no_verify,
 			create_meta=not self.args.no_meta,
 		)
+		act: Action[ExportFailures]
 		if isinstance(fmt.value, TarFormat):
 			act = ExportBackupToTarAction(backup.id, self.args.output_path, fmt.value, **kwargs)
 		else:

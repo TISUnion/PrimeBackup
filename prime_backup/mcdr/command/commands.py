@@ -2,11 +2,12 @@ import enum
 import functools
 from concurrent import futures
 from pathlib import Path
-from typing import List, Callable, Optional, Type, Union, Any, Literal as TypingLiteral
+from typing import List, Callable, Optional, Type, Union, Any, Literal as TypingLiteral, cast
 
 from mcdreforged.api.all import PluginServerInterface, CommandSource, CommandContext, RText, RColor, AbstractNode, \
 	Literal, ArgumentNode, Text, QuotableText, GreedyText, Integer, Enumeration, CountingLiteral, Boolean, Float, \
 	SimpleCommandBuilder
+from typing_extensions import overload
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config
@@ -291,6 +292,11 @@ class CommandManager:
 	def suggest_fileset_file_path(self, source: CommandSource, ctx: CommandContext) -> List[str]:
 		return self.value_suggesters.suggest_fileset_file_path(source, ctx['fileset_id'])
 
+	@overload
+	def __transform_backup_id_impl(self, source: CommandSource, backup_id_raw: str, csm: Callable[[int], Any]): ...
+	@overload
+	def __transform_backup_id_impl(self, source: CommandSource, backup_id_raw: List[str], csm: Callable[[List[int]], Any]): ...
+
 	def __transform_backup_id_impl(self, source: CommandSource, backup_id_raw: Union[str, List[str]], csm: Union[Callable[[int], Any], Callable[[List[int]], Any]]):
 		if isinstance(backup_id_raw, str):
 			backup_id_strings = [backup_id_raw]
@@ -301,9 +307,9 @@ class CommandManager:
 
 		def process_task_result(parsed_backup_ids: List[int]):
 			if isinstance(backup_id_raw, str):
-				csm(parsed_backup_ids[0])
+				cast(Callable[[int], Any], csm)(parsed_backup_ids[0])
 			else:
-				csm(parsed_backup_ids)
+				cast(Callable[[List[int]], Any], csm)(parsed_backup_ids)
 
 		bid_task = TransformBackupIdTask(source, backup_id_strings)
 		if bid_task.needs_db_access():

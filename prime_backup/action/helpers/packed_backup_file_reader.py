@@ -8,7 +8,7 @@ import time
 import zipfile
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import ContextManager, IO, Optional, List, Generator
+from typing import ContextManager, IO, Optional, Generator, Sequence
 
 from typing_extensions import override
 
@@ -70,7 +70,7 @@ class PackedBackupFileHolder(ABC):
 		...
 
 	@abstractmethod
-	def list_member(self) -> List[PackedBackupFileMember]:
+	def list_member(self) -> Sequence[PackedBackupFileMember]:
 		...
 
 
@@ -97,7 +97,7 @@ class TarBackupReader(PackedBackupFileReader):
 			elif self.member.issym():
 				mode |= stat.S_IFLNK
 			else:
-				raise NotImplementedError('not implemented for type {}'.format(self.member.type))
+				raise NotImplementedError('not implemented for type {!r}'.format(self.member.type))
 			return mode
 
 		@property
@@ -118,7 +118,7 @@ class TarBackupReader(PackedBackupFileReader):
 		@property
 		@override
 		def mtime_us(self) -> int:
-			return self.member.mtime * (10 ** 6)
+			return int(self.member.mtime) * (10 ** 6)
 
 		@override
 		def is_file(self) -> bool:
@@ -139,7 +139,10 @@ class TarBackupReader(PackedBackupFileReader):
 		@contextlib.contextmanager
 		@override
 		def open(self) -> Generator[IO[bytes], None, None]:
-			yield self.tar.extractfile(self.member)
+			member = self.tar.extractfile(self.member)
+			if member is None:
+				raise AssertionError(f'member {self.member!r} has no file content')
+			yield member
 
 	class TarFileHolder(PackedBackupFileHolder):
 		def __init__(self, tar: tarfile.TarFile):
@@ -155,7 +158,7 @@ class TarBackupReader(PackedBackupFileReader):
 				return TarBackupReader.TarMember(self.tar, member)
 
 		@override
-		def list_member(self) -> List['TarBackupReader.TarMember']:
+		def list_member(self) -> Sequence['TarBackupReader.TarMember']:
 			return [TarBackupReader.TarMember(self.tar, member) for member in self.tar.getmembers()]
 
 	def __init__(self, tar_format: TarFormat):
@@ -239,7 +242,7 @@ class ZipBackupReader(PackedBackupFileReader):
 			with self.open() as f:
 				buf = f.read(max_link_size)
 				if len(buf) == max_link_size:
-					raise ValueError('symlink too large, read {} bytes, peek: {}'.format(len(buf), buf[:20]))
+					raise ValueError('symlink too large, read {} bytes, peek: {!r}'.format(len(buf), buf[:20]))
 				return buf.decode('utf8')
 
 		@contextlib.contextmanager
@@ -262,7 +265,7 @@ class ZipBackupReader(PackedBackupFileReader):
 				return ZipBackupReader.ZipMember(self.zipf, member)
 
 		@override
-		def list_member(self) -> List['ZipBackupReader.ZipMember']:
+		def list_member(self) -> Sequence['ZipBackupReader.ZipMember']:
 			return [ZipBackupReader.ZipMember(self.zipf, member) for member in self.zipf.infolist()]
 
 	@contextlib.contextmanager

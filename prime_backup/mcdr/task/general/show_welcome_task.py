@@ -33,7 +33,11 @@ class ShowWelcomeTask(LightTask[None]):
 	def __generate_command_helps(self) -> Dict[str, RTextBase]:
 		msg = ShowHelpTask(self.source).tr('commands.content', prefix=self.__cmd_prefix)
 		with self.source.preferred_language_context():
-			return {h.literal: h.text for h in help_message_utils.parse_help_message(msg)}
+			return {
+				h.literal: h.text
+				for h in help_message_utils.parse_help_message(msg)
+				if h.literal is not None
+			}
 
 	@override
 	def run(self) -> None:

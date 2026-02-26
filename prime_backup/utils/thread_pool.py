@@ -30,8 +30,8 @@ class FailFastBlockingThreadPool(ThreadPoolExecutor):
 		self.__error_futures: 'queue.Queue[Future]' = queue.Queue()
 
 	@override
-	def submit(self, __fn: Callable[_P, _T], *args: _P.args, **kwargs: _P.kwargs) -> Future[_T]:
-		func = functools.partial(__fn, *args, **kwargs)
+	def submit(self, fn: Callable[_P, _T], /, *args: _P.args, **kwargs: _P.kwargs) -> 'Future[_T]':
+		func = functools.partial(fn, *args, **kwargs)
 
 		def wrapper_func():
 			try:

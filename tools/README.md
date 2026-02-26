@@ -32,9 +32,17 @@ optional arguments:
                         (default: None)
 ```
 
-## [issue_64_fixer.py](issue_64_fixer.py)
+## [issue_64_fixer.py](https://github.com/TISUnion/PrimeBackup/blob/v1.9.5/tools/issue_64_fixer.py)
 
 A data-recover helper tool for [Issue #64](https://github.com/TISUnion/PrimeBackup/issues/64)
+
+It's suggested to run it with Prime Backup v1.9.4 or v1.9.5
+
+> [!NOTE]  
+> The issue_64_fixer.py is no longer hosted on the master branch
+> Please get this fixer script from [tag v1.9.5](https://github.com/TISUnion/PrimeBackup/blob/v1.9.5/tools/issue_64_fixer.py)
+> 
+> Direct download link: https://raw.githubusercontent.com/TISUnion/PrimeBackup/refs/tags/v1.9.5/tools/issue_64_fixer.py
 
 > [!NOTE]  
 > You need to have external backups of these 2 stuffs perform the fix:

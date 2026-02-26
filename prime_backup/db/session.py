@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
-from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier
+from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, FileIdentifier
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.utils import collection_utils, db_utils, validation_utils
@@ -24,13 +24,6 @@ _TP = TypeVar('_TP', bound=Tuple[Any, ...])
 
 class UnsupportedDatabaseOperation(PrimeBackupError):
 	pass
-
-
-# TODO: a better place for this?
-@dataclasses.dataclass(frozen=True)
-class FileIdentifier:
-	fileset_id: int
-	path: str
 
 
 # make type checker happy

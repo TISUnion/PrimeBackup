@@ -8,7 +8,7 @@ from typing_extensions import Self
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
-from prime_backup.db.values import FileRole, BlobStorageMethod
+from prime_backup.db.values import FileRole, BlobStorageMethod, FileIdentifier
 from prime_backup.types.blob_info import BlobInfo, BlobListSummary
 from prime_backup.utils import misc_utils
 
@@ -21,10 +21,6 @@ class FileType(enum.Enum):
 	directory = enum.auto()
 	symlink = enum.auto()
 	unknown = enum.auto()
-
-
-# TODO: FileIdentifier?
-FileUniqueKey = Tuple[int, str]  # (fileset_id, path)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -141,8 +137,8 @@ class FileInfo:
 		return self.__cmp_key < other.__cmp_key
 
 	@property
-	def unique_key(self) -> FileUniqueKey:
-		return self.fileset_id, self.path
+	def identifier(self) -> FileIdentifier:
+		return FileIdentifier(self.fileset_id, self.path)
 
 
 @dataclasses.dataclass

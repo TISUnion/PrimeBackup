@@ -7,9 +7,9 @@ from typing_extensions import override
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.db.values import FileRole
+from prime_backup.db.values import FileRole, FileIdentifier
 from prime_backup.types.blob_info import BlobInfo
-from prime_backup.types.file_info import FileInfo, FileUniqueKey
+from prime_backup.types.file_info import FileInfo
 from prime_backup.types.fileset_info import FilesetInfo
 
 
@@ -31,7 +31,7 @@ class BadFileItem:
 class ValidateFilesResult:
 	total: int = 0
 	validated: int = 0
-	bad_files: Dict[FileUniqueKey, BadFileItem] = dataclasses.field(default_factory=dict)
+	bad_files: Dict[FileIdentifier, BadFileItem] = dataclasses.field(default_factory=dict)
 
 	@property
 	def ok(self) -> int:
@@ -42,9 +42,9 @@ class ValidateFilesResult:
 		return len(self.bad_files)
 
 	def add_bad(self, file: FileInfo, typ: BadFileItemType, msg: str):
-		if file.unique_key not in self.bad_files:
-			self.bad_files[file.unique_key] = BadFileItem(file=file)
-		self.bad_files[file.unique_key].errors[typ] = msg
+		if file.identifier not in self.bad_files:
+			self.bad_files[file.identifier] = BadFileItem(file=file)
+		self.bad_files[file.identifier].errors[typ] = msg
 
 	def get_bad_by_type(self, typ: BadFileItemType) -> List[Tuple[FileInfo, str]]:
 		result = []

@@ -7,7 +7,8 @@ from prime_backup.action import Action
 from prime_backup.action.delete_blob_action import DeleteOrphanBlobsAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
-from prime_backup.db.session import FileIdentifier, DbSession
+from prime_backup.db.session import DbSession
+from prime_backup.db.values import FileIdentifier
 from prime_backup.exceptions import FilesetFileNotFound
 from prime_backup.types.file_info import FileListSummary
 

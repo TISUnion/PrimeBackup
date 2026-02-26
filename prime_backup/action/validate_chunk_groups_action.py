@@ -73,7 +73,7 @@ class ValidateChunkGroupsAction(Action[ValidateChunkGroupsResult]):
 				return b_.chunk_offset
 
 			bd_lst.sort(key=group_binding_key_getter)
-		all_chunks_by_id = session.get_chunks_by_ids(list({binding.chunk_id for binding in all_bindings}))
+		all_chunks_by_id = session.get_chunks_by_ids_opt(list({binding.chunk_id for binding in all_bindings}))
 
 		def validate_one_chunk_group(chunk_group: ChunkGroupInfo):
 			if chunk_group.id <= 0:

@@ -26,6 +26,17 @@ class PackedBackupFileMember(ABC):
 	@property
 	@abstractmethod
 	def path(self) -> str:
+		"""
+		path inside the packed file
+		"""
+		...
+
+	@property
+	@abstractmethod
+	def size(self) -> int:
+		"""
+		raw size of the file, 0 for non-files
+		"""
 		...
 
 	@property
@@ -104,6 +115,11 @@ class TarBackupReader(PackedBackupFileReader):
 		@override
 		def path(self) -> str:
 			return self.member.path
+
+		@property
+		@override
+		def size(self) -> int:
+			return self.member.size
 
 		@property
 		@override
@@ -208,6 +224,11 @@ class ZipBackupReader(PackedBackupFileReader):
 		@override
 		def path(self) -> str:
 			return self.member.filename
+
+		@property
+		@override
+		def size(self) -> int:
+			return self.member.file_size
 
 		@property
 		@override

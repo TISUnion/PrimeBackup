@@ -47,7 +47,7 @@ class ScanUnknownChunkFilesAction(Action[ScanUnknownChunkFilesResult]):
 					for name in os.listdir(chunk_dir)
 					if (chunk_dir / name).is_file()
 				]
-				chunks = session.get_chunks_by_hashes(file_names)
+				chunks = session.get_chunks_by_hashes_opt(file_names)
 				for chunk_hash, chunk in chunks.items():
 					if chunk is None:
 						unknown_chunk_file: Path = chunk_dir / chunk_hash

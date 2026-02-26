@@ -25,9 +25,7 @@ from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import hash_utils, sqlalchemy_utils, chunk_utils
-from prime_backup.utils.chunk_utils import PrettyChunk
-from prime_backup.utils.hash_utils import SizeAndHash
+from prime_backup.utils import sqlalchemy_utils
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 from prime_backup.utils.time_cost_stats import TimeCostStats
 
@@ -210,23 +208,11 @@ class CreateBackupAction(Action[BackupInfo]):
 
 		def hash_worker(pth: Path, pth_size: int):
 			rel_path = pth.relative_to(self.__source_path)
-			should_be_chunked = chunk_utils.should_chunk_blob(rel_path, pth_size)
-			chunks: List[PrettyChunk] = []
-			if should_be_chunked:
-				chunker = chunk_utils.FileChunker(pth, True)
-				chunks = chunker.cut_all()
-				sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
-			else:
-				sah = hash_utils.calc_file_size_and_hash(pth)
-			if sah.size != pth_size:
+			try:
+				result = BlobPrecalculateResult.from_file(pth, rel_path, pth_size)
+			except BlobPrecalculateResult.SizeMismatched:
 				return  # the file keeps changing, so it's not good to create a pre-calc result for it
-
-			hashes_and_chunks[pth] = BlobPrecalculateResult(
-				size=sah.size,
-				hash=sah.hash,
-				should_be_chunked=should_be_chunked,
-				chunks=chunks,
-			)
+			hashes_and_chunks[pth] = result
 
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 			with FailFastBlockingThreadPool(name='hasher') as pool:

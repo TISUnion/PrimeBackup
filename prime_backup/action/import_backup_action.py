@@ -7,14 +7,16 @@ from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
+from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
+from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
 from prime_backup.action.helpers.packed_backup_file_reader import PackedBackupFileReader, TarBackupReader, ZipBackupReader, PackedBackupFileMember, PackedBackupFileHolder
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.constants.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.db.values import FileRole
+from prime_backup.db.values import FileRole, BlobStorageMethod
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_meta import BackupMeta
@@ -22,7 +24,7 @@ from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import hash_utils, blob_utils, misc_utils
+from prime_backup.utils import blob_utils, misc_utils, chunk_utils, collection_utils
 from prime_backup.utils.hash_utils import SizeAndHash
 
 
@@ -56,6 +58,7 @@ class ImportBackupAction(Action[BackupInfo]):
 		self.meta_override = meta_override
 
 		self.__blob_cache: Dict[str, schema.Blob] = {}
+		self.__chunk_cache: Dict[str, schema.Chunk] = {}
 		self.__blob_recorder = BlobRecorder()
 
 	def __create_blob_file(self, file_reader: IO[bytes], sah: SizeAndHash) -> Tuple[int, CompressMethod]:
@@ -69,17 +72,74 @@ class ImportBackupAction(Action[BackupInfo]):
 
 		return writer.get_write_len(), compress_method
 
-	def __create_blob(self, session: DbSession, file_reader: IO[bytes], sah: SizeAndHash) -> schema.Blob:
+	def __create_blob_direct(self, session: DbSession, file_reader: IO[bytes], sah: SizeAndHash) -> schema.Blob:
 		stored_size, compress_method = self.__create_blob_file(file_reader, sah)
-		blob = self.__blob_recorder.create_blob(
+		return self.__blob_recorder.create_blob(
 			session,
-			# FIXME: storage_method
+			hash=sah.hash,
+			compress=compress_method.name,
+			raw_size=sah.size,
+			stored_size=stored_size,
+			storage_method=BlobStorageMethod.direct.value,
+		)
+
+	def __create_chunk_file(self, data: memoryview, sah: SizeAndHash) -> Tuple[int, CompressMethod]:
+		if len(data) != sah.size:
+			raise ValueError()
+		chunk_path = chunk_utils.get_chunk_path(sah.hash)
+		self.__blob_recorder.add_remove_file_rollbacker(chunk_path)
+
+		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(sah.size)
+		compressor = Compressor.create(compress_method)
+		with compressor.open_compressed_bypassed(chunk_path) as (writer, f):
+			f.write(data)
+
+		return writer.get_write_len(), compress_method
+
+	def __create_chunk(self, session: DbSession, data: memoryview, sah: SizeAndHash) -> schema.Chunk:
+		stored_size, compress_method = self.__create_chunk_file(data, sah)
+		chunk = session.create_chunk(
 			hash=sah.hash,
 			compress=compress_method.name,
 			raw_size=sah.size,
 			stored_size=stored_size,
 		)
-		self.__blob_cache[sah.hash] = blob
+		self.__chunk_cache[sah.hash] = chunk
+		return chunk
+
+	def __create_blob_chunked(self, session: DbSession, file_reader: IO[bytes], pre_cal_result: BlobPrecalculateResult) -> schema.Blob:
+		new_db_chunks: List[schema.Chunk] = []
+		offset_to_db_chunk: Dict[int, schema.Chunk] = {}
+		offset = 0
+		for chunk in chunk_utils.StreamChunker(file_reader, need_entire_file_hash=False).cut():
+			if (db_chunk := self.__chunk_cache.get(chunk.hash)) is None:
+				db_chunk = self.__create_chunk(session, chunk.data, SizeAndHash(chunk.length, chunk.hash))
+				new_db_chunks.append(db_chunk)
+			offset_to_db_chunk[offset] = db_chunk
+			offset += chunk.length
+
+		for new_db_chunk in new_db_chunks:
+			session.add(new_db_chunk)
+		blob = self.__blob_recorder.create_blob(
+			session,
+			hash=pre_cal_result.hash,
+			compress=CompressMethod.plain.name,
+			raw_size=pre_cal_result.size,
+			stored_size=sum(db_chunk.stored_size for db_chunk in offset_to_db_chunk.values()),
+			storage_method=BlobStorageMethod.chunked.value,
+		)
+		session.flush()  # creates blob.id, chunk.id
+		ChunkGrouper(session, None).create_chunk_groups(blob, offset_to_db_chunk)
+
+		return blob
+
+	def __create_blob(self, session: DbSession, file_path: str, file_reader: IO[bytes], pre_cal_result: BlobPrecalculateResult) -> schema.Blob:
+		if chunk_utils.should_chunk_blob(Path(file_path), pre_cal_result.size):
+			blob = self.__create_blob_chunked(session, file_reader, pre_cal_result)
+		else:
+			blob = self.__create_blob_direct(session, file_reader, SizeAndHash(pre_cal_result.size, pre_cal_result.hash))
+
+		self.__blob_cache[blob.hash] = blob
 		return blob
 
 	@classmethod
@@ -89,17 +149,17 @@ class ImportBackupAction(Action[BackupInfo]):
 	def __import_member(
 			self, session: DbSession,
 			member: PackedBackupFileMember,
-			file_sah: Optional[SizeAndHash],
+			pre_cal_result: Optional[BlobPrecalculateResult],
 	):
 		blob: Optional[schema.Blob] = None
 		content: Optional[bytes] = None
 
 		if member.is_file():
-			misc_utils.assert_true(file_sah is not None, 'file_sah should not be None for files')
-			assert file_sah is not None  # make mypy happy
-			if (blob := self.__blob_cache.get(file_sah.hash)) is None:
+			misc_utils.assert_true(pre_cal_result is not None, 'file_sah should not be None for files')
+			assert pre_cal_result is not None  # make mypy happy
+			if (blob := self.__blob_cache.get(pre_cal_result.hash)) is None:
 				with member.open() as f:
-					blob = self.__create_blob(session, f, file_sah)
+					blob = self.__create_blob(session, member.path, f, pre_cal_result)
 		elif member.is_dir():
 			pass
 		elif member.is_link():
@@ -172,22 +232,28 @@ class ImportBackupAction(Action[BackupInfo]):
 
 		self.logger.info('Importing backup {} from {!r}'.format(backup, self.file_path.name))
 
-		sah_dict: Dict[int, SizeAndHash] = {}
+		pre_cal_dict: Dict[int, BlobPrecalculateResult] = {}
 		for i, member in enumerate(members):
 			if member.is_file():
 				with member.open() as f:
-					sah_dict[i] = hash_utils.calc_reader_size_and_hash(f)
+					pre_cal_dict[i] = BlobPrecalculateResult.from_stream(f, Path(member.path), member.size)
 
-		blobs = session.get_blobs_by_hashes_opt([sah.hash for sah in sah_dict.values()])
-		for h, blob in blobs.items():
+		for h, blob in session.get_blobs_by_hashes_opt([res.hash for res in pre_cal_dict.values()]).items():
 			if blob is not None:
 				self.__blob_cache[h] = blob
 
+		for h, chunk in session.get_chunks_by_hashes_opt(collection_utils.deduplicated_list(
+			c.hash for res in pre_cal_dict.values() for c in res.chunks
+		)).items():
+			if chunk is not None:
+				self.__chunk_cache[h] = chunk
+
 		files: List[schema.File] = []
 		blob_utils.prepare_blob_directories()
+		chunk_utils.prepare_chunk_directories()
 		for i, member in enumerate(members):
 			try:
-				file = self.__import_member(session, member, sah_dict.get(i))
+				file = self.__import_member(session, member, pre_cal_dict.get(i))
 			except Exception as e:
 				self.logger.error('Import member {!r} (mode {}) failed: {}'.format(member.path, member.mode, e))
 				raise

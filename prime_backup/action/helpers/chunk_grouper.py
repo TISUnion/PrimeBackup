@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey
 from prime_backup.constants import chunk_constants
@@ -18,15 +18,18 @@ class _RawChunkGroup:
 	chunks: List[schema.Chunk] = dataclasses.field(default_factory=list)
 
 
+_dummy_chunk_costs: TimeCostStats[CreateBackupTimeCostKey] = TimeCostStats()
+
+
 class ChunkGrouper:
-	def __init__(self, session: DbSession, time_costs: TimeCostStats[CreateBackupTimeCostKey]):
+	def __init__(self, session: DbSession, time_costs: Optional[TimeCostStats[CreateBackupTimeCostKey]]):
 		from prime_backup import logger
 		from prime_backup.config.config import Config
 		self.logger: logging.Logger = logger.get()
 		self.config: Config = Config.get()
 
 		self.session = session
-		self.__time_costs = time_costs
+		self.__time_costs: TimeCostStats[CreateBackupTimeCostKey] = time_costs or _dummy_chunk_costs
 
 	def create_chunk_groups(self, blob: schema.Blob, blob_chunks: Dict[int, schema.Chunk]):
 		"""

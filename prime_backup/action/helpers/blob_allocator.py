@@ -470,7 +470,7 @@ class BlobAllocator:
 
 			process_start_time = time.time()
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
-				known_db_chunks = self.session.get_chunks_by_hashes([chunk.hash for chunk in chunks])
+				known_db_chunks = self.session.get_chunks_by_hashes_opt([chunk.hash for chunk in chunks])
 			new_db_chunks: List[schema.Chunk] = []
 			offset_to_db_chunk: Dict[int, schema.Chunk] = {}
 			with open(actual_path_to_read, 'rb') as src_file, FailFastBlockingThreadPool('chunk_write') as pool:

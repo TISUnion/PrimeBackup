@@ -13,6 +13,14 @@ from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.import_backup_action import ImportBackupAction
 from prime_backup.action.list_backup_action import ListBackupAction
 from prime_backup.action.migrate_compress_method_action import MigrateCompressMethodAction
+from prime_backup.action.validate_backups_action import ValidateBackupsAction
+from prime_backup.action.validate_blob_chunk_group_bindings_action import ValidateBlobChunkGroupBindingsAction
+from prime_backup.action.validate_blobs_action import ValidateBlobsAction
+from prime_backup.action.validate_chunk_group_chunk_bindings_action import ValidateChunkGroupChunkBindingsAction
+from prime_backup.action.validate_chunk_groups_action import ValidateChunkGroupsAction
+from prime_backup.action.validate_chunks_action import ValidateChunksAction
+from prime_backup.action.validate_files_action import ValidateFilesAction
+from prime_backup.action.validate_filesets_action import ValidateFilesetsAction
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config
 from prime_backup.db.access import DbAccess
@@ -96,6 +104,23 @@ def main():
 			print(f'{k}: {v}')
 		print('============= DbOverview =============')
 
+	def validate():
+		validate_results = [
+			ValidateBlobsAction().run(),
+			ValidateChunkGroupsAction().run(),
+			ValidateChunksAction().run(),
+			ValidateChunkGroupChunkBindingsAction().run(),
+			ValidateBlobChunkGroupBindingsAction().run(),
+			ValidateFilesAction().run(),
+			ValidateFilesetsAction().run(),
+			ValidateBackupsAction().run(),
+		]
+		all_ok = True
+		for result in validate_results:
+			print(result)
+			all_ok &= result.bad == 0
+		print(f'Validation summary: {"OK" if all_ok else "FAILED"}')
+
 	create(1)
 	delete()
 	# export()
@@ -103,6 +128,7 @@ def main():
 	# list_()
 	# delete()
 	# migrate()
+	validate()
 	overview()
 
 

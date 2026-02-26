@@ -334,7 +334,7 @@ class DbSession:
 			raise ChunkHashNotFound(h)
 		return chunk
 
-	def get_chunks_by_ids(self, chunk_ids: List[int]) -> Dict[int, Optional[schema.Chunk]]:
+	def get_chunks_by_ids_opt(self, chunk_ids: List[int]) -> Dict[int, Optional[schema.Chunk]]:
 		"""
 		:return: a dict, id -> optional chunk. All given ids are in the dict
 		"""
@@ -344,7 +344,7 @@ class DbSession:
 				result[chunk.id] = chunk
 		return result
 
-	def get_chunks_by_hashes(self, hashes: List[str]) -> Dict[str, Optional[schema.Chunk]]:
+	def get_chunks_by_hashes_opt(self, hashes: List[str]) -> Dict[str, Optional[schema.Chunk]]:
 		"""
 		:return: a dict, hash -> optional chunk. All given hashes are in the dict
 		"""

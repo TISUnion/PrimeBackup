@@ -552,14 +552,6 @@ class BlobAllocator:
 		ChunkGrouper(self.session, self.__time_costs).create_chunk_groups(blob, offset_to_db_chunk)
 		return blob
 
-	@functools.cached_property
-	def __skip_missing_source_file_patterns(self) -> pathspec.GitIgnoreSpec:
-		return pathspec.GitIgnoreSpec.from_lines(self.config.backup.creation_skip_missing_file_patterns)
-
-	@functools.cached_property
-	def __cdc_patterns(self) -> pathspec.GitIgnoreSpec:
-		return pathspec.GitIgnoreSpec.from_lines(self.config.backup.cdc_patterns)
-
 	def __should_skip_missing_source_file(self, src_file_path: Path) -> bool:
 		if self.config.backup.creation_skip_missing_file:
 			try:
@@ -567,24 +559,20 @@ class BlobAllocator:
 			except ValueError:
 				self.logger.error("Path {!r} is not inside the source path {!r}".format(str(src_file_path), str(self.__source_path)))
 			else:
-				return self.__skip_missing_source_file_patterns.match_file(rel_path)
+				return self.config.backup.creation_skip_missing_file_patterns_spec.match_file(rel_path)
 		return False
 
-	def __matches_cdc_pattern(self, file_path: Path) -> bool:
+	def __should_chunk_blob(self, file_path: Path, file_size: int) -> bool:
 		try:
 			rel_path = file_path.relative_to(self.__source_path)
 		except ValueError:
 			self.logger.error("Path {!r} is not inside the source path {!r}".format(str(file_path), str(self.__source_path)))
 			return False
 		else:
-			return self.__cdc_patterns.match_file(rel_path)
+			return chunk_utils.should_chunk_blob(rel_path, file_size)
 
 	def __try_get_or_create_blob_once(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool) -> Generator[Any, Any, schema.Blob]:
-		if (
-				self.config.backup.cdc_enabled and
-				st.st_size > 0 and st.st_size >= self.config.backup.cdc_file_size_threshold and
-				self.__matches_cdc_pattern(src_path)
-		):
+		if self.__should_chunk_blob(src_path, st.st_size):
 			gen = self.__try_get_or_create_chunked_blob(src_path, src_path_md5, st, last_chance)
 		else:
 			gen = self.__try_get_or_create_direct_blob(src_path, src_path_md5, st, last_chance)

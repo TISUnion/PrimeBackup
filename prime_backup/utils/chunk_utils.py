@@ -1,7 +1,7 @@
 import dataclasses
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterator, TYPE_CHECKING, List, Generator
+from typing import Iterator, TYPE_CHECKING, List, Generator, Union
 
 from prime_backup.constants import chunk_constants
 from prime_backup.types.hash_method import HashMethod, Hasher
@@ -43,6 +43,16 @@ def iterate_chunk_directories() -> Iterator[Path]:
 def prepare_chunk_directories():
 	for p in iterate_chunk_directories():
 		p.mkdir(parents=True, exist_ok=True)
+
+
+def should_chunk_blob(file_path: Union[str, Path], file_size: int) -> bool:
+	from prime_backup.config.config import Config
+	config = Config.get().backup
+	return (
+			config.cdc_enabled and
+			file_size > 0 and file_size >= config.cdc_file_size_threshold and
+			config.cdc_patterns_spec.match_file(file_path)
+	)
 
 
 def _cdc_cut_file(file_path: Path) -> 'Iterable[pyfastcdc.Chunk]':

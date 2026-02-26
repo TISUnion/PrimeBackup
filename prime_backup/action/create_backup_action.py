@@ -77,10 +77,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		return path.relative_to(self.__source_path).as_posix()
 
 	def __scan_files(self) -> _ScanResult:
-		ignore_or_retained_patterns = pathspec.GitIgnoreSpec.from_lines([
-			*self.config.backup.ignore_patterns,
-			*self.config.backup.retain_patterns,
-		])
+		ignore_or_retained_patterns = self.config.backup.ignore_or_retained_patterns_spec
 		result = _ScanResult()
 		visited_path: Set[Path] = set()  # full path
 		ignored_or_retained_paths: List[Path] = []   # related path
@@ -125,11 +122,11 @@ class CreateBackupAction(Action[BackupInfo]):
 
 		self.logger.debug(f'Scan file start, target patterns: {self.config.backup.targets}')
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_fs) as scan_cost:
-			target_patterns = pathspec.GitIgnoreSpec.from_lines(self.config.backup.targets)
+			target_patterns = self.config.backup.targets_spec
 			target_paths: List[Path] = []
 			for candidate_target_name in sorted(os.listdir(self.__source_path)):
 				candidate_target_path = self.__source_path / candidate_target_name
-				if target_patterns.match_file(candidate_target_path):
+				if target_patterns.match_file(candidate_target_name):
 					target_paths.append(candidate_target_path)
 
 			self.logger.debug(f'Scan file found {len(target_paths)} targets, {target_paths[:10]=}')

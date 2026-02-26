@@ -19,7 +19,7 @@ from prime_backup.constants import constants
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.types.export_failure import ExportFailures
-from prime_backup.utils import file_utils, path_utils, collection_utils
+from prime_backup.utils import file_utils, path_utils, collection_utils, pathspec_utils
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 
 
@@ -50,7 +50,7 @@ class _FileRetainer:
 	def __init__(self, base_dir: Path, patterns: List[str], retain_dir: Path):
 		self.logger: logging.Logger = logger.get()
 		self.base_dir = base_dir
-		self.patterns = pathspec.GitIgnoreSpec.from_lines(patterns)
+		self.patterns = pathspec_utils.compile_gitignore_spec(patterns)
 		self.retain_dir = retain_dir
 		self.__file_mappings: Dict[Path, Path] = {}  # temp path -> origin path
 		self.__has_moved_away = False

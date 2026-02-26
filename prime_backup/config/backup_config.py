@@ -1,9 +1,12 @@
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from mcdreforged.api.utils import Serializable
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.types.hash_method import HashMethod
+
+if TYPE_CHECKING:
+	import pathspec
 
 
 class BackupConfig(Serializable):
@@ -62,3 +65,36 @@ class BackupConfig(Serializable):
 				if file_name == item:
 					return True
 		return False
+
+	@property
+	def targets_spec(self) -> 'pathspec.GitIgnoreSpec':
+		from prime_backup.utils import pathspec_utils
+		return pathspec_utils.compile_gitignore_spec(self.targets)
+
+	@property
+	def ignore_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
+		from prime_backup.utils import pathspec_utils
+		return pathspec_utils.compile_gitignore_spec(self.ignore_patterns)
+
+	@property
+	def retain_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
+		from prime_backup.utils import pathspec_utils
+		return pathspec_utils.compile_gitignore_spec(self.retain_patterns)
+
+	@property
+	def ignore_or_retained_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
+		from prime_backup.utils import pathspec_utils
+		return pathspec_utils.compile_gitignore_spec([
+			*self.ignore_patterns,
+			*self.retain_patterns,
+		])
+
+	@property
+	def creation_skip_missing_file_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
+		from prime_backup.utils import pathspec_utils
+		return pathspec_utils.compile_gitignore_spec(self.creation_skip_missing_file_patterns)
+
+	@property
+	def cdc_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
+		from prime_backup.utils import pathspec_utils
+		return pathspec_utils.compile_gitignore_spec(self.cdc_patterns)

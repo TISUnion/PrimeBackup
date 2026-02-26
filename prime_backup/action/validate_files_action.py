@@ -47,7 +47,7 @@ class ValidateFilesResult:
 		self.bad_files[file.identifier].errors[typ] = msg
 
 	def get_bad_by_type(self, typ: BadFileItemType) -> List[Tuple[FileInfo, str]]:
-		result = []
+		result: List[Tuple[FileInfo, str]] = []
 		for bad_file in self.bad_files.values():
 			if (msg := bad_file.errors.get(typ)) is not None:
 				result.append((bad_file.file, msg))

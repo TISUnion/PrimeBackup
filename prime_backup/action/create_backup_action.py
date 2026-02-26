@@ -7,12 +7,12 @@ import time
 from pathlib import Path
 from typing import List, Optional, Any, Dict, Generator, Set, ContextManager
 
-import pathspec
 from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
 from prime_backup.action.helpers.blob_allocator import BlobAllocator, GetOrCreateBlobResult
+from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
 from prime_backup.db import schema
@@ -25,7 +25,9 @@ from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.blob_info import BlobListSummary
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import hash_utils, sqlalchemy_utils
+from prime_backup.utils import hash_utils, sqlalchemy_utils, chunk_utils
+from prime_backup.utils.chunk_utils import PrettyChunk
+from prime_backup.utils.hash_utils import SizeAndHash
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 from prime_backup.utils.time_cost_stats import TimeCostStats
 
@@ -54,7 +56,7 @@ class _ScanResult:
 @dataclasses.dataclass(frozen=True)
 class _PreCalculationResult:
 	stats: Dict[Path, os.stat_result] = dataclasses.field(default_factory=dict)
-	hashes: Dict[Path, str] = dataclasses.field(default_factory=dict)
+	hashes_and_chunks: Dict[Path, BlobPrecalculateResult] = dataclasses.field(default_factory=dict)
 	reused_files: Dict[Path, schema.File] = dataclasses.field(default_factory=dict)
 
 
@@ -192,9 +194,9 @@ class CreateBackupAction(Action[BackupInfo]):
 				if (file_opt := stat_to_files.get(key)) is not None:
 					self.__pre_calc_result.reused_files[file_entry.path] = file_opt
 
-	def __pre_calculate_hash(self, session: DbSession, blob_allocator: BlobAllocator, scan_result: _ScanResult):
-		hashes = self.__pre_calc_result.hashes
-		hashes.clear()
+	def __pre_calculate_hash_and_chunks(self, session: DbSession, blob_allocator: BlobAllocator, scan_result: _ScanResult):
+		hashes_and_chunks = self.__pre_calc_result.hashes_and_chunks
+		hashes_and_chunks.clear()
 
 		file_entries_to_hash: List[_ScanResultEntry] = [
 			file_entry
@@ -206,15 +208,32 @@ class CreateBackupAction(Action[BackupInfo]):
 		existing_sizes = session.has_blob_with_size_batched(list(all_sizes))
 		blob_allocator.add_existing_sizes(existing_sizes)
 
-		def hash_worker(pth: Path):
-			hashes[pth] = hash_utils.calc_file_hash(pth)
+		def hash_worker(pth: Path, pth_size: int):
+			rel_path = pth.relative_to(self.__source_path)
+			should_be_chunked = chunk_utils.should_chunk_blob(rel_path, pth_size)
+			chunks: List[PrettyChunk] = []
+			if should_be_chunked:
+				chunker = chunk_utils.FileChunker(pth, True)
+				chunks = chunker.cut_all()
+				sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
+			else:
+				sah = hash_utils.calc_file_size_and_hash(pth)
+			if sah.size != pth_size:
+				return  # the file keeps changing, so it's not good to create a pre-calc result for it
+
+			hashes_and_chunks[pth] = BlobPrecalculateResult(
+				size=sah.size,
+				hash=sah.hash,
+				should_be_chunked=should_be_chunked,
+				chunks=chunks,
+			)
 
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 			with FailFastBlockingThreadPool(name='hasher') as pool:
 				for file_entry in file_entries_to_hash:
 					if existing_sizes[file_entry.stat.st_size]:
 						# we need to hash the file, sooner or later
-						pool.submit(hash_worker, file_entry.path)
+						pool.submit(hash_worker, file_entry.path, file_entry.stat.st_size)
 					else:
 						pass  # will use hash_once policy
 
@@ -283,8 +302,8 @@ class CreateBackupAction(Action[BackupInfo]):
 		)
 
 	def __create_backup(self, session_context: ContextManager[DbSession], session: DbSession, blob_recorder: BlobRecorder) -> BackupInfo:
-		def pre_calc_hash_getter(src_path: Path) -> Optional[str]:
-			return self.__pre_calc_result.hashes.pop(src_path, None)
+		def pre_calc_result_getter(src_path: Path) -> Optional[BlobPrecalculateResult]:
+			return self.__pre_calc_result.hashes_and_chunks.pop(src_path, None)  # one-time use
 
 		blob_allocator = BlobAllocator(
 			session=session,
@@ -292,7 +311,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			blob_recorder=blob_recorder,
 			source_path=self.__source_path,
 			temp_path=self.__temp_path,
-			pre_calc_hash_getter=pre_calc_hash_getter,
+			pre_calc_result_getter=pre_calc_result_getter,
 		)
 
 		self.logger.info('Scanning file for backup creation at path {!r}, targets: {}'.format(
@@ -318,7 +337,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			self.logger.info('Reused {} / {} stat unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
 		if self.config.get_effective_concurrency() > 1:
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_pre_calculate_hash):
-				self.__pre_calculate_hash(session, blob_allocator, scan_result)
+				self.__pre_calculate_hash_and_chunks(session, blob_allocator, scan_result)
 			self.logger.info('Pre-calculate all file hash done')
 
 		blob_allocator.init_blob_store()

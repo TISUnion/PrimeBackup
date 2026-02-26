@@ -12,10 +12,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, overload, Deque
 
-import pathspec
 from typing_extensions import NoReturn, override
 
 from prime_backup.action.helpers import create_backup_utils
+from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
@@ -205,7 +205,7 @@ class BlobAllocator:
 			blob_recorder: BlobRecorder,
 			source_path: Path,
 			temp_path: Path,
-			pre_calc_hash_getter: Callable[[Path], Optional[str]]
+			pre_calc_result_getter: Callable[[Path], Optional[BlobPrecalculateResult]]
 	):
 		from prime_backup import logger
 		from prime_backup.config.config import Config
@@ -217,7 +217,7 @@ class BlobAllocator:
 		self.__blob_recorder = blob_recorder
 		self.__source_path = source_path
 		self.__temp_path = temp_path
-		self.__pre_calc_hash_getter = pre_calc_hash_getter
+		self.__pre_calc_result_getter = pre_calc_result_getter
 
 		self.__blob_by_size_cache: Dict[int, bool] = {}
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
@@ -255,7 +255,13 @@ class BlobAllocator:
 		blob_content: Optional[bytes] = None
 		raw_size: Optional[int] = None
 		stored_size: Optional[int] = None
-		pre_calc_blob_hash = self.__pre_calc_hash_getter(src_path)
+		pre_cal_result = self.__pre_calc_result_getter(src_path)
+		if pre_cal_result is not None and (st.st_size != pre_cal_result.size or pre_cal_result.should_be_chunked is True):
+			self.logger.debug('Drop pre cal result for path {} due to stat mismatched, st.st_size {}, pre_cal_result {}'.format(
+				src_path, st.st_size, pre_cal_result.simple_repr(),
+			))
+			pre_cal_result = None
+		pre_calc_blob_hash = pre_cal_result.hash if pre_cal_result is not None else None
 
 		if last_chance:
 			policy = _DirectBlobCreatePolicy.copy_hash
@@ -408,10 +414,17 @@ class BlobAllocator:
 		log_and_raise_blob_file_changed = functools.partial(self.__log_and_raise_blob_file_changed, last_chance=last_chance)
 		src_path_str = repr(src_path.as_posix())
 
+		pre_cal_result: Optional[BlobPrecalculateResult] = None
 		if last_chance:
 			policy = _ChunkedBlobCreatePolicy.copy_hash
 		else:
 			policy = _ChunkedBlobCreatePolicy.default
+			pre_cal_result = self.__pre_calc_result_getter(src_path)
+		if pre_cal_result is not None and (st.st_size != pre_cal_result.size or pre_cal_result.should_be_chunked is False):
+			self.logger.debug('Drop pre cal result for path {} due to stat mismatched, st.st_size {}, pre_cal_result {}'.format(
+				src_path, st.st_size, pre_cal_result.simple_repr(),
+			))
+			pre_cal_result = None
 
 		with contextlib.ExitStack() as es:
 			if policy == _ChunkedBlobCreatePolicy.default:
@@ -426,14 +439,20 @@ class BlobAllocator:
 			else:
 				raise AssertionError('bad policy {!r}'.format(policy))
 
-			chunker = chunk_utils.FileChunker(actual_path_to_read, need_entire_file_hash=True)
-			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as cdc_cost:
-				chunks = chunker.cut_all()
-			blob_hash = chunker.get_entire_file_hash()
-			blob_size = chunker.get_read_file_size()
-			self.logger.debug('CDC chunked+hash file {} with size {} in {:.2f}s ({}/s)'.format(
-				src_path_str, ByteCount(blob_size).auto_str(), cdc_cost(), ByteCount(blob_size / cdc_cost() if cdc_cost() > 0 else 0).auto_str(),
-			))
+			if pre_cal_result is not None:
+				chunks = pre_cal_result.chunks
+				blob_hash = pre_cal_result.hash
+				blob_size = pre_cal_result.size
+				self.logger.debug('CDC chunked+hash file {} with size {} (precalc)'.format(src_path_str, ByteCount(blob_size).auto_str()))
+			else:
+				chunker = chunk_utils.FileChunker(actual_path_to_read, need_entire_file_hash=True)
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as cdc_cost:
+					chunks = chunker.cut_all()
+				blob_hash = chunker.get_entire_file_hash()
+				blob_size = chunker.get_read_file_size()
+				self.logger.debug('CDC chunked+hash file {} with size {} in {:.2f}s ({}/s)'.format(
+					src_path_str, ByteCount(blob_size).auto_str(), cdc_cost(), ByteCount(blob_size / cdc_cost() if cdc_cost() > 0 else 0).auto_str(),
+				))
 			if blob_size == 0:
 				log_and_raise_blob_file_changed('Blob size becomes zero')
 

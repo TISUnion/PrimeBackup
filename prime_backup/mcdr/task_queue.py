@@ -2,7 +2,7 @@ import collections
 import dataclasses
 import threading
 from concurrent import futures
-from typing import Generic, TypeVar, Deque, Union, TYPE_CHECKING, Callable, Optional, Any
+from typing import Generic, TypeVar, Deque, Union, TYPE_CHECKING, Callable, Optional, Any, cast
 
 from mcdreforged.api.all import CommandSource, RTextBase
 
@@ -30,8 +30,7 @@ class TaskHolder(Generic[_T]):
 		if err is not None:
 			self.future.set_exception(err)
 		else:
-			assert ret is not None
-			self.future.set_result(ret)
+			self.future.set_result(cast(_T, ret))
 		if self.callback is not None:
 			self.callback(ret, err)
 

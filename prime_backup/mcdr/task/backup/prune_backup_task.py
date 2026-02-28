@@ -17,7 +17,7 @@ from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
-from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.blob_info import BlobDeltaSummary
 from prime_backup.types.operator import PrimeBackupOperatorNames
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import misc_utils, log_utils
@@ -74,14 +74,14 @@ class PrunePlan(List[PrunePlanItem]):
 class PruneBackupResult:
 	plan: PrunePlan
 	deleted_backup_count: int = 0
-	deleted_blobs: BlobListSummary = dataclasses.field(default_factory=BlobListSummary.zero)
+	freed_blob_delta_summary: BlobDeltaSummary = dataclasses.field(default_factory=BlobDeltaSummary.zero)
 
 
 @dataclasses.dataclass
 class PruneAllBackupResult:
 	sub_plans: List[PrunePlan] = dataclasses.field(default_factory=list)
 	deleted_backup_count: int = 0
-	deleted_blobs: BlobListSummary = dataclasses.field(default_factory=BlobListSummary.zero)
+	freed_blob_delta_summary: BlobDeltaSummary = dataclasses.field(default_factory=BlobDeltaSummary.zero)
 
 
 class PruneBackupTask(HeavyTask[PruneBackupResult]):
@@ -256,20 +256,20 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 							raise
 					else:
 						prune_logger.info('Delete backup #%s done', bid)
-						result.deleted_blobs = result.deleted_blobs + dr.bls
+						result.freed_blob_delta_summary += dr.delta
 						result.deleted_backup_count += 1
 			for logger in [self.logger, prune_logger]:
-				logger.info('Pruned backup done, deleted {} backups, freed {} blobs ({} / {})'.format(
-					result.deleted_backup_count, result.deleted_blobs.count,
-					ByteCount(result.deleted_blobs.stored_size).auto_str(), ByteCount(result.deleted_blobs.raw_size).auto_str(),
+				logger.info('Pruned backup done, deleted {} backups, freed {} blobs and {} chunks ({} / {})'.format(
+					result.deleted_backup_count, result.freed_blob_delta_summary.blob_count, result.freed_blob_delta_summary.chunk_count,
+					ByteCount(result.freed_blob_delta_summary.stored_size).auto_str(), ByteCount(result.freed_blob_delta_summary.raw_size).auto_str(),
 				))
 
 		if self.verbose >= _PruneVerbose.delete:
 			self.reply_tr(
 				'done',
 				TextComponents.number(result.deleted_backup_count),
-				TextComponents.number(result.deleted_blobs.count),
-				TextComponents.blob_list_summary_store_size(result.deleted_blobs),
+				TextComponents.number(result.freed_blob_delta_summary.blob_count),
+				TextComponents.blob_delta_summary(result.freed_blob_delta_summary),
 			)
 		return result
 
@@ -307,7 +307,7 @@ class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 			sub_result = self.run_subtask(PruneBackupTask(self.source, backup_filter, setting, what_to_prune=self.tr(f'what.{what}'), verbose=self.verbose))
 			result.sub_plans.append(sub_result.plan)
 			result.deleted_backup_count += sub_result.deleted_backup_count
-			result.deleted_blobs = result.deleted_blobs + sub_result.deleted_blobs
+			result.freed_blob_delta_summary += sub_result.freed_blob_delta_summary
 
 		if not self.aborted_event.is_set():
 			# prune scheduled backups first, so some non-scheduled regular backups might get another chance to survive
@@ -321,8 +321,8 @@ class PruneAllBackupTask(HeavyTask[PruneAllBackupResult]):
 			self.reply_tr(
 				'done',
 				TextComponents.number(result.deleted_backup_count),
-				TextComponents.number(result.deleted_blobs.count),
-				TextComponents.blob_list_summary_store_size(result.deleted_blobs),
+				TextComponents.number(result.freed_blob_delta_summary.blob_count),
+				TextComponents.blob_delta_summary(result.freed_blob_delta_summary),
 			)
 		return result
 

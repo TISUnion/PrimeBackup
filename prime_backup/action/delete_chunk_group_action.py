@@ -9,10 +9,11 @@ from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.exceptions import ChunkIdNotFound, ChunkHashNotFound
+from prime_backup.types.chunk_group_info import ChunkGroupListSummary
 from prime_backup.utils import collection_utils
 
 
-class DeleteChunkGroupsAction(Action[None]):
+class DeleteChunkGroupsAction(Action[ChunkGroupListSummary]):
 	def __init__(self, *, ids: Collection[int] = (), hashes: Collection[str] = (), raise_if_not_found: bool = True):
 		super().__init__()
 		self.chunk_group_ids = collection_utils.deduplicated_list(ids)
@@ -20,16 +21,18 @@ class DeleteChunkGroupsAction(Action[None]):
 		self.raise_if_not_found = raise_if_not_found
 
 	@override
-	def run(self, *, session: Optional[DbSession] = None) -> None:
+	def run(self, *, session: Optional[DbSession] = None) -> ChunkGroupListSummary:
 		"""
 		:param session: If provided, use this session for DB operations.
 		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
 		"""
+		summary = ChunkGroupListSummary.zero()
 		with contextlib.ExitStack() as es:
 			if session is None:
 				session = es.enter_context(DbAccess.open_session())
 
 			all_to_delete_chunk_group_ids = self.__collect_chunk_group_ids_to_delete(session)
+			summary.count = len(all_to_delete_chunk_group_ids)
 			if len(all_to_delete_chunk_group_ids) > 0:
 				# 1. delete ChunkGroup-Chunk bindings
 				# 2. delete chunk groups
@@ -39,10 +42,11 @@ class DeleteChunkGroupsAction(Action[None]):
 				session.delete_chunk_group_chunk_bindings_for_chunk_groups(all_to_delete_chunk_group_ids)
 
 				session.delete_chunk_groups_by_ids(all_to_delete_chunk_group_ids)
-				DeleteOrphanChunksAction(ids=affected_chunk_ids.keys()).run(session=session)
+				summary.chunk_summary = DeleteOrphanChunksAction(ids=affected_chunk_ids.keys()).run(session=session)
 			else:
 				session.commit()
-		self.logger.debug('Deleted {} chunk groups'.format(len(all_to_delete_chunk_group_ids)))
+		self.logger.debug('Deleted {} chunk groups'.format(summary.count))
+		return summary
 
 	def __collect_chunk_group_ids_to_delete(self, session: DbSession) -> List[int]:
 		self_chunk_group_ids_set = set(self.chunk_group_ids)
@@ -76,13 +80,13 @@ class DeleteChunkGroupsAction(Action[None]):
 		return list(all_to_delete_chunk_groups.keys())
 
 
-class DeleteOrphanChunkGroupsAction(Action[int]):
+class DeleteOrphanChunkGroupsAction(Action[ChunkGroupListSummary]):
 	def __init__(self, *, ids: Collection[int]):
 		super().__init__()
 		self.chunk_ids_to_check = collection_utils.deduplicated_list(ids)
 
 	@override
-	def run(self, *, session: Optional[DbSession] = None) -> int:
+	def run(self, *, session: Optional[DbSession] = None) -> ChunkGroupListSummary:
 		"""
 		:param session: If provided, use this session for DB operations.
 		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
@@ -95,8 +99,9 @@ class DeleteOrphanChunkGroupsAction(Action[int]):
 			self.logger.debug('Found {}/{} orphan chunk groups to delete'.format(len(orphan_chunk_group_ids), len(self.chunk_ids_to_check)))
 
 			if len(orphan_chunk_group_ids) > 0:
-				DeleteChunkGroupsAction(ids=orphan_chunk_group_ids, raise_if_not_found=False).run(session=session)
+				s = DeleteChunkGroupsAction(ids=orphan_chunk_group_ids, raise_if_not_found=False).run(session=session)
 			else:
 				session.commit()
+				s = ChunkGroupListSummary.zero()
 
-		return len(orphan_chunk_group_ids)
+		return s

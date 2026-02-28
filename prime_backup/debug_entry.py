@@ -2,6 +2,9 @@ import dataclasses
 import logging
 import time
 from pathlib import Path
+from typing import List
+
+from typing_extensions import Protocol
 
 from prime_backup import logger
 from prime_backup.action.create_backup_action import CreateBackupAction
@@ -26,6 +29,12 @@ from prime_backup.config.config import Config
 from prime_backup.db.access import DbAccess
 from prime_backup.types.operator import Operator
 from prime_backup.types.tar_format import TarFormat
+
+
+class _WithBadField(Protocol):
+	@property
+	def bad(self) -> int:
+		...
 
 
 def main():
@@ -105,7 +114,7 @@ def main():
 		print('============= DbOverview =============')
 
 	def validate():
-		validate_results = [
+		validate_results: List[_WithBadField] = [
 			ValidateBlobsAction().run(),
 			ValidateChunkGroupsAction().run(),
 			ValidateChunksAction().run(),

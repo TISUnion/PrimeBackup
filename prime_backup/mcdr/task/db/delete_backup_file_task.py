@@ -55,9 +55,9 @@ class DeleteBackupFileTask(HeavyTask[None]):
 			return
 
 		try:
-			bls = DeleteBackupFileAction(self.backup_id, self.file_path, self.recursive).run()
+			bds = DeleteBackupFileAction(self.backup_id, self.file_path, self.recursive).run()
 		except DeleteDirectoryNotAllowed:
 			self.__reply_cannot_delete_dir()
 			return
 
-		self.reply_tr('done', TextComponents.backup_id(self.backup_id), TextComponents.file_name(self.file_path), TextComponents.file_size(bls.stored_size))
+		self.reply_tr('done', TextComponents.backup_id(self.backup_id), TextComponents.file_name(self.file_path), TextComponents.file_size(bds.stored_size))

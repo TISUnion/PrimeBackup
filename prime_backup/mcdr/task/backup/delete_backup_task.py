@@ -12,7 +12,7 @@ from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
-from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.blob_info import BlobDeltaSummary
 from prime_backup.utils import collection_utils
 from prime_backup.utils.mcdr_utils import TranslationContext
 
@@ -45,7 +45,7 @@ class _DeleteBackupTaskBase(HeavyTask[None], ABC):
 			self.reply(self.__base_tr('start', TextComponents.number(len(backups))))
 
 		cnt = 0
-		bls = BlobListSummary.zero()
+		bds = BlobDeltaSummary.zero()
 		for backup in backups:
 			if self.aborted_event.is_set():
 				self.reply(self.get_aborted_text())
@@ -57,11 +57,11 @@ class _DeleteBackupTaskBase(HeavyTask[None], ABC):
 				self.reply(self.__base_tr('deleted.skipped', TextComponents.backup_id(backup.id)))
 			else:
 				cnt += 1
-				bls += dr.bls
+				bds += dr.delta
 				self.reply(self.__base_tr('deleted', TextComponents.backup_brief(dr.backup, backup_id_fancy=False)))
 
 		if show_start_end:
-			self.reply(self.__base_tr('done', TextComponents.number(cnt), TextComponents.blob_list_summary_store_size(bls)))
+			self.reply(self.__base_tr('done', TextComponents.number(cnt), TextComponents.blob_delta_summary(bds)))
 
 
 class DeleteBackupTask(_DeleteBackupTaskBase):

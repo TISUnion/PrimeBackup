@@ -22,7 +22,7 @@ from prime_backup.db.values import FileRole
 from prime_backup.exceptions import UnsupportedFileFormat
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags
-from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.blob_info import BlobDeltaSummary
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import sqlalchemy_utils
@@ -71,7 +71,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		self.__source_path: Path = source_path or self.config.source_path
 		self.__time_costs: TimeCostStats[CreateBackupTimeCostKey] = TimeCostStats()
 		self.__pre_calc_result = _PreCalculationResult()
-		self.__new_blobs_summary = BlobListSummary.zero()
+		self.__new_blob_storage_delta = BlobDeltaSummary.zero()
 
 	def __file_path_to_db_path(self, path: Path) -> str:
 		return path.relative_to(self.__source_path).as_posix()
@@ -359,17 +359,17 @@ class CreateBackupAction(Action[BackupInfo]):
 			blob_recorder.apply_file_rollback()
 			raise e
 
-		s = blob_recorder.get_new_blobs_summary()
-		self.logger.info('Create backup #{} done, +{} blobs (size {} / {})'.format(
-			info.id, s.count, ByteCount(s.stored_size).auto_str(), ByteCount(s.raw_size).auto_str(),
+		bds = blob_recorder.get_blob_storage_delta()
+		self.logger.info('Create backup #{} done, added {} blobs and {} chunks (size {} / {})'.format(
+			info.id, bds.blobs.count, bds.chunks.count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
 		))
 		self.__log_costs(time.time() - action_start_ts)
 
-		self.__new_blobs_summary = blob_recorder.get_new_blobs_summary()
+		self.__new_blob_storage_delta = blob_recorder.get_blob_storage_delta()
 		return info
 
-	def get_new_blobs_summary(self) -> BlobListSummary:
-		return self.__new_blobs_summary
+	def get_new_blob_storage_delta(self) -> BlobDeltaSummary:
+		return self.__new_blob_storage_delta
 
 	def __log_costs(self, actual_cost: float):
 		if not (self.config.debug and self.logger.isEnabledFor(logging.DEBUG)):

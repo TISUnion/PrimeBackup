@@ -26,6 +26,6 @@ class DeleteBlobChunkGroupBindingsAction(Action[None]):
 			chunk_group_ids = collection_utils.deduplicated_list(binding.chunk_group_id for binding in bindings.values())
 			session.delete_blob_chunk_group_bindings(self.identifiers)
 
-			orphan_chunk_group_cnt = DeleteOrphanChunkGroupsAction(ids=chunk_group_ids).run(session=session)
+			orphan_chunk_group_cnt = DeleteOrphanChunkGroupsAction(ids=chunk_group_ids).run(session=session).count
 
 		self.logger.debug('Deleted {} BlobChunkGroupBindings and {} orphan chunk groups'.format(len(bindings), orphan_chunk_group_cnt))

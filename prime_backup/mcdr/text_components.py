@@ -4,13 +4,14 @@ from pathlib import Path
 from typing import Any, Union, Optional, Iterable, List
 
 from mcdreforged.api.all import RTextBase, RText, RTextList, RColor, RAction, RStyle
+from typing_extensions import Protocol
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.constants import constants
 from prime_backup.db.values import FileRole
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName
-from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.blob_info import BlobDeltaSummary
 from prime_backup.types.file_info import FileType
 from prime_backup.types.fileset_info import FilesetInfo
 from prime_backup.types.hash_method import HashMethod
@@ -19,6 +20,16 @@ from prime_backup.types.units import ByteCount, Duration
 from prime_backup.utils import conversion_utils, misc_utils, backup_utils
 from prime_backup.utils.mcdr_utils import mkcmd, click_and_run
 from prime_backup.utils.path_like import PathLike
+
+
+class _RawSizeStoredSize(Protocol):
+	@property
+	def raw_size(self) -> int:
+		...
+
+	@property
+	def stored_size(self) -> int:
+		...
 
 
 class TextColors:
@@ -141,13 +152,17 @@ class TextComponents:
 		)
 
 	@classmethod
-	def backup_size(cls, backup_or_blob_list_summary: Union[BackupInfo, BlobListSummary], *, ndigits: int = 2) -> RTextBase:
-		b = backup_or_blob_list_summary
+	def backup_size(cls, backup_or_summary: _RawSizeStoredSize, *, ndigits: int = 2) -> RTextBase:
+		b = backup_or_summary
 		return cls.file_size(b.raw_size, ndigits=ndigits).h(cls.dual_size_hover(b.raw_size, b.stored_size))
 
 	@classmethod
-	def blob_list_summary_store_size(cls, bls: BlobListSummary) -> RTextBase:
-		return cls.file_size(bls.raw_size).h(cls.dual_size_hover(bls.raw_size, bls.stored_size))
+	def blob_delta_summary(cls, bds: BlobDeltaSummary) -> RTextBase:
+		return cls.file_size(bds.raw_size).h(RTextBase.join('\n', [
+			cls.tr('blob_delta_summary.total_blobs', cls.number(bds.blob_count), cls.file_size(bds.blobs.raw_size), cls.file_size(bds.blobs.stored_size)),
+			cls.tr('blob_delta_summary.direct_blobs', cls.number(bds.direct_blobs.count), cls.file_size(bds.direct_blobs.raw_size), cls.file_size(bds.direct_blobs.stored_size)),
+			cls.tr('blob_delta_summary.chunks', cls.number(bds.chunks.count), cls.file_size(bds.chunks.raw_size), cls.file_size(bds.chunks.stored_size)),
+		]))
 
 	@classmethod
 	def boolean(cls, value: bool) -> RTextBase:
@@ -354,6 +369,10 @@ class TextComponents:
 			return RText(f'{100 * value / total:.1f}%', RColor.dark_green)
 		else:
 			return RText('N/A', RColor.gray)
+
+	@classmethod
+	def raw_size_with_dual_size_hover(cls, bls: _RawSizeStoredSize) -> RTextBase:
+		return cls.file_size(bls.raw_size).h(cls.dual_size_hover(bls.raw_size, bls.stored_size))
 
 	@classmethod
 	def tag_name(cls, tag_name: BackupTagName) -> RTextBase:

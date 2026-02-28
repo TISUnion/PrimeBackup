@@ -11,11 +11,12 @@ from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import BlobHashNotFound, BlobIdNotFound
-from prime_backup.types.blob_info import BlobInfo, BlobListSummary
+from prime_backup.types.blob_info import BlobInfo, BlobListSummary, BlobDeltaSummary
+from prime_backup.types.chunk_info import ChunkListSummary
 from prime_backup.utils import collection_utils
 
 
-class _BlobTrashBin:
+class _DirectBlobTrashBin:
 	def __init__(self, logger: logging.Logger):
 		self.trash_blobs: List[BlobInfo] = []
 		self.logger = logger
@@ -36,7 +37,7 @@ class _BlobTrashBin:
 				self.errors.append(e)
 
 
-class DeleteBlobsAction(Action[BlobListSummary]):
+class DeleteBlobsAction(Action[BlobDeltaSummary]):
 	def __init__(self, *, ids: Collection[int] = (), hashes: Collection[str] = (), raise_if_not_found: bool = True):
 		super().__init__()
 		self.blob_ids = collection_utils.deduplicated_list(ids)
@@ -44,20 +45,22 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 		self.raise_if_not_found = raise_if_not_found
 
 	@override
-	def run(self, *, session: Optional[DbSession] = None) -> BlobListSummary:
+	def run(self, *, session: Optional[DbSession] = None) -> BlobDeltaSummary:
 		"""
 		:param session: If provided, use this session for DB operations.
 		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
 		"""
-		trash_bin = _BlobTrashBin(self.logger)
+		direct_blob_trash_bin = _DirectBlobTrashBin(self.logger)
 
+		chunk_summary = ChunkListSummary.zero()
 		with contextlib.ExitStack() as es:
 			if session is None:
 				session = es.enter_context(DbAccess.open_session())
 
 			all_to_delete_blobs = self.__collect_blobs_to_delete(session)
 			for blob in all_to_delete_blobs.values():
-				trash_bin.add(blob)
+				if blob.storage_method == BlobStorageMethod.direct:
+					direct_blob_trash_bin.add(blob)
 
 			if len(all_to_delete_blobs) > 0:
 				# 1. delete Blob-ChunkGroup bindings
@@ -76,21 +79,21 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 
 				session.delete_blobs_by_ids(list(all_to_delete_blobs.keys()))
 				if len(affected_chunk_group_ids) > 0:
-					DeleteOrphanChunkGroupsAction(ids=affected_chunk_group_ids.keys()).run(session=session)
+					chunk_group_summary = DeleteOrphanChunkGroupsAction(ids=affected_chunk_group_ids.keys()).run(session=session)
 				else:
 					session.commit()
 			else:
 				session.commit()
 
-		s = trash_bin.make_summary()
-		trash_bin.erase_all()
-		self.logger.debug('Deleted {} blobs: {}'.format(len(all_to_delete_blobs), s))
+		direct_blob_summary = direct_blob_trash_bin.make_summary()
+		direct_blob_trash_bin.erase_all()
+		self.logger.debug('Deleted {} direct blobs: {}'.format(direct_blob_summary.count, direct_blob_summary))
 
-		if len(errors := trash_bin.errors) > 0:
+		if len(errors := direct_blob_trash_bin.errors) > 0:
 			self.logger.error('Found {} blob erasing failures in total'.format(len(errors)))
 			raise errors[0]
 
-		return s
+		return BlobDeltaSummary.of(list(all_to_delete_blobs.values()), chunk_group_summary.chunk_summary)
 
 	def __collect_blobs_to_delete(self, session: DbSession) -> Dict[int, BlobInfo]:
 		self_blob_ids_set = set(self.blob_ids)
@@ -124,13 +127,13 @@ class DeleteBlobsAction(Action[BlobListSummary]):
 		return all_to_delete_blobs
 
 
-class DeleteOrphanBlobsAction(Action[BlobListSummary]):
+class DeleteOrphanBlobsAction(Action[BlobDeltaSummary]):
 	def __init__(self, blob_hashes_to_check: Collection[str]):
 		super().__init__()
 		self.blob_hashes_to_check = collection_utils.deduplicated_list(blob_hashes_to_check)
 
 	@override
-	def run(self, *, session: Optional[DbSession] = None) -> BlobListSummary:
+	def run(self, *, session: Optional[DbSession] = None) -> BlobDeltaSummary:
 		"""
 		:param session: If provided, use this session for DB operations.
 		NOTES: `session.commit()` will be called, so it's better to call this at the end of a `DbAccess.open_session()` block
@@ -144,9 +147,9 @@ class DeleteOrphanBlobsAction(Action[BlobListSummary]):
 
 			if len(orphan_blob_hashes) > 0:
 				action = DeleteBlobsAction(hashes=orphan_blob_hashes, raise_if_not_found=False)
-				bls = action.run(session=session)
+				bld = action.run(session=session)
 			else:
-				bls = BlobListSummary.zero()
+				bld = BlobDeltaSummary.zero()
 				session.commit()
 
-		return bls
+		return bld

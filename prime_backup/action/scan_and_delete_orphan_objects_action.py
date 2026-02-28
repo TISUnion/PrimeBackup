@@ -122,8 +122,8 @@ class ScanAndDeleteOrphanBlobsAction(_ScanAndDeleteObjectsActionBase[schema.Blob
 	@override
 	def _delete_orphans(self, session: DbSession, result: BlobListSummary, orphan_obj_keys: List[str]) -> None:
 		action = DeleteBlobsAction(hashes=orphan_obj_keys, raise_if_not_found=True)
-		bls = action.run(session=session)
-		result += bls
+		delta = action.run(session=session)
+		result += delta.blobs  # FIXME: what about chunks
 
 
 class ScanAndDeleteOrphanChunkGroupsAction(_ScanAndDeleteObjectsActionBase[schema.ChunkGroup, int, _SimpleSummary]):
@@ -276,8 +276,8 @@ class ScanAndDeleteOrphanFilesAction(Action[FileListSummary]):
 					fls.count += len(orphan_files)
 
 					if len(possible_orphan_blob_hashes) > 0:
-						bls = DeleteOrphanBlobsAction(possible_orphan_blob_hashes).run(session=session)
-						fls.blob_summary += bls
+						bds = DeleteOrphanBlobsAction(possible_orphan_blob_hashes).run(session=session)
+						fls.blob_summary += bds
 
 			if not limit_reached:
 				break
@@ -385,12 +385,13 @@ class ScanAndDeleteOrphanObjectsAction(Action[ScanAndDeleteOrphanObjectsResult])
 				'Found and deleted {} orphan objects in total: {} orphan blobs, '
 				'{} orphan chunks, {} orphan chunk groups, '
 				'{} orphan chunk group chunk bindings, {} orphan blob chunk group bindings, '
-				'{} orphan file objects (with {} blobs), {} orphan fileset objects (with {} files and {} blobs)'.format(
+				'{} orphan file objects (with {} blobs {} chunks), '
+				'{} orphan fileset objects (with {} files, {} blobs and {} chunks)'.format(
 					result.total_orphan_count, orphan_blob_summary.count,
 					orphan_chunk_summary.count, orphan_chunk_group_summary.count,
 					orphan_chunk_group_chunk_binding_summary.count, orphan_blob_chunk_group_binding_summary.count,
-					orphan_file_summary.count, orphan_file_summary.blob_summary.count,
-					orphan_fileset_summary.count, orphan_fileset_summary.file_summary.count, orphan_fileset_summary.file_summary.blob_summary.count,
+					orphan_file_summary.count, orphan_file_summary.blob_summary.blob_count, orphan_file_summary.blob_summary.chunk_count,
+					orphan_fileset_summary.count, orphan_fileset_summary.file_summary.count, orphan_fileset_summary.file_summary.blob_summary.blob_count, orphan_fileset_summary.file_summary.blob_summary.chunk_count,
 				)
 			)
 		else:

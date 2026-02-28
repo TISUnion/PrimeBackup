@@ -13,7 +13,7 @@ CDC chunking
 - [x] Backup create
 - [x] Backup export
 - [x] DB migration
-- [ ] Blob size display texts updates
+- [x] Blob size display texts updates
 - [x] DB Validation tasks
 - [x] DB Prune tasks
 - [ ] Performance optimization

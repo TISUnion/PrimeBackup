@@ -78,7 +78,7 @@ class CreateBackupTask(HeavyTask[Optional[int]]):
 
 			action = CreateBackupAction(self.operator, self.comment, tags=self.backup_tags)
 			backup = action.run()
-			bls = action.get_new_blobs_summary()
+			bds = action.get_new_blob_storage_delta()
 			cost_create = timer.get_elapsed()
 			cost_total = cost_save_wait + cost_create
 
@@ -93,7 +93,7 @@ class CreateBackupTask(HeavyTask[Optional[int]]):
 					TextComponents.number(f'{round(cost_create, 2)}s')
 				)),
 				TextComponents.backup_size(backup),
-				TextComponents.blob_list_summary_store_size(bls),
+				TextComponents.blob_delta_summary(bds),
 			))
 			return backup.id
 

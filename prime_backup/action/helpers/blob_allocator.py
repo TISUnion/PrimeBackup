@@ -556,6 +556,7 @@ class BlobAllocator:
 
 		for new_db_chunk in new_db_chunks:
 			misc_utils.assert_true(new_db_chunk.stored_size >= 0, lambda: f'bad stored_size {new_db_chunk}')
+			self.__blob_recorder.record_chunk(new_db_chunk)
 			self.session.add(new_db_chunk)
 		blob = self.__blob_recorder.create_blob(
 			self.session,

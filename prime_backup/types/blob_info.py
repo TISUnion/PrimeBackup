@@ -1,6 +1,6 @@
 import dataclasses
 from pathlib import Path
-from typing import Iterable, List, TYPE_CHECKING, Optional
+from typing import Iterable, List, TYPE_CHECKING, Optional, Sequence, Union
 
 from typing_extensions import Self
 
@@ -10,6 +10,7 @@ from prime_backup.db.values import BlobStorageMethod
 from prime_backup.utils import misc_utils
 
 if TYPE_CHECKING:
+	from prime_backup.types.chunk_info import ChunkListSummary, ChunkInfo
 	from prime_backup.types.file_info import FileInfo
 
 
@@ -89,4 +90,57 @@ class BlobListSummary:
 			count=self.count + other.count,
 			raw_size=self.raw_size + other.raw_size,
 			stored_size=self.stored_size + other.stored_size,
+		)
+
+
+@dataclasses.dataclass
+class BlobDeltaSummary:
+	direct_blobs: BlobListSummary
+	chunked_blobs: BlobListSummary
+	chunks: 'ChunkListSummary'
+
+	@classmethod
+	def zero(cls) -> 'BlobDeltaSummary':
+		from prime_backup.types.chunk_info import ChunkListSummary
+		return BlobDeltaSummary(
+			chunked_blobs=BlobListSummary.zero(),
+			direct_blobs=BlobListSummary.zero(),
+			chunks=ChunkListSummary.zero(),
+		)
+
+	@classmethod
+	def of(cls, new_blobs: Sequence[BlobInfo], new_chunks: Union[Sequence['ChunkInfo'], 'ChunkListSummary']) -> 'BlobDeltaSummary':
+		from prime_backup.types.chunk_info import ChunkListSummary
+		return BlobDeltaSummary(
+			direct_blobs=BlobListSummary.of(blob for blob in new_blobs if blob.storage_method == BlobStorageMethod.direct),
+			chunked_blobs=BlobListSummary.of(blob for blob in new_blobs if blob.storage_method == BlobStorageMethod.chunked),
+			chunks=new_chunks if isinstance(new_chunks, ChunkListSummary) else ChunkListSummary.of(new_chunks),
+		)
+
+	@property
+	def blobs(self) -> BlobListSummary:
+		return self.direct_blobs + self.chunked_blobs
+
+	@property
+	def blob_count(self) -> int:
+		return self.direct_blobs.count + self.chunked_blobs.count
+
+	@property
+	def chunk_count(self) -> int:
+		return self.chunks.count
+
+	@property
+	def raw_size(self) -> int:
+		return self.direct_blobs.raw_size + self.chunks.raw_size
+
+	@property
+	def stored_size(self) -> int:
+		return self.direct_blobs.stored_size + self.chunks.stored_size
+
+	def __add__(self, other: 'BlobDeltaSummary') -> 'BlobDeltaSummary':
+		misc_utils.ensure_type(other, type(self))
+		return BlobDeltaSummary(
+			direct_blobs=self.direct_blobs + other.direct_blobs,
+			chunked_blobs=self.chunked_blobs + other.chunked_blobs,
+			chunks=self.chunks + other.chunks,
 		)

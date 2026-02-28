@@ -12,7 +12,7 @@ from prime_backup.db.access import DbAccess
 from prime_backup.db.values import FileRole
 from prime_backup.exceptions import BackupFileNotFound, PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
-from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.blob_info import BlobDeltaSummary
 from prime_backup.types.units import ByteCount
 from prime_backup.utils.path_like import PathLike
 
@@ -21,7 +21,7 @@ class DeleteDirectoryNotAllowed(PrimeBackupError):
 	pass
 
 
-class DeleteBackupFileAction(Action[BlobListSummary]):
+class DeleteBackupFileAction(Action[BlobDeltaSummary]):
 	def __init__(self, backup_id: int, file_path: PathLike, allow_directory: bool):
 		super().__init__()
 		self.backup_id = backup_id
@@ -29,7 +29,7 @@ class DeleteBackupFileAction(Action[BlobListSummary]):
 		self.allow_directory = allow_directory
 
 	@override
-	def run(self) -> BlobListSummary:
+	def run(self) -> BlobDeltaSummary:
 		self.logger.info('Deleting file {!r} in backup #{}'.format(self.file_path, self.backup_id))
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
@@ -107,16 +107,16 @@ class DeleteBackupFileAction(Action[BlobListSummary]):
 			self.logger.debug('New db data: fileset_delta={!r}, backup={!r}'.format(fileset_delta, backup))
 			if len(deleted_blob_hashes) > 0:
 				self.logger.info('Running DeleteOrphanBlobsAction for hashes[:10](size={}) {}'.format(len(deleted_blob_hashes), list(deleted_blob_hashes)[:10]))
-				bls = DeleteOrphanBlobsAction(deleted_blob_hashes).run(session=session)
+				bds = DeleteOrphanBlobsAction(deleted_blob_hashes).run(session=session)
 			else:
-				bls = BlobListSummary.zero()
+				bds = BlobDeltaSummary.zero()
 
 		self.logger.info('Running ShrinkBaseFilesetAction for the base fileset {}'.format(fileset_id_base))
 		fls = ShrinkBaseFilesetAction(fileset_id_base).run()
-		bls += fls.blob_summary
+		bds += fls.blob_summary
 
-		self.logger.info('Deleting file {!r} in backup #{}, -{} blobs (size {} / {})'.format(
+		self.logger.info('Deleting file {!r} in backup #{}, removed {} blobs and {} chunks (size {} / {})'.format(
 			self.file_path, self.backup_id,
-			bls.count, ByteCount(bls.stored_size).auto_str(), ByteCount(bls.raw_size).auto_str(),
+			bds.blob_count, bds.chunk_count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
 		))
-		return bls
+		return bds

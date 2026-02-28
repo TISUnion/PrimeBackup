@@ -608,6 +608,10 @@ prime_backup:
       hover_comment: '注释: {}'
       hover_creator: '创建者: {}'
       hover_click_hint: 点击以展示详情
+    blob_delta_summary:
+      total_blobs: '数据对象: {} ({} / {})'
+      direct_blobs: '直接数据对象: {} ({} / {})'
+      chunks: '数据块: {} ({} / {})'
     command:
       run: '点击以执行{}'
       suggest: '点击以补全{}'

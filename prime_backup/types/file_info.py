@@ -2,14 +2,14 @@ import dataclasses
 import enum
 import functools
 import stat
-from typing import Optional, Tuple, List, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING
 
 from typing_extensions import Self
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.values import FileRole, BlobStorageMethod, FileIdentifier
-from prime_backup.types.blob_info import BlobInfo, BlobListSummary
+from prime_backup.types.blob_info import BlobInfo, BlobDeltaSummary
 from prime_backup.utils import misc_utils
 
 if TYPE_CHECKING:
@@ -144,11 +144,11 @@ class FileInfo:
 @dataclasses.dataclass
 class FileListSummary:
 	count: int
-	blob_summary: BlobListSummary
+	blob_summary: BlobDeltaSummary
 
 	@classmethod
 	def zero(cls) -> Self:
-		return cls(0, BlobListSummary.zero())
+		return cls(0, BlobDeltaSummary.zero())
 
 	def __add__(self, other: Self) -> 'FileListSummary':
 		misc_utils.ensure_type(other, type(self))

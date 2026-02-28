@@ -119,6 +119,7 @@ class ImportBackupAction(Action[BackupInfo]):
 			offset += chunk.length
 
 		for new_db_chunk in new_db_chunks:
+			self.__blob_recorder.record_chunk(new_db_chunk)
 			session.add(new_db_chunk)
 		blob = self.__blob_recorder.create_blob(
 			session,
@@ -284,9 +285,9 @@ class ImportBackupAction(Action[BackupInfo]):
 					backup = self.__import_packed_backup_file(session, file_holder)
 				info = BackupInfo.of(backup)
 
-			s = self.__blob_recorder.get_new_blobs_summary()
-			self.logger.info('Import backup #{} done, +{} blobs (size {} / {})'.format(
-				info.id, s.count, ByteCount(s.stored_size).auto_str(), ByteCount(s.raw_size).auto_str(),
+			bds = self.__blob_recorder.get_blob_storage_delta()
+			self.logger.info('Import backup #{} done, added {} blobs and {} chunks (size {} / {})'.format(
+				info.id, bds.blob_count, bds.chunk_count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
 			))
 			return info
 

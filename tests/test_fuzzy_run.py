@@ -15,7 +15,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, ContextManager, Union, Generator, Tuple, BinaryIO, Deque
 
-from typing_extensions import Self, override
+from typing_extensions import Self, override, Protocol
 
 from prime_backup import logger
 from prime_backup.action.create_backup_action import CreateBackupAction
@@ -42,6 +42,12 @@ from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils import path_utils
+
+
+class _WithBadField(Protocol):
+	@property
+	def bad(self) -> int:
+		...
 
 
 @dataclasses.dataclass(frozen=True)
@@ -129,14 +135,14 @@ class Snapshot:
 							size=member.size,
 							sha256=sha256,
 							mode=mode,
-							mtime=member.mtime
+							mtime=int(member.mtime)
 						)
 				elif member.isdir():
 					files_info[file_path] = _FileInfo(
 						size=0,
 						sha256='',
 						mode=mode,
-						mtime=member.mtime
+						mtime=int(member.mtime)
 					)
 		return cls(files_info)
 
@@ -374,13 +380,13 @@ class BackupFuzzyEnvironment(ContextManager['BackupFuzzyEnvironment']):
 		def get_random_len_for_data():
 			return self.rnd.randint(512, self.rnd.randint(512, self.rnd.randint(512, 1048576)))
 		if mod_type == 'append':
-			current_size: int = file_path.stat().st_size
+			current_size = file_path.stat().st_size
 			if current_size < 10 * 1048576:
 				with open(file_path, 'ab') as f:
 					f.write(_randbytes(self.rnd, get_random_len_for_data()))
 			_TestStats.get().file_append += 1
 		elif mod_type == 'truncate':
-			current_size: int = file_path.stat().st_size
+			current_size = file_path.stat().st_size
 			if current_size > 1024:
 				mn = max(512, current_size // 2)
 				mx = max(mn, current_size - 512)
@@ -530,7 +536,7 @@ class FuzzyRunTestCase(unittest.TestCase):
 					self.assertEqual(initial_snapshot, current_snapshot, f'Backup {bid} data changed at iteration {i}')
 
 				# Validate database
-				validate_results = {
+				validate_results: Dict[str, _WithBadField] = {
 					'ValidateBlobsAction': ValidateBlobsAction().run(),
 					'ValidateChunkGroupsAction': ValidateChunkGroupsAction().run(),
 					'ValidateChunksAction': ValidateChunksAction().run(),

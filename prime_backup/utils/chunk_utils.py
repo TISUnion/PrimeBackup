@@ -8,7 +8,7 @@ from typing_extensions import override
 
 from prime_backup.constants import chunk_constants
 from prime_backup.types.hash_method import HashMethod, Hasher
-from prime_backup.utils import blob_utils, misc_utils
+from prime_backup.utils import blob_utils, misc_utils, hash_utils
 
 if TYPE_CHECKING:
 	import pyfastcdc
@@ -84,7 +84,7 @@ class PrettyChunkWithData(PrettyChunk):
 class _CDCChunker(ABC):
 	def __init__(self, need_entire_file_hash: bool):
 		self.need_entire_file_hash = need_entire_file_hash
-		self.__entire_file_hasher = create_hasher()
+		self.__entire_file_hasher = hash_utils.create_hasher()  # for the entire file hash, use config's hash method
 		self.__file_size_sum = 0
 
 	@abstractmethod

@@ -184,7 +184,7 @@ class ValidateDbTask(HeavyTask[None]):
 		chunk_group_ok, chunk_group_cnt = self.__validate_chunk_groups(all_result.chunk_group_result, vlogger)
 		binding_ok, chunk_group_chunk_binding_cnt, blob_chunk_group_binding_cnt = self.__validate_chunk_relation_bindings(all_result.chunk_group_chunk_bindings_result, all_result.blob_chunk_group_bindings_result,  vlogger)
 		if chunk_ok and chunk_group_ok and binding_ok:
-			self.reply(self.tr('validate_chunks.all_ok', chunk_cnt, chunk_group_cnt, chunk_group_chunk_binding_cnt, blob_chunk_group_binding_cnt).set_color(RColor.green))
+			self.reply(self.tr('validate_chunks.all_ok', *[TextComponents.number(num) for num in [chunk_cnt, chunk_group_cnt, chunk_group_chunk_binding_cnt, blob_chunk_group_binding_cnt]]).set_color(RColor.green))
 			return True
 		else:
 			counts = GetObjectCountsAction().run()

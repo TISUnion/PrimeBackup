@@ -747,6 +747,13 @@ class DbSession:
 			yield bindings
 			offset += limit
 
+	def get_blob_chunk_group_count(self, blob_id: int) -> int:
+		return _int_or_0(self.session.execute(
+			select(func.count()).
+			select_from(schema.BlobChunkGroupBinding).
+			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
+		).scalar_one())
+
 	def get_blob_chunk_groups(self, blob_id: int) -> List[OffsetChunkGroup]:
 		"""
 		result is sorted
@@ -759,13 +766,25 @@ class DbSession:
 		result: Sequence[Row[Tuple[int, schema.ChunkGroup]]] = self.session.execute(stmt).all()
 		return sorted(OffsetChunkGroup(offset, chunk_group) for offset, chunk_group in result)
 
-	def get_blob_chunks(self, blob_id: int) -> List[OffsetChunk]:
+	def get_blob_chunk_count(self, blob_id: int) -> int:
+		return _int_or_0(self.session.execute(
+			select(func.count()).
+			select_from(schema.BlobChunkGroupBinding).
+			join(
+				schema.ChunkGroupChunkBinding,
+				schema.BlobChunkGroupBinding.chunk_group_id == schema.ChunkGroupChunkBinding.chunk_group_id
+			).
+			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
+		).scalar_one())
+
+	def get_blob_chunks(self, blob_id: int, *, limit: Optional[int] = None) -> List[OffsetChunk]:
 		"""
 		result is sorted
 		"""
+		absolute_offset = (schema.BlobChunkGroupBinding.chunk_group_offset + schema.ChunkGroupChunkBinding.chunk_offset).label('absolute_offset')
 		stmt = (
 			select(
-				(schema.BlobChunkGroupBinding.chunk_group_offset + schema.ChunkGroupChunkBinding.chunk_offset).label("absolute_offset"),
+				absolute_offset,
 				schema.Chunk
 			).
 			select_from(schema.BlobChunkGroupBinding).
@@ -777,11 +796,15 @@ class DbSession:
 				schema.Chunk,
 				schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id
 			).
-			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
+			where(schema.BlobChunkGroupBinding.blob_id == blob_id).
+			order_by(absolute_offset)
 		)
 
+		if limit is not None:
+			stmt = stmt.limit(limit)
+
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
-		return sorted(OffsetChunk(offset, chunk) for offset, chunk in result)
+		return [OffsetChunk(offset, chunk) for offset, chunk in result]
 
 	@dataclasses.dataclass(frozen=True)
 	class ListBlobChunkGroupBindingsItem:

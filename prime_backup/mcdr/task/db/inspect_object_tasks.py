@@ -1,17 +1,22 @@
+import contextlib
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 from mcdreforged.api.all import CommandSource, RTextBase, RText, RTextList, RColor, RAction, RTextMCDRTranslation
 from typing_extensions import override
 
 from prime_backup.action.get_backup_action import GetBackupAction
-from prime_backup.action.get_blob_action import GetBlobByHashPrefixAction
+from prime_backup.action.get_blob_action import GetBlobByHashPrefixAction, GetBlobByIdAction
+from prime_backup.action.get_chunk_action import GetBlobChunksAction, GetBlobChunkAndChunkGroupCountAction
 from prime_backup.action.get_file_action import GetBackupFileAction, GetFilesetFileAction
 from prime_backup.action.get_fileset_action import GetFilesetAction
+from prime_backup.db.values import BlobStorageMethod
+from prime_backup.exceptions import BlobNotFound
 from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
+from prime_backup.types.blob_info import BlobInfo
 from prime_backup.types.file_info import FileInfo
 from prime_backup.utils import platform_utils
 from prime_backup.utils.mcdr_utils import TranslationContext, mkcmd
@@ -48,6 +53,14 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 			RText(blob_hash[:16] if shorten_hash else blob_hash, RColor.light_purple)
 			.h(cls.__base_tr.tr('hover.blob_hash', RText(blob_hash, RColor.light_purple)))
 			.c(RAction.run_command, mkcmd(f'database inspect blob {blob_hash}'))
+		)
+
+	@classmethod
+	def _gt_chunk_hash(cls, chunk_hash: str, shorten_hash: bool = False) -> RTextBase:
+		return (
+			RText(chunk_hash[:16] if shorten_hash else chunk_hash, RColor.light_purple)
+			.h(cls.__base_tr.tr('hover.chunk_hash', RText(chunk_hash, RColor.light_purple)))
+			.c(RAction.run_command, mkcmd(f'database inspect chunk {chunk_hash}'))
 		)
 
 	@classmethod
@@ -194,9 +207,9 @@ class InspectFilesetTask(_InspectObjectTaskBase):
 
 
 class InspectBlobTask(_InspectObjectTaskBase):
-	def __init__(self, source: CommandSource, blob_hash: str):
+	def __init__(self, source: CommandSource, blob_id_or_hash: str):
 		super().__init__(source)
-		self.blob_hash = blob_hash
+		self.blob_id_or_hash = blob_id_or_hash
 
 	@property
 	@override
@@ -205,13 +218,35 @@ class InspectBlobTask(_InspectObjectTaskBase):
 
 	@override
 	def run(self) -> None:
-		blob = GetBlobByHashPrefixAction(self.blob_hash, count_files=True, sample_file_num=5).run()
+		blob: Optional[BlobInfo] = None
+		try:
+			blob_id = int(self.blob_id_or_hash)
+		except ValueError:
+			pass
+		else:
+			with contextlib.suppress(BlobNotFound):
+				blob = GetBlobByIdAction(blob_id, count_files=True, sample_file_num=5).run()
+		if blob is None:
+			blob = GetBlobByHashPrefixAction(self.blob_id_or_hash, count_files=True, sample_file_num=5).run()
+
 		self.reply(TextComponents.title(self.tr('title', self._gt_blob_hash(blob.hash, shorten_hash=True))))
 
+		self.reply_tr('id', TextComponents.blob_id(blob.id))
+		self.reply_tr('storage_method', TextComponents.blob_storage_method(blob.storage_method))
 		self.reply_tr('hash', self._gt_blob_hash(blob.hash))
 		self.reply_tr('compress', blob.compress.name)
 		self.reply_tr('raw_size', RText(blob.raw_size, TextColors.byte_count), TextComponents.file_size(blob.raw_size))
 		self.reply_tr('stored_size', RText(blob.stored_size, TextColors.byte_count), TextComponents.file_size(blob.stored_size))
+
+		if blob.storage_method == BlobStorageMethod.chunked:
+			counts = GetBlobChunkAndChunkGroupCountAction(blob.id).run()
+			blob_chunks = GetBlobChunksAction(blob.id, limit=5).run()
+			self.reply_tr('chunk_count', TextComponents.number(counts.chunk_count), TextComponents.number(counts.chunk_group_count))
+			for i, offset_chunk in enumerate(blob_chunks, start=1):
+				self.reply(RTextList(
+					f'{i}. ',
+					self.tr('chunk_sample', TextComponents.number(offset_chunk.offset), TextComponents.number(offset_chunk.chunk.raw_size), self._gt_chunk_hash(offset_chunk.chunk.hash)),
+				))
 
 		self.reply_tr('used_by', TextComponents.number(blob.file_count))
 		for i, file in enumerate(blob.file_samples, start=1):

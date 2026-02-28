@@ -211,10 +211,14 @@ prime_backup:
     db_inspect_blob:
       name: inspect blob
       title: 'Blob {}'
+      id: 'ID: {}'
+      storage_method: 'Storage method: {}'
       hash: 'Hash: {}'
       compress: 'Compress: {}'
       raw_size: 'Raw size: {} ({})'
       stored_size: 'Stored size: {} ({})'
+      chunk_count: 'Chunk group count: {}; Chunk count: {}, samples:'
+      chunk_sample: 'offset={}, len={}, hash={}'
       used_by: 'Associated file count: {}. Samples:'
       file_sample: 'fileset {}, path: {}'
     db_inspect_file:
@@ -253,6 +257,7 @@ prime_backup:
         backup_id: Click to inspect backup {}
         fileset_id: Click to inspect fileset {}
         blob_hash: Click to inspect blob {}
+        chunk_hash: Click to inspect chunk {}
     db_migrate_compress_method:
       name: migrate compress method
       missing_library:
@@ -622,6 +627,10 @@ prime_backup:
       total_blobs: 'Total blobs: {} ({} / {})'
       direct_blobs: 'Direct blobs: {} ({} / {})'
       chunks: 'Chunks: {} ({} / {})'
+    blob_storage_method:
+      unknown: unknown
+      direct: direct
+      chunked: chunked
     command:
       run: 'Click to run {}'
       suggest: 'Click to complete {}'

@@ -1,4 +1,5 @@
-from typing import List
+import dataclasses
+from typing import List, Optional
 
 from typing_extensions import override
 
@@ -38,12 +39,33 @@ class GetChunkByHashAction(Action[ChunkInfo]):
 
 
 class GetBlobChunksAction(Action[List[OffsetChunkInfo]]):
+	def __init__(self, blob_id: int, *, limit: Optional[int] = None):
+		super().__init__()
+		self.blob_id = blob_id
+		self.limit = limit
+
+	@override
+	def run(self) -> List[OffsetChunkInfo]:
+		with DbAccess.open_session() as session:
+			oc_list = session.get_blob_chunks(self.blob_id, limit=self.limit)
+			return [OffsetChunkInfo.of(oc) for oc in oc_list]
+
+
+@dataclasses.dataclass(frozen=True)
+class GetBlobChunkAndChunkGroupCountResult:
+	chunk_count: int
+	chunk_group_count: int
+
+
+class GetBlobChunkAndChunkGroupCountAction(Action[GetBlobChunkAndChunkGroupCountResult]):
 	def __init__(self, blob_id: int):
 		super().__init__()
 		self.blob_id = blob_id
 
 	@override
-	def run(self) -> List[OffsetChunkInfo]:
+	def run(self) -> GetBlobChunkAndChunkGroupCountResult:
 		with DbAccess.open_session() as session:
-			oc_list = session.get_blob_chunks(self.blob_id)
-			return [OffsetChunkInfo.of(oc) for oc in oc_list]
+			return GetBlobChunkAndChunkGroupCountResult(
+				chunk_count=session.get_blob_chunk_count(self.blob_id),
+				chunk_group_count=session.get_blob_chunk_group_count(self.blob_id),
+			)

@@ -211,10 +211,14 @@ prime_backup:
     db_inspect_blob:
       name: 审查数据对象
       title: '数据对象{}'
+      id: 'ID: {}'
+      storage_method: '存储方法: {}'
       hash: '哈希: {}'
       compress: '压缩方法: {}'
       raw_size: '原始大小: {} ({})'
       stored_size: '储存大小: {} ({})'
+      chunk_count: '数据块组数: {}; 数据块数: {}, 样本：'
+      chunk_sample: '偏移={}, 长度={}, 哈希={}'
       used_by: '关联文件数: {}。样本：'
       file_sample: '文件集{}, 路径: {}'
     db_inspect_file:
@@ -253,6 +257,7 @@ prime_backup:
         backup_id: 点击以审查备份{}
         fileset_id: 点击以审查文件集{}
         blob_hash: 点击以审查数据对象{}
+        chunk_hash: 点击以审查数据块对象{}
     db_migrate_compress_method:
       name: 压缩方法迁移
       missing_library:
@@ -622,6 +627,10 @@ prime_backup:
       total_blobs: '数据对象: {} ({} / {})'
       direct_blobs: '直接数据对象: {} ({} / {})'
       chunks: '数据块: {} ({} / {})'
+    blob_storage_method:
+      unknown: 未知
+      direct: 直接
+      chunked: 分块
     command:
       run: '点击以执行{}'
       suggest: '点击以补全{}'

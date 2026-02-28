@@ -108,8 +108,8 @@ class CommandManager:
 		self.task_manager.add_task(InspectFilesetTask(source, fileset_id))
 
 	def cmd_db_inspect_blob(self, source: CommandSource, context: CommandContext):
-		blob_hash = context['blob_hash']
-		self.task_manager.add_task(InspectBlobTask(source, blob_hash))
+		blob_id_or_hash = context['blob_id_or_hash']
+		self.task_manager.add_task(InspectBlobTask(source, blob_id_or_hash))
 
 	def cmd_db_delete_file(self, source: CommandSource, context: CommandContext):
 		def backup_id_consumer(backup_id: int):
@@ -415,7 +415,7 @@ class CommandManager:
 		builder.command('database inspect file <backup_id> <backup_file_path>', self.cmd_db_inspect_backup_file)
 		builder.command('database inspect file2 <fileset_id> <fileset_file_path>', self.cmd_db_inspect_fileset_file)
 		builder.command('database inspect fileset <fileset_id>', self.cmd_db_inspect_fileset)
-		builder.command('database inspect blob <blob_hash>', self.cmd_db_inspect_blob)
+		builder.command('database inspect blob <blob_id_or_hash>', self.cmd_db_inspect_blob)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidatePart.blobs))
 		builder.command('database validate chunks', functools.partial(self.cmd_db_validate, parts=ValidatePart.chunks))
@@ -431,7 +431,7 @@ class CommandManager:
 		builder.arg('fileset_id', create_fileset_id)  # not that necessary to provide suggestion here
 		builder.arg('backup_file_path', create_backup_file_path)  # not that necessary to provide suggestion here
 		builder.arg('fileset_file_path', create_fileset_file_path)  # not that necessary to provide suggestion here
-		builder.arg('blob_hash', HexStringNode)
+		builder.arg('blob_id_or_hash', HexStringNode)  # a numeric blob.id is also a hex string
 		builder.arg('compress_method', lambda n: Enumeration(n, CompressMethod))
 		builder.arg('hash_method', lambda n: Enumeration(n, HashMethod))
 

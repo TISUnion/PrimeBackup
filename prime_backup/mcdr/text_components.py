@@ -8,7 +8,7 @@ from typing_extensions import Protocol
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.constants import constants
-from prime_backup.db.values import FileRole
+from prime_backup.db.values import FileRole, BlobStorageMethod
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTagName
 from prime_backup.types.blob_info import BlobDeltaSummary
@@ -35,6 +35,7 @@ class _RawSizeStoredSize(Protocol):
 class TextColors:
 	backup_id = RColor.gold
 	backup_tag = RColor.aqua
+	blob = RColor.light_purple
 	byte_count = RColor.green
 	date = RColor.aqua
 	file = RColor.dark_aqua
@@ -163,6 +164,14 @@ class TextComponents:
 			cls.tr('blob_delta_summary.direct_blobs', cls.number(bds.direct_blobs.count), cls.file_size(bds.direct_blobs.raw_size), cls.file_size(bds.direct_blobs.stored_size)),
 			cls.tr('blob_delta_summary.chunks', cls.number(bds.chunks.count), cls.file_size(bds.chunks.raw_size), cls.file_size(bds.chunks.stored_size)),
 		]))
+
+	@classmethod
+	def blob_id(cls, blob_id: int) -> RTextBase:
+		return RText(blob_id, TextColors.blob)
+
+	@classmethod
+	def blob_storage_method(cls, storage_method: BlobStorageMethod) -> RTextBase:
+		return cls.tr(f'blob_storage_method.{storage_method.name}')
 
 	@classmethod
 	def boolean(cls, value: bool) -> RTextBase:

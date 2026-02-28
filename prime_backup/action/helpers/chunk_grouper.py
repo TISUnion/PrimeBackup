@@ -74,7 +74,7 @@ class ChunkGrouper:
 					hash=cg_hash,
 					chunk_count=len(cg_chunks),
 					chunk_raw_size_sum=sum(chunk.raw_size for chunk in cg_chunks),
-					chunk_stored_size_sum=sum(chunk.stored_size for chunk in cg_chunks),
+					chunk_stored_size_sum=sum({chunk.hash: chunk.stored_size for chunk in cg_chunks}.values()),
 				)
 				known_chunk_groups[cg_hash] = new_chunk_group
 				new_chunk_group_hashes.append(new_chunk_group.hash)

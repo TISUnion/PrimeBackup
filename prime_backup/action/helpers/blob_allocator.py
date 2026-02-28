@@ -530,10 +530,9 @@ class BlobAllocator:
 					pool.wait_and_ensure_no_error()
 
 				blob_raw_size_sum = 0
-				blob_stored_size_sum = 0
+				blob_stored_size_sum = sum({db_chunk.hash: db_chunk.stored_size for db_chunk in offset_to_db_chunk.values()}.values())
 				for db_chunk in offset_to_db_chunk.values():
 					blob_raw_size_sum += db_chunk.raw_size
-					blob_stored_size_sum += db_chunk.stored_size
 				misc_utils.assert_true(blob_raw_size_sum == offset, lambda: f'blob_raw_size_sum {blob_raw_size_sum} should be equal to offset {offset}')
 				misc_utils.assert_true(blob_raw_size_sum == blob_size, lambda: f'blob_raw_size_sum {blob_raw_size_sum} should be equal to blob_size {blob_size}')
 

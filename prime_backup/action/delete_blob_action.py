@@ -12,7 +12,7 @@ from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import BlobHashNotFound, BlobIdNotFound
 from prime_backup.types.blob_info import BlobInfo, BlobListSummary, BlobDeltaSummary
-from prime_backup.types.chunk_info import ChunkListSummary
+from prime_backup.types.chunk_group_info import ChunkGroupListSummary
 from prime_backup.utils import collection_utils
 
 
@@ -52,7 +52,7 @@ class DeleteBlobsAction(Action[BlobDeltaSummary]):
 		"""
 		direct_blob_trash_bin = _DirectBlobTrashBin(self.logger)
 
-		chunk_summary = ChunkListSummary.zero()
+		chunk_group_summary = ChunkGroupListSummary.zero()
 		with contextlib.ExitStack() as es:
 			if session is None:
 				session = es.enter_context(DbAccess.open_session())

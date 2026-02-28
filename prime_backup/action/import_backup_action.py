@@ -126,7 +126,7 @@ class ImportBackupAction(Action[BackupInfo]):
 			hash=pre_cal_result.hash,
 			compress=CompressMethod.plain.name,
 			raw_size=pre_cal_result.size,
-			stored_size=sum(db_chunk.stored_size for db_chunk in offset_to_db_chunk.values()),
+			stored_size=sum({db_chunk.hash: db_chunk.stored_size for db_chunk in offset_to_db_chunk.values()}.values()),
 			storage_method=BlobStorageMethod.chunked.value,
 		)
 		session.flush()  # creates blob.id, chunk.id

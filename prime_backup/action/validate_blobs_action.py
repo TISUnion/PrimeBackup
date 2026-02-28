@@ -142,6 +142,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 
 			bd_lst.sort(key=blob_binding_key_getter)
 		all_chunk_groups_by_id = session.get_chunk_groups_by_ids([bd.chunk_group_id for bd in all_bindings])
+		all_chunks_by_chunk_group_id = session.get_chunk_group_chunks_batch([bd.chunk_group_id for bd in all_bindings])
 
 		def validate_one_blob(blob: BlobInfo):
 			if blob.storage_method != BlobStorageMethod.chunked:
@@ -150,7 +151,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 				result.add_bad(blob, BadBlobItemType.corrupted, f'the compress field of chunked blob should always be plain, found {blob.compress}')
 				return
 
-			# NOTES: validations for the chunks are done in ValidateChunksAction
+			# NOTES: complete validations for the chunks are done in ValidateChunksAction
 
 			group_bindings = all_bindings_by_blob_id.get(blob.id, [])
 			if len(group_bindings) == 0:
@@ -160,6 +161,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 			raw_size_sum = 0
 			stored_size_sum = 0
 			offset = 0
+			stored_size_known_hashes: Set[str] = set()
 			for binding in group_bindings:
 				if offset != binding.chunk_group_offset:
 					result.add_bad(blob, BadBlobItemType.bad_layout, f'chunk group binding offset mismatch, expect {offset}, actual {binding.chunk_group_offset}')
@@ -169,8 +171,16 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 					result.add_bad(blob, BadBlobItemType.bad_layout, f'chunk group binding at offset {offset} refer to a not-exists chunk {binding.chunk_group_id}')
 					return
 
+				chunk_group_chunks = all_chunks_by_chunk_group_id[chunk_group.id]
+				if len(chunk_group_chunks) != chunk_group.chunk_count:
+					result.add_bad(blob, BadBlobItemType.bad_layout, f'chunk count mismatch for chunk group {chunk_group.id}, expect {chunk_group.chunk_count}, found {len(chunk_group_chunks)} chunks')
+					return
+				for ofc in chunk_group_chunks:
+					if ofc.chunk.hash not in stored_size_known_hashes:
+						stored_size_sum += ofc.chunk.stored_size
+					stored_size_known_hashes.add(ofc.chunk.hash)
+
 				raw_size_sum += chunk_group.chunk_raw_size_sum
-				stored_size_sum += chunk_group.chunk_stored_size_sum
 				offset += chunk_group.chunk_raw_size_sum
 
 			if raw_size_sum != blob.raw_size:
@@ -203,7 +213,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 		sub_results = _SubResultStore()
 		good_blob_hashes = set()
 		good_blob_hashes |= self.__validate_direct_blobs(sub_results.acquire(), blobs_by_storage_method[BlobStorageMethod.direct])
-		for chunked_blob_part in collection_utils.slicing_iterate(blobs_by_storage_method[BlobStorageMethod.chunked], 40):
+		for chunked_blob_part in collection_utils.slicing_iterate(blobs_by_storage_method[BlobStorageMethod.chunked], 10):
 			good_blob_hashes |= self.__validate_chunked_blobs(session, sub_results.acquire(), chunked_blob_part)
 		if self.is_interrupted.is_set():
 			return

@@ -24,6 +24,10 @@ class DbOverviewResult:
 
 	blob_stored_size_sum: int
 	blob_raw_size_sum: int
+	direct_blob_stored_size_sum: int
+	direct_blob_raw_size_sum: int
+	chunk_raw_size_sum: int
+	chunk_stored_size_sum: int
 	file_raw_size_sum: int
 
 	db_file_size: int
@@ -52,6 +56,10 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 
 				blob_stored_size_sum=session.get_blob_stored_size_sum(),
 				blob_raw_size_sum=session.get_blob_raw_size_sum(),
+				direct_blob_stored_size_sum=session.get_direct_blob_stored_size_sum(),
+				direct_blob_raw_size_sum=session.get_direct_blob_raw_size_sum(),
+				chunk_raw_size_sum=session.get_chunk_raw_size_sum(),
+				chunk_stored_size_sum=session.get_chunk_stored_size_sum(),
 				file_raw_size_sum=session.get_file_total_raw_size_sum(),
 
 				db_file_size=db_file_size,

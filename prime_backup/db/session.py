@@ -251,7 +251,6 @@ class DbSession:
 		return result
 
 	def get_blob_stored_size_sum(self) -> int:
-		# FIXME: chunked blob
 		return _int_or_0(self.session.execute(func.sum(schema.Blob.stored_size).select()).scalar_one())
 
 	def get_direct_blob_stored_size_sum(self) -> int:
@@ -259,6 +258,15 @@ class DbSession:
 			func.sum(schema.Blob.stored_size).select().
 			where(schema.Blob.storage_method == BlobStorageMethod.direct.value)
 		).scalar_one())
+
+	def get_direct_blob_raw_size_sum(self) -> int:
+		return _int_or_0(self.session.execute(
+			func.sum(schema.Blob.raw_size).select().
+			where(schema.Blob.storage_method == BlobStorageMethod.direct.value)
+		).scalar_one())
+
+	def get_blob_store_fs_file_size_sum(self) -> int:
+		return self.get_direct_blob_stored_size_sum() + self.get_chunk_stored_size_sum()
 
 	def get_blob_raw_size_sum(self) -> int:
 		return _int_or_0(self.session.execute(func.sum(schema.Blob.raw_size).select()).scalar_one())
@@ -287,9 +295,13 @@ class DbSession:
 
 	def calc_chunked_blob_stored_size_sum(self, blob_id: int) -> int:
 		return _int_or_0(self.session.execute(
-			select(func.sum(schema.ChunkGroup.chunk_stored_size_sum)).
-			join(schema.BlobChunkGroupBinding, schema.ChunkGroup.id == schema.BlobChunkGroupBinding.chunk_group_id).
-			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
+			select(func.sum(schema.Chunk.stored_size)).
+			where(schema.Chunk.id.in_(
+				select(schema.ChunkGroupChunkBinding.chunk_id).
+				join(schema.BlobChunkGroupBinding, schema.BlobChunkGroupBinding.chunk_group_id == schema.ChunkGroupChunkBinding.chunk_group_id).
+				where(schema.BlobChunkGroupBinding.blob_id == blob_id).
+				distinct()
+			))
 		).scalar_one())
 
 	# ===================================== Chunk =====================================
@@ -353,6 +365,9 @@ class DbSession:
 			for chunk in self.session.execute(select(schema.Chunk).where(schema.Chunk.hash.in_(view))).scalars().all():
 				result[chunk.hash] = chunk
 		return result
+
+	def get_chunk_raw_size_sum(self) -> int:
+		return _int_or_0(self.session.execute(func.sum(schema.Chunk.raw_size).select()).scalar_one())
 
 	def get_chunk_stored_size_sum(self) -> int:
 		return _int_or_0(self.session.execute(func.sum(schema.Chunk.stored_size).select()).scalar_one())
@@ -476,6 +491,16 @@ class DbSession:
 		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
 			self.session.execute(delete(schema.ChunkGroup).where(schema.ChunkGroup.id.in_(view)))
 
+	def calc_chunk_group_stored_size_sum(self, chunk_group_id: int) -> int:
+		return _int_or_0(self.session.execute(
+			select(func.sum(schema.Chunk.stored_size)).
+			where(schema.Chunk.id.in_(
+				select(schema.ChunkGroupChunkBinding.chunk_id).
+				where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id).
+				distinct()
+			))
+		).scalar_one())
+
 	# ===================================== ChunkGroupChunkBinding =====================================
 
 	class CreateChunkGroupChunkBindingKwargs(TypedDict):
@@ -577,6 +602,24 @@ class DbSession:
 		)
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
 		return sorted(OffsetChunk(offset, chunk) for offset, chunk in result)
+
+	def get_chunk_group_chunks_batch(self, chunk_group_ids: List[int]) -> Dict[int, List[OffsetChunk]]:
+		"""
+		return chunk_group_id -> list of chunks in this chunk group. all given chunk_group_ids are in the dict
+		"""
+		result: Dict[int, List[OffsetChunk]] = {cg_id: [] for cg_id in chunk_group_ids}
+		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
+			stmt = (
+				select(schema.ChunkGroupChunkBinding.chunk_group_id, schema.ChunkGroupChunkBinding.chunk_offset, schema.Chunk).
+				join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
+				where(schema.ChunkGroupChunkBinding.chunk_group_id.in_(view))
+			)
+			rows: Sequence[Row[Tuple[int, int, schema.Chunk]]] = self.session.execute(stmt).all()
+			for chunk_group_id, offset, chunk in rows:
+				result[chunk_group_id].append(OffsetChunk(offset, chunk))
+		for cg_id in result:
+			result[cg_id].sort()
+		return result
 
 	def list_orphan_chunk_group_chunk_bindings(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.ChunkGroupChunkBinding]:
 		"""
@@ -789,13 +832,6 @@ class DbSession:
 				))
 			combined_condition = or_(*conditions)
 			self.session.execute(delete(schema.BlobChunkGroupBinding).where(combined_condition))
-
-	def calc_chunk_group_stored_size_sum(self, chunk_group_id: int) -> int:
-		return _int_or_0(self.session.execute(
-			select(func.sum(schema.Chunk.stored_size)).
-			join(schema.ChunkGroupChunkBinding, schema.Chunk.id == schema.ChunkGroupChunkBinding.chunk_id).
-			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
-		).scalar_one())
 
 	# ===================================== File =====================================
 

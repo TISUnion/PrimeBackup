@@ -20,6 +20,7 @@ CDC chunking
 - [ ] Fuse support
 - [ ] TODO cleanup
 - [x] Compress migration
+- [ ] Database inspection (blob, chunk, chunk group)
 - [ ] Document
 
 ## QOL

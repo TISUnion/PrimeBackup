@@ -2,7 +2,7 @@ import collections
 import contextlib
 import dataclasses
 import enum
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 
 from typing_extensions import override
 
@@ -93,6 +93,7 @@ class ValidateChunkGroupsAction(Action[ValidateChunkGroupsResult]):
 			chunk_hashes: List[str] = []
 			raw_size_sum = 0
 			stored_size_sum = 0
+			stored_size_known_hashes: Set[str] = set()
 			offset = 0
 			for binding in group_bindings:
 				if offset != binding.chunk_offset:
@@ -105,8 +106,11 @@ class ValidateChunkGroupsAction(Action[ValidateChunkGroupsResult]):
 
 				chunk_hashes.append(chunk.hash)
 				raw_size_sum += chunk.raw_size
-				stored_size_sum += chunk.stored_size
 				offset += chunk.raw_size
+
+				if chunk.hash not in stored_size_known_hashes:
+					stored_size_sum += chunk.stored_size
+				stored_size_known_hashes.add(chunk.hash)
 
 			expected_chunk_group_hash = chunk_utils.create_chunk_group_hash(chunk_hashes)
 			if expected_chunk_group_hash != chunk_group.hash:

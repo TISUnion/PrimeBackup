@@ -131,14 +131,15 @@ def main():
 		print(f'Validation summary: {"OK" if all_ok else "FAILED"}')
 
 	create(1)
-	delete()
+	# delete()
 	# export()
 	# import_()
 	# list_()
 	# delete()
 	# migrate()
-	validate()
 	overview()
+	validate()
+	delete()
 
 
 if __name__ == '__main__':

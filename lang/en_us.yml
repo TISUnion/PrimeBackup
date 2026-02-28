@@ -278,12 +278,22 @@ prime_backup:
       db_version: 'Database version: {}'
       db_file_size: 'Database file size: {}'
       hash_method: 'Hash method: {}'
+      section_backup: Backup
       backup_count: 'Backup count: {}'
+      blob_store_stored_size: 'Backup data stored size sum: {} ({})'
+      blob_store_raw_size: 'Backup data raw size sum: {}'
+      section_file: File
+      fileset_count: 'Fileset count: {}'
       file_count: 'File count: {} ({} objects)'
       file_raw_size: 'File raw size sum: {}'
+      section_blob: Blob
       blob_count: 'Blob count: {}'
       blob_stored_size: 'Blob stored size sum: {} ({})'
       blob_raw_size: 'Blob raw size sum: {}'
+      section_chunk: Chunk
+      chunk_count: 'Chunk count: {}'
+      chunk_stored_size: 'Chunk stored size sum: {} ({})'
+      chunk_raw_size: 'Chunk raw size sum: {}'
     db_prune:
       name: prune database
       start: Pruning database, deleting useless objects inside, please wait...

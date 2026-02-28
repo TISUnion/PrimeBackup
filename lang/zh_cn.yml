@@ -278,12 +278,22 @@ prime_backup:
       db_version: '数据库版本: {}'
       db_file_size: '数据库文件大小: {}'
       hash_method: '哈希算法: {}'
+      section_backup: 备份
       backup_count: '备份数: {}'
+      blob_store_stored_size: '备份文件数据总储存大小: {} ({})'
+      blob_store_raw_size: '备份文件数据总原始大小: {}'
+      section_file: 文件
+      fileset_count: '文件集数: {}'
       file_count: '文件数: {} ({} 个对象)'
       file_raw_size: '文件总大小: {}'
+      section_blob: 数据对象
       blob_count: '数据对象数: {}'
       blob_stored_size: '数据对象总储存大小: {} ({})'
       blob_raw_size: '数据对象总原始大小: {}'
+      section_chunk: 数据块
+      chunk_count: '数据块数: {}'
+      chunk_stored_size: '数据块总储存大小: {} ({})'
+      chunk_raw_size: '数据块总原始大小: {}'
     db_prune:
       name: 清理数据库
       start: 正在清理数据库, 删除其中的无效数据, 请稍等...

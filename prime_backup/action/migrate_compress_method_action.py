@@ -197,9 +197,6 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 		# Notes: requires 2x disk usage of the blob store, stores all blob hashes in memory
 		self.logger.info('Migrating compress method to {} (compress threshold = {})'.format(self.new_compress_method.name, self.config.backup.compress_threshold))
 
-		def get_actual_blob_store_stored_size_sum() -> int:
-			return session.get_direct_blob_stored_size_sum() + session.get_chunk_stored_size_sum()
-
 		try:
 			# Blob operation steps:
 			# 1. move xxx -> xxx_old
@@ -208,7 +205,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 			with DbAccess.open_session() as session:
 				# 0. fetch information before the migration
 				t = time.time()
-				before_size = get_actual_blob_store_stored_size_sum()
+				before_size = session.get_blob_store_fs_file_size_sum()
 
 				# 1. migrate direct blob objects
 				cnt = 0
@@ -244,7 +241,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 				self.__update_fileset_and_backups(session)
 
 				# 4. output
-				after_size = get_actual_blob_store_stored_size_sum()
+				after_size = session.get_blob_store_fs_file_size_sum()
 
 		except Exception:
 			self.logger.warning('Error occurs during compress method migration, applying rollback')

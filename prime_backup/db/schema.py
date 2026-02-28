@@ -41,7 +41,7 @@ class Blob(Base):
 	hash: Mapped[str] = mapped_column(String, unique=True)
 	compress: Mapped[str] = mapped_column(String)
 	raw_size: Mapped[int] = mapped_column(BigInteger, index=True)
-	stored_size: Mapped[int] = mapped_column(BigInteger)
+	stored_size: Mapped[int] = mapped_column(BigInteger)  # for chunked blob, this is the sum of unique chunk stored sizes
 
 	__fields_end__: bool
 
@@ -67,7 +67,7 @@ class ChunkGroup(Base):
 	hash: Mapped[str] = mapped_column(String, unique=True)  # blake3 of b'\0'.join(chunk hashes)
 	chunk_count: Mapped[int] = mapped_column(Integer)
 	chunk_raw_size_sum: Mapped[int] = mapped_column(BigInteger)
-	chunk_stored_size_sum: Mapped[int] = mapped_column(BigInteger)
+	chunk_stored_size_sum: Mapped[int] = mapped_column(BigInteger)  # sum of unique chunk stored sizes
 
 	__fields_end__: bool
 

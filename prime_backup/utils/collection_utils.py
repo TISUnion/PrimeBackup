@@ -8,9 +8,9 @@ _K = TypeVar('_K')
 _V = TypeVar('_V')
 
 
-def slicing_iterate(lst: List[_T], chunk_size: int) -> Generator[List[_T], None, None]:
-	for i in range(0, len(lst), chunk_size):
-		yield lst[i:min(i + chunk_size, len(lst))]
+def slicing_iterate(lst: List[_T], page_size: int) -> Generator[List[_T], None, None]:
+	for i in range(0, len(lst), page_size):
+		yield lst[i:min(i + page_size, len(lst))]
 
 
 def deduplicated_list(lst: Iterable[_T]) -> List[_T]:

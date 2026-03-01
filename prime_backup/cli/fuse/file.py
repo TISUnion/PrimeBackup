@@ -200,7 +200,7 @@ class PrimeBackupFuseFile:
 		try:
 			return self.reader.read(length, offset)
 		except _FileReader.NoSequenceRead:
-			self.logger.warning(f'Backward seeking is not supported by blob {self.blob}')
+			self.logger.warning(f'seeking is not supported by blob {self.blob}')
 			raise FuseErrnoReturnError(errno.ENOTSUP)
 
 	@fuse_operation_wrapper()

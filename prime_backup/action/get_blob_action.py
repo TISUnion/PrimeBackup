@@ -71,5 +71,7 @@ class GetBlobByHashPrefixAction(__GetBlobActionBase):
 		if len(blobs) == 0:
 			raise BlobHashNotFound(self.blob_hash_prefix)
 		elif len(blobs) > 1:
-			raise BlobHashNotUnique(self.blob_hash_prefix, list(sorted(map(BlobInfo.of, blobs))))
+			def get_hash_for_sort(b: 'BlobInfo'):
+				return b.hash
+			raise BlobHashNotUnique(self.blob_hash_prefix, sorted(map(BlobInfo.of, blobs), key=get_hash_for_sort))
 		return blobs[0]

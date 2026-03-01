@@ -5,6 +5,7 @@ from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
+from prime_backup.exceptions import ChunkHashNotFound, ChunkHashNotUnique
 from prime_backup.types.chunk_info import OffsetChunkInfo, ChunkInfo
 
 
@@ -36,6 +37,27 @@ class GetChunkByHashAction(Action[ChunkInfo]):
 		with DbAccess.open_session() as session:
 			chunk = session.get_chunk_by_hash(self.chunk_hash)
 			return ChunkInfo.of(chunk)
+
+
+class GetChunkByHashPrefixAction(Action[ChunkInfo]):
+	def __init__(self, chunk_hash_prefix: str):
+		super().__init__()
+		self.chunk_hash_prefix = chunk_hash_prefix
+
+	@override
+	def run(self) -> ChunkInfo:
+		"""
+		:raise: ChunkHashNotFound or ChunkHashNotUnique
+		"""
+		with DbAccess.open_session() as session:
+			chunks = session.list_chunk_with_hash_prefix(self.chunk_hash_prefix, limit=3)
+			if len(chunks) == 0:
+				raise ChunkHashNotFound(self.chunk_hash_prefix)
+			elif len(chunks) > 1:
+				def get_hash_for_sort(b: 'ChunkInfo'):
+					return b.hash
+				raise ChunkHashNotUnique(self.chunk_hash_prefix, sorted(map(ChunkInfo.of, chunks), key=get_hash_for_sort))
+			return ChunkInfo.of(chunks[0])
 
 
 class GetBlobChunksAction(Action[List[OffsetChunkInfo]]):

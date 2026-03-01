@@ -9,16 +9,19 @@ from typing_extensions import override
 
 from prime_backup.action.get_backup_action import GetBackupAction
 from prime_backup.action.get_blob_action import GetBlobByHashPrefixAction, GetBlobByIdAction
-from prime_backup.action.get_chunk_action import GetBlobChunksAction, GetBlobChunkAndChunkGroupCountAction
+from prime_backup.action.get_chunk_action import GetBlobChunksAction, GetBlobChunkAndChunkGroupCountAction, GetChunkByIdAction, GetChunkByHashPrefixAction
+from prime_backup.action.get_chunk_group_action import GetChunkGroupByHashPrefixAction, GetChunkGroupByIdAction
 from prime_backup.action.get_file_action import GetBackupFileAction, GetFilesetFileAction
 from prime_backup.action.get_fileset_action import GetFilesetAction
 from prime_backup.db.values import BlobStorageMethod
-from prime_backup.exceptions import BlobNotFound
+from prime_backup.exceptions import BlobNotFound, ChunkNotFound
 from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.blob_info import BlobInfo
+from prime_backup.types.chunk_group_info import ChunkGroupInfo
+from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.file_info import FileInfo
-from prime_backup.utils import platform_utils
+from prime_backup.utils import platform_utils, chunk_utils, hash_utils
 from prime_backup.utils.mcdr_utils import TranslationContext, mkcmd
 
 
@@ -50,17 +53,25 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 	@classmethod
 	def _gt_blob_hash(cls, blob_hash: str, shorten_hash: bool = False) -> RTextBase:
 		return (
-			RText(blob_hash[:16] if shorten_hash else blob_hash, RColor.light_purple)
-			.h(cls.__base_tr.tr('hover.blob_hash', RText(blob_hash, RColor.light_purple)))
-			.c(RAction.run_command, mkcmd(f'database inspect blob {blob_hash}'))
+			TextComponents.blob_hash(blob_hash, shorten_hash=shorten_hash).
+			h(cls.__base_tr.tr('blob_hash.hover', RText(blob_hash, TextColors.blob))).
+		    c(RAction.run_command, mkcmd(f'database inspect blob {blob_hash}'))
 		)
 
 	@classmethod
 	def _gt_chunk_hash(cls, chunk_hash: str, shorten_hash: bool = False) -> RTextBase:
 		return (
-			RText(chunk_hash[:16] if shorten_hash else chunk_hash, RColor.light_purple)
-			.h(cls.__base_tr.tr('hover.chunk_hash', RText(chunk_hash, RColor.light_purple)))
-			.c(RAction.run_command, mkcmd(f'database inspect chunk {chunk_hash}'))
+			TextComponents.chunk_hash(chunk_hash, shorten_hash=shorten_hash).
+			h(cls.__base_tr.tr('chunk_hash.hover', RText(chunk_hash, TextColors.chunk))).
+			c(RAction.run_command, mkcmd(f'database inspect chunk {chunk_hash}'))
+		)
+
+	@classmethod
+	def _gt_chunk_group_hash(cls, chunk_group_hash: str, shorten_hash: bool = False) -> RTextBase:
+		return (
+			TextComponents.chunk_group_hash(chunk_group_hash, shorten_hash=shorten_hash).
+			h(cls.__base_tr.tr('chunk_group_hash.hover', RText(chunk_group_hash, TextColors.chunk_group))).
+			c(RAction.run_command, mkcmd(f'database inspect chunk_group {chunk_group_hash}'))
 		)
 
 	@classmethod
@@ -233,7 +244,7 @@ class InspectBlobTask(_InspectObjectTaskBase):
 
 		self.reply_tr('id', TextComponents.blob_id(blob.id))
 		self.reply_tr('storage_method', TextComponents.blob_storage_method(blob.storage_method))
-		self.reply_tr('hash', self._gt_blob_hash(blob.hash))
+		self.reply_tr('hash', self._gt_blob_hash(blob.hash), hash_utils.get_configured_hash_method().name)
 		self.reply_tr('compress', blob.compress.name)
 		self.reply_tr('raw_size', RText(blob.raw_size, TextColors.byte_count), TextComponents.file_size(blob.raw_size))
 		self.reply_tr('stored_size', RText(blob.stored_size, TextColors.byte_count), TextComponents.file_size(blob.stored_size))
@@ -245,7 +256,7 @@ class InspectBlobTask(_InspectObjectTaskBase):
 			for i, offset_chunk in enumerate(blob_chunks, start=1):
 				self.reply(RTextList(
 					f'{i}. ',
-					self.tr('chunk_sample', TextComponents.number(offset_chunk.offset), TextComponents.number(offset_chunk.chunk.raw_size), self._gt_chunk_hash(offset_chunk.chunk.hash)),
+					self.tr('chunk_sample', TextComponents.number(offset_chunk.offset), TextComponents.number(offset_chunk.chunk.raw_size), self._gt_chunk_group_hash(offset_chunk.chunk.hash)),
 				))
 
 		self.reply_tr('used_by', TextComponents.number(blob.file_count))
@@ -254,3 +265,67 @@ class InspectBlobTask(_InspectObjectTaskBase):
 				f'{i}. ',
 				self.tr('file_sample', TextComponents.fileset_id(file.fileset_id), TextComponents.file_path(file.path)),
 			))
+
+
+class InspectChunkTask(_InspectObjectTaskBase):
+	def __init__(self, source: CommandSource, chunk_id_or_hash: str):
+		super().__init__(source)
+		self.chunk_id_or_hash = chunk_id_or_hash
+
+	@property
+	@override
+	def id(self) -> str:
+		return 'db_inspect_chunk'
+
+	@override
+	def run(self) -> None:
+		chunk: Optional[ChunkInfo] = None
+		try:
+			chunk_id = int(self.chunk_id_or_hash)
+		except ValueError:
+			pass
+		else:
+			with contextlib.suppress(ChunkNotFound):
+				chunk = GetChunkByIdAction(chunk_id).run()
+		if chunk is None:
+			chunk = GetChunkByHashPrefixAction(self.chunk_id_or_hash).run()
+
+		self.reply(TextComponents.title(self.tr('title', self._gt_chunk_group_hash(chunk.hash, shorten_hash=True))))
+
+		self.reply_tr('id', TextComponents.chunk_id(chunk.id))
+		self.reply_tr('hash', self._gt_chunk_group_hash(chunk.hash), chunk_utils.get_hash_method().name)
+		self.reply_tr('compress', chunk.compress.name)
+		self.reply_tr('raw_size', RText(chunk.raw_size, TextColors.byte_count), TextComponents.file_size(chunk.raw_size))
+		self.reply_tr('stored_size', RText(chunk.stored_size, TextColors.byte_count), TextComponents.file_size(chunk.stored_size))
+
+
+class InspectChunkGroupTask(_InspectObjectTaskBase):
+	def __init__(self, source: CommandSource, chunk_group_id_or_hash: str):
+		super().__init__(source)
+		self.chunk_group_id_or_hash = chunk_group_id_or_hash
+
+	@property
+	@override
+	def id(self) -> str:
+		return 'db_inspect_chunk_group'
+
+	@override
+	def run(self) -> None:
+		chunk_group: Optional[ChunkGroupInfo] = None
+		try:
+			chunk_group_id = int(self.chunk_group_id_or_hash)
+		except ValueError:
+			pass
+		else:
+			with contextlib.suppress(ChunkNotFound):
+				chunk_group = GetChunkGroupByIdAction(chunk_group_id).run()
+		if chunk_group is None:
+			chunk_group = GetChunkGroupByHashPrefixAction(self.chunk_group_id_or_hash).run()
+
+		self.reply(TextComponents.title(self.tr('title', self._gt_chunk_group_hash(chunk_group.hash, shorten_hash=True))))
+
+		self.reply_tr('id', TextComponents.chunk_group_id(chunk_group.id))
+		self.reply_tr('hash', self._gt_chunk_group_hash(chunk_group.hash), chunk_utils.get_hash_method().name)
+		self.reply_tr('chunk_count', chunk_group.chunk_count)
+		self.reply_tr('chunk_raw_size_sum', RText(chunk_group.chunk_raw_size_sum, TextColors.byte_count), TextComponents.file_size(chunk_group.chunk_raw_size_sum))
+		self.reply_tr('chunk_stored_size_sum', RText(chunk_group.chunk_stored_size_sum, TextColors.byte_count), TextComponents.file_size(chunk_group.chunk_stored_size_sum))

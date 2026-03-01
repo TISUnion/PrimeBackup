@@ -4,13 +4,15 @@ import enum
 import sqlite3
 import threading
 from concurrent import futures
-from typing import Optional, Callable, Any, TypeVar, cast
+from typing import Optional, Callable, Any, TypeVar, cast, List, Sequence
 
+from mcdreforged import RTextBase
 from mcdreforged.api.all import CommandSource, RText, RColor, RAction, RStyle, PermissionLevel
 from sqlalchemy.exc import OperationalError
+from typing_extensions import Protocol
 
 from prime_backup import logger
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound, BlobIdNotFound, ChunkIdNotFound, ChunkHashNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound, BlobIdNotFound, ChunkIdNotFound, ChunkHashNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound, ChunkHashNotUnique, ChunkGroupHashNotUnique
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.mcdr.task.basic_task import HeavyTask, LightTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback, TooManyOngoingTask
@@ -55,6 +57,20 @@ class _TaskWorker:
 
 	@classmethod
 	def __handle_common_exceptions(cls, holder: TaskHolder, e: Exception) -> bool:
+		class ObjectWithHash(Protocol):
+			@property
+			def hash(self) -> str:
+				...
+
+		def format_hash_prefix_not_unique(what: str, hash_prefix: str, candidates: Sequence[ObjectWithHash]) -> List[RTextBase]:
+			return [
+				tr(f'error.{what}', hash_prefix),
+				tr(f'error.{what}.candidates', len(candidates), RText.join(', ', [
+					RText(b.hash[:len(hash_prefix)], styles=RStyle.underlined) + RText(b.hash[len(hash_prefix):])
+					for b in candidates
+				])),
+			]
+
 		if isinstance(e, BackupNotFound):
 			lines = [tr('error.backup_not_found', e.backup_id)]
 		elif isinstance(e, OffsetBackupNotFound):
@@ -70,21 +86,19 @@ class _TaskWorker:
 		elif isinstance(e, BlobHashNotFound):
 			lines = [tr('error.blob_hash_not_found', e.blob_hash)]
 		elif isinstance(e, BlobHashNotUnique):
-			lines = [
-				tr('error.blob_hash_not_unique', e.blob_hash_prefix),
-				tr('error.blob_hash_not_unique.candidates', len(e.candidates), RText.join(', ', [
-					RText(b.hash[:len(e.blob_hash_prefix)], styles=RStyle.underlined) + RText(b.hash[len(e.blob_hash_prefix):])
-					for b in e.candidates
-				])),
-			]
+			lines = format_hash_prefix_not_unique('blob_hash_not_unique', e.blob_hash_prefix, e.candidates)
 		elif isinstance(e, ChunkIdNotFound):
 			lines = [tr('error.chunk_id_not_found', e.chunk_id)]
 		elif isinstance(e, ChunkHashNotFound):
 			lines = [tr('error.chunk_hash_not_found', e.chunk_hash)]
+		elif isinstance(e, ChunkHashNotUnique):
+			lines = format_hash_prefix_not_unique('chunk_hash_not_unique', e.chunk_hash_prefix, e.candidates)
 		elif isinstance(e, ChunkGroupIdNotFound):
 			lines = [tr('error.chunk_group_id_not_found', e.chunk_group_id)]
 		elif isinstance(e, ChunkGroupHashNotFound):
 			lines = [tr('error.chunk_group_hash_not_found', e.chunk_group_hash)]
+		elif isinstance(e, ChunkGroupHashNotUnique):
+			lines = format_hash_prefix_not_unique('chunk_group_hash_not_unique', e.chunk_group_hash_prefix, e.candidates)
 		else:
 			return False
 

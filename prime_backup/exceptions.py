@@ -2,6 +2,8 @@ from typing import List, TYPE_CHECKING
 
 if TYPE_CHECKING:
 	from prime_backup.types.blob_info import BlobInfo
+	from prime_backup.types.chunk_group_info import ChunkGroupInfo
+	from prime_backup.types.chunk_info import ChunkInfo
 
 
 class PrimeBackupError(Exception):
@@ -81,6 +83,13 @@ class ChunkHashNotFound(ChunkNotFound):
 		self.chunk_hash = chunk_hash
 
 
+class ChunkHashNotUnique(PrimeBackupError):
+	def __init__(self, chunk_hash_prefix: str, candidates: List['ChunkInfo']):
+		super().__init__()
+		self.chunk_hash_prefix = chunk_hash_prefix
+		self.candidates = candidates
+
+
 class ChunkGroupNotFound(PrimeBackupError):
 	pass
 
@@ -95,6 +104,13 @@ class ChunkGroupHashNotFound(ChunkGroupNotFound):
 	def __init__(self, chunk_group_hash: str):
 		super().__init__()
 		self.chunk_group_hash = chunk_group_hash
+
+
+class ChunkGroupHashNotUnique(PrimeBackupError):
+	def __init__(self, chunk_group_hash_prefix: str, candidates: List['ChunkGroupInfo']):
+		super().__init__()
+		self.chunk_group_hash_prefix = chunk_group_hash_prefix
+		self.candidates = candidates
 
 
 class ChunkGroupChunkBindingNotFound(PrimeBackupError):

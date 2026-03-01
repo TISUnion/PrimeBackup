@@ -32,7 +32,7 @@ from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
 from prime_backup.mcdr.task.db.delete_backup_file_task import DeleteBackupFileTask
-from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask, InspectFilesetFileTask
+from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask, InspectFilesetFileTask, InspectChunkTask, InspectChunkGroupTask
 from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompressMethodTask
 from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
 from prime_backup.mcdr.task.db.prune_database_task import PruneDatabaseTask
@@ -108,8 +108,16 @@ class CommandManager:
 		self.task_manager.add_task(InspectFilesetTask(source, fileset_id))
 
 	def cmd_db_inspect_blob(self, source: CommandSource, context: CommandContext):
-		blob_id_or_hash = context['blob_id_or_hash']
+		blob_id_or_hash: str = context['id_or_hash']
 		self.task_manager.add_task(InspectBlobTask(source, blob_id_or_hash))
+
+	def cmd_db_inspect_chunk(self, source: CommandSource, context: CommandContext):
+		chunk_id_or_hash: str = context['id_or_hash']
+		self.task_manager.add_task(InspectChunkTask(source, chunk_id_or_hash))
+
+	def cmd_db_inspect_chunk_group(self, source: CommandSource, context: CommandContext):
+		chunk_group_id_or_hash: str = context['id_or_hash']
+		self.task_manager.add_task(InspectChunkGroupTask(source, chunk_group_id_or_hash))
 
 	def cmd_db_delete_file(self, source: CommandSource, context: CommandContext):
 		def backup_id_consumer(backup_id: int):
@@ -415,7 +423,9 @@ class CommandManager:
 		builder.command('database inspect file <backup_id> <backup_file_path>', self.cmd_db_inspect_backup_file)
 		builder.command('database inspect file2 <fileset_id> <fileset_file_path>', self.cmd_db_inspect_fileset_file)
 		builder.command('database inspect fileset <fileset_id>', self.cmd_db_inspect_fileset)
-		builder.command('database inspect blob <blob_id_or_hash>', self.cmd_db_inspect_blob)
+		builder.command('database inspect blob <id_or_hash>', self.cmd_db_inspect_blob)
+		builder.command('database inspect chunk <id_or_hash>', self.cmd_db_inspect_chunk)
+		builder.command('database inspect chunk_group <id_or_hash>', self.cmd_db_inspect_chunk_group)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidatePart.blobs))
 		builder.command('database validate chunks', functools.partial(self.cmd_db_validate, parts=ValidatePart.chunks))
@@ -431,7 +441,7 @@ class CommandManager:
 		builder.arg('fileset_id', create_fileset_id)  # not that necessary to provide suggestion here
 		builder.arg('backup_file_path', create_backup_file_path)  # not that necessary to provide suggestion here
 		builder.arg('fileset_file_path', create_fileset_file_path)  # not that necessary to provide suggestion here
-		builder.arg('blob_id_or_hash', HexStringNode)  # a numeric blob.id is also a hex string
+		builder.arg('id_or_hash', HexStringNode)  # a numeric id is also a hex string
 		builder.arg('compress_method', lambda n: Enumeration(n, CompressMethod))
 		builder.arg('hash_method', lambda n: Enumeration(n, HashMethod))
 

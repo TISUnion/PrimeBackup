@@ -54,9 +54,6 @@ class BlobInfo:
 		from prime_backup.utils import blob_utils
 		return blob_utils.get_blob_path(self.hash)
 
-	def __lt__(self, other: 'BlobInfo') -> bool:
-		return self.hash < other.hash
-
 
 @dataclasses.dataclass
 class BlobListSummary:

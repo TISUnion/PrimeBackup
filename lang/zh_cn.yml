@@ -213,7 +213,7 @@ prime_backup:
       title: '数据对象{}'
       id: 'ID: {}'
       storage_method: '存储方法: {}'
-      hash: '哈希: {}'
+      hash: '哈希: {} ({})'
       compress: '压缩方法: {}'
       raw_size: '原始大小: {} ({})'
       stored_size: '储存大小: {} ({})'
@@ -221,6 +221,22 @@ prime_backup:
       chunk_sample: '偏移={}, 长度={}, 哈希={}'
       used_by: '关联文件数: {}。样本：'
       file_sample: '文件集{}, 路径: {}'
+    db_inspect_chunk:
+      name: 审查数据块
+      title: '数据块{}'
+      id: 'ID: {}'
+      hash: '哈希: {} ({})'
+      compress: '压缩方法: {}'
+      raw_size: '原始大小: {} ({})'
+      stored_size: '储存大小: {} ({})'
+    db_inspect_chunk_group:
+      name: 审查数据块组
+      title: '数据块组{}'
+      id: 'ID: {}'
+      hash: '哈希: {} ({})'
+      chunk_count: '数据块数: {}'
+      chunk_raw_size_sum: '数据块原始大小总和: {} ({})'
+      chunk_stored_size_sum: '数据块储存大小总和: {} ({})'
     db_inspect_file:
       name: 审查文件
       title: '文件集{0}的文件{1}'
@@ -257,7 +273,8 @@ prime_backup:
         backup_id: 点击以审查备份{}
         fileset_id: 点击以审查文件集{}
         blob_hash: 点击以审查数据对象{}
-        chunk_hash: 点击以审查数据块对象{}
+        chunk_hash: 点击以审查数据块{}
+        chunk_group_hash: 点击以审查数据块组{}
     db_migrate_compress_method:
       name: 压缩方法迁移
       missing_library:
@@ -456,7 +473,9 @@ prime_backup:
           §7{prefix} database inspect file §6<备份ID> §3<文件路径>§r: 审查给定文件的原始信息
           §7{prefix} database inspect file2 §3<文件集ID> §3<文件路径>§r: 审查给定文件集中文件的原始信息
           §7{prefix} database inspect fileset §3<文件集ID>§r: 审查给定文件集的原始信息
-          §7{prefix} database inspect blob §d<哈希值>§r: 审查给定数据对象的原始信息
+          §7{prefix} database inspect blob §d<ID或哈希>§r: 审查给定数据对象的原始信息
+          §7{prefix} database inspect chunk §d<ID或哈希>§r: 审查给定数据块的原始信息
+          §7{prefix} database inspect chunk_group §d<ID或哈希>§r: 审查给定数据块组的原始信息
           §7{prefix} database delete file §6<备份ID> §3<文件路径> §7[--recursive]§r: 删除给定备份中的某个文件。若带有§7--recursive§r且目标为文件夹，则递归删除其内部的所有内容
           §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
           §7{prefix} database vacuum§r: 手动执行SQLite数据库的文件整理操作，减少数据库文件的体积
@@ -466,7 +485,7 @@ prime_backup:
           {scheduled_compact_notes}
           §d【参数帮助】§r
           §3<文件路径>§r: 要审查的文件的路径，相对备份根目录
-          §d<哈希值>§r: 要审查的数据对象的哈希值。可以是哈希串的前缀，只要唯一即可
+          §d<ID或哈希>§r: 要审查的对象的ID或哈希值。也可谓哈希串的前缀，只要确保唯一即可
           §d<压缩方法>§r: 可用选项: {compress_methods}
           §d<哈希算法>§r: 可用选项: {hash_methods}
           §a<组件>§r:
@@ -582,8 +601,12 @@ prime_backup:
     blob_hash_not_unique.candidates: '找到了至少{}个可能的数据对象: {}'
     chunk_id_not_found: ID为{}的数据块不存在
     chunk_hash_not_found: 哈希值为{}的数据块不存在
+    chunk_hash_not_unique: '给定的哈希值{}无法唯一确定一个数据块'
+    chunk_hash_not_unique.candidates: '找到了至少{}个可能的数据块: {}'
     chunk_group_id_not_found: ID为{}的数据块组不存在
     chunk_group_hash_not_found: 哈希值为{}的数据块组不存在
+    chunk_group_hash_not_unique: '给定的哈希值{}无法唯一确定一个数据块组'
+    chunk_group_hash_not_unique.candidates: '找到了至少{}个可能的数据块组: {}'
     db_locked: 任务{}执行失败, 数据库已被锁定。请稍候再试
     initializing: 插件初始化中
     disabled: 插件已禁用

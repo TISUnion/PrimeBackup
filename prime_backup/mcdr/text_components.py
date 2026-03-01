@@ -37,6 +37,8 @@ class TextColors:
 	backup_tag = RColor.aqua
 	blob = RColor.light_purple
 	byte_count = RColor.green
+	chunk = RColor.dark_purple
+	chunk_group = RColor.dark_purple
 	date = RColor.aqua
 	file = RColor.dark_aqua
 	help_title = RColor.light_purple
@@ -166,6 +168,10 @@ class TextComponents:
 		]))
 
 	@classmethod
+	def blob_hash(cls, blob_hash: str, *, shorten_hash: bool = False) -> RTextBase:
+		return RText(blob_hash[:16] if shorten_hash else blob_hash, TextColors.blob)
+
+	@classmethod
 	def blob_id(cls, blob_id: int) -> RTextBase:
 		return RText(blob_id, TextColors.blob)
 
@@ -176,6 +182,22 @@ class TextComponents:
 	@classmethod
 	def boolean(cls, value: bool) -> RTextBase:
 		return RText(str(value).lower(), RColor.green if value else RColor.red)
+
+	@classmethod
+	def chunk_hash(cls, chunk_hash: str, *, shorten_hash: bool = False) -> RTextBase:
+		return RText(chunk_hash[:16] if shorten_hash else chunk_hash, TextColors.chunk)
+
+	@classmethod
+	def chunk_id(cls, chunk_id: int) -> RTextBase:
+		return RText(chunk_id, TextColors.chunk)
+
+	@classmethod
+	def chunk_group_hash(cls, chunk_group_hash: str, *, shorten_hash: bool = False) -> RTextBase:
+		return RText(chunk_group_hash[:16] if shorten_hash else chunk_group_hash, TextColors.chunk_group)
+
+	@classmethod
+	def chunk_group_id(cls, chunk_group_id: int) -> RTextBase:
+		return RText(chunk_group_id, TextColors.chunk_group)
 
 	@classmethod
 	def command(cls, s: str, *, color: RColor = RColor.gray, suggest: bool = False, run: bool = False, raw: bool = False) -> RTextBase:

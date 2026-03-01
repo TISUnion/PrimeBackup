@@ -14,7 +14,7 @@ from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
 from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, FileIdentifier
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.utils import collection_utils, db_utils, validation_utils
 
@@ -380,6 +380,10 @@ class DbSession:
 			s = s.offset(offset)
 		return _list_it(self.session.execute(s).scalars().all())
 
+	def list_chunk_with_hash_prefix(self, hash_prefix: str, limit: int) -> List[schema.Chunk]:
+		s = select(schema.Chunk).where(schema.Chunk.hash.startswith(hash_prefix, autoescape=True)).limit(limit)
+		return _list_it(self.session.execute(s).scalars().all())
+
 	def iterate_chunk_batch(self, *, batch_size: int) -> Iterator[List[schema.Chunk]]:
 		limit, offset = batch_size, 0
 		while True:
@@ -430,10 +434,25 @@ class DbSession:
 	def get_chunk_group_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.ChunkGroup)).scalar_one())
 
-	def get_chunk_group_opt(self, h: str) -> Optional[schema.ChunkGroup]:
+	def get_chunk_group_by_id_opt(self, chunk_group_id: int) -> Optional[schema.ChunkGroup]:
+		return self.session.get(schema.ChunkGroup, chunk_group_id)
+
+	def get_chunk_group_by_id(self, chunk_group_id: int) -> schema.ChunkGroup:
+		chunk_group = self.get_chunk_group_by_id_opt(chunk_group_id)
+		if chunk_group is None:
+			raise ChunkGroupIdNotFound(chunk_group_id)
+		return chunk_group
+
+	def get_chunk_group_by_hash_opt(self, h: str) -> Optional[schema.ChunkGroup]:
 		return self.session.execute(
 	        select(schema.ChunkGroup).where(schema.ChunkGroup.hash == h)
 	    ).scalars().one_or_none()
+
+	def get_chunk_group_by_hash(self, h: str) -> schema.ChunkGroup:
+		chunk_group = self.get_chunk_group_by_hash_opt(h)
+		if chunk_group is None:
+			raise ChunkGroupHashNotFound(h)
+		return chunk_group
 
 	def get_chunk_groups_by_ids(self, chunk_group_ids: List[int]) -> Dict[int, Optional[schema.ChunkGroup]]:
 		"""
@@ -461,6 +480,10 @@ class DbSession:
 			s = s.limit(limit)
 		if offset is not None:
 			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
+
+	def list_chunk_group_with_hash_prefix(self, hash_prefix: str, limit: int) -> List[schema.ChunkGroup]:
+		s = select(schema.ChunkGroup).where(schema.ChunkGroup.hash.startswith(hash_prefix, autoescape=True)).limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def iterate_chunk_group_batch(self, *, batch_size: int) -> Iterator[List[schema.ChunkGroup]]:

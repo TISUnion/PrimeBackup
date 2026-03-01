@@ -32,10 +32,10 @@ class _FileReader(ABC):
 
 
 class _SingleFileReader(_FileReader):
-	def __init__(self, file_ctx: AbstractContextManager[IO[bytes]], rewindable: bool):
+	def __init__(self, file_ctx: AbstractContextManager[IO[bytes]]):
 		self.file_ctx = file_ctx
-		self.rewindable = rewindable
 		self.file_obj = file_ctx.__enter__()
+		self.rewindable = self.file_obj.seekable()
 		self.offset = 0
 
 	@override
@@ -59,11 +59,10 @@ class _SingleFileReader(_FileReader):
 	@classmethod
 	def create_from_file(cls, file_path: Path, compress_method: CompressMethod) -> '_SingleFileReader':
 		if compress_method == CompressMethod.plain:
-			return _SingleFileReader(open(file_path, 'rb'), rewindable=True)
+			return _SingleFileReader(open(file_path, 'rb'))
 		else:
-			# XXX: allow rewind for compress methods that support it?
 			decompressed_stream = Compressor.create(compress_method).open_decompressed(file_path)
-			return _SingleFileReader(cast(AbstractContextManager[IO[bytes]], decompressed_stream), rewindable=False)
+			return _SingleFileReader(cast(AbstractContextManager[IO[bytes]], decompressed_stream))
 
 	@classmethod
 	def create_from_blob(cls, blob: BlobInfo) -> '_SingleFileReader':
@@ -116,7 +115,7 @@ class PrimeBackupFuseFile:
 			self.reader = self.__create_reader_from_blob(blob)
 		elif buf is not None:
 			self.blob = None
-			self.reader = _SingleFileReader(BytesIO(buf), rewindable=True)
+			self.reader = _SingleFileReader(BytesIO(buf))
 		else:
 			raise ValueError()
 
@@ -137,7 +136,7 @@ class PrimeBackupFuseFile:
 	def __create_reader_from_blob_chunked(cls, blob: BlobInfo) -> _FileReader:
 		blob_chunks = GetBlobChunksAction(blob.id).run()
 		if len(blob_chunks) == 0:  # is it possible?
-			return _SingleFileReader(BytesIO(b''), rewindable=False)
+			return _SingleFileReader(BytesIO(b''))
 		return _MultiFileReader(blob_chunks)
 
 	@fuse_operation_wrapper()

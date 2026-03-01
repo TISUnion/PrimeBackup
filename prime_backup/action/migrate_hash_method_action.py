@@ -70,6 +70,7 @@ class MigrateHashMethodAction(Action[None]):
 
 				self.logger.info('Migrating hash method from {} to {}'.format(meta.hash_method, self.new_hash_method.name))
 
+				# XXX: don't load all blob into memory?
 				total_blob_count = session.get_blob_count()
 				all_hashes = session.get_all_blob_hashes()
 				all_hash_set = set(all_hashes)

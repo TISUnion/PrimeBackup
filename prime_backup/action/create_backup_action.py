@@ -68,6 +68,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		self.comment = comment
 		self.tags = tags
 
+		self.__run_called = False
 		self.__source_path: Path = source_path or self.config.source_path
 		self.__time_costs: TimeCostStats[CreateBackupTimeCostKey] = TimeCostStats()
 		self.__pre_calc_result = _PreCalculationResult()
@@ -344,7 +345,10 @@ class CreateBackupAction(Action[BackupInfo]):
 
 	@override
 	def run(self) -> BackupInfo:
-		# TODO: prevent re-run
+		if self.__run_called:
+			raise RuntimeError('no double run')
+		self.__run_called = True
+
 		self.__time_costs.reset()
 		with self.__time_costs.measure_time_cost(*CreateBackupTimeCostKey):
 			pass

@@ -236,7 +236,6 @@ class DbSession:
 			offset += limit
 
 	def get_all_blob_hashes(self) -> List[str]:
-		# TODO: don't load all blob into memory?
 		return _list_it(self.session.execute(select(schema.Blob.hash)).scalars().all())
 
 	def has_blob_with_size(self, raw_size: int) -> bool:

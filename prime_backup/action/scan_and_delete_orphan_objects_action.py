@@ -15,7 +15,7 @@ from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobChunkGroupBindingIdentifier, ChunkGroupChunkBindingIdentifier
-from prime_backup.types.blob_info import BlobListSummary
+from prime_backup.types.blob_info import BlobDeltaSummary
 from prime_backup.types.chunk_info import ChunkListSummary
 from prime_backup.types.file_info import FileListSummary
 from prime_backup.types.fileset_info import FilesetListSummary
@@ -27,7 +27,9 @@ class _SimpleSummary:
 
 
 class __ResultWithCount(Protocol):
-	count: int
+	@property
+	def count(self) -> int:
+		...
 
 
 _T = TypeVar('_T')  # object type
@@ -99,13 +101,26 @@ class _ScanAndDeleteObjectsActionBase(Generic[_T, _K, _R], Action[_R], ABC):
 		pass
 
 
-class ScanAndDeleteOrphanBlobsAction(_ScanAndDeleteObjectsActionBase[schema.Blob, str, BlobListSummary]):
+@dataclasses.dataclass
+class ScanAndDeleteOrphanBlobsResult:
+	delta: BlobDeltaSummary
+
+	@classmethod
+	def zero(cls) -> 'ScanAndDeleteOrphanBlobsResult':
+		return cls(delta=BlobDeltaSummary.zero())
+
+	@property
+	def count(self) -> int:
+		return self.delta.blob_count
+
+
+class ScanAndDeleteOrphanBlobsAction(_ScanAndDeleteObjectsActionBase[schema.Blob, str, ScanAndDeleteOrphanBlobsResult]):
 	def __init__(self):
 		super().__init__('blobs', 3000)
 
 	@override
-	def _create_result(self) -> BlobListSummary:
-		return BlobListSummary.zero()
+	def _create_result(self) -> ScanAndDeleteOrphanBlobsResult:
+		return ScanAndDeleteOrphanBlobsResult.zero()
 
 	@override
 	def _get_total_count(self, session: DbSession) -> int:
@@ -120,10 +135,10 @@ class ScanAndDeleteOrphanBlobsAction(_ScanAndDeleteObjectsActionBase[schema.Blob
 		return session.filtered_orphan_blob_hashes([blob.hash for blob in objs])
 
 	@override
-	def _delete_orphans(self, session: DbSession, result: BlobListSummary, orphan_obj_keys: List[str]) -> None:
+	def _delete_orphans(self, session: DbSession, result: ScanAndDeleteOrphanBlobsResult, orphan_obj_keys: List[str]) -> None:
 		action = DeleteBlobsAction(hashes=orphan_obj_keys, raise_if_not_found=True)
 		delta = action.run(session=session)
-		result += delta.blobs  # FIXME: what about chunks
+		result.delta += delta
 
 
 class ScanAndDeleteOrphanChunkGroupsAction(_ScanAndDeleteObjectsActionBase[schema.ChunkGroup, int, _SimpleSummary]):
@@ -208,7 +223,7 @@ class ScanAndDeleteOrphanChunkGroupChunkBindingsAction(Action[_SimpleSummary]):
 		return result
 
 
-class ScanAndDeleteOrphanBlobChunkGroupBindingsAction(Action[ _SimpleSummary]):
+class ScanAndDeleteOrphanBlobChunkGroupBindingsAction(Action[_SimpleSummary]):
 	MAX_LOOP = 1000
 
 	@override

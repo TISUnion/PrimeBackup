@@ -428,7 +428,6 @@ class BlobAllocator:
 
 		with contextlib.ExitStack() as es:
 			if policy == _ChunkedBlobCreatePolicy.default:
-				# TODO: pre-cal cdc cut result?
 				actual_path_to_read = src_path
 			elif policy == _ChunkedBlobCreatePolicy.copy_hash:
 				# copy to temp file, then do whatever processing

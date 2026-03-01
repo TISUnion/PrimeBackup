@@ -538,7 +538,7 @@ class BlobAllocator:
 			# end src_file reading
 		# end ExitStack for the temp file
 
-		self.logger.debug('Created chunked file {} in {:.2f}s, size {}/{}, chunk cnt: {} (+{})'.format(
+		self.logger.debug('Chunked file {} in {:.2f}s, size {}/{}, chunk cnt: {} (+{})'.format(
 			src_path_str, time.time() - process_start_time,
 			blob_stored_size_sum, blob_raw_size_sum, len(offset_to_db_chunk), len(new_db_chunks),
 		))

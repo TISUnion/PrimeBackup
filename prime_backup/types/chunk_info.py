@@ -39,9 +39,16 @@ class OffsetChunkInfo:
 	offset: int
 	chunk: ChunkInfo
 
+	@property
+	def size(self) -> int:
+		return self.chunk.raw_size
+
 	@classmethod
 	def of(cls, offset_chunk: OffsetChunk) -> 'OffsetChunkInfo':
 		return cls(offset_chunk.offset, ChunkInfo.of(offset_chunk.chunk))
+
+	def __lt__(self, other: 'OffsetChunkInfo') -> bool:
+		return self.offset < other.offset
 
 
 @dataclasses.dataclass

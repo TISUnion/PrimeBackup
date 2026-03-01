@@ -35,14 +35,13 @@ class _SingleFileReader(_FileReader):
 	def __init__(self, file_ctx: AbstractContextManager[IO[bytes]]):
 		self.file_ctx = file_ctx
 		self.file_obj = file_ctx.__enter__()
-		self.rewindable = self.file_obj.seekable()
+		self.file_seekable = self.file_obj.seekable()
 		self.offset = 0
 
 	@override
 	def read(self, size: int, offset: int) -> bytes:
 		if offset != self.offset:
-			can_seek = self.rewindable or self.offset < offset
-			if can_seek:
+			if self.file_seekable:
 				self.file_obj.seek(offset)
 				self.offset = offset
 			else:
@@ -74,35 +73,92 @@ class _SingleFileReader(_FileReader):
 
 
 class _MultiFileReader(_FileReader):
-	current_index: int
-	current_offset_lower: int
-	current_offset_upper: int
-	current_reader: _SingleFileReader
-
 	def __init__(self, chunks: List[OffsetChunkInfo]):
 		if len(chunks) == 0:
 			raise ValueError()
-		self.chunks = chunks
+		self.chunks = sorted(chunks)
+		self.total_size = self.chunks[-1].offset + self.chunks[-1].size
+		self.current_index: int = 0
+		self.current_reader: Optional[_SingleFileReader] = None
 		self.__reopen_to_chunk(0)
+
+	@property
+	def current_chunk(self) -> OffsetChunkInfo:
+		return self.chunks[self.current_index]
+
+	@property
+	def current_offset_lower(self) -> int:
+		return self.current_chunk.offset
+
+	@property
+	def current_offset_upper(self) -> int:
+		return self.current_chunk.offset + self.current_chunk.size
 
 	def __reopen_to_chunk(self, idx: int):
 		self.close()
 
-		offset_chunk = self.chunks[idx]
 		self.current_index = idx
-		self.current_offset_lower = offset_chunk.offset
-		self.current_offset_upper = offset_chunk.offset + offset_chunk.chunk.raw_size
-		self.current_reader = _SingleFileReader.create_from_chunk(offset_chunk.chunk)
+		self.current_reader = _SingleFileReader.create_from_chunk(self.chunks[idx].chunk)
+
+	def __is_offset_in_index(self, offset: int, index: int) -> bool:
+		if index < 0 or index >= len(self.chunks):
+			return False
+		chunk = self.chunks[index]
+		return chunk.offset <= offset < chunk.offset + chunk.size
+
+	def __find_chunk_index(self, offset: int) -> int:
+		left, right = 0, len(self.chunks) - 1
+
+		while left <= right:
+			mid = (left + right) // 2
+			mid_chunk = self.chunks[mid]
+			chunk_offset = mid_chunk.offset
+			chunk_end = chunk_offset + mid_chunk.size
+
+			if offset < chunk_offset:
+				right = mid - 1
+			elif offset >= chunk_end:
+				left = mid + 1
+			else:
+				return mid
+
+		raise ValueError(f'Offset {offset} is out of range of all chunks')
+
+	def __read_once(self, offset: int, size: int) -> bytes:
+		if not self.__is_offset_in_index(offset, self.current_index):
+			if self.__is_offset_in_index(offset, self.current_index + 1):
+				target_idx = self.current_index + 1
+			else:
+				target_idx = self.__find_chunk_index(offset)
+			self.__reopen_to_chunk(target_idx)
+
+		relative_offset = offset - self.current_offset_lower
+		read_size = min(size, self.current_offset_upper - offset)
+
+		assert self.current_reader is not None
+		return self.current_reader.read(read_size, relative_offset)
 
 	@override
 	def read(self, size: int, offset: int) -> bytes:
-		# TODO
-		raise NotImplementedError()
+		if offset >= self.total_size:
+			return b''
+
+		buf_list: List[bytes] = []
+		while True:
+			buf = self.__read_once(offset, size)
+			buf_list.append(buf)
+			size -= len(buf)
+			if size <= 0 or self.current_index >= len(self.chunks) - 1:
+				break
+			offset += len(buf)
+
+		return b''.join(buf_list)
 
 	@override
 	def close(self):
 		if self.current_reader is not None:
 			self.current_reader.close()
+			self.current_reader = None
 
 
 class PrimeBackupFuseFile:

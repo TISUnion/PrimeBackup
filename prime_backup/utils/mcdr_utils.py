@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import Union, Any
 
 from mcdreforged.api.all import ServerInterface, CommandSource, PlayerCommandSource, ConsoleCommandSource, RTextBase, \
@@ -10,7 +9,7 @@ def tr(key: str, *args, **kwargs) -> RTextBase:
 	return ServerInterface.si().rtr(constants.PLUGIN_ID + '.' + key, *args, **kwargs)
 
 
-class TranslationContext(ABC):
+class TranslationContext:
 	def __init__(self, base_key: str):
 		self.__base_key = base_key
 

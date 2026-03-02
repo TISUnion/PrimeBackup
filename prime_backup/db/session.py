@@ -1366,9 +1366,9 @@ class DbSession:
 
 		sort_order = backup_filter.sort_order or BackupSortOrder.time_r
 		if sort_order == BackupSortOrder.time:
-			s = s.order_by(schema.Backup.timestamp, schema.Backup.id)
+			s = s.order_by(schema.Backup.timestamp, schema.Backup.timestamp_ns_part, schema.Backup.id)
 		elif sort_order == BackupSortOrder.time_r:
-			s = s.order_by(desc(schema.Backup.timestamp), desc(schema.Backup.id))
+			s = s.order_by(desc(schema.Backup.timestamp), desc(schema.Backup.timestamp_ns_part), desc(schema.Backup.id))
 		elif sort_order == BackupSortOrder.id:
 			s = s.order_by(schema.Backup.id)
 		elif sort_order == BackupSortOrder.id_r:

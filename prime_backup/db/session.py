@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple, Any
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row
+from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row, update
 from sqlalchemy.orm import Session
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
@@ -73,6 +73,11 @@ class DbSession:
 	@functools.lru_cache
 	def __supports_vacuum_into(cls) -> bool:
 		return cls.__check_support(db_utils.check_sqlite_vacuum_into_support, 'SQLite backend does not support VACUUM INTO statement. Insecure manual file copy is used as the fallback')
+
+	@classmethod
+	@functools.lru_cache
+	def __supports_row_number(cls) -> bool:
+		return cls.__check_support(db_utils.check_sqlite_row_number, 'SQLite backend does not support ROW_NUMBER() statement, ID reassignment is not available')
 
 	@classmethod
 	def __validate_int_fields_range(cls, obj: schema.Base):
@@ -1350,6 +1355,9 @@ class DbSession:
 		if backup_filter.timestamp_ns_start is not None:
 			ts_sec = backup_filter.timestamp_ns_start // (10 ** 9)
 			ts_ns_part = backup_filter.timestamp_ns_start % (10 ** 9)
+			# The "Row Value Comparisons" was introduced in v3.15.0, which is newer than the default sqlite3 version in centos7
+			# For best system compatibility, don't use that for simplification
+			# https://sqlite.org/rowvalue.html
 			s = s.where(or_(
 				schema.Backup.timestamp > ts_sec,
 				and_(schema.Backup.timestamp == ts_sec, schema.Backup.timestamp_ns_part >= ts_ns_part)
@@ -1588,3 +1596,49 @@ class DbSession:
 
 	def delete_backup(self, backup: schema.Backup):
 		self.session.delete(backup)
+
+	def reassign_backup_id(self, order: BackupSortOrder) -> Optional[int]:
+		if not self.__supports_row_number():
+			raise RuntimeError('Current SQLite version {} does not support ROW_NUMBER() function'.format(db_utils.get_sqlite_version()))
+
+		order_by: list
+		if order == BackupSortOrder.time:
+			order_by = [schema.Backup.timestamp, schema.Backup.timestamp_ns_part, schema.Backup.id]
+		elif order == BackupSortOrder.time_r:
+			order_by = [desc(schema.Backup.timestamp), desc(schema.Backup.timestamp_ns_part), desc(schema.Backup.id)]
+		elif order == BackupSortOrder.id:
+			order_by = [schema.Backup.id]
+		elif order == BackupSortOrder.id_r:
+			order_by = [desc(schema.Backup.id)]
+		else:
+			raise ValueError(order)
+
+		table_name = schema.Backup.__tablename__
+		max_id: Optional[int] = self.session.execute(select(func.max(schema.Backup.id))).scalar()
+		if max_id is None:
+			self.session.execute(
+				text(f'''DELETE FROM sqlite_sequence WHERE name = :name''').
+				bindparams(name=table_name)
+			)
+			return None
+
+		# offset backup ids to ensure ids inside [1, backup_count] are unused,
+		# to avoid "UNIQUE constraint failed" error on the following new_id updates statement
+		self.session.execute(update(schema.Backup).values(id=schema.Backup.id + max_id))
+		self.session.flush()
+
+		numbered = select(
+			schema.Backup.id,
+			func.row_number().over(order_by=order_by).label('new_id')
+		).cte('numbered')
+		self.session.execute(
+			update(schema.Backup).
+			values(id=select(numbered.c.new_id).where(numbered.c.id == schema.Backup.id).correlate(schema.Backup).scalar_subquery())
+		)
+
+		max_id: int = self.session.execute(select(func.max(schema.Backup.id))).scalar_one()
+		self.session.execute(
+			text(f'''UPDATE sqlite_sequence SET seq = :seq WHERE name = :name''').
+			bindparams(seq=max_id, name=table_name)
+		)
+		return max_id

@@ -9,7 +9,6 @@ import time
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple
 
-import pathspec
 from typing_extensions import override, Unpack
 
 from prime_backup import logger
@@ -194,7 +193,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			os.chmod(file_path, file.mode)
 
 		if file.mtime is not None:
-			times = (time.time(), file.mtime / 1e6)  # (atime, mtime)
+			times = (time.time(), file.mtime_unix_sec)  # (atime, mtime)
 			if is_link:
 				if os.utime in os.supports_follow_symlinks:
 					os.utime(file_path, times, follow_symlinks=False)

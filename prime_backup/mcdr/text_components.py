@@ -16,6 +16,7 @@ from prime_backup.types.file_info import FileType
 from prime_backup.types.fileset_info import FilesetInfo
 from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
+from prime_backup.types.timestamp import Timestamp
 from prime_backup.types.units import ByteCount, Duration
 from prime_backup.utils import conversion_utils, misc_utils, backup_utils
 from prime_backup.utils.mcdr_utils import mkcmd, click_and_run
@@ -262,11 +263,11 @@ class TextComponents:
 		return RText(conversion_utils.datetime_to_str(date, decimal=decimal), TextColors.date).h(cls.date_diff(date))
 
 	@classmethod
-	def date_us(cls, timestamp_us: int, *, decimal: bool = False) -> RTextBase:
-		try:
-			date = conversion_utils.timestamp_to_local_date_us(timestamp_us)
-		except (OSError, ValueError) as e:
-			return RText(f'error: {timestamp_us}', TextColors.date).h(str(e))
+	def date_local(cls, timestamp: Union[float, Timestamp], *, decimal: bool = False) -> RTextBase:
+		if isinstance(timestamp, Timestamp):
+			date = timestamp.to_local_date()
+		else:
+			date = datetime.datetime.fromtimestamp(timestamp)
 		return cls.date(date, decimal=decimal)
 
 	@classmethod

@@ -128,11 +128,20 @@ class File(Base):
 	# other file meta
 	uid: Mapped[Optional[int]] = mapped_column(Integer)
 	gid: Mapped[Optional[int]] = mapped_column(Integer)
-	mtime: Mapped[Optional[int]] = mapped_column(BigInteger)  # timestamp in us
+	mtime: Mapped[Optional[int]] = mapped_column(BigInteger)  # timestamp in seconds
+	mtime_ns_part: Mapped[Optional[int]] = mapped_column(Integer)  # timestamp nanosecond part
 
 	__fields_end__: bool
 
 	fileset: Mapped['Fileset'] = relationship(viewonly=True, foreign_keys=[fileset_id])
+
+	@property
+	def mtime_unix_sec(self) -> float:
+		return (self.mtime or 0) + (self.mtime_ns_part or 0) / 1e9
+
+	@property
+	def mtime_unix_ns(self) -> int:
+		return (self.mtime or 0) * (10 ** 9) + (self.mtime_ns_part or 0)
 
 
 class Fileset(Base):
@@ -157,7 +166,8 @@ class Backup(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)  # XXX: no `index=True`?
-	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in us
+	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in seconds
+	timestamp_ns_part: Mapped[int] = mapped_column(Integer)  # timestamp nanoseconds part
 	creator: Mapped[str] = mapped_column(String)
 	comment: Mapped[str] = mapped_column(String)
 	targets: Mapped[List[str]] = mapped_column(JSON)

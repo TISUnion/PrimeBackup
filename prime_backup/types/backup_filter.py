@@ -33,8 +33,8 @@ class BackupFilter:
 	id_start: Optional[int] = None
 	id_end: Optional[int] = None
 	creator: Optional[Operator] = None
-	timestamp_us_start: Optional[int] = None
-	timestamp_us_end: Optional[int] = None
+	timestamp_ns_start: Optional[int] = None
+	timestamp_ns_end: Optional[int] = None
 	tag_filters: List[BackupTagFilter] = dataclasses.field(default_factory=list)
 
 	def requires_temporary_backup(self) -> 'BackupFilter':

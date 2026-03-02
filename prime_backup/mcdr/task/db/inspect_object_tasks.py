@@ -95,7 +95,7 @@ class InspectBackupTask(_InspectObjectTaskBase):
 		self.reply(TextComponents.title(self.tr('title', self._gt_backup_id(backup.id, True))))
 
 		self.reply_tr('id', self._gt_backup_id(backup.id, False))
-		self.reply_tr('timestamp', TextComponents.number(backup.timestamp_us), TextComponents.date_us(backup.timestamp_us))
+		self.reply_tr('timestamp', TextComponents.number(backup.timestamp.unix_ns), TextComponents.date_local(backup.timestamp))
 		self.reply_tr('creator', self._jsonfy(str(backup.creator)), TextComponents.operator(backup.creator))
 
 		comment = self._jsonfy(backup.comment)
@@ -162,8 +162,8 @@ class _InspectFileTaskBase(_InspectObjectTaskBase, ABC):
 			else:
 				self.reply_tr('gid.simple', TextComponents.number(file.gid))
 
-		if file.mtime_us is not None:
-			self.reply_tr('mtime', TextComponents.number(file.mtime_us), TextComponents.date_us(file.mtime_us, decimal=True))
+		if file.mtime is not None:
+			self.reply_tr('mtime', TextComponents.number(file.mtime), TextComponents.date_local(file.mtime, decimal=True))
 
 		self.reply_tr('used_by', TextComponents.number(file.backup_count), TextComponents.backup_id_list(file.backup_samples, with_brackets=False))
 

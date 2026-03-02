@@ -34,7 +34,7 @@ class PrimeBackupFuseStat(fuse.Stat):
 		st.st_uid = file.uid or 0
 		st.st_gid = file.gid or 0
 
-		mtime = (file.mtime_us or 0) / 1e6
+		mtime = file.mtime.unix_sec if file.mtime is not None else 0.0
 		st.st_atime = mtime
 		st.st_mtime = mtime
 		st.st_ctime = mtime

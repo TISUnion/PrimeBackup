@@ -3,7 +3,6 @@ import dataclasses
 import functools
 import shutil
 import sqlite3
-import time
 from pathlib import Path
 from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple, Any
 from typing import TypeVar, List
@@ -895,6 +894,7 @@ class DbSession:
 		uid: Optional[int]
 		gid: Optional[int]
 		mtime: Optional[int]
+		mtime_ns_part: Optional[int]
 
 	@classmethod
 	def create_file(cls, *, blob: Optional[schema.Blob] = None, **kwargs: Unpack[CreateFileKwargs]) -> schema.File:
@@ -920,6 +920,7 @@ class DbSession:
 			uid=None,
 			gid=None,
 			mtime=None,
+			mtime_ns_part=None,
 		)
 
 	def get_file_in_fileset_opt(self, fileset_id: int, path: str) -> Optional[schema.File]:
@@ -1346,10 +1347,20 @@ class DbSession:
 			s = s.where(schema.Backup.id <= backup_filter.id_end)
 		if backup_filter.creator is not None:
 			s = s.filter_by(creator=str(backup_filter.creator))
-		if backup_filter.timestamp_us_start is not None:
-			s = s.where(schema.Backup.timestamp >= backup_filter.timestamp_us_start)
-		if backup_filter.timestamp_us_end is not None:
-			s = s.where(schema.Backup.timestamp <= backup_filter.timestamp_us_end)
+		if backup_filter.timestamp_ns_start is not None:
+			ts_sec = backup_filter.timestamp_ns_start // (10 ** 9)
+			ts_ns_part = backup_filter.timestamp_ns_start % (10 ** 9)
+			s = s.where(or_(
+				schema.Backup.timestamp > ts_sec,
+				and_(schema.Backup.timestamp == ts_sec, schema.Backup.timestamp_ns_part >= ts_ns_part)
+			))
+		if backup_filter.timestamp_ns_end is not None:
+			ts_sec = backup_filter.timestamp_ns_end // (10 ** 9)
+			ts_ns_part = backup_filter.timestamp_ns_end % (10 ** 9)
+			s = s.where(or_(
+				schema.Backup.timestamp < ts_sec,
+				and_(schema.Backup.timestamp == ts_sec, schema.Backup.timestamp_ns_part <= ts_ns_part)
+			))
 		if cls.__supports_json_query():
 			s = cls.__sql_backup_tag_filter(s, backup_filter)
 
@@ -1369,6 +1380,7 @@ class DbSession:
 
 	class CreateBackupKwargs(TypedDict):
 		timestamp: NotRequired[int]
+		timestamp_ns_part: Optional[int]
 		creator: str
 		comment: str
 		targets: List[str]
@@ -1384,9 +1396,6 @@ class DbSession:
 		"""
 		Notes: the backup id is not generated yet. Invoke :meth:`flush` to generate the backup id
 		"""
-		if 'timestamp' not in kwargs:
-			kwargs['timestamp'] = time.time_ns() // 1000
-
 		if kwargs.get('tags', {}).get('pre_restore_backup') is not None:
 			from prime_backup import logger
 			logger.get().warning('Backup tag "pre_restore_backup" is not used anymore, use tag "temporary" instead')

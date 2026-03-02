@@ -34,7 +34,7 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 	def __export_file(self, blob_chunks_getter: BlobChunksGetter, zipf: zipfile.ZipFile, file: schema.File):
 		# reference: zipf.writestr -> zipfile.ZipInfo.from_file
 		if file.mtime is not None:
-			date_time = time.localtime(file.mtime / 1e6)
+			date_time = time.localtime(file.mtime_unix_sec)
 		else:
 			date_time = time.localtime()
 		arc_name = file.path

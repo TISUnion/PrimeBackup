@@ -20,7 +20,7 @@ class DateNode(ArgumentNode):
 	def parse(self, text: str) -> ParseResult:
 		result = QuotableText('temp').parse(text)
 		try:
-			ts = conversion_utils.date_to_timestamp_us((result.value or '').strip())
+			ts = conversion_utils.date_to_timestamp_ns((result.value or '').strip())
 			return ParseResult(ts, result.char_read)
 		except ValueError:
 			raise BadDate(tr('error.node.bad_date'), result.char_read)

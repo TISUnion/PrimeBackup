@@ -102,9 +102,9 @@ class DiffBackupTask(LightTask[None]):
 					return RTextBase.format('uid={} gid={}', TextComponents.number(f.uid), TextComponents.number(f.gid))
 				t_change = self.tr('diff.owner')
 				make_hover(format_owner(old_file), format_owner(new_file))
-			elif old_file.mtime_us != new_file.mtime_us:
+			elif old_file.mtime != new_file.mtime:
 				t_change = self.tr('diff.mtime')
-				make_hover(old_file.mtime_us, new_file.mtime_us, TextComponents.date_us)
+				make_hover(old_file.mtime, new_file.mtime, TextComponents.date_local)
 			else:
 				t_change = self.tr('diff.other').set_color(RColor.gray)
 

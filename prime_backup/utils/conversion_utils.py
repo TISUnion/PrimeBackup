@@ -8,16 +8,16 @@ def datetime_to_str(date: datetime.datetime, *, decimal: bool = False) -> str:
 	return date.strftime(fmt)
 
 
-def timestamp_to_local_date_us(timestamp_us: int) -> datetime.datetime:
-	return datetime.datetime.fromtimestamp(timestamp_us / 1e6)
+def timestamp_to_local_date_ns(timestamp_ns: int) -> datetime.datetime:
+	return datetime.datetime.fromtimestamp(timestamp_ns / 1e9)
 
 
-def timestamp_to_local_date_str_us(timestamp_us: int, *, decimal: bool = False) -> str:
-	date = timestamp_to_local_date_us(timestamp_us)
+def timestamp_to_local_date_str_ns(timestamp_ns: int, *, decimal: bool = False) -> str:
+	date = timestamp_to_local_date_ns(timestamp_ns)
 	return datetime_to_str(date, decimal=decimal)
 
 
-def date_to_timestamp_us(s: str) -> int:
+def date_to_timestamp_ns(s: str) -> int:
 	formats = [
 		'%Y',                    # 2023
 		'%Y%m',                  # 202311
@@ -35,7 +35,7 @@ def date_to_timestamp_us(s: str) -> int:
 	for fmt in formats:
 		try:
 			dt = datetime.datetime.strptime(s, fmt)
-			return int(dt.timestamp() * 1e6)
+			return int(dt.timestamp() * 1e9)
 		except (ValueError, OSError):
 			pass
 	raise ValueError('cannot parse date from string {!r}'.format(s))

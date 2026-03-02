@@ -244,13 +244,13 @@ class PrimeBackupFuseFs(fuse.Fuse):
 		if spr.path == '':
 			backup = self.__helper.query_backup(spr.backup_id)
 			if spr.is_alt:
-				return PrimeBackupFuseStat.create_symlink(backup.timestamp_us / 1e6)
+				return PrimeBackupFuseStat.create_symlink(backup.timestamp.unix_sec)
 			else:
-				return PrimeBackupFuseStat.create_plain_dir(backup.timestamp_us / 1e6)
+				return PrimeBackupFuseStat.create_plain_dir(backup.timestamp.unix_sec)
 		elif spr.path == BACKUP_META_FILE_NAME:
 			backup = self.__helper.query_backup(spr.backup_id)
 			size = len(backup.create_meta_buf())
-			return PrimeBackupFuseStat.create_regular(size, 0o444, backup.timestamp_us / 1e6)
+			return PrimeBackupFuseStat.create_regular(size, 0o444, backup.timestamp.unix_sec)
 
 		if spr.is_alt:
 			raise FuseErrnoReturnError(errno.ENOENT)

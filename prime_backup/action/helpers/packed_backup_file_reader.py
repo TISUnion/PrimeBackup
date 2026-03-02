@@ -51,7 +51,7 @@ class PackedBackupFileMember(ABC):
 
 	@property
 	@abstractmethod
-	def mtime_us(self) -> int:
+	def mtime_ns(self) -> int:
 		...
 
 	@abstractmethod
@@ -133,8 +133,8 @@ class TarBackupReader(PackedBackupFileReader):
 
 		@property
 		@override
-		def mtime_us(self) -> int:
-			return int(self.member.mtime) * (10 ** 6)
+		def mtime_ns(self) -> int:
+			return int(self.member.mtime * (10 ** 9))
 
 		@override
 		def is_file(self) -> bool:
@@ -242,8 +242,8 @@ class ZipBackupReader(PackedBackupFileReader):
 
 		@property
 		@override
-		def mtime_us(self) -> int:
-			return int(time.mktime(self.member.date_time + (0, 0, -1)) * 1e6)
+		def mtime_ns(self) -> int:
+			return int(time.mktime(self.member.date_time + (0, 0, -1)) * 1e9)
 
 		@override
 		def is_file(self) -> bool:

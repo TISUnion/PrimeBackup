@@ -19,6 +19,7 @@ from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobDeltaSummary
 from prime_backup.types.operator import PrimeBackupOperatorNames
+from prime_backup.types.timestamp import Timestamp
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import misc_utils, log_utils
 
@@ -105,9 +106,12 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 
 	@classmethod
 	def calc_prune_backups(cls, backups: List[BackupInfo], settings: PruneSetting, *, timezone: Optional[datetime.tzinfo] = None) -> PrunePlan:
+		def backup_get_timestamp(b: BackupInfo):
+			return b.timestamp
+
 		marks: Dict[int, PruneMark] = {}
 		fallback_marks: Dict[int, PruneMark] = {}
-		backups = list(sorted(backups, key=lambda b: b.timestamp_us, reverse=True))  # new -> old
+		backups = list(sorted(backups, key=backup_get_timestamp, reverse=True))  # new -> old
 
 		def has_mark(backup: BackupInfo, keep: bool, protect: Optional[bool] = None) -> bool:
 			if (m := marks.get(backup.id)) is None:
@@ -144,7 +148,7 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 
 		def create_time_str_func(fmt: str) -> Callable[[BackupInfo], str]:
 			def func(backup: BackupInfo) -> str:
-				timestamp = backup.timestamp_us / 1e6
+				timestamp = backup.timestamp.unix_sec
 				dt = datetime.datetime.fromtimestamp(timestamp, tz=timezone)
 				return dt.strftime(fmt)
 			return func
@@ -165,8 +169,8 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 			mark_selections(settings.year, 'year', create_time_str_func('%Y'))
 
 		plan_list = PrunePlan()
-		now_us = time.time_ns() / 1000
-		max_lifetime_us = settings.max_lifetime.value * 1e6
+		now_ns = time.time_ns()
+		max_lifetime_ns = settings.max_lifetime.value * 1e9
 		regular_keep_count = 0
 		all_marks = collections.ChainMap(marks, fallback_marks)
 		default_mark = PruneMark.create_remove('unmarked')
@@ -178,7 +182,7 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 				if mark.keep:
 					if 0 < settings.max_amount <= regular_keep_count:
 						mark = PruneMark.create_remove('max_amount exceeded')
-					elif 0 < max_lifetime_us < now_us - backup_info.timestamp_us:
+					elif 0 < max_lifetime_ns < now_ns - backup_info.timestamp.unix_ns:
 						mark = PruneMark.create_remove('max_lifetime exceeded')
 
 				plan_list.append(PrunePlanItem(backup_info, mark))
@@ -338,7 +342,7 @@ def __main():
 		from prime_backup.types.backup_tags import BackupTags
 		from prime_backup.types.operator import Operator
 		backups.append(BackupInfo(
-			id=id_counter, timestamp_us=int(dt.timestamp() * 1e6),
+			id=id_counter, timestamp=Timestamp.from_second(dt.timestamp()),
 			creator=Operator.pb(PrimeBackupOperatorNames.test), comment='', targets=[], tags=BackupTags(),
 			fileset_id_base=0, fileset_id_delta=0, file_count=0, raw_size=0, stored_size=0,
 			files=[],

@@ -41,7 +41,7 @@ class BackupMeta(BaseModel):
 		return cls(
 			creator=str(backup.creator),
 			comment=backup.comment,
-			timestamp_ns=backup.timestamp_us * 1000,
+			timestamp_ns=backup.timestamp.unix_ns,
 			targets=list(backup.targets),
 			tags=backup.tags.to_dict(),
 		)
@@ -50,7 +50,8 @@ class BackupMeta(BaseModel):
 		return dict(
 			creator=self.creator,
 			comment=self.comment,
-			timestamp=self.timestamp_ns // 1000,
+			timestamp=self.timestamp_ns // (10 ** 9),
+			timestamp_ns_part=self.timestamp_ns % (10 ** 9),
 			targets=[t.rstrip('/') for t in self.targets],
 			tags=self.tags.copy(),
 		)

@@ -160,7 +160,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			mode: int
 			uid: int
 			gid: int
-			mtime_us: int
+			mtime_ns: int
 
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 			backup_files = session.get_backup_files(backup.id)
@@ -176,7 +176,7 @@ class CreateBackupAction(Action[BackupInfo]):
 					mode=file.mode,
 					uid=file.uid,
 					gid=file.gid,
-					mtime_us=file.mtime,
+					mtime_ns=file.mtime_unix_ns,
 				)
 				stat_to_files[key] = file
 
@@ -188,7 +188,7 @@ class CreateBackupAction(Action[BackupInfo]):
 					mode=file_entry.stat.st_mode,
 					uid=file_entry.stat.st_uid,
 					gid=file_entry.stat.st_gid,
-					mtime_us=file_entry.stat.st_mtime_ns // 1000
+					mtime_ns=file_entry.stat.st_mtime_ns
 				)
 				if (file_opt := stat_to_files.get(key)) is not None:
 					self.__pre_calc_result.reused_files[file_entry.path] = file_opt
@@ -247,6 +247,7 @@ class CreateBackupAction(Action[BackupInfo]):
 				uid=sqlalchemy_utils.mapped_cast(reused_file.uid),
 				gid=sqlalchemy_utils.mapped_cast(reused_file.gid),
 				mtime=sqlalchemy_utils.mapped_cast(reused_file.mtime),
+				mtime_ns_part=sqlalchemy_utils.mapped_cast(reused_file.mtime_ns_part),
 			)
 
 		if (st := self.__pre_calc_result.stats.pop(path, None)) is None:
@@ -283,7 +284,8 @@ class CreateBackupAction(Action[BackupInfo]):
 			content=content,
 			uid=st.st_uid,
 			gid=st.st_gid,
-			mtime=st.st_mtime_ns // 1000,
+			mtime=st.st_mtime_ns // (10 ** 9),
+			mtime_ns_part=st.st_mtime_ns % (10 ** 9),
 
 			blob=blob,
 		)
@@ -306,11 +308,14 @@ class CreateBackupAction(Action[BackupInfo]):
 		))
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_scan_files):
 			scan_result = self.__scan_files()
+		now_ns = time.time_ns()
 		backup = session.create_backup(
 			creator=str(self.creator),
 			comment=self.comment,
 			targets=scan_result.root_targets,
 			tags=self.tags.to_dict(),
+			timestamp=now_ns // (10 ** 9),
+			timestamp_ns_part=now_ns % (10 ** 9),
 		)
 		self.logger.info('Creating backup for {} at path {!r}, file cnt {}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
 			scan_result.root_targets, self.__source_path.as_posix(), len(scan_result.all_files),

@@ -9,6 +9,7 @@ from typing_extensions import Self
 from prime_backup.db import schema
 from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.operator import Operator
+from prime_backup.types.timestamp import Timestamp
 from prime_backup.utils import conversion_utils
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 @dataclasses.dataclass(frozen=True)
 class BackupInfo:
 	id: int
-	timestamp_us: int
+	timestamp: Timestamp
 	creator: Operator
 	comment: str
 	targets: List[str]
@@ -36,11 +37,11 @@ class BackupInfo:
 
 	@functools.cached_property
 	def date(self) -> datetime.datetime:
-		return conversion_utils.timestamp_to_local_date_us(self.timestamp_us)
+		return self.timestamp.to_local_date()
 
 	@functools.cached_property
 	def date_str(self) -> str:
-		return conversion_utils.timestamp_to_local_date_str_us(self.timestamp_us)
+		return conversion_utils.datetime_to_str(self.timestamp.to_local_date())
 
 	@classmethod
 	def of(cls, backup: schema.Backup, *, backup_files: Optional[List[schema.File]] = None) -> 'Self':
@@ -50,7 +51,7 @@ class BackupInfo:
 		from prime_backup.types.file_info import FileInfo
 		return cls(
 			id=backup.id,
-			timestamp_us=backup.timestamp,
+			timestamp=Timestamp.from_second_and_nano(backup.timestamp, backup.timestamp_ns_part),
 			creator=Operator.of(backup.creator),
 			comment=backup.comment,
 			targets=list(backup.targets),

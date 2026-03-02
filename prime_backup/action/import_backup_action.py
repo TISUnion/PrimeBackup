@@ -176,7 +176,8 @@ class ImportBackupAction(Action[BackupInfo]):
 			mode=member.mode,
 			uid=member.uid,
 			gid=member.gid,
-			mtime=member.mtime_us,
+			mtime=member.mtime_ns // (10 ** 9),
+			mtime_ns_part=member.mtime_ns % (10 ** 9),
 
 			blob=blob,
 		)

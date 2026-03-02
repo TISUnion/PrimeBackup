@@ -168,9 +168,9 @@ class CommandManager:
 		if (sort_order := context.get('sort_order')) is not None:
 			backup_filter.sort_order = sort_order
 		if (start_date := context.get('start_date')) is not None:
-			backup_filter.timestamp_us_start = int(start_date)
+			backup_filter.timestamp_ns_start = int(start_date)
 		if (end_date := context.get('end_date')) is not None:
-			backup_filter.timestamp_us_end = int(end_date)
+			backup_filter.timestamp_ns_end = int(end_date)
 		if context.get('me', 0) > 0:
 			backup_filter.creator = Operator.of(source)
 		if (creator_str := context.get('creator')) is not None:

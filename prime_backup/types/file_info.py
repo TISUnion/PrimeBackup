@@ -10,6 +10,7 @@ from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.values import FileRole, BlobStorageMethod, FileIdentifier
 from prime_backup.types.blob_info import BlobInfo, BlobDeltaSummary
+from prime_backup.types.timestamp import Timestamp
 from prime_backup.utils import misc_utils
 
 if TYPE_CHECKING:
@@ -35,7 +36,7 @@ class FileInfo:
 
 	uid: Optional[int] = None
 	gid: Optional[int] = None
-	mtime_us: Optional[int] = None
+	mtime: Optional[Timestamp] = None
 
 	# optional stats
 	# Backup samples below do contain this file, i.e. this file is not override by another delta fileset file
@@ -92,7 +93,7 @@ class FileInfo:
 			blob=blob,
 			uid=file.uid,
 			gid=file.gid,
-			mtime_us=file.mtime,
+			mtime=Timestamp.from_second_and_nano(file.mtime, file.mtime_ns_part) if file.mtime is not None and file.mtime_ns_part is not None else None,
 			backup_count=backup_count,
 			backup_samples=[BackupInfo.of(backup) for backup in backup_samples] if backup_samples is not None else [],
 		)

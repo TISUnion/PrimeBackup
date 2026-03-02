@@ -148,7 +148,7 @@ class Fileset(Base):
 	__tablename__ = 'fileset'
 	__table_args__ = {'sqlite_autoincrement': True}
 
-	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)  # XXX: no `index=True`?
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)  # XXX: no `index=True` on next rebuild
 	base_id: Mapped[int] = mapped_column(Integer)  # 0: is base fileset; >0: is delta fileset, and the value is the associated base fileset
 	file_object_count: Mapped[int] = mapped_column(BigInteger)
 
@@ -165,7 +165,7 @@ class Backup(Base):
 	__tablename__ = 'backup'
 	__table_args__ = {'sqlite_autoincrement': True}
 
-	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)  # XXX: no `index=True`?
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 	timestamp: Mapped[int] = mapped_column(BigInteger)  # timestamp in seconds
 	timestamp_ns_part: Mapped[int] = mapped_column(Integer)  # timestamp nanoseconds part
 	creator: Mapped[str] = mapped_column(String)

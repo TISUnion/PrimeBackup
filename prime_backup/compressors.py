@@ -1,12 +1,12 @@
 import contextlib
 import dataclasses
 import enum
-import shutil
 from abc import abstractmethod, ABC
 from typing import BinaryIO, Union, ContextManager, Tuple, Callable, Literal, Generator
 
 from typing_extensions import Protocol, override
 
+from prime_backup.utils import file_utils
 from prime_backup.utils.bypass_io import BypassReader, BypassWriter
 from prime_backup.utils.path_like import PathLike
 
@@ -43,6 +43,7 @@ class Compressor(ABC):
 	def copy_compressed(
 			self, source_path: PathLike, dest_path: PathLike, *,
 			calc_hash: bool = False,
+			estimate_read_size: int = 0,
 			open_r_func: Callable[[PathLike, "Literal['rb']"], BinaryIO] = open,
 			open_w_func: Callable[[PathLike, "Literal['wb']"], BinaryIO] = open,
 	) -> CopyCompressResult:
@@ -52,7 +53,7 @@ class Compressor(ABC):
 		with open_r_func(source_path, 'rb') as f_in, open_w_func(dest_path, 'wb') as f_out:
 			reader = BypassReader(f_in, calc_hash=calc_hash)
 			writer = BypassWriter(f_out)
-			self._copy_compressed(reader, writer)
+			self._copy_compressed(reader, writer, estimate_read_size=estimate_read_size)
 			return self.CopyCompressResult(reader.get_read_len(), reader.get_hash(), writer.get_write_len())
 
 	def copy_decompressed(
@@ -106,19 +107,19 @@ class Compressor(ABC):
 			with self.decompress_stream(reader) as f_decompressed:
 				yield reader, f_decompressed
 
-	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO):
+	def _copy_compressed(self, f_in: BinaryIO, f_out: BinaryIO, *, estimate_read_size: int = 0):
 		"""
 		(f_in) --[compress]--> (f_out)
 		"""
 		with self.compress_stream(f_out) as compressed_out:
-			shutil.copyfileobj(f_in, compressed_out)
+			file_utils.copy_file_obj_fast(f_in, compressed_out, estimate_read_size=estimate_read_size)
 
-	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO):
+	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO, *, estimate_read_size: int = 0):
 		"""
 		(f_in) --[decompress]--> (f_out)
 		"""
 		with self.decompress_stream(f_in) as compressed_in:
-			shutil.copyfileobj(compressed_in, f_out)
+			file_utils.copy_file_obj_fast(compressed_in, f_out, estimate_read_size=estimate_read_size)
 
 	@abstractmethod
 	def compress_stream(self, f_out: BinaryIO) -> ContextManager[BinaryIO]:

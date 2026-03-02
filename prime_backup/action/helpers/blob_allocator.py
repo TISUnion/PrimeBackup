@@ -342,7 +342,7 @@ class BlobAllocator:
 
 				blob_path = get_blob_path_for_write(blob_hash)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
-					cr = compressor.copy_compressed(temp_file_path, blob_path, calc_hash=False)
+					cr = compressor.copy_compressed(temp_file_path, blob_path, calc_hash=False, estimate_read_size=st.st_size)
 				raw_size, stored_size = cr.read_size, cr.write_size
 
 		elif policy == _DirectBlobCreatePolicy.hash_once:
@@ -350,7 +350,7 @@ class BlobAllocator:
 			misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
 			with self.__make_temp_file(src_path_md5) as temp_file_path:
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
-					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True, open_r_func=SourceFileNotFoundWrapper.open_rb)
+					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True, estimate_read_size=st.st_size, open_r_func=SourceFileNotFoundWrapper.open_rb)
 				check_changes(cr.read_size, None)  # the size must be unchanged, to satisfy the uniqueness
 
 				raw_size, blob_hash, stored_size = cr.read_size, cr.read_hash, cr.write_size
@@ -391,7 +391,7 @@ class BlobAllocator:
 				else:
 					# copy+compress+hash to blob store
 					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
-						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True, open_r_func=SourceFileNotFoundWrapper.open_rb)
+						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True, estimate_read_size=st.st_size, open_r_func=SourceFileNotFoundWrapper.open_rb)
 					raw_size, stored_size = cr.read_size, cr.write_size
 					actual_sah = SizeAndHash(cr.read_size, cr.read_hash)
 				check_changes(actual_sah.size, actual_sah.hash)

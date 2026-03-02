@@ -1,4 +1,3 @@
-import shutil
 import time
 from concurrent.futures import Future
 from pathlib import Path
@@ -13,7 +12,7 @@ from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.types.size_diff import SizeDiff
-from prime_backup.utils import blob_utils, chunk_utils
+from prime_backup.utils import blob_utils, chunk_utils, file_utils
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 
 _OLD_BLOB_SUFFIX = '_old'
@@ -64,7 +63,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 		blob_path.replace(old_trash_path)
 		with decompressor.open_decompressed(old_trash_path) as f_src:
 			with compressor.open_compressed_bypassed(blob_path) as (writer, f_dst):
-				shutil.copyfileobj(f_src, f_dst)
+				file_utils.copy_file_obj_fast(f_src, f_dst, estimate_read_size=blob.stored_size)
 
 		blob.compress = new_compress_method.name
 		blob.stored_size = writer.get_write_len()
@@ -101,7 +100,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 		chunk_path.replace(old_trash_path)
 		with decompressor.open_decompressed(old_trash_path) as f_src:
 			with compressor.open_compressed_bypassed(chunk_path) as (writer, f_dst):
-				shutil.copyfileobj(f_src, f_dst)
+				file_utils.copy_file_obj_fast(f_src, f_dst, estimate_read_size=chunk.stored_size)
 
 		chunk.compress = new_compress_method.name
 		chunk.stored_size = writer.get_write_len()

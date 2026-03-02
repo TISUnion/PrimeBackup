@@ -1,13 +1,17 @@
 import errno
+import functools
 import os
+import queue
 import shutil
 import stat
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional, Literal, BinaryIO, Callable
 
 import psutil
 
 from prime_backup.utils import path_utils
+from prime_backup.utils.io_types import SupportsReadBytes, SupportsWriteBytes
 
 HAS_COPY_FILE_RANGE = callable(getattr(os, 'copy_file_range', None))
 
@@ -44,6 +48,54 @@ def copy_file_fast(
 				raise
 
 	shutil.copyfile(src_path, dst_path, follow_symlinks=False)
+
+
+class _ThreadedFastFileObjCopier:
+	COPY_BUFSIZE = 1024 * 1024 if os.name == 'nt' else 4 * 1024  # == shutil.COPY_BUFSIZE
+	MEMORY_CACHE_SIZE = 8 * 1048576
+
+	def __init__(self, concurrency: int):
+		self.concurrency = concurrency
+		self.thread_pool = ThreadPoolExecutor(max_workers=concurrency)
+
+	def copy(self, src: SupportsReadBytes, dst: SupportsWriteBytes):
+		q: 'queue.Queue[Optional[bytes]]' = queue.Queue(maxsize=max(1, self.MEMORY_CACHE_SIZE // self.COPY_BUFSIZE))
+		func_exited = False
+
+		# reference: shutil.copyfileobj
+		q_put = q.put
+		q_get = q.get
+		buf_size = self.COPY_BUFSIZE
+		read_func = src.read
+		write_func = dst.write
+
+		def read_worker():
+			try:
+				while not func_exited and (read_buf := read_func(buf_size)):
+					q_put(read_buf)
+			finally:
+				q_put(None)
+
+		future = self.thread_pool.submit(read_worker)
+		try:
+			while (write_buf := q_get()) is not None:
+				write_func(write_buf)
+			future.result()
+		finally:
+			func_exited = True
+
+
+@functools.lru_cache(None)
+def __get_copier():
+	from prime_backup.config.config import Config
+	return _ThreadedFastFileObjCopier(Config.get().get_effective_concurrency())
+
+
+def copy_file_obj_fast(src: SupportsReadBytes, dst: SupportsWriteBytes, *, estimate_read_size: int = 0):
+	if estimate_read_size > 1048576 and False:  # TODO
+		__get_copier().copy(src, dst)
+	else:
+		shutil.copyfileobj(src, dst)
 
 
 def rm_rf(path: Path, *, missing_ok: bool = False):

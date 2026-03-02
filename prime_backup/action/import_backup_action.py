@@ -1,5 +1,4 @@
 import json
-import shutil
 from pathlib import Path
 from typing import IO, Optional, List, Dict, Tuple
 
@@ -24,7 +23,7 @@ from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import blob_utils, misc_utils, chunk_utils, collection_utils
+from prime_backup.utils import blob_utils, misc_utils, chunk_utils, collection_utils, file_utils
 from prime_backup.utils.hash_utils import SizeAndHash
 
 
@@ -68,7 +67,7 @@ class ImportBackupAction(Action[BackupInfo]):
 		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(sah.size)
 		compressor = Compressor.create(compress_method)
 		with compressor.open_compressed_bypassed(blob_path) as (writer, f):
-			shutil.copyfileobj(file_reader, f)
+			file_utils.copy_file_obj_fast(file_reader, f, estimate_read_size=sah.size)
 
 		return writer.get_write_len(), compress_method
 

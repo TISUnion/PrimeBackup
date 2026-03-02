@@ -1,7 +1,6 @@
 import contextlib
 import dataclasses
 import functools
-import shutil
 import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -152,9 +151,9 @@ class BlobExporter:
 				with open(output_path, 'wb') as f_out:
 					if self.verify_blob:
 						bypass_reader = BypassReader(f_in, calc_hash=True)
-						shutil.copyfileobj(bypass_reader, f_out)
+						file_utils.copy_file_obj_fast(bypass_reader, f_out, estimate_read_size=self.blob.raw_size)
 					else:
-						shutil.copyfileobj(f_in, f_out)
+						file_utils.copy_file_obj_fast(f_in, f_out, estimate_read_size=self.blob.raw_size)
 			if self.verify_blob and bypass_reader is not None:
 				self.__verify_exported_blob(bypass_reader.get_read_len(), bypass_reader.get_hash())
 
@@ -169,9 +168,9 @@ class BlobExporter:
 				with compressor.open_decompressed(chunk_path) as f_in:
 					if self.verify_blob:
 						bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=chunk_utils.get_hash_method())
-						shutil.copyfileobj(bypass_reader, f_out)
+						file_utils.copy_file_obj_fast(bypass_reader, f_out, estimate_read_size=oc.chunk.raw_size)
 					else:
-						shutil.copyfileobj(f_in, f_out)
+						file_utils.copy_file_obj_fast(f_in, f_out, estimate_read_size=oc.chunk.raw_size)
 
 				if self.verify_blob and bypass_reader is not None:
 					self.__verify_exported_chunk(oc.chunk, bypass_reader.get_read_len(), bypass_reader.get_hash())

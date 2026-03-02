@@ -1,6 +1,5 @@
 import contextlib
 import os
-import shutil
 import stat
 import time
 import zipfile
@@ -14,6 +13,7 @@ from prime_backup.action.helpers.blob_exporter import BlobChunksGetter, ThreadSa
 from prime_backup.constants.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
 from prime_backup.types.export_failure import ExportFailures
+from prime_backup.utils import file_utils
 from prime_backup.utils.io_types import SupportsReadBytes
 
 
@@ -56,7 +56,7 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 
 			def reader_csm(reader: SupportsReadBytes):
 				with zipf.open(info, 'w') as zip_item:
-					shutil.copyfileobj(reader, zip_item)
+					file_utils.copy_file_obj_fast(reader, zip_item, estimate_read_size=file.blob_raw_size)
 
 			self._create_blob_exporter(blob_chunks_getter, file).export_as_reader(reader_csm)
 		elif stat.S_ISDIR(file.mode):

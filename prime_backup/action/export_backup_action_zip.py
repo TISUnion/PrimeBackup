@@ -55,8 +55,8 @@ class ExportBackupToZipAction(_ExportBackupActionBase):
 			info.file_size = file.blob_raw_size
 
 			def reader_csm(reader: SupportsReadBytes):
-				with zipf.open(info, 'w') as zip_item:
-					file_utils.copy_file_obj_fast(reader, zip_item, estimate_read_size=file.blob_raw_size)
+				with zipf.open(info, 'w') as zip_item_:
+					file_utils.copy_file_obj_fast(reader, zip_item_, estimate_read_size=file.blob_raw_size or 0)
 
 			self._create_blob_exporter(blob_chunks_getter, file).export_as_reader(reader_csm)
 		elif stat.S_ISDIR(file.mode):

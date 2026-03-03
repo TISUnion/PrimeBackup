@@ -8,6 +8,7 @@ from typing import Optional, Callable, Any, List, Generator, Union
 
 from typing_extensions import override
 
+from prime_backup import logger
 from prime_backup.compressors import CompressMethod
 from prime_backup.compressors import Compressor
 from prime_backup.db import schema
@@ -81,6 +82,7 @@ class _PeekReader:
 
 @dataclasses.dataclass(frozen=True)
 class _OpenedChunk:
+	offset_chunk: OffsetChunkInfo
 	reader: SupportsReadBytes
 	verify_callback: Callable[[], None]
 
@@ -104,7 +106,11 @@ class _CombinedChunksReader:
 		total_read = 0
 		while length < 0 or total_read < length:
 			to_read = length - total_read
-			buf = self.current.reader.read(to_read)
+			try:
+				buf = self.current.reader.read(to_read)
+			except Exception as e:
+				logger.get().error(f'Failed to read {to_read} bytes from chunk {self.current.offset_chunk}: {e}')
+				raise
 			total_read += len(buf)
 			results.append(buf)
 			if len(buf) < to_read:
@@ -124,6 +130,7 @@ class _CombinedChunksReader:
 
 class BlobExporter:
 	def __init__(self, blob_chunks_getter: BlobChunksGetter, blob: BlobInfo, *, file_path: str, verify_blob: bool):
+		self.logger = logger.get()
 		self.blob_chunks_getter = blob_chunks_getter
 		self.file_path = file_path
 		self.blob = blob
@@ -188,8 +195,12 @@ class BlobExporter:
 
 		bypass_reader: Optional[BypassReader] = None
 		with Compressor.create(self.blob.compress).open_decompressed(blob_path) as stream:
-			peek_reader = _PeekReader(stream, 32 * 1024)
-			peek_reader.peek()
+			try:
+				peek_reader = _PeekReader(stream, 32 * 1024)
+				peek_reader.peek()
+			except Exception as e:
+				self.logger.error(f'Failed to peek-read blob file {blob_path!r} for {self.blob}: {e}')
+				raise
 
 			if self.verify_blob:
 				bypass_reader = BypassReader(peek_reader, calc_hash=True)
@@ -211,17 +222,21 @@ class BlobExporter:
 				chunk_path = chunk_utils.get_chunk_path(oc.chunk.hash)
 
 				with compressor.open_decompressed(chunk_path) as f_in:
-					peek_reader = _PeekReader(f_in, 32 * 1024)
-					peek_reader.peek()
+					try:
+						peek_reader = _PeekReader(f_in, 32 * 1024)
+						peek_reader.peek()
+					except Exception as e:
+						self.logger.error(f'Failed to peek-read chunk file {chunk_path!r} for {oc}: {e}')
+						raise
 
 					if self.verify_blob:
 						def verify_callback(ck: ChunkInfo, br: BypassReader):
 							self.__verify_exported_chunk(ck, br.get_read_len(), br.get_hash())
 
 						bypass_reader = BypassReader(peek_reader, calc_hash=True, hash_method=chunk_utils.get_hash_method())
-						yield _OpenedChunk(bypass_reader, functools.partial(verify_callback, oc.chunk, bypass_reader))
+						yield _OpenedChunk(oc, bypass_reader, functools.partial(verify_callback, oc.chunk, bypass_reader))
 					else:
-						yield _OpenedChunk(peek_reader, lambda: None)
+						yield _OpenedChunk(oc, peek_reader, lambda: None)
 
 				nonlocal exit_flag
 				if exit_flag:

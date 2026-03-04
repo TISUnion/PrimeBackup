@@ -499,11 +499,11 @@ class BlobAllocator:
 						new_db_chunks.append(db_chunk)
 						known_db_chunks[db_chunk.hash] = db_chunk
 
-						def write_task(db_chunk_=db_chunk, chunk_buf_=chunk_buf):
+						def write_task(db_chunk_=db_chunk, compressor_=compressor, chunk_buf_=chunk_buf):
 							chunk_path = chunk_utils.get_chunk_path(db_chunk_.hash)
 							self.__blob_recorder.add_remove_file_rollbacker(chunk_path)
 
-							with compressor.open_compressed_bypassed(chunk_path) as (writer, f):
+							with compressor_.open_compressed_bypassed(chunk_path) as (writer, f):
 								f.write(chunk_buf_)
 
 							db_chunk_.stored_size = writer.get_write_len()

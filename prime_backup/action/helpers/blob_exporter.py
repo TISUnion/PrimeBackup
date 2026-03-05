@@ -105,7 +105,10 @@ class _CombinedChunksReader:
 		results: List[bytes] = []
 		total_read = 0
 		while length < 0 or total_read < length:
-			to_read = length - total_read
+			if length < 0:
+				to_read = -1
+			else:
+				to_read = length - total_read
 			try:
 				buf = self.current.reader.read(to_read)
 			except Exception as e:
@@ -113,7 +116,7 @@ class _CombinedChunksReader:
 				raise
 			total_read += len(buf)
 			results.append(buf)
-			if len(buf) < to_read:
+			if to_read == -1 or len(buf) < to_read:
 				self.current.verify_callback()
 				if not self.__switch_to_next():
 					break

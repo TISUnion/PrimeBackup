@@ -49,8 +49,14 @@ class _DbFileBackupHelper:
 			file_utils.copy_file_obj_fast(f_src, f_dst)
 
 	def restore(self):
-		with open(self.src_file, 'wb') as f_dst, self.__open_backup_for_read() as f_src:
-			file_utils.copy_file_obj_fast(f_src, f_dst)
+		tmp_src_file = self.src_file.with_name(self.src_file.name + '.tmp')
+		try:
+			with open(tmp_src_file, 'wb') as f_dst, self.__open_backup_for_read() as f_src:
+				file_utils.copy_file_obj_fast(f_src, f_dst)
+			tmp_src_file.replace(self.src_file)
+		except Exception:
+			tmp_src_file.unlink(missing_ok=True)
+			raise
 
 	def delete_all(self):
 		self.backup_file.unlink(missing_ok=True)

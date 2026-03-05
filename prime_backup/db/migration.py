@@ -73,7 +73,7 @@ class DbMigration:
 		start_ts = time.time()
 		self.logger.info('DB migration starts. current DB version: {}, target version: {}'.format(current_version, target_version))
 
-		backup_helper = _DbFileBackupHelper(self.db_file, self.db_dir / 'db_backup', 'pre_migration_{}to{}_{}'.format(current_version, target_version, time.strftime('%Y%m%d')))
+		backup_helper = _DbFileBackupHelper(self.db_file, self.db_dir / 'db_backup', 'pre_migration_{}to{}_{}'.format(current_version, target_version, time.strftime('%Y%m%d%H%M%S')))
 		self.logger.info('Creating DB pre migration backup at {}'.format(str(backup_helper.backup_file)))
 		backup_helper.create(skip_existing=True)
 

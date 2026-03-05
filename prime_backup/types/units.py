@@ -101,7 +101,7 @@ class _UnitValueBase(Generic[_T], str, ABC):
 	@classmethod
 	def _precise_format(cls, val: _T) -> ValueUnitPair:
 		if val < 0:
-			uvp = cls._auto_format(cast(_T, -val))
+			uvp = cls._precise_format(cast(_T, -val))
 			return ValueUnitPair(-uvp.value, uvp.unit)
 
 		units = list(reversed(cls._get_formatting_unit_map().items()))

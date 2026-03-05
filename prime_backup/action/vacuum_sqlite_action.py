@@ -40,4 +40,8 @@ class VacuumSqliteAction(Action[SizeDiff]):
 			after_size = self.target_path.stat().st_size
 		else:
 			after_size = db_file_path.stat().st_size
+		self.logger.debug('Vacuum done ({}), db size: {} -> {}'.format(
+			f'target file: {into_file}' if into_file is not None else 'in-place',
+			prev_size, after_size
+		))
 		return SizeDiff(prev_size, after_size)

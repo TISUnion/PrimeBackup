@@ -1,3 +1,4 @@
+import contextlib
 import tarfile
 import threading
 import time
@@ -34,9 +35,6 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 			self.logger.info('db backup: Vacuum database to {}'.format(temp_db_path.as_posix()))
 			if temp_db_path.is_file():
 				temp_db_path.unlink()
-			VacuumSqliteAction(temp_db_path).run()
-			db_size = temp_db_path.stat().st_size
-			self.logger.info('db backup: Vacuum database done, start a new thread for compressing')
 
 			def tar_thread():
 				try:
@@ -56,9 +54,19 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 					self.__task_sem.release()
 					temp_db_path.unlink(missing_ok=True)
 
-			thread = threading.Thread(target=tar_thread, name=misc_utils.make_thread_name('db-backup'), daemon=True)
-			thread.start()
-			return thread
+			try:
+				VacuumSqliteAction(temp_db_path).run()
+				db_size = temp_db_path.stat().st_size
+				self.logger.info('db backup: Vacuum database done, start a new thread for compressing')
+
+				thread = threading.Thread(target=tar_thread, name=misc_utils.make_thread_name('db-backup'), daemon=True)
+				thread.start()
+				return thread
+
+			except Exception:
+				with contextlib.suppress(OSError):
+					temp_db_path.unlink(missing_ok=True)
+				raise
 
 		except Exception:
 			self.__task_sem.release()

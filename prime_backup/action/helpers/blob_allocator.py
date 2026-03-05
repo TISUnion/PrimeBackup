@@ -10,10 +10,11 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, overload, Deque
+from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, overload, Deque, ContextManager
 
 from typing_extensions import NoReturn, override
 
+from prime_backup import logger
 from prime_backup.action.helpers import create_backup_utils
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
@@ -191,6 +192,26 @@ class BatchQueryManager:
 		self.fetcher_hash.flush()
 
 
+class _FailureFileDeleter(ContextManager['_FailureFileDeleter']):
+	def __init__(self, what: str = 'failure_delete'):
+		self.file_paths: List[Path] = []
+		self.what = what
+
+	def mark(self, path: Path):
+		self.file_paths.append(path)
+
+	@override
+	def __enter__(self) -> '_FailureFileDeleter':
+		return self
+
+	@override
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		if exc_type is not None:
+			logger.get().debug(f'Deleting {len(self.file_paths)} files due to exception {exc_val}: {self.file_paths}')
+			for file_path in self.file_paths:
+				create_backup_utils.remove_file(file_path, what=self.what)
+
+
 @dataclasses.dataclass(frozen=True)
 class GetOrCreateBlobResult:
 	blob: schema.Blob
@@ -314,20 +335,11 @@ class BlobAllocator:
 			if blob_hash is not None and new_hash is not None and new_hash != blob_hash:
 				log_and_raise_blob_file_changed('Blob hash mismatch, previous: {}, current: {}'.format(blob_hash, new_hash))
 
-		def get_blob_path_for_write(h: str) -> Path:
-			"""
-			Get blob path by hash, and add the blob path to the rollbacker
-			Commonly used right before creating the blob file
-			"""
-			bp = blob_utils.get_blob_path(h)
-			self.__blob_recorder.add_remove_file_rollbacker(bp)
-			return bp
-
 		compressor = Compressor.create(compress_method)
 		if policy == _DirectBlobCreatePolicy.copy_hash:
 			# copy to temp file, calc hash, then compress to blob store
 			misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
-			with self.__make_temp_file(src_path_md5) as temp_file_path:
+			with self.__make_temp_file(src_path_md5) as temp_file_path, _FailureFileDeleter() as file_deleter:
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 					file_utils.copy_file_fast(src_path, temp_file_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
@@ -340,7 +352,8 @@ class BlobAllocator:
 				if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
 					return cache
 
-				blob_path = get_blob_path_for_write(blob_hash)
+				blob_path = blob_utils.get_blob_path(blob_hash)
+				file_deleter.mark(blob_path)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 					cr = compressor.copy_compressed(temp_file_path, blob_path, calc_hash=False, estimate_read_size=st.st_size)
 				raw_size, stored_size = cr.read_size, cr.write_size
@@ -348,13 +361,14 @@ class BlobAllocator:
 		elif policy == _DirectBlobCreatePolicy.hash_once:
 			# read once, compress+hash to temp file, then move
 			misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
-			with self.__make_temp_file(src_path_md5) as temp_file_path:
+			with self.__make_temp_file(src_path_md5) as temp_file_path, _FailureFileDeleter() as file_deleter:
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
 					cr = compressor.copy_compressed(src_path, temp_file_path, calc_hash=True, estimate_read_size=st.st_size, open_r_func=SourceFileNotFoundWrapper.open_rb)
 				check_changes(cr.read_size, None)  # the size must be unchanged, to satisfy the uniqueness
 
 				raw_size, blob_hash, stored_size = cr.read_size, cr.read_hash, cr.write_size
-				blob_path = get_blob_path_for_write(blob_hash)
+				blob_path = blob_utils.get_blob_path(blob_hash)
+				file_deleter.mark(blob_path)
 
 				# reference: shutil.move, but os.replace is used
 				try:
@@ -370,37 +384,42 @@ class BlobAllocator:
 		else:
 			misc_utils.assert_true(blob_hash is not None, 'blob_hash is None')
 			assert blob_hash is not None  # make mypy happy
-			blob_path = get_blob_path_for_write(blob_hash)
+			blob_path = blob_utils.get_blob_path(blob_hash)
 
-			if policy == _DirectBlobCreatePolicy.read_all:
-				# the file content is already in memory, just write+compress to blob store
-				misc_utils.assert_true(blob_content is not None, 'blob_content is None')
-				assert blob_content is not None  # make mypy happy
-				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
-					with compressor.open_compressed_bypassed(blob_path) as (writer, f):
-						f.write(blob_content)
-				raw_size, stored_size = len(blob_content), writer.get_write_len()
-			elif policy == _DirectBlobCreatePolicy.default:
-				if can_copy_on_write and compress_method == CompressMethod.plain:
-					# fast copy, then calc size and hash to verify
-					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
-						file_utils.copy_file_fast(src_path, blob_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
-					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
-						actual_sah = hash_utils.calc_file_size_and_hash(blob_path)
-					raw_size = stored_size = actual_sah.size
+			with _FailureFileDeleter() as file_deleter:
+				file_deleter.mark(blob_path)
+
+				if policy == _DirectBlobCreatePolicy.read_all:
+					# the file content is already in memory, just write+compress to blob store
+					misc_utils.assert_true(blob_content is not None, 'blob_content is None')
+					assert blob_content is not None  # make mypy happy
+					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
+						with compressor.open_compressed_bypassed(blob_path) as (writer, f):
+							f.write(blob_content)
+					raw_size, stored_size = len(blob_content), writer.get_write_len()
+				elif policy == _DirectBlobCreatePolicy.default:
+					if can_copy_on_write and compress_method == CompressMethod.plain:
+						# fast copy, then calc size and hash to verify
+						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
+							file_utils.copy_file_fast(src_path, blob_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
+						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
+							actual_sah = hash_utils.calc_file_size_and_hash(blob_path)
+						raw_size = stored_size = actual_sah.size
+					else:
+						# copy+compress+hash to blob store
+						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
+							cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True, estimate_read_size=st.st_size, open_r_func=SourceFileNotFoundWrapper.open_rb)
+						raw_size, stored_size = cr.read_size, cr.write_size
+						actual_sah = SizeAndHash(cr.read_size, cr.read_hash)
+					check_changes(actual_sah.size, actual_sah.hash)
 				else:
-					# copy+compress+hash to blob store
-					with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
-						cr = compressor.copy_compressed(src_path, blob_path, calc_hash=True, estimate_read_size=st.st_size, open_r_func=SourceFileNotFoundWrapper.open_rb)
-					raw_size, stored_size = cr.read_size, cr.write_size
-					actual_sah = SizeAndHash(cr.read_size, cr.read_hash)
-				check_changes(actual_sah.size, actual_sah.hash)
-			else:
-				raise AssertionError('bad policy {!r}'.format(policy))
+					raise AssertionError('bad policy {!r}'.format(policy))
 
 		misc_utils.assert_true(blob_hash is not None, lambda: f'blob_hash is None, policy {policy}')
 		misc_utils.assert_true(raw_size is not None, lambda: f'raw_size is None, policy {policy}')
 		misc_utils.assert_true(stored_size is not None, lambda: f'stored_size is None, policy {policy}')
+
+		self.__blob_recorder.add_remove_file_rollbacker(blob_utils.get_blob_path(blob_hash))
 		return self.__blob_recorder.create_blob(
 			self.session,
 			storage_method=BlobStorageMethod.direct.value,

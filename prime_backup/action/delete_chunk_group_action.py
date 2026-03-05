@@ -8,7 +8,7 @@ from prime_backup.action.delete_chunk_action import DeleteOrphanChunksAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.exceptions import ChunkIdNotFound, ChunkHashNotFound
+from prime_backup.exceptions import ChunkGroupHashNotFound, ChunkGroupIdNotFound
 from prime_backup.types.chunk_group_info import ChunkGroupListSummary
 from prime_backup.utils import collection_utils
 
@@ -57,7 +57,7 @@ class DeleteChunkGroupsAction(Action[ChunkGroupListSummary]):
 		for chunk_group_id, chunk_group in chunk_groups_by_id.items():
 			if chunk_group is None:
 				if self.raise_if_not_found:
-					raise ChunkIdNotFound(chunk_group_id)
+					raise ChunkGroupIdNotFound(chunk_group_id)
 				else:
 					self.logger.warning('Chunk group with id {} does not exist'.format(chunk_group_id))
 					continue
@@ -69,7 +69,7 @@ class DeleteChunkGroupsAction(Action[ChunkGroupListSummary]):
 		for chunk_group_hash, chunk_group in chunk_groups_by_hash.items():
 			if chunk_group is None:
 				if self.raise_if_not_found:
-					raise ChunkHashNotFound(chunk_group_hash)
+					raise ChunkGroupHashNotFound(chunk_group_hash)
 				else:
 					self.logger.warning('Chunk group with hash {} does not exist'.format(chunk_group_hash))
 					continue

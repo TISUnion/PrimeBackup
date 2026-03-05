@@ -2,7 +2,7 @@ from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.db.access import DbAccess
-from prime_backup.exceptions import ChunkHashNotFound, ChunkGroupHashNotUnique
+from prime_backup.exceptions import ChunkGroupHashNotUnique, ChunkGroupHashNotFound
 from prime_backup.types.chunk_group_info import ChunkGroupInfo
 
 
@@ -14,7 +14,7 @@ class GetChunkGroupByIdAction(Action[ChunkGroupInfo]):
 	@override
 	def run(self) -> ChunkGroupInfo:
 		"""
-		:raise: ChunkIdNotFound
+		:raise: ChunkGroupIdNotFound
 		"""
 		with DbAccess.open_session() as session:
 			chunk_group = session.get_chunk_group_by_id(self.chunk_group_id)
@@ -29,7 +29,7 @@ class GetChunkGroupByHashAction(Action[ChunkGroupInfo]):
 	@override
 	def run(self) -> ChunkGroupInfo:
 		"""
-		:raise: ChunkHashNotFound
+		:raise: ChunkGroupHashNotFound
 		"""
 		with DbAccess.open_session() as session:
 			chunk_group = session.get_chunk_group_by_hash(self.chunk_group_hash)
@@ -44,12 +44,12 @@ class GetChunkGroupByHashPrefixAction(Action[ChunkGroupInfo]):
 	@override
 	def run(self) -> ChunkGroupInfo:
 		"""
-		:raise: ChunkHashNotFound or ChunkHashNotUnique
+		:raise: ChunkGroupHashNotFound or ChunkGroupHashNotUnique
 		"""
 		with DbAccess.open_session() as session:
 			chunk_groups = session.list_chunk_group_with_hash_prefix(self.chunk_group_hash_prefix, limit=3)
 			if len(chunk_groups) == 0:
-				raise ChunkHashNotFound(self.chunk_group_hash_prefix)
+				raise ChunkGroupHashNotFound(self.chunk_group_hash_prefix)
 			elif len(chunk_groups) > 1:
 				def get_hash_for_sort(b: 'ChunkGroupInfo'):
 					return b.hash

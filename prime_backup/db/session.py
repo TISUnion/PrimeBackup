@@ -1565,8 +1565,10 @@ class DbSession:
 
 	def list_backup(self, backup_filter: Optional[BackupFilter] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Backup]:
 		s = select(schema.Backup)
-		if backup_filter is not None and self.__needs_manual_backup_tag_filter(backup_filter):
+		if backup_filter is not None:
 			s = self.__apply_backup_filter(s, backup_filter)
+
+		if backup_filter is not None and self.__needs_manual_backup_tag_filter(backup_filter):
 			backups = [backup for backup in self.session.execute(s).scalars().all() if self.__manual_backup_tag_filter(backup, backup_filter)]
 			if offset is not None:
 				backups = backups[offset:]

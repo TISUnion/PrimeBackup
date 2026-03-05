@@ -9,6 +9,8 @@ _V = TypeVar('_V')
 
 
 def slicing_iterate(lst: List[_T], page_size: int) -> Generator[List[_T], None, None]:
+	if page_size <= 0:
+		raise ValueError(f'page_size must be positive, got {page_size}')
 	for i in range(0, len(lst), page_size):
 		yield lst[i:min(i + page_size, len(lst))]
 

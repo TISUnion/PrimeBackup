@@ -212,11 +212,11 @@ class ValidateDbTask(HeavyTask[None]):
 
 			def item_formatter(item: Tuple[FileInfo, str]) -> RTextBase:
 				file, msg = item
-				return RTextBase.format('fileset={} path={!r}: {}', TextComponents.fileset_id(file.fileset_id), file.path)
+				return RTextBase.format('fileset={} path={!r}: {}', TextComponents.fileset_id(file.fileset_id), file.path, msg)
 
 			self.__show_bad_objects(vlogger, lst, item_formatter)
 
-		self.reply(self.tr('validate_blobs.found_bad_files', TextComponents.number(result.bad), TextComponents.number(result.validated)).set_color(RColor.red))
+		self.reply(self.tr('validate_files.found_bad_files', TextComponents.number(result.bad), TextComponents.number(result.validated)).set_color(RColor.red))
 		for bfit in BadFileItemType:
 			show(bfit.name, result.get_bad_by_type(bfit))
 

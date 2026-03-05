@@ -32,7 +32,7 @@ class CreateBackupTask(HeavyTask[Optional[int]]):
 
 	@override
 	def is_abort_able(self) -> bool:
-		return self.__waiting_world_save
+		return super().is_abort_able() or self.__waiting_world_save
 
 	@contextlib.contextmanager
 	def __autosave_disabler(self):

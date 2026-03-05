@@ -52,8 +52,8 @@ class DiffBackupTask(LightTask[None]):
 			text = RTextBase.format(
 				'{} {} {}',
 				head,
-				pretty_mode(file.mode),
-				TextComponents.file_path(file.path),
+				pretty_mode(f.mode),
+				TextComponents.file_path(f.path),
 			)
 			if f.is_link():
 				if f.content is not None:

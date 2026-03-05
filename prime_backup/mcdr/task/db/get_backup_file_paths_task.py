@@ -23,5 +23,5 @@ class GetBackupFilePathsTask(LightTask[List[str]]):
 		if isinstance(self.backup_id, int):
 			backup_id = self.backup_id
 		else:  # backup id raw argument
-			backup_id = TransformBackupIdTask(self.source, [self.backup_id]).run()[0]
+			backup_id = self.run_subtask(TransformBackupIdTask(self.source, [self.backup_id]))[0]
 		return GetBackupFilePathsAction(backup_id).run()

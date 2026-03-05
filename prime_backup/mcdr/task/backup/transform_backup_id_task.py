@@ -1,6 +1,7 @@
 from typing import List
 
 from mcdreforged.api.all import CommandSource
+from typing_extensions import override
 
 from prime_backup.exceptions import OffsetBackupNotFound
 from prime_backup.mcdr.task.basic_task import LightTask
@@ -13,9 +14,11 @@ class TransformBackupIdTask(LightTask[List[int]]):
 		self.backup_id_strings = backup_id_strings
 
 	@property
+	@override
 	def id(self) -> str:
 		return 'backup_transform_backup_id'
 
+	@override
 	def run(self, *, allow_db_access: bool = True) -> List[int]:
 		parser = BackupIdParser(allow_db_access=allow_db_access)
 		backup_ids: List[int] = []

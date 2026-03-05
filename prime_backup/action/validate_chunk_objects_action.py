@@ -39,6 +39,11 @@ class ValidateChunkObjectsAction(Action[ValidateChunkObjectsResult]):
 	def run(self) -> ValidateChunkObjectsResult:
 		session: DbSession
 		with DbAccess.open_session() as session:
+			chunk_result = ValidateChunksResult()
+			chunk_group_result = ValidateChunkGroupsResult()
+			chunk_group_chunk_bindings_result = ValidateChunkGroupChunkBindingsResult()
+			blob_chunk_group_bindings_result = ValidateBlobChunkGroupBindingsResult()
+
 			if not self.is_interrupted.is_set():
 				chunk_result = ValidateChunksAction().run(session=session)
 			if not self.is_interrupted.is_set():

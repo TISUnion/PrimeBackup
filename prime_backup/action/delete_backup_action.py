@@ -8,6 +8,7 @@ from prime_backup.action.delete_blob_action import DeleteOrphanBlobsAction
 from prime_backup.action.shrink_base_fileset_action import ShrinkBaseFilesetAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
+from prime_backup.exceptions import FilesetNotFound
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.blob_info import BlobDeltaSummary
 from prime_backup.types.units import ByteCount
@@ -55,7 +56,10 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 		if base_fileset_alive:
 			self.logger.debug('Shrinking base fileset {} since it''s still alive'.format(backup_info.fileset_id_base))
 			sbf_action = ShrinkBaseFilesetAction(backup_info.fileset_id_base)
-			sbf_action.run()
+			try:
+				sbf_action.run()
+			except FilesetNotFound as e:
+				self.logger.warning('Base fileset {} not found during shrink (concurrent deletion?), skipped: {}'.format(backup_info.fileset_id_base, e))
 
 		self.logger.info('Deleted backup #{} done, removed {} blobs and {} chunks (size {} / {})'.format(
 			backup_info.id, bds.blob_count, bds.chunk_count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),

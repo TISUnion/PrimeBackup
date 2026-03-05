@@ -573,6 +573,8 @@ prime_backup:
         wait_retry: 'Found ongoing task {}, job {} will retry in {}'
       completed: '{} completed, next execution at {}'
       completed_with_error: '{} completed with error, next execution at {}'
+      job_aborted: 'job aborted'
+      aborted: '{} aborted with reason: {}'
       next_run_date_paused: Paused
     create_db_backup:
       name: create database backup
@@ -584,6 +586,7 @@ prime_backup:
       name: schedule backup
       name_titled: Schedule backup
       triggered: '{} triggered'
+      detected_created_backup: detected new backup
       reset_on_backup: Detected new backup, timer reset. Next scheduled backup at {}
     vacuum_sqlite:
       name: compact database

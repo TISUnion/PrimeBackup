@@ -1,8 +1,9 @@
 import contextlib
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple, Optional
 
 from apscheduler.schedulers.base import BaseScheduler
+from mcdreforged.api.all import RTextBase
 from typing_extensions import override
 
 from prime_backup.config.config_common import CrontabJobSetting
@@ -82,8 +83,12 @@ class ScheduledBackupJob(BasicCrontabJob):
 			operator = Operator.pb(PrimeBackupOperatorNames.scheduled_backup)
 			task = CreateBackupTask(self.get_command_source(), comment, operator=operator, backup_tags=BackupTags().set(BackupTagName.scheduled, True))
 
+			def requirement_checker() -> Tuple[bool, Optional[RTextBase]]:
+				if self.found_created_backup.is_set():
+					return False, self.tr('detected_created_backup')
+				return True, None
 			self.found_created_backup.clear()
-			self.run_task_with_retry(task, True, requirement=lambda: not self.found_created_backup.is_set(), broadcast=True).report()
+			self.run_task_with_retry(task, True, requirement_checker=requirement_checker, broadcast=True).report()
 
 	@override
 	def on_event(self, event: CrontabJobEvent):

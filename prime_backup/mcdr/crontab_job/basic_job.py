@@ -182,7 +182,7 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 
 	def run_task_with_retry(
 			self, task: Task[_T], can_retry: bool, *,
-			requirement: Optional[Callable[[], bool]] = None,
+			requirement_checker: Optional[Callable[[], Tuple[bool, Optional[RTextBase]]]] = None,  # () -> (ok, abort_reason)
 			delays: Optional[List[float]] = None,
 			broadcast: bool = False
 	) -> RunTaskWithRetryResult:
@@ -203,6 +203,7 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 				self.logger.error(msg.to_colored_text())
 
 		this, base_tr = self, self.__base_tr
+		abort_reason: Optional[RTextBase] = None
 
 		class RunTaskWithRetryResultImpl(BasicCrontabJob.RunTaskWithRetryResult):
 			@override
@@ -213,14 +214,18 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 					else:
 						log_err(base_tr('completed_with_error', this.get_name_text_titled(), this.get_next_run_date()))
 				else:
-					log_info(base_tr('found_ongoing.skip', current_task, this.get_name_text()))
+					if abort_reason is not None:
+						log_info(base_tr('aborted', this.get_name_text_titled(), abort_reason))
 
 		for i, delay in enumerate(delays):
 			self.abort_event.wait(delay)
 			if self.abort_event.is_set():
+				abort_reason = base_tr('job_aborted')
 				break
-			if requirement is not None and not requirement():
+			if requirement_checker is not None and not (rc_result := requirement_checker())[0]:
+				abort_reason = rc_result[1]
 				break
+
 			try:
 				def callback(*args):
 					wv.set(args)
@@ -231,6 +236,7 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 					current_task = e.current_item.task_name()
 				else:
 					current_task = self.tr('found_ongoing.unknown').set_color(RColor.gray)
+				abort_reason = base_tr('found_ongoing.skip', current_task, this.get_name_text())
 				is_not_last = i < len(delays) - 1
 				if is_not_last and can_retry:
 					next_wait = delays[i + 1]

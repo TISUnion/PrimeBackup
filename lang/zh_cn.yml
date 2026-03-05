@@ -573,6 +573,8 @@ prime_backup:
         wait_retry: '发现正在进行的任务{}, {}作业将在{}后重试'
       completed: '{}完成, 下次执行: {}'
       completed_with_error: '{}失败, 下次执行: {}'
+      job_aborted: '作业终止'
+      aborted: '{}被终止, 原因: {}'
       next_run_date_paused: 已暂停
     create_db_backup:
       name: 创建数据库备份
@@ -584,6 +586,7 @@ prime_backup:
       name: 定时备份
       name_titled: 定时备份
       triggered: '{}触发'
+      detected_created_backup: 检测到新增的备份
       reset_on_backup: '检测到新增的备份, 重置定时器。下次定时备份: {}'
     vacuum_sqlite:
       name: 整理数据库

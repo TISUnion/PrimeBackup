@@ -16,6 +16,8 @@ class ScheduledBackupConfig(CrontabJobSetting):
 	require_online_players_blacklist: List[re.Pattern] = []
 
 	def on_deserialization(self, **kwargs):
+		super().on_deserialization()
+
 		# recompile patterns with re.IGNORECASE
 		self.require_online_players_blacklist = [
 			re.compile(p.pattern, re.IGNORECASE)

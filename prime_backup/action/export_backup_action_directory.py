@@ -130,19 +130,19 @@ class _ExportTempDirectory:
 		return self.__retainer
 
 	def prepare(self):
-		file_utils.rm_rf(self.__temp_dir_path, missing_ok=True)
-		self.__trash_bin_path.mkdir(parents=True, exist_ok=True)
-		if self.__retainer is not None:
-			self.__retain_dir_path.mkdir(parents=True, exist_ok=True)
-
 		try:
 			# remove existing undeleted trash bins
-			for f in self.__trash_bin_path.parent.iterdir():
+			for f in self.__temp_dir_path.parent.iterdir():
 				if f.name.startswith(self.__temp_dir_base_name):
 					self.logger.warning('Removing existing undeleted temp dir {}'.format(f))
 					file_utils.rm_rf(f)
 		except OSError as e:
 			self.logger.warning('Error when removing existing undeleted temp dirs: {}'.format(e))
+
+		file_utils.rm_rf(self.__temp_dir_path, missing_ok=True)
+		self.__trash_bin_path.mkdir(parents=True, exist_ok=True)
+		if self.__retainer is not None:
+			self.__retain_dir_path.mkdir(parents=True, exist_ok=True)
 
 	def erase(self):
 		shutil.rmtree(self.__temp_dir_path)

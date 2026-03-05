@@ -12,6 +12,7 @@ from prime_backup.db import db_constants
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import misc_utils
+from prime_backup.utils.run_once import RunOnceFunc
 
 
 class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
@@ -27,6 +28,8 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 		if not self.__task_sem.acquire(blocking=False):
 			self.logger.warning('Another {} is running, skipped'.format(self.__class__.__name__))
 			return None
+
+		sem_releaser = RunOnceFunc(self.__task_sem.release)
 
 		try:
 			db_backup_root: Path = self.config.storage_path / 'db_backup'
@@ -51,7 +54,7 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 						db_backup_file.as_posix(), cost, ByteCount(backup_size).auto_str(), f'{100 * backup_size / db_size:.2f}%',
 					))
 				finally:
-					self.__task_sem.release()
+					sem_releaser()
 					temp_db_path.unlink(missing_ok=True)
 
 			try:
@@ -69,5 +72,5 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 				raise
 
 		except Exception:
-			self.__task_sem.release()
+			sem_releaser()
 			raise

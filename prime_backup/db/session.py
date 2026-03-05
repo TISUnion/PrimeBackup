@@ -858,7 +858,10 @@ class DbSession:
 			stmt = stmt.offset(offset)
 
 		result: Sequence[Row[Tuple[schema.BlobChunkGroupBinding, schema.Blob]]] = self.session.execute(stmt).all()
-		return [self.ListBlobChunkGroupBindingsItem(binding, blob if blob.id is not None else None) for binding, blob in result]
+		return [
+			self.ListBlobChunkGroupBindingsItem(binding, blob if (blob is not None and blob.id is not None) else None)
+			for binding, blob in result
+		]
 
 	def delete_blob_chunk_group_bindings_for_blobs(self, blob_ids: List[int]):
 		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):

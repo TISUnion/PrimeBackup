@@ -41,6 +41,8 @@ class DbAccess:
 		if (engine := cls.__engine) is not None:
 			engine.dispose()
 			cls.__engine = None
+		cls.__hash_method = None
+		cls.__db_file_path = None
 
 	@classmethod
 	def sync_hash_method(cls):

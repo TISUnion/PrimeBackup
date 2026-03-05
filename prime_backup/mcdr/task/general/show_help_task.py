@@ -27,6 +27,8 @@ class ShowHelpTask(ImmediateTask[None]):
 
 	def __init__(self, source: CommandSource, what: Optional[str] = None):
 		super().__init__(source)
+		if what is not None and what not in ShowHelpTask.COMMANDS_WITH_DETAILED_HELP:
+			raise ValueError(what)
 		self.what = what
 
 	@property

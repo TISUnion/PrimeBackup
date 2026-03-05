@@ -210,8 +210,6 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 				timezone = pytz.timezone(timezone_override)
 			except pytz.UnknownTimeZoneError as e:
 				self.logger.error('Bad timezone override from config, using local timezone: {}'.format(e))
-			else:
-				timezone = None
 
 		plan_list = self.calc_prune_backups(backups, self.setting, timezone=timezone)
 		for pl in plan_list:

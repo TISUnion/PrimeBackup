@@ -966,9 +966,9 @@ class DbSession:
 					schema.File.fileset_id == identifier.fileset_id,
 					schema.File.path == identifier.path
 				))
-				combined_condition = or_(*conditions)
-				for file in self.session.execute(select(schema.File).where(combined_condition)).scalars().all():
-					result[FileIdentifier(file.fileset_id, file.path)] = file
+			combined_condition = or_(*conditions)
+			for file in self.session.execute(select(schema.File).where(combined_condition)).scalars().all():
+				result[FileIdentifier(file.fileset_id, file.path)] = file
 		return result
 
 	def get_file_objects(self, file_identifiers: List[FileIdentifier]) -> Dict[FileIdentifier, schema.File]:

@@ -68,7 +68,7 @@ class ValidateChunkObjectsAction(Action[ValidateChunkObjectsResult]):
 				affected_chunk_group_ids = bad_chunk_group_ids
 
 			if len(affected_chunk_group_ids) > 0:
-				affected_blobs = session.get_blobs_by_chunk_group_ids(bad_chunk_group_ids)
+				affected_blobs = session.get_blobs_by_chunk_group_ids(affected_chunk_group_ids)
 				affected_blob_hashes = [blob.hash for blob in affected_blobs]
 				result.affected_blob_count = len(affected_blobs)
 				result.affected_blob_samples = [BlobInfo.of(blob) for blob in affected_blobs[:1000]]

@@ -169,7 +169,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		for file in backup_files:
 			if stat.S_ISREG(file.mode):
 				if file.uid is None or file.gid is None or file.mtime is None:
-					raise AssertionError('file {!r} with ISREG mode has missing fields')
+					raise AssertionError('file {!r} with ISREG mode has missing fields'.format(file))
 				key = StatKey(
 					path=file.path,
 					size=file.blob_raw_size,

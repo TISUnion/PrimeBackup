@@ -83,6 +83,12 @@ class FileInfo:
 		except (KeyError, ValueError):
 			role = FileRole.unknown
 
+		file_info_mtime: Optional[Timestamp] = None
+		if file.mtime is not None and file.mtime_ns_part is not None:
+			file_info_mtime = Timestamp.from_second_and_nano(file.mtime, file.mtime_ns_part)
+		elif file.mtime is not None:
+			file_info_mtime = Timestamp.from_second(file.mtime)
+
 		from prime_backup.types.backup_info import BackupInfo
 		return FileInfo(
 			fileset_id=file.fileset_id,
@@ -93,7 +99,7 @@ class FileInfo:
 			blob=blob,
 			uid=file.uid,
 			gid=file.gid,
-			mtime=Timestamp.from_second_and_nano(file.mtime, file.mtime_ns_part) if file.mtime is not None and file.mtime_ns_part is not None else None,
+			mtime=file_info_mtime,
 			backup_count=backup_count,
 			backup_samples=[BackupInfo.of(backup) for backup in backup_samples] if backup_samples is not None else [],
 		)

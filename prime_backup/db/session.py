@@ -1,14 +1,13 @@
 import contextlib
 import dataclasses
 import functools
-import shutil
 import sqlite3
 from pathlib import Path
 from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple, Any
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row, update
-from sqlalchemy.orm import Session
+from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row, update, inspect
+from sqlalchemy.orm import Session, Mapper
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
@@ -82,17 +81,19 @@ class DbSession:
 	@classmethod
 	def __validate_int_fields_range(cls, obj: schema.Base):
 		from sqlalchemy import Integer, BigInteger
+		mapper: Mapper = inspect(type(obj))
 
-		for name, value in vars(obj).items():
+		for col_attr in mapper.column_attrs:
 			def bad_msg() -> str:
-				return f'bad field {name} for {obj!r}'
-			
-			if not name.startswith('_') and isinstance(value, int):
-				cls_value = getattr(type(obj), name, None)
-				if isinstance(cls_value, Integer):
-					validation_utils.validate_int32(value, bad_msg)
-				elif isinstance(cls_value, BigInteger):
-					validation_utils.validate_int64(value, bad_msg)
+				return f'bad field {col_attr.key} for {obj!r}'
+			col = col_attr.columns[0]
+			value = getattr(obj, col_attr.key, None)
+			if not isinstance(value, int):
+				continue
+			if isinstance(col.type, BigInteger):
+				validation_utils.validate_int64(value, bad_msg)
+			elif isinstance(col.type, Integer):
+				validation_utils.validate_int32(value, bad_msg)
 
 	# ========================= General Database Operations =========================
 

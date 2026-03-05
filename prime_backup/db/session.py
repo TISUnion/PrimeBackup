@@ -1449,7 +1449,7 @@ class DbSession:
 		for file in files_delta:
 			if file.role in [FileRole.delta_add.value, FileRole.delta_override.value]:
 				path_to_file[file.path] = file
-			elif file.role == FileRole.delta_remove:
+			elif file.role == FileRole.delta_remove.value:
 				path_to_file.pop(file.path, None)
 
 		return list(path_to_file.values())
@@ -1471,7 +1471,7 @@ class DbSession:
 		for path, role in self.get_fileset_file_path_and_role(backup.fileset_id_delta).items():
 			if role == FileRole.delta_add.value:
 				file_paths[path] = None
-			elif role == FileRole.delta_remove:
+			elif role == FileRole.delta_remove.value:
 				file_paths.pop(path, None)
 		return list(file_paths.keys())
 

@@ -22,7 +22,9 @@ class ConfigMigrator:
 		"""
 		Change in v1.7.0
 		"""
-		prune_config = config.get('prune', {})
+		prune_config = config.get('prune', None)
+		if not isinstance(prune_config, dict):
+			return
 
 		src_key = 'pre_restore_backup'
 		dst_key = 'temporary_backup'

@@ -18,11 +18,13 @@ class BackupNotFound(PrimeBackupError):
 
 class OffsetBackupNotFound(PrimeBackupError):
 	def __init__(self, offset: int):
+		super().__init__()
 		self.offset = offset
 
 
 class BaseFileNotFound(PrimeBackupError):
 	def __init__(self, path: str):
+		super().__init__()
 		self.path = path
 
 
@@ -129,6 +131,7 @@ class BlobChunkGroupBindingNotFound(PrimeBackupError):
 
 class UnsupportedFileFormat(PrimeBackupError):
 	def __init__(self, mode: int):
+		super().__init__()
 		self.mode = mode
 
 

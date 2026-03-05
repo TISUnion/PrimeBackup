@@ -127,11 +127,9 @@ class DbSession:
 			if self.__supports_vacuum_into():
 				self.session.execute(text('VACUUM INTO :into_file').bindparams(into_file=str(into_file)))
 			elif allow_vacuum_into_fallback:
-				self.session.execute(text('VACUUM'))
-				self.session.commit()
 				if self.db_path is None:
 					raise RuntimeError('db_path undefined')
-				shutil.copyfile(self.db_path, into_file)
+				db_utils.vacuum_into_via_backup_api(self.db_path, Path(into_file))
 			else:
 				raise UnsupportedDatabaseOperation('current sqlite version {} does not support "VACUUM INTO" statement'.format(sqlite3.sqlite_version))
 		else:

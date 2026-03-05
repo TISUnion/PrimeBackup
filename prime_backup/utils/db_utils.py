@@ -1,4 +1,6 @@
 import sqlite3
+from pathlib import Path
+from typing import Union
 
 
 def get_sqlite_version() -> str:
@@ -24,6 +26,21 @@ def check_sqlite_vacuum_into_support() -> bool:
 
 def check_sqlite_row_number() -> bool:
 	return sqlite3.sqlite_version_info >= (3, 25, 0)
+
+
+def vacuum_into_via_backup_api(src_db_path: Union[str, Path], into_path: Union[str, Path]):
+	"""
+	Fallback for VACUUM INTO on old SQLite versions that do not support "VACUUM INTO"
+	"""
+	src_conn = sqlite3.connect(src_db_path, timeout=30)
+	dest_conn = sqlite3.connect(into_path, timeout=30)
+	try:
+		src_conn.backup(dest_conn)
+		dest_conn.execute('VACUUM')
+		dest_conn.commit()
+	finally:
+		dest_conn.close()
+		src_conn.close()
 
 
 if __name__ == '__main__':

@@ -27,7 +27,8 @@ class Timer:
 		return self.__end_time is None
 
 	def get_elapsed(self) -> float:
-		return _now() - self.__start_time
+		end_time = self.__end_time or _now()
+		return end_time - self.__start_time
 
 	def get_and_restart(self) -> float:
 		ret = self.get_elapsed()

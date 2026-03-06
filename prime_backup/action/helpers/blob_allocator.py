@@ -561,12 +561,13 @@ class BlobAllocator:
 			src_path_str, time.time() - process_start_time,
 			blob_stored_size_sum, blob_raw_size_sum, len(offset_to_db_chunk), len(new_db_chunks),
 		))
-		if len(new_db_chunks) >= max(500, int(len(known_db_chunks) * 0.25)):
+		unique_chunk_cnt = len(known_db_chunks)
+		if len(new_db_chunks) >= max(500, int(unique_chunk_cnt * 0.25)):
 			# 500 chunks == ~150MiB
 			self.logger.warning('Chunked a large file with lots of new chunks, please consider if it should really be in the CDC target patterns')
-			self.logger.warning('File path: {} size {}, chunk cnt {}, new chunk cnt {} ({:.1f}%), new chunk size {}'.format(
-				src_path_str, ByteCount(blob_raw_size_sum).auto_str(), len(known_db_chunks),
-				len(new_db_chunks), 100.0 * len(new_db_chunks) / len(known_db_chunks),
+			self.logger.warning('File path: {} size {}, chunk cnt {} (unique {}, new {} {:.1f}%), new chunk size {}'.format(
+				src_path_str, ByteCount(blob_raw_size_sum).auto_str(), len(chunks), unique_chunk_cnt,
+				len(new_db_chunks), 100.0 * len(new_db_chunks) / unique_chunk_cnt,
 				ByteCount(sum(db_chunk.raw_size for db_chunk in new_db_chunks)).auto_str(),
 			))
 			self.logger.warning('You can safely ignore this warning if this is the first backup containing the file')

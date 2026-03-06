@@ -245,7 +245,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 				if path_utils.is_relative_to(Path(file_.path), t):
 					export_items.append(self._ExportItem(file_, export_path, export_path.as_posix()))
 					return
-			self.logger.warning('Found out-of-backup-target file, ignored. file.path: {!r}, backup.targets: {}'.format(file, backup.targets))
+			self.logger.warning('Found out-of-backup-target file, ignored. file.path: {!r}, backup.targets: {}'.format(file_, backup.targets))
 
 		export_items: List[ExportBackupToDirectoryAction._ExportItem] = []
 		if self.child_to_export is None:

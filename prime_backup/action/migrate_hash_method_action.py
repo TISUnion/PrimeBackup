@@ -96,5 +96,8 @@ class MigrateHashMethodAction(Action[None]):
 			for old_hash, new_hash in processed_hash_mapping.items():
 				old_path = blob_utils.get_blob_path(old_hash)
 				new_path = blob_utils.get_blob_path(new_hash)
-				shutil.move(new_path, old_path)
+				try:
+					shutil.move(new_path, old_path)
+				except Exception as e_rb:
+					self.logger.error('Rollback failed for blob {} -> {}, suppressed: {}'.format(old_path, old_path, e_rb))
 			raise

@@ -258,3 +258,4 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 
 		finally:
 			self.__migrated_blob_hashes.clear()
+			self.__migrated_chunk_hashes.clear()

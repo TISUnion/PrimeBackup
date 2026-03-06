@@ -44,11 +44,11 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 				if ref_cnt <= 0:
 					if fileset.id == backup_info.fileset_id_base:
 						base_fileset_alive = False
-					session.delete_fileset(fileset)
 					for file in session.get_fileset_files(fileset.id):
 						if file.blob_hash is not None:
 							deleted_file_hashes.add(file.blob_hash)
 						session.delete_file(file)
+					session.delete_fileset(fileset)
 
 			orphan_blob_cleaner = DeleteOrphanBlobsAction(deleted_file_hashes)
 			bds = orphan_blob_cleaner.run(session=session)

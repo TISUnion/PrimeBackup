@@ -26,7 +26,7 @@ class _SimpleSummary:
 	count: int = 0
 
 
-class __ResultWithCount(Protocol):
+class _ResultWithCount(Protocol):
 	@property
 	def count(self) -> int:
 		...
@@ -34,7 +34,7 @@ class __ResultWithCount(Protocol):
 
 _T = TypeVar('_T')  # object type
 _K = TypeVar('_K')  # object key
-_R = TypeVar('_R', bound=__ResultWithCount)  # result
+_R = TypeVar('_R', bound=_ResultWithCount)  # result
 
 
 class _ScanAndDeleteObjectsActionBase(Generic[_T, _K, _R], Action[_R], ABC):

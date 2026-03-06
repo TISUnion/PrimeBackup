@@ -11,7 +11,7 @@ from prime_backup.exceptions import BlobHashNotFound, BlobHashNotUnique
 from prime_backup.types.blob_info import BlobInfo
 
 
-class __GetBlobActionBase(Action[BlobInfo], ABC):
+class _GetBlobActionBase(Action[BlobInfo], ABC):
 	def __init__(self, count_files: bool = False, sample_file_num: Optional[int] = None):
 		super().__init__()
 		self.count_files = count_files
@@ -33,7 +33,7 @@ class __GetBlobActionBase(Action[BlobInfo], ABC):
 		...
 
 
-class GetBlobByIdAction(__GetBlobActionBase):
+class GetBlobByIdAction(_GetBlobActionBase):
 	def __init__(self, blob_id: int, *, count_files: bool = False, sample_file_num: Optional[int] = None):
 		super().__init__(count_files, sample_file_num)
 		self.blob_id = blob_id
@@ -43,7 +43,7 @@ class GetBlobByIdAction(__GetBlobActionBase):
 		return session.get_blob_by_id(self.blob_id)
 
 
-class GetBlobByHashAction(__GetBlobActionBase):
+class GetBlobByHashAction(_GetBlobActionBase):
 	def __init__(self, blob_hash: str, *, count_files: bool = False, sample_file_num: Optional[int] = None):
 		super().__init__(count_files, sample_file_num)
 		self.blob_hash = blob_hash
@@ -53,7 +53,7 @@ class GetBlobByHashAction(__GetBlobActionBase):
 		return session.get_blob_by_hash(self.blob_hash)
 
 
-class GetBlobByHashPrefixAction(__GetBlobActionBase):
+class GetBlobByHashPrefixAction(_GetBlobActionBase):
 	def __init__(self, blob_hash_prefix: str, *, count_files: bool = False, sample_file_num: Optional[int] = None):
 		super().__init__(count_files, sample_file_num)
 		self.blob_hash_prefix = blob_hash_prefix

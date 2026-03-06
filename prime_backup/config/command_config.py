@@ -1,4 +1,5 @@
 from mcdreforged.api.utils import Serializable
+from typing_extensions import override
 
 from prime_backup.constants import constants
 from prime_backup.types.units import Duration
@@ -56,3 +57,10 @@ class CommandConfig(Serializable):
 	confirm_time_wait: Duration = Duration('60s')
 	backup_on_restore: bool = True
 	restore_countdown_sec: int = 10
+
+	@override
+	def on_deserialization(self, **kwargs):
+		if self.confirm_time_wait < Duration(0):
+			raise ValueError('Field confirm_time_wait must >= 0, got {!r}'.format(self.confirm_time_wait))
+		if self.restore_countdown_sec < 0:
+			raise ValueError('Field restore_countdown_sec must >= 0, got {!r}'.format(self.restore_countdown_sec))

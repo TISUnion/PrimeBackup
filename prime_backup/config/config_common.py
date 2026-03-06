@@ -28,8 +28,15 @@ class CrontabJobSetting(Serializable):
 
 	@override
 	def on_deserialization(self, **kwargs):
-		if self.enabled:
-			if self.interval is None and self.crontab is None:
-				raise ValueError('Field interval and crontab cannot be None at the same time')
-			if self.interval is not None and self.crontab is not None:
-				raise ValueError('Field interval and crontab cannot be set at the same time')
+		if not self.enabled:
+			return
+
+		if self.interval is None and self.crontab is None:
+			raise ValueError('Field interval and crontab cannot be None at the same time')
+		if self.interval is not None and self.crontab is not None:
+			raise ValueError('Field interval and crontab cannot be set at the same time')
+
+		if self.interval is not None and self.interval <= Duration(0):
+			raise ValueError('Field interval must > 0, got {!r}'.format(self.interval))
+		if self.jitter < Duration(0):
+			raise ValueError('Field jitter must >= 0, got {!r}'.format(self.jitter))

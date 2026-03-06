@@ -188,7 +188,7 @@ class TarBackupReader(PackedBackupFileReader):
 			with tarfile.open(path, mode=self.tar_format.value.mode_r) as tar:
 				yield self.TarFileHolder(tar)
 		else:
-			# zstd stream does not support seek operation, sowe need to extract the tar into a temp path first,
+			# zstd stream does not support seek operation, so we need to extract the tar into a temp path first,
 			# then operate on it. requires extra spaces tho
 
 			temp_file = Config.get().temp_path / 'import_{}_{}.tmp'.format(os.getpid(), threading.current_thread().ident)

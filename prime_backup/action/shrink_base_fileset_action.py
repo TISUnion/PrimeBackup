@@ -97,7 +97,7 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 								if _DEBUG_LOG:
 									self.logger.info(f'DBG: fileset {delta_fileset.id}, {delta_file.path}: override -> add')
 								# override -> add
-								delta_file.role = FileRole.delta_add
+								delta_file.role = FileRole.delta_add.value
 								delta_fileset.file_count += 1
 							else:
 								if _DEBUG_LOG:

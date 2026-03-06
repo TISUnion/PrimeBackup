@@ -271,8 +271,6 @@ class ImportBackupAction(Action[BackupInfo]):
 		else:
 			tar_format = None
 
-		self.__blob_cache.clear()
-
 		try:
 			with DbAccess.open_session() as session:
 				handler: PackedBackupFileReader

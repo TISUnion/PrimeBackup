@@ -53,6 +53,8 @@ class ValidateBackupsAction(Action[ValidateBackupsResult]):
 				result.add_bad(backup, 'base fileset {} does not exist'.format(backup.fileset_id_base))
 			elif (fileset_delta := filesets.get(backup.fileset_id_delta)) is None:
 				result.add_bad(backup, 'delta fileset {} does not exist'.format(backup.fileset_id_delta))
+			elif backup.fileset_id_base == backup.fileset_id_delta:
+				result.add_bad(backup, 'base fileset {} equals to delta fileset {} which is not possible'.format(backup.fileset_id_base, backup.fileset_id_delta))
 			elif backup.file_count != fileset_base.file_count + fileset_delta.file_count:
 				result.add_bad(backup, 'mismatched file count, backup {} != {} + {} (base + delta)'.format(
 					backup.file_count, fileset_base.file_count, fileset_delta.file_count,

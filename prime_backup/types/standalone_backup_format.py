@@ -35,9 +35,9 @@ class StandaloneBackupFormat(enum.Enum):
 
 	@classmethod
 	def from_file_name(cls, file: PathLike) -> Optional['StandaloneBackupFormat']:
-		name = os.path.basename(file)
+		name_lower = os.path.basename(file).lower()
 		for ebf in StandaloneBackupFormat:
 			for ext in ebf.__all_file_extensions:
-				if name.endswith(ext):
+				if name_lower.endswith(ext):
 					return ebf
 		return None

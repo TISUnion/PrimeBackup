@@ -26,4 +26,5 @@ __init()
 
 def load():
 	from prime_backup import logger
+	logger.get.cache_clear()
 	logger.get()

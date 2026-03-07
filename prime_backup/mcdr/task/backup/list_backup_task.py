@@ -55,6 +55,10 @@ class ListBackupTask(LightTask[None]):
 	@override
 	def run(self):
 		total_count = CountBackupAction(self.backup_filter).run()
+		if total_count == 0:
+			self.reply_tr('backup_count_zero', RText(total_count, RColor.gray))
+			return
+
 		backups = ListBackupAction(backup_filter=self.backup_filter, limit=self.per_page, offset=(self.page - 1) * self.per_page).run()
 
 		self.reply(TextComponents.title(self.tr('title')))

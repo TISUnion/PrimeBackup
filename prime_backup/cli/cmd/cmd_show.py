@@ -31,7 +31,7 @@ class ShowCommandHandler(CliCommandHandlerBase):
 		self.logger.info('%s', f'ID: {backup.id}')
 		self.logger.info('%s', f'Creation date: {backup.date_str}')
 		self.logger.info('%s', f'Comment: {backup.comment}')
-		self.logger.info('%s', f'Size (stored): {ByteCount(ss).auto_str()} ({ss}) ({100 * ss / rs:.2f}%)')
+		self.logger.info('%s', f'Size (stored): {ByteCount(ss).auto_str()} ({ss}) ({100 * ss / rs if rs > 0 else 0:.2f}%)')
 		self.logger.info('%s', f'Size (raw): {ByteCount(rs).auto_str()} ({rs})')
 		self.logger.info('%s', f'Creator: type={backup.creator.type!r} name={backup.creator.name!r}')
 		self.logger.info('%s', f'Tags (size={len(backup.tags)}){":" if len(backup.tags) > 0 else ""}')

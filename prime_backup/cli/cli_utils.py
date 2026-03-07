@@ -27,7 +27,7 @@ def get_plugin_version() -> str:
 			with zipfile.ZipFile(root) as z, z.open(meta_file_name) as f:
 				meta = json.load(f)
 		elif root.is_dir():
-			with open(meta_file_name, 'rb') as f:
+			with open(root / meta_file_name, 'rb') as f:
 				meta = json.load(f)
 		else:
 			raise Exception('unknown file type {!r}'.format(root))

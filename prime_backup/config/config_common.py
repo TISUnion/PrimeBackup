@@ -36,7 +36,7 @@ class CrontabJobSetting(Serializable):
 		if self.interval is not None and self.crontab is not None:
 			raise ValueError('Field interval and crontab cannot be set at the same time')
 
-		if self.interval is not None and self.interval <= Duration(0):
+		if self.interval is not None and self.interval.value <= 0:
 			raise ValueError('Field interval must > 0, got {!r}'.format(self.interval))
-		if self.jitter < Duration(0):
+		if self.jitter.value < 0:
 			raise ValueError('Field jitter must >= 0, got {!r}'.format(self.jitter))

@@ -247,7 +247,7 @@ class PrimeBackupFuseFs(fuse.Fuse):
 				return PrimeBackupFuseStat.create_symlink(backup.timestamp.unix_sec)
 			else:
 				return PrimeBackupFuseStat.create_plain_dir(backup.timestamp.unix_sec)
-		elif spr.path == BACKUP_META_FILE_NAME:
+		elif spr.path == BACKUP_META_FILE_NAME and not FuseConfig.get().no_meta:
 			backup = self.__helper.query_backup(spr.backup_id)
 			size = len(backup.create_meta_buf())
 			return PrimeBackupFuseStat.create_regular(size, 0o444, backup.timestamp.unix_sec)
@@ -277,7 +277,7 @@ class PrimeBackupFuseFs(fuse.Fuse):
 			PrimeBackupFuseDirentry(Path(file.path).name, type=stat.S_IFMT(file.mode))
 			for file in sorted(files)
 		)
-		if spr.path == '':
+		if spr.path == '' and not FuseConfig.get().no_meta:
 			result.append(PrimeBackupFuseDirentry(BACKUP_META_FILE_NAME, type=stat.S_IFREG))
 		return result
 

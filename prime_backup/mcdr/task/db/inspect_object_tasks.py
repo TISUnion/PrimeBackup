@@ -14,7 +14,7 @@ from prime_backup.action.get_chunk_group_action import GetChunkGroupByHashPrefix
 from prime_backup.action.get_file_action import GetBackupFileAction, GetFilesetFileAction
 from prime_backup.action.get_fileset_action import GetFilesetAction
 from prime_backup.db.values import BlobStorageMethod
-from prime_backup.exceptions import BlobNotFound, ChunkNotFound
+from prime_backup.exceptions import BlobNotFound, ChunkNotFound, ChunkGroupNotFound
 from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.blob_info import BlobInfo
@@ -290,10 +290,10 @@ class InspectChunkTask(_InspectObjectTaskBase):
 		if chunk is None:
 			chunk = GetChunkByHashPrefixAction(self.chunk_id_or_hash).run()
 
-		self.reply(TextComponents.title(self.tr('title', self._gt_chunk_group_hash(chunk.hash, shorten_hash=True))))
+		self.reply(TextComponents.title(self.tr('title', self._gt_chunk_hash(chunk.hash, shorten_hash=True))))
 
 		self.reply_tr('id', TextComponents.chunk_id(chunk.id))
-		self.reply_tr('hash', self._gt_chunk_group_hash(chunk.hash), chunk_utils.get_hash_method().name)
+		self.reply_tr('hash', self._gt_chunk_hash(chunk.hash), chunk_utils.get_hash_method().name)
 		self.reply_tr('compress', chunk.compress.name)
 		self.reply_tr('raw_size', RText(chunk.raw_size, TextColors.byte_count), TextComponents.file_size(chunk.raw_size))
 		self.reply_tr('stored_size', RText(chunk.stored_size, TextColors.byte_count), TextComponents.file_size(chunk.stored_size))
@@ -317,7 +317,7 @@ class InspectChunkGroupTask(_InspectObjectTaskBase):
 		except ValueError:
 			pass
 		else:
-			with contextlib.suppress(ChunkNotFound):
+			with contextlib.suppress(ChunkGroupNotFound):
 				chunk_group = GetChunkGroupByIdAction(chunk_group_id).run()
 		if chunk_group is None:
 			chunk_group = GetChunkGroupByHashPrefixAction(self.chunk_group_id_or_hash).run()

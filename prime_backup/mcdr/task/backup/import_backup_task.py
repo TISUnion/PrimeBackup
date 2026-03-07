@@ -47,7 +47,7 @@ class ImportBackupTask(HeavyTask[None]):
 		self.reply_tr('start', t_fp, RText(backup_format.name, RColor.dark_aqua))
 		try:
 			backup = self.run_action(ImportBackupAction(self.file_path, backup_format, ensure_meta=self.ensure_meta, meta_override=self.meta_override))
-		except BackupMetadataNotFound as e:
+		except BackupMetadataNotFound as e:  # TODO: BackupMetadataInvalid?
 			self.reply(self.tr('backup_metadata_not_found', t_fp, str(e)).set_color(RColor.red))
 			self.reply_tr('backup_metadata_not_found.suggestion', name=mcdr_globals.metadata.name)
 		else:

@@ -6,11 +6,11 @@ from typing import Optional
 
 from typing_extensions import override
 
-from prime_backup.constants import constants
 from prime_backup.action.import_backup_action import BackupMetadataNotFound, ImportBackupAction
 from prime_backup.cli import cli_utils
 from prime_backup.cli.cmd import CliCommandHandlerBase, CommonCommandArgs, CliCommandAdapterBase
 from prime_backup.cli.return_codes import ErrorReturnCodes
+from prime_backup.constants import constants
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 
 
@@ -45,7 +45,7 @@ class ImportCommandHandler(CliCommandHandlerBase):
 		self.logger.info('Importing backup from {}, format: {}'.format(str(self.args.input_path.as_posix()), fmt.name))
 		try:
 			ImportBackupAction(self.args.input_path, fmt, ensure_meta=not self.args.auto_meta, meta_override=meta_override).run()
-		except BackupMetadataNotFound as e:
+		except BackupMetadataNotFound as e:  # TODO: BackupMetadataInvalid?
 			self.logger.error('Import failed due to backup metadata not found: {}'.format(e))
 			self.logger.error('Please make sure the file is a valid backup create by Prime Backup. You can also use the --auto-meta flag for a workaround')
 			ErrorReturnCodes.action_failed.sys_exit()

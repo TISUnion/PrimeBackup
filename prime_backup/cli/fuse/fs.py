@@ -96,7 +96,7 @@ class _DbHelper:
 	def __query_backup_files_no_cache(backup_id: int) -> Optional[_NiceBackupFiles]:
 		try:
 			files = GetBackupFilesAction(backup_id).run()
-		except ValueError:
+		except BackupNotFound:
 			return None
 		by_parent: Dict[str, List[FileInfo]] = collections.defaultdict(list)
 		for path, file in files.items():

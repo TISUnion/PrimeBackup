@@ -1,6 +1,7 @@
 import dataclasses
 import functools
 import threading
+from contextlib import AbstractContextManager
 from typing import Any, Optional, List, Dict, Callable
 
 from mcdreforged.api.all import ServerInterface
@@ -149,7 +150,8 @@ class OnlinePlayerCounter:
 		self.server.schedule_task(functools.partial(self.__on_load, prev, should_update_from_api))
 
 	def __on_load(self, prev: Any, should_update_from_api: bool):
-		if type(prev_lock := getattr(prev, 'data_lock', None)) is threading.Lock:
+		prev_lock = getattr(prev, 'data_lock', None)
+		if isinstance(prev_lock, AbstractContextManager):
 			with prev_lock:
 				prev_data_is_correct: bool = getattr(prev, 'data_is_correct', False)
 				prev_player_records: Optional[PlayerRecords] = getattr(prev, 'player_records', None)

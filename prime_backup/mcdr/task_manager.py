@@ -139,7 +139,7 @@ class _TaskWorker:
 		self.logger.info('Worker %s stopped', self.name)
 
 	def submit(self, task_holder: TaskHolder, *, handle_tmo_err: bool = True):
-		source, callback = task_holder.source, task_holder.callback
+		source = task_holder.source
 		if self.thread.is_alive():
 			try:
 				self.task_queue.put(task_holder)
@@ -163,8 +163,7 @@ class _TaskWorker:
 					reply_message(source, tr('error.too_much_ongoing_task.generic', self.max_ongoing_task))
 		else:
 			source.reply('worker thread is dead, please check logs to see what had happened')
-			if callback is not None:
-				callback(None, RuntimeError('worker dead'))
+			task_holder.on_done(None, RuntimeError('worker dead'))
 
 	def send_event_to_current_task(
 			self, event: TaskEvent, *,

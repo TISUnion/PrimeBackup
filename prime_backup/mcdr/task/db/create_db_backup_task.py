@@ -40,9 +40,9 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 				temp_db_path.unlink()
 
 			def tar_thread():
+				db_backup_file = db_backup_root / time.strftime('db_backup_%Y%m%d_%H%M%S.tar.xz')
 				try:
 					t = time.time()
-					db_backup_file = db_backup_root / time.strftime('db_backup_%Y%m%d_%H%M%S.tar.xz')
 
 					self.logger.info('db backup: Compressing database backup {}'.format(db_backup_file.name))
 					with tarfile.open(db_backup_file, 'w:xz') as tar:
@@ -53,6 +53,8 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 					self.logger.info('db backup: Compress database backup done, path {!r}, cost {:.2f}s, size {} ({})'.format(
 						db_backup_file.as_posix(), cost, ByteCount(backup_size).auto_str(), f'{100 * backup_size / db_size:.2f}%',
 					))
+				except Exception:
+					self.logger.exception('db backup: Compress database backup to {} failed'.format(db_backup_file))
 				finally:
 					sem_releaser()
 					temp_db_path.unlink(missing_ok=True)

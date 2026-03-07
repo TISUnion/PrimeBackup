@@ -1,3 +1,5 @@
+import re
+
 from mcdreforged.api.utils import Serializable
 from typing_extensions import override
 
@@ -60,6 +62,8 @@ class CommandConfig(Serializable):
 
 	@override
 	def on_deserialization(self, **kwargs):
+		if self.prefix != re.escape(self.prefix):
+			raise ValueError('Field prefix must not contains special characters: {!r}'.format(self.prefix))
 		if self.confirm_time_wait < Duration(0):
 			raise ValueError('Field confirm_time_wait must >= 0, got {!r}'.format(self.confirm_time_wait))
 		if self.restore_countdown_sec < 0:

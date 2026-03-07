@@ -31,13 +31,13 @@ class Config(Serializable):
 
 	@classmethod
 	@functools.lru_cache
-	def __get_default(cls) -> 'Config':
+	def __get_default_instance(cls) -> 'Config':
 		return Config.get_default()
 
 	@classmethod
 	def get(cls) -> 'Config':
 		if _config is None:
-			return cls.__get_default()
+			return cls.__get_default_instance()
 		return _config
 
 	# ==================== Field getters ====================

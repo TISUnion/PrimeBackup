@@ -13,7 +13,7 @@ import time
 import unittest
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, List, ContextManager, Union, Generator, Tuple, BinaryIO, Deque
+from typing import Dict, List, ContextManager, Union, Generator, Tuple, BinaryIO, Deque, Optional
 
 from typing_extensions import Self, override, Protocol
 
@@ -97,7 +97,7 @@ def _compute_file_sha256(file_path: Path) -> str:
 def _randbytes(rnd: random.Random, n: int) -> bytes:
 	if hasattr(rnd, 'randbytes'):
 		return rnd.randbytes(n)
-	return bytes(random.randint(0, 255) for _ in range(n))
+	return bytes(rnd.randint(0, 255) for _ in range(n))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -445,12 +445,32 @@ class FuzzyRunTestCase(unittest.TestCase):
 		super().__init__(*args, **kwargs)
 		self.logger = logger.get()
 
+		from prime_backup.action.helpers.fileset_allocator import FilesetAllocateArgsDefaults
+		self.__old_config: Optional[Config] = None
+		self.__default_fileset_allocate_candidate_max_changes_ratio = FilesetAllocateArgsDefaults.candidate_max_changes_ratio
+
 	@override
 	def setUp(self):
+		from prime_backup.config.config import set_config_instance
+
+		self.__old_config = Config.get()
+		set_config_instance(Config.get_default())
+
 		_TestStats.get().reset()
 
 		from prime_backup.action.helpers.fileset_allocator import FilesetAllocateArgsDefaults
 		FilesetAllocateArgsDefaults.candidate_max_changes_ratio = 0.4  # increase this for easier fileset reuse
+
+	@override
+	def tearDown(self):
+		if self.__old_config is None:
+			raise AssertionError()
+
+		from prime_backup.config.config import set_config_instance
+		set_config_instance(self.__old_config)
+
+		from prime_backup.action.helpers.fileset_allocator import FilesetAllocateArgsDefaults
+		FilesetAllocateArgsDefaults.candidate_max_changes_ratio = self.__default_fileset_allocate_candidate_max_changes_ratio
 
 	@contextlib.contextmanager
 	def create_env(self, rnd: random.Random) -> Generator[Tuple[BackupFuzzyEnvironment, Path, Path], None, None]:
@@ -616,6 +636,8 @@ class FuzzyRunTestCase(unittest.TestCase):
 				if backup_ids and rnd.random() < 0.2:
 					to_mess_backup_id = rnd.choice(backup_ids)
 					delete_backup_file(to_mess_backup_id, backup_snapshots[to_mess_backup_id])
+					backup_snapshot_after_delete = get_backup_snapshot(to_mess_backup_id)
+					self.assertEqual(backup_snapshots[to_mess_backup_id], backup_snapshot_after_delete, f'Backup {to_mess_backup_id} data changed at iteration {i}')
 
 				# Step 4: Modify environment
 				env.iterate_once()

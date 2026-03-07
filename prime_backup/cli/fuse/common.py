@@ -30,7 +30,10 @@ class PrimeBackupFuseStat(fuse.Stat):
 		st = cls()
 		st.st_mode = file.mode
 		st.st_nlink = 1  # XXX: nlink?
-		st.st_size = file.blob.raw_size if file.blob else 0
+		if file.blob is not None:
+			st.st_size = file.blob.raw_size
+		else:
+			st.st_size = len(file.content or b'')
 		st.st_uid = file.uid or 0
 		st.st_gid = file.gid or 0
 

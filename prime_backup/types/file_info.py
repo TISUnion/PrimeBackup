@@ -9,6 +9,7 @@ from typing_extensions import Self
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.values import FileRole, BlobStorageMethod, FileIdentifier
+from prime_backup.exceptions import CorruptDataError
 from prime_backup.types.blob_info import BlobInfo, BlobDeltaSummary
 from prime_backup.types.timestamp import Timestamp
 from prime_backup.utils import misc_utils
@@ -50,34 +51,38 @@ class FileInfo:
 		"""
 		blob: Optional[BlobInfo] = None
 		if file.blob_hash is not None:
-			if file.blob_id is None:
-				raise ValueError('file.blob_id is None for file {!r}'.format(file))
-			if file.blob_storage_method is None:
-				raise ValueError('file.blob_storage_method is None for file {!r}'.format(file))
-			if file.blob_compress is None:
-				raise ValueError('file.blob_compress is None for file {!r}'.format(file))
-			if file.blob_raw_size is None:
-				raise ValueError('file.blob_raw_size is None for file {!r}'.format(file))
-			if file.blob_stored_size is None:
-				raise ValueError('file.blob_stored_size is None for file {!r}'.format(file))
+			try:
+				if file.blob_id is None:
+					raise CorruptDataError('file.blob_id is None for file {!r}'.format(file))
+				if file.blob_storage_method is None:
+					raise CorruptDataError('file.blob_storage_method is None for file {!r}'.format(file))
+				if file.blob_compress is None:
+					raise CorruptDataError('file.blob_compress is None for file {!r}'.format(file))
+				if file.blob_raw_size is None:
+					raise CorruptDataError('file.blob_raw_size is None for file {!r}'.format(file))
+				if file.blob_stored_size is None:
+					raise CorruptDataError('file.blob_stored_size is None for file {!r}'.format(file))
 
-			if file.blob_compress not in CompressMethod.__members__:
+				if file.blob_compress not in CompressMethod.__members__:
+					from prime_backup import logger
+					logger.get().warning('Bad blob_compress {!r} for file {!r}'.format(file.blob_compress, file))
+				else:
+					try:
+						storage_method = BlobStorageMethod(file.blob_storage_method)
+					except (KeyError, ValueError):
+						storage_method = BlobStorageMethod.unknown
+
+					blob = BlobInfo(
+						id=file.blob_id,
+						storage_method=storage_method,
+						hash=str(file.blob_hash),
+						compress=CompressMethod[file.blob_compress],
+						raw_size=file.blob_raw_size,
+						stored_size=file.blob_stored_size,
+					)
+			except CorruptDataError as e:
 				from prime_backup import logger
-				logger.get().warning('Bad blob_compress {!r} for file {!r}'.format(file.blob_compress, file))
-			else:
-				try:
-					storage_method = BlobStorageMethod(file.blob_storage_method)
-				except (KeyError, ValueError):
-					storage_method = BlobStorageMethod.unknown
-
-				blob = BlobInfo(
-					id=file.blob_id,
-					storage_method=storage_method,
-					hash=str(file.blob_hash),
-					compress=CompressMethod[file.blob_compress],
-					raw_size=file.blob_raw_size,
-					stored_size=file.blob_stored_size,
-				)
+				logger.get().warning('Bad blob fields {!r} for file {!r}: {}'.format(file.blob_compress, file, e))
 		try:
 			role = FileRole(file.role)
 		except (KeyError, ValueError):
@@ -132,7 +137,7 @@ class FileInfo:
 		if self.content is None:
 			return None
 		if not self.is_link():
-			raise AssertionError('should only access the str form of the file content for symlink files, not for {}'.format(self.file_type))
+			raise RuntimeError('should only access the str form of the file content for symlink files, not for {}'.format(self.file_type))
 		return self.content.decode('utf8')
 
 	@functools.cached_property

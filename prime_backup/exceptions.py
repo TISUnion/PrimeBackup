@@ -137,3 +137,7 @@ class UnsupportedFileFormat(PrimeBackupError):
 
 class VerificationError(PrimeBackupError):
 	pass
+
+
+class CorruptDataError(PrimeBackupError):
+	pass

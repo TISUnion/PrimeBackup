@@ -22,5 +22,7 @@ class RunOnceFunc(Generic[_P]):
 		with self.__lock:
 			if self.__has_run:
 				return
-			self.__func(*args, **kwargs)
-			self.__has_run = True
+			try:
+				self.__func(*args, **kwargs)
+			finally:
+				self.__has_run = True

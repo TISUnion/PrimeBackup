@@ -102,6 +102,7 @@ class DbMigration:
 		except Exception:
 			self.logger.error('DB migration failed, restoring pre migration backup {}'.format(str(backup_helper.backup_file)))
 			try:
+				self.engine.dispose()
 				backup_helper.restore()
 			except Exception:
 				self.logger.exception('Pre migration backup restored failed')

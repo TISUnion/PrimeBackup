@@ -1,5 +1,6 @@
 import contextlib
 import enum
+import os
 from pathlib import Path
 from typing import Generator, Literal, BinaryIO
 
@@ -38,7 +39,10 @@ class SourceFileNotFoundWrapper(FileNotFoundError):
 		try:
 			yield
 		except FileNotFoundError as e:
-			raise cls(e, Path(path))
+			if e.filename == os.fspath(path):
+				raise cls(e, Path(path))
+			else:
+				raise
 
 	@classmethod
 	def open_rb(cls, path: PathLike, flag: Literal['rb']) -> BinaryIO:

@@ -340,8 +340,8 @@ class BlobAllocator:
 			# copy to temp file, calc hash, then compress to blob store
 			misc_utils.assert_true(blob_hash is None, 'blob_hash should not be calculated')
 			with self.__make_temp_file(src_path_md5) as temp_file_path, _FailureFileDeleter() as file_deleter:
-				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
-					file_utils.copy_file_fast(src_path, temp_file_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy), SourceFileNotFoundWrapper.wrap(src_path):
+					file_utils.copy_file_fast(src_path, temp_file_path)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 					blob_hash = hash_utils.calc_file_hash(temp_file_path)
 
@@ -400,8 +400,8 @@ class BlobAllocator:
 				elif policy == _DirectBlobCreatePolicy.default:
 					if can_copy_on_write and compress_method == CompressMethod.plain:
 						# fast copy, then calc size and hash to verify
-						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):
-							file_utils.copy_file_fast(src_path, blob_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
+						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy), SourceFileNotFoundWrapper.wrap(src_path):
+							file_utils.copy_file_fast(src_path, blob_path)
 						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 							actual_sah = hash_utils.calc_file_size_and_hash(blob_path)
 						raw_size = stored_size = actual_sah.size
@@ -451,8 +451,9 @@ class BlobAllocator:
 			elif policy == _ChunkedBlobCreatePolicy.copy_hash:
 				# copy to temp file, then do whatever processing
 				temp_file_path = es.enter_context(self.__make_temp_file(src_path_md5))
-				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy):  # copy fast, no bypass tricks, since it's a volatile file
-					file_utils.copy_file_fast(src_path, temp_file_path, open_r_func=SourceFileNotFoundWrapper.open_rb)
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy), SourceFileNotFoundWrapper.wrap(src_path):
+					# copy as fast as possible, no bypass tricks, since it's a volatile file
+					file_utils.copy_file_fast(src_path, temp_file_path)
 				actual_path_to_read = temp_file_path
 			else:
 				raise AssertionError('bad policy {!r}'.format(policy))

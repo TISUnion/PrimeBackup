@@ -76,12 +76,28 @@ graph TB
 
 ## 数据对象（Blob）
 
-数据对象（Blob）是实际的文件内容的实际储存对象
+数据对象（Blob）是实际存储文件内容的对象
 
 - 使用哈希值作为其唯一标识符，一个哈希值有且仅有一个对应的数据对象
-- 只储存文件的内容数据及其压缩方式，不储存实际文件的元信息
-- 以文件形式独立存储，位于 [storage_root](config.zh.md#storage_root) 路径下的 blobs 文件夹
-- 一个数据对象可被多个文件对象引用。当引用数下降为 0 时，PrimeBackup 会删除这一数据对象
+- 仅存储文件的内容数据及其压缩方式，不存储实际文件的元信息
+- 具有两种存储方式：`direct` 和 `chunked`
+  - `direct`（直存）数据对象会以独立文件的形式存储在 [storage_root](config.zh.md#storage_root) 下的 `blobs` 目录中
+  - `chunked`（分块）数据对象不直接对应一个独立的 blob 文件，而是由多个数据块组和数据块按顺序重建出来；数据块文件则独立存放在 `blobs/_chunks` 目录中
+- 一个数据对象可被多个文件对象引用。当引用数降为 0 时，PrimeBackup 会删除该数据对象
+
+## 数据块与数据块组（Chunk and Chunk Group）
+
+数据块（Chunk）是 CDC 为大文件引入的去重单位
+
+- 一个数据块保存一段文件内容，以及它的哈希值、压缩方式和大小信息
+- 数据块按内容定义的边界切分，因此即使大文件在中间插入或修改了数据，周围未变化的部分仍有机会落在相同的数据块中被复用
+- 数据块文件会像直存数据对象（direct blob）一样独立存储，并在全局范围内去重
+
+数据块组（Chunk Group）是一组按顺序组织的数据块，用于降低 chunked blob 的元数据展开规模
+
+- Prime Backup 会将连续的数据块组织成数据块组，再按顺序将数据块组绑定回 blob
+- 重建分块 blob 时，会先按顺序读取其数据块组，再按顺序读取每个组内的数据块
+- 对于分块 blob，其 `stored_size` 表示所有唯一数据块存储大小之和，而非某个独立 blob 文件的大小
 
 ## 存储架构图
 
@@ -94,9 +110,11 @@ graph LR
     DB --> fileset[文件集对象]
     DB --> file[文件对象]
     DB --> blob[数据对象]
+    DB --> chunk_group[数据块组对象]
+    DB --> chunk[数据块对象]
 
-    blob_pool --> blob_storage[哈希分片]
-    blob_storage --> blob_file[数据对象文件]
+    blob_pool --> blob_storage[直存 Blob 文件]
+    blob_pool --> chunk_storage[数据块文件]
 
     style A fill:#e1f5fe
     style DB fill:#f3e5f5
@@ -105,6 +123,8 @@ graph LR
     style fileset fill:#e8f5e8
     style file fill:#e8f5e8
     style blob fill:#e8f5e8
+    style chunk_group fill:#e8f5e8
+    style chunk fill:#e8f5e8
     style blob_storage fill:#fff3e0
-    style blob_file fill:#fff3e0
+    style chunk_storage fill:#fff3e0
 ```

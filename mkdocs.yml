@@ -98,6 +98,7 @@ nav:
   - Features:
     - feature/index.md
     - feature/backup_create.md
+    - feature/cdc_chunking.md
     - feature/backup_restore.md
     - feature/backup_display.md
     - feature/backup_edit.md

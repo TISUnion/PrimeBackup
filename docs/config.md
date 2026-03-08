@@ -224,6 +224,12 @@ Configs on how the backup is made
        "**"
     ],
 
+    "cdc_enabled": false,
+    "cdc_file_size_threshold": 104857600,
+    "cdc_patterns": [
+       "**/*.db"
+    ],
+
     "hash_method": "blake3",
     "compress_method": "zstd",
     "compress_threshold": 64,
@@ -410,6 +416,53 @@ used in combination with [creation_skip_missing_file](#creation_skip_missing_fil
 During backup creation, any "file not found" errors occurring for files matched by this option will be ignored
 
 The default value is `["**"]`, which matches everything. It's suggested to limit it to those volatile files only, e.g. `["trash/*.tmp"]`
+
+- Type: `List[str]`
+
+#### cdc_enabled
+
+Whether to enable content-defined chunking (CDC) for large files during backup creation
+
+CDC stands for `Content-Defined Chunking`.
+Unlike fixed-size chunking, CDC determines chunk boundaries from the file content itself,
+so when data is inserted, deleted, or modified locally, many unchanged regions can still be cut into the same chunks and be reused across backups
+
+Changing this option only affects files newly stored in future backups.
+Existing direct blobs or chunked blobs will not be converted automatically
+
+!!! note
+
+    CDC chunking requires the optional `pyfastcdc` dependency.
+    You can install all optional dependencies with `pip3 install -r requirements.optional.txt`,
+    or install `pyfastcdc` manually
+
+- Type: `bool`
+- Default: `false`
+
+#### cdc_file_size_threshold
+
+The minimum file size in bytes for a file to be considered for CDC chunking
+
+Files smaller than this threshold will continue to use the regular direct blob storage flow,
+even if [cdc_enabled](#cdc_enabled) is enabled and the path matches [cdc_patterns](#cdc_patterns)
+
+Changing this option only affects files newly stored in future backups.
+Existing stored data will not be repartitioned automatically
+
+- Type: `int`
+- Default: `104857600` (`100 MiB`)
+
+#### cdc_patterns
+
+A list of [gitignore flavor](http://git-scm.com/docs/gitignore) pattern strings,
+matched against file paths relative to [source_root](#source_root)
+
+CDC chunking will only be applied when the file path matches one of these patterns,
+the file size reaches [cdc_file_size_threshold](#cdc_file_size_threshold),
+and [cdc_enabled](#cdc_enabled) is enabled
+
+The default value is `["**/*.db"]`.
+It is recommended to keep this list narrow and only include large files that are often modified locally and really need to be backed up
 
 - Type: `List[str]`
 

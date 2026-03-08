@@ -8,12 +8,15 @@ Document: https://tisunion.github.io/PrimeBackup/
 
 ## Features
 
-- Only stores files with changes with the hash-based file pool. Supports unlimited number of backup
-- Comprehensive backup operations, including backup/restore, list/delete, import/export, etc
+- Hash-based, compressed file pool deduplication. Only new or changed data is stored, with no hard limit on backup count
+- Optional CDC (content-defined chunking) for large, locally edited files to improve deduplication across backups
+- Safe restore workflow: confirmation + countdown, automatic pre-restore backup, recycle-bin rollback, and data verification
+- Comprehensive backup operations, including backup/restore, list/delete, import/export, comments/tags, etc.
 - Smooth in-game interaction, with most operations achievable through mouse clicks
-- Highly customizable backup pruning strategies, similar to the strategy use by [PBS](https://pbs.proxmox.com/docs/prune-simulator/)
-- Crontab jobs, including automatic backup, automatic pruning, etc.
-- Supports use as a command-line tool. Manage the backups without MCDR
+- Rich database toolkit: overview statistics, integrity validation, orphan cleanup, file deletion, and hash/compression method migration
+- Highly customizable backup pruning strategies, similar to the strategy used by [PBS](https://pbs.proxmox.com/docs/prune-simulator/)
+- Scheduled jobs for automatic backup creation and backup pruning, support fixed intervals and crontab expressions
+- Provides a command-line tool if you want to manage backups without MCDR. Also supports mounting as a filesystem via FUSE
 
 ![!!pb command](docs/img/pb_welcome.png)
 
@@ -29,18 +32,22 @@ See the document: https://tisunion.github.io/PrimeBackup/
 
 ## How it works
 
-Prime Backup maintains a custom file pool to store the backup files. Every file in the pool is identified with the hash value of its content.
-With that, Prime Backup can deduplicate files with same content, and only stores 1 copy of them, greatly reduces the burden on disk usage. 
+Prime Backup maintains a custom file pool to store backup data. Every stored object is identified by a hash of its content.
+With that, Prime Backup can deduplicate files with the same content, and only stores 1 copy of them, greatly reducing disk usage
 
-Besides that, Prime Backup also supports compression on the stored files, which reduces the disk usage further more
+Prime Backup also supports compression on stored data to further reduce disk usage
 
-PrimeBackup is capable of storing various of common file types, including regular files, directories, and symbolic links. For these 3 types:
+For large and locally edited files, Prime Backup can optionally use CDC (Content-Defined Chunking) for better deduplication.
+The file is split into content-defined chunks. Each chunk is hashed and reused across backups when unchanged, only new chunks are stored
 
-- Regular file: Prime Backup calculates its hash values first. If the hash does not exist in the file pool, 
-  Prime backup will (compress and) store its content into a new blob in the file pool.
-  The file status, including mode, uid, mtime etc., will be stored in the database
-- Directory: Prime Backup will store its information in the database
-- Symlink: Prime Backup will store the symlink itself, instead of the linked target
+Prime Backup stores common file types, including regular files, directories, and symbolic links. For these 3 types:
+
+- Regular file: Prime Backup calculates hashes (and size)
+  If CDC is enabled, it stores the file as a chunked blob that references chunks; chunks are deduplicated and compressed individually
+  Otherwise, it stores a direct blob; the whole file is deduplicated and compressed as a single unit
+  File metadata such as mode, uid, and mtime are stored in the database
+- Directory: Prime Backup stores its information in the database
+- Symlink: Prime Backup stores the symlink itself instead of the linked target
 
 ## Thanks
 

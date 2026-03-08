@@ -7,6 +7,7 @@ Prime Backup 主要功能概览
 ### 备份功能
 
 - [备份创建](backup_create.zh.md)
+- [CDC 分块](cdc_chunking.zh.md)
 - [备份还原（回档）](backup_restore.zh.md)
 - [备份展示](backup_display.zh.md)
 - [备份编辑](backup_edit.zh.md)

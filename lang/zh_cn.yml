@@ -652,11 +652,11 @@ prime_backup:
       hover_click_hint: 点击以展示详情
     blob_delta_summary:
       total_blobs: '数据对象: {} ({} / {})'
-      direct_blobs: '直接数据对象: {} ({} / {})'
+      direct_blobs: '直存数据对象: {} ({} / {})'
       chunks: '数据块: {} ({} / {})'
     blob_storage_method:
       unknown: 未知
-      direct: 直接
+      direct: 直存
       chunked: 分块
     command:
       run: '点击以执行{}'

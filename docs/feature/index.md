@@ -7,6 +7,7 @@ Prime Backup feature list
 ### Backup Features
 
 - [Backup create](backup_create.md)
+- [CDC chunking](cdc_chunking.md)
 - [Backup restore](backup_restore.md)
 - [Backup display](backup_display.md)
 - [Backup edit](backup_edit.md)

@@ -80,8 +80,24 @@ Blob is the actual storage object for file content
 
 - Uses hash value as its unique identifier, one hash value has exactly one corresponding blob
 - Only stores file content data and its compression method, does not store actual file metadata
-- Stored independently as files, located in the blobs folder under the [storage_root](config.md#storage_root) path
+- Has two storage methods: `direct` and `chunked`
+  - A direct blob is stored independently as a file in the `blobs` folder under [storage_root](config.md#storage_root)
+  - A chunked blob is cut into serval chunks, and the chunks are stored as files in `blobs/_chunks`
 - One blob can be referenced by multiple file objects. When the reference count drops to 0, PrimeBackup will delete this blob
+
+## Chunk and Chunk Group
+
+Chunk is the deduplication unit used by CDC chunking for large files
+
+- A chunk stores a piece of file content, its hash, its compression method, and its size information
+- Chunks are content-defined, so inserting or modifying data in the middle of a large file can still keep many neighboring chunks reusable
+- Chunk files are stored independently and deduplicated globally, just like direct blobs
+
+Chunk group is an ordered list of chunks used to reduce metadata fan-out for a chunked blob
+
+- Prime Backup groups consecutive chunks into chunk groups, then binds chunk groups back to the blob in order
+- Reconstructing a chunked blob means reading its chunk groups in order and then reading the chunks inside each group in order
+- For a chunked blob, the blob `stored_size` is the sum of unique stored chunk sizes instead of the size of one standalone blob file
 
 ## Storage Architecture Diagram
 
@@ -94,9 +110,11 @@ graph LR
     DB --> fileset[Fileset Objects]
     DB --> file[File Objects]
     DB --> blob[Blob Objects]
+    DB --> chunk_group[Chunk Group Objects]
+    DB --> chunk[Chunk Objects]
 
-    blob_pool --> blob_storage[Hash Sharding]
-    blob_storage --> blob_file[Blob Files]
+    blob_pool --> blob_storage[Direct Blob Files]
+    blob_pool --> chunk_storage[Chunk Files]
 
     style A fill:#e1f5fe
     style DB fill:#f3e5f5
@@ -105,6 +123,8 @@ graph LR
     style fileset fill:#e8f5e8
     style file fill:#e8f5e8
     style blob fill:#e8f5e8
+    style chunk_group fill:#e8f5e8
+    style chunk fill:#e8f5e8
     style blob_storage fill:#fff3e0
-    style blob_file fill:#fff3e0
+    style chunk_storage fill:#fff3e0
 ```

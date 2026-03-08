@@ -19,23 +19,26 @@ class WaitableValue(Generic[_T]):
 
 	def __init__(self):
 		self.__lock = threading.Lock()
-		self.__event = threading.Event()
+		self.__condition = threading.Condition(self.__lock)
 		self.__value: Union[_T, _Empty] = self.EMPTY
 
 	def get(self) -> _T:
 		with self.__lock:
-			if not self.__event.is_set():
+			if isinstance(self.__value, _Empty):
 				raise ValueError('value is unset')
-			assert not isinstance(self.__value, _Empty)
 			return self.__value
 
 	def set(self, value: _T):
-		with self.__lock:
+		with self.__condition:
 			self.__value = value
-			self.__event.set()
+			self.__condition.notify_all()
+
+	def __is_set_no_lock(self) -> bool:
+		return not isinstance(self.__value, _Empty)
 
 	def is_set(self) -> bool:
-		return self.__event.is_set()
+		with self.__lock:
+			return self.__is_set_no_lock()
 
 	@overload
 	def wait(self) -> _T: ...
@@ -43,19 +46,23 @@ class WaitableValue(Generic[_T]):
 	def wait(self, timeout: float) -> Union[_T, _Empty]: ...
 
 	def wait(self, timeout: Optional[float] = None) -> Union[_T, _Empty]:
-		if self.__event.wait(timeout):
-			return self.get()
-		else:
-			return self.EMPTY
+		with self.__condition:
+			if timeout is None:
+				while not self.__is_set_no_lock():
+					self.__condition.wait()
+			else:
+				if not self.__condition.wait_for(self.__is_set_no_lock, timeout):
+					return self.EMPTY
+
+			return self.__value
 
 	def clear(self):
 		with self.__lock:
 			self.__value = self.EMPTY
-			self.__event.clear()
 
 	def __str__(self):
 		with self.__lock:
-			if self.is_set():
+			if self.__is_set_no_lock():
 				return 'WaitableValue[value={}]'.format(self.__value)
 			else:
 				return 'WaitableValue[empty]'

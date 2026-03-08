@@ -256,7 +256,7 @@ class InspectBlobTask(_InspectObjectTaskBase):
 			for i, offset_chunk in enumerate(blob_chunks, start=1):
 				self.reply(RTextList(
 					f'{i}. ',
-					self.tr('chunk_sample', TextComponents.number(offset_chunk.offset), TextComponents.number(offset_chunk.size), self._gt_chunk_group_hash(offset_chunk.chunk.hash)),
+					self.tr('chunk_sample', TextComponents.number(offset_chunk.offset), TextComponents.number(offset_chunk.size), self._gt_chunk_hash(offset_chunk.chunk.hash)),
 				))
 
 		self.reply_tr('used_by', TextComponents.number(blob.file_count))

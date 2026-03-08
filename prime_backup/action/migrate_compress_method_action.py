@@ -24,6 +24,8 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 		self.new_compress_method = new_compress_method
 
 		# records changed files
+		self.__migrate_started_blob_hashes: List[str] = []
+		self.__migrate_started_chunk_hashes: List[str] = []
 		self.__migrated_blob_hashes: List[str] = []
 		self.__migrated_chunk_hashes: List[str] = []
 
@@ -61,6 +63,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 
 		blob_path, old_trash_path = self.__get_blob_paths(blob.hash)
 		blob_path.replace(old_trash_path)
+		self.__migrate_started_blob_hashes.append(blob.hash)
 		with decompressor.open_decompressed(old_trash_path) as f_src:
 			with compressor.open_compressed_bypassed(blob_path) as (writer, f_dst):
 				file_utils.copy_file_obj_fast(f_src, f_dst, estimate_read_size=blob.stored_size)
@@ -98,6 +101,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 
 		chunk_path, old_trash_path = self.__get_chunk_paths(chunk.hash)
 		chunk_path.replace(old_trash_path)
+		self.__migrate_started_chunk_hashes.append(chunk.hash)
 		with decompressor.open_decompressed(old_trash_path) as f_src:
 			with compressor.open_compressed_bypassed(chunk_path) as (writer, f_dst):
 				file_utils.copy_file_obj_fast(f_src, f_dst, estimate_read_size=chunk.stored_size)
@@ -182,11 +186,11 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 			old_trash_path.unlink()
 
 	def __rollback(self):
-		for h in self.__migrated_blob_hashes:
+		for h in self.__migrate_started_blob_hashes:
 			blob_path, old_trash_path = self.__get_blob_paths(h)
 			if old_trash_path.is_file():
 				old_trash_path.replace(blob_path)
-		for h in self.__migrated_chunk_hashes:
+		for h in self.__migrate_started_chunk_hashes:
 			chunk_path, old_trash_path = self.__get_chunk_paths(h)
 			if old_trash_path.is_file():
 				old_trash_path.replace(chunk_path)

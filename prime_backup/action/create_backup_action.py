@@ -117,7 +117,10 @@ class CreateBackupAction(Action[BackupInfo]):
 					scan(full_path / child, False)
 			elif is_root_target and entry.is_symlink() and self.config.backup.follow_target_symlink:
 				symlink_target = full_path.readlink()
-				symlink_target_full_path = self.__source_path / symlink_target
+				symlink_target_full_path = (full_path.parent / symlink_target).resolve()
+				if not symlink_target_full_path.parent.samefile(self.__source_path):
+					self.logger.warning('Skipping root symlink target {!r} since it''s target {!r} ({!r}) is outside of the source path'.format(str(rel_path), str(symlink_target), str(symlink_target_full_path)))
+					return
 				self.logger.info('Following root symlink target {!r} -> {!r} ({!r})'.format(str(rel_path), str(symlink_target), str(symlink_target_full_path)))
 				scan(symlink_target_full_path, True)
 

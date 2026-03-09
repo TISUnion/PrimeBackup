@@ -33,6 +33,7 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 
 		try:
 			db_backup_root: Path = self.config.storage_path / 'db_backup'
+			db_backup_root.mkdir(parents=True, exist_ok=True)
 			temp_db_path = db_backup_root / 'temp.db'
 
 			self.logger.info('db backup: Vacuum database to {}'.format(temp_db_path.as_posix()))

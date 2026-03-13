@@ -69,6 +69,7 @@ class MigrationImpl3To4(MigrationImplBase):
 		self.session.execute(text('DROP TABLE IF EXISTS backup'))
 
 		# Drop redundant index on fileset.id (primary key already has index)
+		# Note: file table will be rebuilt, so no need to drop its indexes
 		self.logger.info('Dropping redundant index on fileset.id')
 		self.session.execute(text('DROP INDEX IF EXISTS ix_fileset_id'))
 

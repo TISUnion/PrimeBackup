@@ -108,7 +108,7 @@ class BlobChunkGroupBinding(Base):
 class File(Base):
 	__tablename__ = 'file'
 
-	fileset_id: Mapped[int] = mapped_column(ForeignKey('fileset.id'), primary_key=True, index=True)
+	fileset_id: Mapped[int] = mapped_column(ForeignKey('fileset.id'), primary_key=True)
 	path: Mapped[str] = mapped_column(String, primary_key=True)
 	role: Mapped[int] = mapped_column(Integer)  # see enum FileRole
 

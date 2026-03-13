@@ -3,25 +3,109 @@ import time
 from pathlib import Path
 from typing import Dict
 
-from sqlalchemy import text, inspect, Engine
+from sqlalchemy import Table, Column, Integer, String, ForeignKey, LargeBinary, BigInteger, JSON, text, inspect, Engine
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 from typing_extensions import override
 
-from prime_backup.db import schema
 from prime_backup.db.migrations import MigrationImplBase
 from prime_backup.db.values import BlobStorageMethod
 
 
 class _V4:
-	# FIXME: freeze schema on release
-	Base = schema.Base
-	Blob = schema.Blob
-	Chunk = schema.Chunk
-	ChunkGroup = schema.ChunkGroup
-	ChunkGroupChunkBinding = schema.ChunkGroupChunkBinding
-	BlobChunkGroupBinding = schema.BlobChunkGroupBinding
-	File = schema.File
-	Backup = schema.Backup
+	Base = declarative_base()
+	Blob = Table(
+		'blob',
+		Base.metadata,
+		Column('id', Integer, primary_key=True, autoincrement=True),
+		Column('storage_method', Integer),
+		Column('hash', String, unique=True),
+		Column('compress', String),
+		Column('raw_size', BigInteger, index=True),
+		Column('stored_size', BigInteger),
+		sqlite_autoincrement=True
+	)
+	Chunk = Table(
+		'chunk',
+		Base.metadata,
+		Column('id', Integer, primary_key=True, autoincrement=True),
+		Column('hash', String, unique=True),
+		Column('compress', String),
+		Column('raw_size', BigInteger, index=True),
+		Column('stored_size', BigInteger),
+		sqlite_autoincrement=True
+	)
+	ChunkGroup = Table(
+		'chunk_group',
+		Base.metadata,
+		Column('id', Integer, primary_key=True, autoincrement=True),
+		Column('hash', String, unique=True),
+		Column('chunk_count', Integer),
+		Column('chunk_raw_size_sum', BigInteger),
+		Column('chunk_stored_size_sum', BigInteger),
+		sqlite_autoincrement=True
+	)
+	ChunkGroupChunkBinding = Table(
+		'chunk_group_chunk_binding',
+		Base.metadata,
+		Column('chunk_group_id', Integer, ForeignKey('chunk_group.id'), primary_key=True),
+		Column('chunk_offset', BigInteger, primary_key=True),
+		Column('chunk_id', Integer, ForeignKey('chunk.id'), index=True),
+	)
+	BlobChunkGroupBinding = Table(
+		'blob_chunk_group_binding',
+		Base.metadata,
+		Column('blob_id', Integer, ForeignKey('blob.id'), primary_key=True),
+		Column('chunk_group_offset', BigInteger, primary_key=True),
+		Column('chunk_group_id', Integer, ForeignKey('chunk_group.id'), index=True),
+	)
+	File = Table(
+		'file',
+		Base.metadata,
+		Column('fileset_id', Integer, ForeignKey('fileset.id'), primary_key=True),
+		Column('path', String, primary_key=True),
+		Column('role', Integer),
+		Column('mode', Integer),
+		Column('content', LargeBinary, nullable=True),
+		Column('blob_id', Integer, ForeignKey('blob.id'), index=True, nullable=True),
+		Column('blob_storage_method', Integer, nullable=True),
+		Column('blob_hash', String, ForeignKey('blob.hash'), index=True, nullable=True),
+		Column('blob_compress', String, nullable=True),
+		Column('blob_raw_size', BigInteger, nullable=True),
+		Column('blob_stored_size', BigInteger, nullable=True),
+		Column('uid', Integer, nullable=True),
+		Column('gid', Integer, nullable=True),
+		Column('mtime', BigInteger, nullable=True),
+		Column('mtime_ns_part', Integer, nullable=True),
+	)
+	Fileset = Table(
+		'fileset',
+		Base.metadata,
+		Column('id', Integer, primary_key=True, autoincrement=True),
+		Column('base_id', Integer),
+		Column('file_object_count', BigInteger),
+		Column('file_count', BigInteger),
+		Column('file_raw_size_sum', BigInteger),
+		Column('file_stored_size_sum', BigInteger),
+		sqlite_autoincrement=True
+	)
+	Backup = Table(
+		'backup',
+		Base.metadata,
+		Column('id', Integer, primary_key=True, autoincrement=True),
+		Column('timestamp', BigInteger),
+		Column('timestamp_ns_part', Integer),
+		Column('creator', String),
+		Column('comment', String),
+		Column('targets', JSON),
+		Column('tags', JSON),
+		Column('fileset_id_base', Integer, ForeignKey('fileset.id')),
+		Column('fileset_id_delta', Integer, ForeignKey('fileset.id')),
+		Column('file_count', BigInteger),
+		Column('file_raw_size_sum', BigInteger),
+		Column('file_stored_size_sum', BigInteger),
+		sqlite_autoincrement=True
+	)
 
 
 @dataclasses.dataclass
@@ -75,16 +159,13 @@ class MigrationImpl3To4(MigrationImplBase):
 
 		self.logger.info('Creating the new chunk tables')
 		_V4.Base.metadata.create_all(self.engine, tables=[
-			_V4.Base.metadata.tables[declarative.__tablename__]
-			for declarative in [
-				_V4.Blob,
-				_V4.Chunk,
-				_V4.ChunkGroup,
-				_V4.ChunkGroupChunkBinding,
-				_V4.BlobChunkGroupBinding,
-				_V4.File,
-				_V4.Backup,
-			]
+			_V4.Blob,
+			_V4.Chunk,
+			_V4.ChunkGroup,
+			_V4.ChunkGroupChunkBinding,
+			_V4.BlobChunkGroupBinding,
+			_V4.File,
+			_V4.Backup,
 		])
 
 	def __step_rebuild(self):

@@ -68,6 +68,10 @@ class MigrationImpl3To4(MigrationImplBase):
 		self.session.execute(text('DROP TABLE IF EXISTS file'))
 		self.session.execute(text('DROP TABLE IF EXISTS backup'))
 
+		# Drop redundant index on fileset.id (primary key already has index)
+		self.logger.info('Dropping redundant index on fileset.id')
+		self.session.execute(text('DROP INDEX IF EXISTS ix_fileset_id'))
+
 		self.logger.info('Creating the new chunk tables')
 		_V4.Base.metadata.create_all(self.engine, tables=[
 			_V4.Base.metadata.tables[declarative.__tablename__]

@@ -75,7 +75,7 @@ optional arguments:
 ### Prepare
 
 > [!IMPORTANT]
-> This tool assert that no hash method / compress method migration was done after those external data backups are made
+> This tool asserts that no hash method / compress method migration was done after those external data backups are made
 
 First, confirm the time you upgraded your Prime Backup plugin to affected version (v1.9.0 ~ v1.9.2). Let's say you upgraded PrimeBackup at time T0
 

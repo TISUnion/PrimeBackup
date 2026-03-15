@@ -4,7 +4,7 @@ from typing import Optional
 from mcdreforged.api.all import CommandSource, RText, RColor
 from typing_extensions import override
 
-from prime_backup.action.import_backup_action import ImportBackupAction, BackupMetadataNotFound
+from prime_backup.action.import_backup_action import ImportBackupAction, BackupMetadataNotFound, BackupMetadataInvalid
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
@@ -47,8 +47,11 @@ class ImportBackupTask(HeavyTask[None]):
 		self.reply_tr('start', t_fp, RText(backup_format.name, RColor.dark_aqua))
 		try:
 			backup = self.run_action(ImportBackupAction(self.file_path, backup_format, ensure_meta=self.ensure_meta, meta_override=self.meta_override))
-		except BackupMetadataNotFound as e:  # TODO: BackupMetadataInvalid?
+		except BackupMetadataNotFound as e:
 			self.reply(self.tr('backup_metadata_not_found', t_fp, str(e)).set_color(RColor.red))
 			self.reply_tr('backup_metadata_not_found.suggestion', name=mcdr_globals.metadata.name)
+		except BackupMetadataInvalid as e:
+			self.reply(self.tr('backup_metadata_invalid', t_fp, str(e)).set_color(RColor.red))
+			self.reply_tr('backup_metadata_invalid.suggestion', name=mcdr_globals.metadata.name)
 		else:
 			self.reply_tr('done', t_fp, TextComponents.backup_id(backup))

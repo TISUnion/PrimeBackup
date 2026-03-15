@@ -77,6 +77,9 @@ prime_backup:
       backup_metadata_not_found: 'Backup import failed, no valid backup metadata in file {}: {}'
       backup_metadata_not_found.suggestion:
         Please ensure that the importing backup is a backup exported by {name}. You can also use the optional argument §7--auto-meta§r to generate a new metadata automatically
+      backup_metadata_invalid: 'Backup import failed, invalid backup metadata in file {}: {}'
+      backup_metadata_invalid.suggestion:
+        Please ensure that the backup contains a valid metadata. You can also use the optional argument §7--auto-meta§r to generate a new metadata automatically
       done: 'Backup imported from {}, ID {}'
     backup_list:
       name: list backup

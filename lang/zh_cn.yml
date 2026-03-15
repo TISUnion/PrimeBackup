@@ -68,6 +68,9 @@ prime_backup:
       backup_metadata_not_found: '备份导入失败, 文件{}中不存在可用的备份元数据: {}'
       backup_metadata_not_found.suggestion:
         请确保要导入的备份是一个由{name}导出的备份。你也可以带上参数§7--auto-meta§r来自动生成新的元数据
+      backup_metadata_invalid: '备份导入失败, 文件{}中存在无效的备份元数据: {}'
+      backup_metadata_invalid.suggestion:
+        请确保要导入的备份包含合法的备份元数据。你也可以带上参数§7--auto-meta§r来自动生成新的元数据
       done: '已从{}导入备份, ID {}'
     backup_export:
       name: 导出备份

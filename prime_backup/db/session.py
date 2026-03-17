@@ -267,6 +267,44 @@ class DbSession:
 			where(schema.Blob.storage_method == BlobStorageMethod.direct.value)
 		).scalar_one())
 
+	def get_chunk_blob_stored_size_sum(self) -> int:
+		return _int_or_0(self.session.execute(
+			func.sum(schema.Blob.stored_size).select().
+			where(schema.Blob.storage_method == BlobStorageMethod.chunked.value)
+		).scalar_one())
+
+	def get_chunk_blob_raw_size_sum(self) -> int:
+		return _int_or_0(self.session.execute(
+			func.sum(schema.Blob.raw_size).select().
+			where(schema.Blob.storage_method == BlobStorageMethod.chunked.value)
+		).scalar_one())
+
+	@dataclasses.dataclass(frozen=True)
+	class RawAndStoredSizes:
+		raw_size: int
+		stored_size: int
+
+	def get_blob_size_sums_by_storage_method(self) -> Dict[BlobStorageMethod, RawAndStoredSizes]:
+		rows: Sequence[Row[Tuple[int, Optional[int], Optional[int]]]] = self.session.execute(
+			select(
+				schema.Blob.storage_method,
+				func.sum(schema.Blob.raw_size),
+				func.sum(schema.Blob.stored_size),
+			).group_by(schema.Blob.storage_method)
+		).all()
+
+		result = {bsm: self.RawAndStoredSizes(0, 0) for bsm in BlobStorageMethod}
+		for storage_method, raw_size_sum, stored_size_sum in rows:
+			try:
+				bsm = BlobStorageMethod(storage_method)
+			except (KeyError, ValueError):
+				bsm = BlobStorageMethod.unknown
+			result[bsm] = self.RawAndStoredSizes(
+				raw_size=result[bsm].raw_size + _int_or_0(raw_size_sum),
+				stored_size=result[bsm].stored_size + _int_or_0(stored_size_sum),
+			)
+		return result
+
 	def get_blob_store_fs_file_size_sum(self) -> int:
 		return self.get_direct_blob_stored_size_sum() + self.get_chunk_stored_size_sum()
 

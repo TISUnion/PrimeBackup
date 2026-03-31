@@ -285,7 +285,7 @@ class DbSession:
 		stored_size: int
 
 	def get_blob_size_sums_by_storage_method(self) -> Dict[BlobStorageMethod, RawAndStoredSizes]:
-		rows: Sequence[Row[Tuple[int, Optional[int], Optional[int]]]] = self.session.execute(
+		rows: Sequence[Row[Tuple[int, int, int]]] = self.session.execute(
 			select(
 				schema.Blob.storage_method,
 				func.sum(schema.Blob.raw_size),

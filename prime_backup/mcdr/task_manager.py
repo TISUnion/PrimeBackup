@@ -6,8 +6,7 @@ import threading
 from concurrent import futures
 from typing import Optional, Callable, Any, TypeVar, cast, List, Sequence
 
-from mcdreforged import RTextBase
-from mcdreforged.api.all import CommandSource, RText, RColor, RAction, RStyle, PermissionLevel
+from mcdreforged.api.all import CommandSource, RText, RColor, RAction, RStyle, PermissionLevel, RTextBase
 from sqlalchemy.exc import OperationalError
 from typing_extensions import Protocol
 

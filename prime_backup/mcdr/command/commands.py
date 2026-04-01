@@ -36,6 +36,7 @@ from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, In
 from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompressMethodTask
 from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
 from prime_backup.mcdr.task.db.prune_database_task import PruneDatabaseTask
+from prime_backup.mcdr.task.db.reassign_backup_id_task import ReassignBackupIdTask
 from prime_backup.mcdr.task.db.show_db_overview_task import ShowDbOverviewTask
 from prime_backup.mcdr.task.db.vacuum_sqlite_task import VacuumSqliteTask
 from prime_backup.mcdr.task.db.validate_db_task import ValidateDbTask, ValidatePart
@@ -143,6 +144,10 @@ class CommandManager:
 
 	def cmd_db_prune(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(PruneDatabaseTask(source))
+
+	def cmd_db_reassign_backup_id(self, source: CommandSource, context: CommandContext):
+		order = context.get('reassign_backup_order', BackupSortOrder.id)
+		self.task_manager.add_task(ReassignBackupIdTask(source, order))
 
 	def cmd_make(self, source: CommandSource, context: CommandContext):
 		def callback(backup_id: Optional[int], err: Optional[Exception]):
@@ -436,6 +441,8 @@ class CommandManager:
 		builder.command('database prune', self.cmd_db_prune)
 		builder.command('database migrate_compress_method <compress_method>', self.cmd_db_migrate_compress_method)
 		builder.command('database migrate_hash_method <hash_method>', self.cmd_db_migrate_hash_method)
+		builder.command('database reassign_backup_id', self.cmd_db_reassign_backup_id)
+		builder.command('database reassign_backup_id <reassign_backup_order>', self.cmd_db_reassign_backup_id)
 		# `database delete file <backup_id> <backup_file_path>` is handled by `make_db_delete_file_cmd()` below
 
 		builder.arg('fileset_id', create_fileset_id)  # not that necessary to provide suggestion here
@@ -444,6 +451,7 @@ class CommandManager:
 		builder.arg('id_or_hash', HexStringNode)  # a numeric id is also a hex string
 		builder.arg('compress_method', lambda n: Enumeration(n, CompressMethod))
 		builder.arg('hash_method', lambda n: Enumeration(n, HashMethod))
+		builder.arg('reassign_backup_order', lambda n: Enumeration(n, BackupSortOrder))
 
 		# operations
 		builder.command('confirm', self.cmd_confirm)

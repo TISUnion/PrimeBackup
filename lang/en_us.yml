@@ -298,6 +298,14 @@ prime_backup:
       confirm_target: migrate
       start: Migrating the hash method from {} to {}, check console to see the progress
       done: Migrated the hash method from {} to {}
+    db_reassign_backup_id:
+      name: reassign backup IDs
+      no_backups: No backups exist, nothing to reassign
+      show_whats_going_on: 'Prepare to reassign IDs of all {} backups (current max ID: {}, sort order: {})'
+      warning: 'WARNING: This operation is irreversible and will rewrite all backup IDs'
+      confirm_target: reassign IDs
+      start: Reassigning backup IDs, please wait...
+      done: 'Backup ID reassignment complete. Rewrote {} backup IDs to {}~{}'
     db_overview:
       name: overview database
       title: Database overview
@@ -486,12 +494,14 @@ prime_backup:
           §7{prefix} database prune§r: Prune useless objects in the database. Normally this command does not need to be performed manually
           §7{prefix} database migrate_compress_method <compress_method>§r: Migrate the currently used compress method to another. Affects all data, might take a long time
           §7{prefix} database migrate_hash_method <hash_method>§r: Migrate the currently used hash method to another. Affects all data, might take a long time
+          §7{prefix} database reassign_backup_id §3[<reassign_backup_order>]§r: Reassign all backup IDs sequentially based on the given sort order. Default order: id
           {scheduled_compact_notes}
           §d[Arguments]§r
           §3<file_path>§r: Path of the file related to the backup source root
           §d<id_or_hash>§r: The ID of the object, or the hash of the object. It can be a prefix of the hash string as long as it's unique
           §d<compress_method>§r: Available options: {compress_methods}
           §d<hash_method>§r: Available options: {hash_methods}
+          §3<reassign_backup_order>§r: Sort order for ID reassignment. Available options: id, id_r, time, time_r
           §a<part>§r: 
           - §ablobs§r: Validate the correctness of blobs, e.g. data size, hash value
           - §afiles§r: Validate the correctness of file objects, e.g. the association between files and blobs

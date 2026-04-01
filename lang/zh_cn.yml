@@ -298,6 +298,14 @@ prime_backup:
       confirm_target: 迁移
       start: 正在将哈希算法从{}迁移至{}，见控制台以了解进度
       done: 已将哈希算法从{}迁移至{}
+    db_reassign_backup_id:
+      name: 重排备份ID
+      no_backups: 数据库中没有备份，无需重排
+      show_whats_going_on: '准备对全部{}个备份重新分配ID（当前最大ID: {}，排序方式: {}）'
+      warning: '警告: 此操作不可逆，所有备份的ID将被重写'
+      confirm_target: 重排备份ID
+      start: 正在重排备份ID，请稍等...
+      done: '备份ID重排完成，已将{1}个备份的ID重排为{0}~{1}'
     db_overview:
       name: 概览数据库
       title: 数据库概览
@@ -486,12 +494,14 @@ prime_backup:
           §7{prefix} database prune§r: 清理数据库中的无效数据。正常情况下该操作无需手动执行
           §7{prefix} database migrate_compress_method <压缩方法>§r: 将当前使用的压缩方法迁移至另一种方法。这将影响所有数据，耗时可能较长
           §7{prefix} database migrate_hash_method <哈希算法>§r: 将当前使用的哈希算法迁移至另一种算法。这将影响所有数据，耗时可能较长
+          §7{prefix} database reassign_backup_id §3[<重排排序方式>]§r: 按给定排序方式顺序重排所有备份的ID。默认排序: id
           {scheduled_compact_notes}
           §d【参数帮助】§r
           §3<文件路径>§r: 要审查的文件的路径，相对备份根目录
           §d<ID或哈希>§r: 要审查的对象的ID或哈希值。也可谓哈希串的前缀，只要确保唯一即可
           §d<压缩方法>§r: 可用选项: {compress_methods}
           §d<哈希算法>§r: 可用选项: {hash_methods}
+          §3<重排排序方式>§r: ID重排的排序方式。可用选项: id, id_r, time, time_r
           §a<组件>§r:
           - §ablobs§r: 验证数据对象的正确性，如数据大小、哈希值
           - §afiles§r: 验证文件对象的正确性，如文件与数据的关联

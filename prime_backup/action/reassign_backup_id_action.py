@@ -14,7 +14,7 @@ class ReassignBackupIdResult:
 
 
 class ReassignBackupIdAction(Action[ReassignBackupIdResult]):
-	def __init__(self, order: BackupSortOrder = BackupSortOrder.id):
+	def __init__(self, order: BackupSortOrder):
 		super().__init__()
 		self.order = order
 
@@ -22,5 +22,5 @@ class ReassignBackupIdAction(Action[ReassignBackupIdResult]):
 	def run(self) -> ReassignBackupIdResult:
 		with DbAccess.open_session() as session:
 			max_id = session.reassign_backup_id(self.order)
-		self.logger.info('Backup ID reassigned, current max Backup.id: {}'.format(max_id))
+		self.logger.debug('Backup ID reassigned, current max Backup.id: {}'.format(max_id))
 		return ReassignBackupIdResult(max_id)

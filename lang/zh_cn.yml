@@ -309,6 +309,7 @@ prime_backup:
     db_overview:
       name: 概览数据库
       title: 数据库概览
+      compression_ratio: 压缩率，越小代表效果越好
       db_version: '数据库版本: {}'
       db_file_size: '数据库文件大小: {}'
       hash_method: '哈希算法: {}'
@@ -324,10 +325,12 @@ prime_backup:
       blob_count: '数据对象数: {}'
       blob_stored_size: '数据对象总储存大小: {} ({})'
       blob_raw_size: '数据对象总原始大小: {}'
+      blob_dedup_stats: '数据对象去重统计: 数量 {}, 大小 {}'
       section_chunk: 数据块
       chunk_count: '数据块数: {}'
       chunk_stored_size: '数据块总储存大小: {} ({})'
       chunk_raw_size: '数据块总原始大小: {}'
+      chunk_dedup_stats: '数据块去重统计: 数量 {}, 大小 {}'
     db_prune:
       name: 清理数据库
       start: 正在清理数据库, 删除其中的无效数据, 请稍等...

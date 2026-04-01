@@ -309,6 +309,7 @@ prime_backup:
     db_overview:
       name: overview database
       title: Database overview
+      compression_ratio: compression ratio, lower is better
       db_version: 'Database version: {}'
       db_file_size: 'Database file size: {}'
       hash_method: 'Hash method: {}'
@@ -324,10 +325,12 @@ prime_backup:
       blob_count: 'Blob count: {}'
       blob_stored_size: 'Blob stored size sum: {} ({})'
       blob_raw_size: 'Blob raw size sum: {}'
+      blob_dedup_stats: 'Blob dedup stats: count {}, size {}'
       section_chunk: Chunk
       chunk_count: 'Chunk count: {}'
       chunk_stored_size: 'Chunk stored size sum: {} ({})'
       chunk_raw_size: 'Chunk raw size sum: {}'
+      chunk_dedup_stats: 'Chunk dedup stats: count {}, size {}'
     db_prune:
       name: prune database
       start: Pruning database, deleting useless objects inside, please wait...

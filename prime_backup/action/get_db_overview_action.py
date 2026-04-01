@@ -18,22 +18,25 @@ class DbOverviewResult:
 	chunk_group_chunk_binding_count: int
 	blob_chunk_group_binding_count: int
 
-	file_object_count: int
-	file_total_count: int
+	file_object_count: int  # number of unique file objects (rows in the File table)
+	file_total_count: int   # total file references across all backups, shared files won't be deduplicated
 	fileset_count: int
 	backup_count: int
 
-	blob_stored_size_sum: int
-	blob_raw_size_sum: int
-	direct_blob_stored_size_sum: int
-	direct_blob_raw_size_sum: int
-	chunked_blob_stored_size_sum: int
-	chunked_blob_raw_size_sum: int
-	chunk_raw_size_sum: int
-	chunk_stored_size_sum: int
-	file_raw_size_sum: int
+	blob_stored_size_sum: int          # total on-disk stored size of all unique blobs
+	blob_raw_size_sum: int             # total raw (uncompressed) size of all unique blobs
+	direct_blob_stored_size_sum: int   # stored size of direct blobs
+	direct_blob_raw_size_sum: int      # raw size of direct blobs
+	chunked_blob_stored_size_sum: int  # stored size of chunked blobs (sum of unique chunk stored sizes)
+	chunked_blob_raw_size_sum: int     # raw size of chunked blobs
+	chunked_blob_chunk_count: int      # total chunk references across all chunked blobs, shared chunks won't be deduplicated
 
-	db_file_size: int
+	chunk_raw_size_sum: int     # total raw size of all unique chunks
+	chunk_stored_size_sum: int  # total on-disk stored size of all unique chunks
+
+	file_raw_size_sum: int         # total raw size of all file references across all backups, shared files won't be deduplicated
+
+	db_file_size: int  # size of the SQLite database file on disk
 
 
 class GetDbOverviewAction(Action[DbOverviewResult]):
@@ -64,6 +67,7 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 				direct_blob_raw_size_sum=blob_size_sums[BlobStorageMethod.direct].raw_size,
 				chunked_blob_stored_size_sum=blob_size_sums[BlobStorageMethod.chunked].stored_size,
 				chunked_blob_raw_size_sum=blob_size_sums[BlobStorageMethod.chunked].raw_size,
+				chunked_blob_chunk_count=session.get_chunked_blob_chunk_count(),
 				chunk_raw_size_sum=session.get_chunk_raw_size_sum(),
 				chunk_stored_size_sum=session.get_chunk_stored_size_sum(),
 				file_raw_size_sum=session.get_file_total_raw_size_sum(),

@@ -766,6 +766,13 @@ class DbSession:
 	def get_blob_chunk_group_binding_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.BlobChunkGroupBinding)).scalar_one())
 
+	def get_chunked_blob_chunk_count(self) -> int:
+		"""Sum of chunk_count over all BlobChunkGroupBinding rows — i.e. total chunk references from all chunked blobs, counting shared chunk groups once per blob."""
+		return _int_or_0(self.session.execute(
+			select(func.sum(schema.ChunkGroup.chunk_count)).
+			join(schema.BlobChunkGroupBinding, schema.BlobChunkGroupBinding.chunk_group_id == schema.ChunkGroup.id)
+		).scalar_one())
+
 	def get_blob_chunk_group_bindings_for_blob(self, blob_id: int) -> List[schema.BlobChunkGroupBinding]:
 		return _list_it(self.session.execute(
 			select(schema.BlobChunkGroupBinding).

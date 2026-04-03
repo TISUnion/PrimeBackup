@@ -29,6 +29,7 @@ class BackupConfig(Serializable):
 	creation_skip_missing_file_patterns: List[str] = [
 		'**',
 	]
+	mutating_file_patterns: List[str] = []
 
 	# Content-Define-Chunking for Large files
 	cdc_enabled: bool = False
@@ -97,3 +98,8 @@ class BackupConfig(Serializable):
 	def cdc_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
 		from prime_backup.utils import pathspec_utils
 		return pathspec_utils.compile_gitignore_spec(self.cdc_patterns)
+
+	@property
+	def mutating_file_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
+		from prime_backup.utils import pathspec_utils
+		return pathspec_utils.compile_gitignore_spec(self.mutating_file_patterns)

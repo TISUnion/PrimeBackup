@@ -260,7 +260,7 @@ class BlobAllocator:
 		(self.logger.warning if last_chance else self.logger.debug)(msg)
 		raise _BlobFileChanged(msg)
 
-	def __try_get_or_create_direct_blob(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool) -> Generator[Any, Any, schema.Blob]:
+	def __try_get_or_create_direct_blob(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool, is_mutating_file: bool) -> Generator[Any, Any, schema.Blob]:
 		log_and_raise_blob_file_changed = functools.partial(self.__log_and_raise_blob_file_changed, last_chance=last_chance)
 
 		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(st.st_size)
@@ -284,7 +284,7 @@ class BlobAllocator:
 			pre_cal_result = None
 		pre_calc_blob_hash = pre_cal_result.hash if pre_cal_result is not None else None
 
-		if last_chance:
+		if last_chance or is_mutating_file:
 			policy = _DirectBlobCreatePolicy.copy_hash
 		elif pre_calc_blob_hash is not None:  # hash already calculated? just use default
 			policy = _DirectBlobCreatePolicy.default
@@ -345,7 +345,7 @@ class BlobAllocator:
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 					blob_hash = hash_utils.calc_file_hash(temp_file_path)
 
-				misc_utils.assert_true(last_chance, 'only last_chance=True is allowed for the copy_hash policy')
+				misc_utils.assert_true(last_chance or is_mutating_file, 'only last_chance=True or is_mutating_file=True is allowed for the copy_hash policy')
 				if (cache := self.__blob_by_hash_cache.get(blob_hash)) is not None:
 					return cache
 				yield BlobByHashFetcher.Req(blob_hash)
@@ -429,12 +429,12 @@ class BlobAllocator:
 			stored_size=stored_size,
 		)
 
-	def __try_get_or_create_chunked_blob(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool) -> Generator[Any, Any, schema.Blob]:
+	def __try_get_or_create_chunked_blob(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool, is_mutating_file: bool = False) -> Generator[Any, Any, schema.Blob]:
 		log_and_raise_blob_file_changed = functools.partial(self.__log_and_raise_blob_file_changed, last_chance=last_chance)
 		src_path_str = repr(src_path.as_posix())
 
 		pre_cal_result: Optional[BlobPrecalculateResult] = None
-		if last_chance:
+		if last_chance or is_mutating_file:
 			policy = _ChunkedBlobCreatePolicy.copy_hash
 		else:
 			policy = _ChunkedBlobCreatePolicy.default
@@ -613,11 +613,20 @@ class BlobAllocator:
 		else:
 			return chunk_utils.should_chunk_blob(rel_path, file_size)
 
-	def __try_get_or_create_blob_once(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool) -> Generator[Any, Any, schema.Blob]:
-		if self.__should_chunk_blob(src_path, st.st_size):
-			gen = self.__try_get_or_create_chunked_blob(src_path, src_path_md5, st, last_chance)
+	def __is_mutating_file(self, file_path: Path) -> bool:
+		try:
+			rel_path = file_path.relative_to(self.__source_path)
+		except ValueError:
+			self.logger.error("Path {!r} is not inside the source path {!r}".format(str(file_path), str(self.__source_path)))
+			return False
 		else:
-			gen = self.__try_get_or_create_direct_blob(src_path, src_path_md5, st, last_chance)
+			return self.config.backup.mutating_file_patterns_spec.match_file(rel_path)
+
+	def __try_get_or_create_blob_once(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool, is_mutating_file: bool = False) -> Generator[Any, Any, schema.Blob]:
+		if self.__should_chunk_blob(src_path, st.st_size):
+			gen = self.__try_get_or_create_chunked_blob(src_path, src_path_md5, st, last_chance=last_chance, is_mutating_file=is_mutating_file)
+		else:
+			gen = self.__try_get_or_create_direct_blob(src_path, src_path_md5, st, last_chance=last_chance, is_mutating_file=is_mutating_file)
 		try:
 			query = gen.send(None)
 			while True:
@@ -629,13 +638,14 @@ class BlobAllocator:
 	def get_or_create_blob(self, src_path: Path, st: os.stat_result) -> Generator[Any, Any, GetOrCreateBlobResult]:
 		src_path_str = repr(src_path.as_posix())
 		src_path_md5 = hashlib.md5(src_path_str.encode('utf8')).hexdigest()
+		is_mutating_file = self.__is_mutating_file(src_path)
 
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
 			retry_cnt = i + 1  # [1, n]
 			is_last_attempt = retry_cnt == _BLOB_FILE_CHANGED_RETRY_COUNT
 			if i > 0:
 				self.logger.debug('Try to create blob {} (attempt {} / {})'.format(src_path_str, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT))
-			gen = self.__try_get_or_create_blob_once(src_path, src_path_md5, st, last_chance=is_last_attempt)
+			gen = self.__try_get_or_create_blob_once(src_path, src_path_md5, st, last_chance=is_last_attempt, is_mutating_file=is_mutating_file)
 			try:
 				query = gen.send(None)
 				while True:

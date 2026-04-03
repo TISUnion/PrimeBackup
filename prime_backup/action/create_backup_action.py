@@ -200,10 +200,13 @@ class CreateBackupAction(Action[BackupInfo]):
 		hashes_and_chunks = self.__pre_calc_result.hashes_and_chunks
 		hashes_and_chunks.clear()
 
+		mutating_patterns_spec = self.config.backup.mutating_file_patterns_spec
 		file_entries_to_hash: List[_ScanResultEntry] = [
 			file_entry
 			for file_entry in scan_result.all_files
-			if file_entry.is_file() and file_entry.path not in self.__pre_calc_result.reused_files
+			if file_entry.is_file()
+			and file_entry.path not in self.__pre_calc_result.reused_files
+			and not mutating_patterns_spec.match_file(file_entry.path.relative_to(self.__source_path))
 		]
 
 		all_sizes: Set[int] = {file_entry.stat.st_size for file_entry in file_entries_to_hash}

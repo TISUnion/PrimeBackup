@@ -223,6 +223,7 @@ Configs on how the backup is made
 	"creation_skip_missing_file_patterns": [
        "**"
     ],
+    "mutating_file_patterns": [],
 
     "cdc_enabled": false,
     "cdc_file_size_threshold": 104857600,
@@ -418,6 +419,27 @@ During backup creation, any "file not found" errors occurring for files matched 
 The default value is `["**"]`, which matches everything. It's suggested to limit it to those volatile files only, e.g. `["trash/*.tmp"]`
 
 - Type: `List[str]`
+
+#### mutating_file_patterns
+
+A list of [gitignore flavor](http://git-scm.com/docs/gitignore) pattern strings.
+Files matching these patterns are treated as frequently mutating files during backup creation.
+
+For such files, Prime Backup will:
+
+- Skip pre-hash calculation: No hash will be pre-computed for these files before the main backup workflow
+- Always copy to a temporary file first: Instead of reading the source file directly, Prime Backup copies it to a temporary location first and then processes the copy. This ensures a stable content snapshot even if the file is being written to concurrently
+
+This option is intended for files that may still change at any time even after the [`/save-off`](#commands) command is issued (e.g. mod databases, log files),
+and can speed up the processing of such files during backup creation
+
+!!! note
+
+    This option only affects the strategy Prime Backup uses when processing these files during backup creation; it does not control whether the files are included in the backup.
+    Use [ignore_patterns](#ignore_patterns) or [retain_patterns](#retain_patterns) to exclude files from backups entirely.
+
+- Type: `List[str]`
+- Default: `[]`
 
 #### cdc_enabled
 

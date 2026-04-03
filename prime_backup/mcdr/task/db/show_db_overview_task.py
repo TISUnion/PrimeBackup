@@ -46,6 +46,7 @@ class ShowDbOverviewTask(LightTask[None]):
 		self.reply_tr('backup_count', TextComponents.number(result.backup_count))
 		self.reply_tr('blob_store_stored_size', make_size(blob_store_stored_size_sum), make_compression_ratio(blob_store_stored_size_sum, blob_store_raw_size_sum))
 		self.reply_tr('blob_store_raw_size', make_size(blob_store_raw_size_sum))
+		self.reply_tr('backup_overall_compression_ratio', make_compression_ratio(blob_store_stored_size_sum, result.file_raw_size_sum))
 
 		self.reply(make_section('section_file'))
 		self.reply_tr('fileset_count', TextComponents.number(result.fileset_count))

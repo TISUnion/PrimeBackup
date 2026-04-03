@@ -52,6 +52,7 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 		self.logger.info('Backup count: %s', result.backup_count)
 		self.logger.info('Backup data stored size sum: %s (%s)', self.__size_str(blob_store_stored_size_sum), self.__ratio_str(blob_store_stored_size_sum, blob_store_raw_size_sum))
 		self.logger.info('Backup data raw size sum: %s', self.__size_str(blob_store_raw_size_sum))
+		self.logger.info('Overall compression ratio (dedup + compress): %s', self.__ratio_str(blob_store_stored_size_sum, result.file_raw_size_sum))
 
 		self.logger.info('[File]')
 		self.logger.info('Fileset count: %s', result.fileset_count)

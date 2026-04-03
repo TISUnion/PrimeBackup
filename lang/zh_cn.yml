@@ -317,6 +317,7 @@ prime_backup:
       backup_count: '备份数: {}'
       blob_store_stored_size: '备份文件数据总储存大小: {} ({})'
       blob_store_raw_size: '备份文件数据总原始大小: {}'
+      backup_overall_compression_ratio: '最终存储压缩率 (去重+压缩): {}'
       section_file: 文件
       fileset_count: '文件集数: {}'
       file_count: '文件数: {} ({} 个对象)'

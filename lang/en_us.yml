@@ -317,6 +317,7 @@ prime_backup:
       backup_count: 'Backup count: {}'
       blob_store_stored_size: 'Backup data stored size sum: {} ({})'
       blob_store_raw_size: 'Backup data raw size sum: {}'
+      backup_overall_compression_ratio: 'Overall compression ratio (dedup + compress): {}'
       section_file: File
       fileset_count: 'Fileset count: {}'
       file_count: 'File count: {} ({} objects)'

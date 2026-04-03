@@ -52,12 +52,12 @@ class ChunkGrouper:
 			if current_group.offset < 0:
 				current_group.offset = offset
 
-			assert chunk_constants.CHUNK_GROUP_AVG_SIZE == 128
+			assert chunk_constants.CHUNK_GROUP_AVG_SIZE == 256
 			needs_cut = False
 			needs_cut |= i == len(blob_chunks) - 1  # last chunk group
 			if len(current_group.chunks) >= chunk_constants.CHUNK_GROUP_MIN_SIZE:
 				needs_cut |= len(current_group.chunks) >= chunk_constants.CHUNK_GROUP_MAX_SIZE  # reach max size
-				needs_cut |= chunk.hash.endswith('00') or chunk.hash.endswith('80')  # 1/128 chance
+				needs_cut |= chunk.hash.endswith('00')  # 1/256 chance
 			if needs_cut:
 				current_group.hash = chunk_utils.create_chunk_group_hash(chunk.hash for chunk in current_group.chunks)
 				raw_chunk_groups.append(current_group)

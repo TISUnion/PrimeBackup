@@ -566,7 +566,7 @@ class BlobAllocator:
 			100.0 * len(new_db_chunks) / max(1, len(offset_to_db_chunk)),
 		))
 		unique_chunk_cnt = len(known_db_chunks)
-		if len(new_db_chunks) >= max(5000, int(unique_chunk_cnt * 0.75)):
+		if len(new_db_chunks) >= max(5000, int(unique_chunk_cnt * 0.6)):
 			# 5000 chunks == 5000*32*1.2 == ~192MiB
 			self.logger.warning('Chunked a large file with lots of new chunks, please consider if it should really be in the CDC target patterns')
 			self.logger.warning('File path: {} size {}, chunk cnt {} (unique {}, new {} {:.1f}%), new chunk size {}'.format(

@@ -423,7 +423,7 @@ The default value is `["**"]`, which matches everything. It's suggested to limit
 #### mutating_file_patterns
 
 A list of [gitignore flavor](http://git-scm.com/docs/gitignore) pattern strings.
-Files matching these patterns are treated as frequently mutating files during backup creation.
+Files matching these patterns are treated as frequently mutating files during backup creation
 
 For such files, Prime Backup will:
 
@@ -436,7 +436,7 @@ and can speed up the processing of such files during backup creation
 !!! note
 
     This option only affects the strategy Prime Backup uses when processing these files during backup creation; it does not control whether the files are included in the backup.
-    Use [ignore_patterns](#ignore_patterns) or [retain_patterns](#retain_patterns) to exclude files from backups entirely.
+    Use [ignore_patterns](#ignore_patterns) or [retain_patterns](#retain_patterns) to exclude files from backups entirely
 
 - Type: `List[str]`
 - Default: `[]`

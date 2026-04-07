@@ -560,7 +560,7 @@ class BlobAllocator:
 			# end src_file reading
 		# end ExitStack for the temp file
 
-		self.logger.debug('Chunked file {} in {:.2f}s, size {}/{}, chunk cnt: {} (+{}, {:.1f}%)'.format(
+		self.logger.debug('Chunked file {} in {:.2f}s, compressed size {}/{}, chunk count: {} (+{}, {:.1f}%)'.format(
 			src_path_str, time.time() - process_start_time,
 			blob_stored_size_sum, blob_raw_size_sum, len(offset_to_db_chunk), len(new_db_chunks),
 			100.0 * len(new_db_chunks) / max(1, len(offset_to_db_chunk)),
@@ -569,7 +569,7 @@ class BlobAllocator:
 		if len(new_db_chunks) >= max(5000, int(unique_chunk_cnt * 0.6)):
 			# 5000 chunks == 5000*32*1.2 == ~192MiB
 			self.logger.warning('Chunked a large file with lots of new chunks, please consider if it should really be in the CDC target patterns')
-			self.logger.warning('File path: {} size {}, chunk cnt {} (unique {}, new {} {:.1f}%), new chunk size {}'.format(
+			self.logger.warning('File path: {} size {}, chunk count {} (unique {}, new {} {:.1f}%), new chunk size {}'.format(
 				src_path_str, ByteCount(blob_raw_size_sum).auto_str(), len(chunks), unique_chunk_cnt,
 				len(new_db_chunks), 100.0 * len(new_db_chunks) / unique_chunk_cnt,
 				ByteCount(sum(db_chunk.raw_size for db_chunk in new_db_chunks)).auto_str(),

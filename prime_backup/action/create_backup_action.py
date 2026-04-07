@@ -323,7 +323,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			timestamp=now_ns // (10 ** 9),
 			timestamp_ns_part=now_ns % (10 ** 9),
 		)
-		self.logger.info('Creating backup for {} at path {!r}, file cnt {}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
+		self.logger.info('Creating backup for {} at path {!r}, file count {}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
 			scan_result.root_targets, self.__source_path.as_posix(), len(scan_result.all_files),
 			backup.timestamp, backup.creator, backup.comment, backup.tags,
 		))

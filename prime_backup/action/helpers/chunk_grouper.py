@@ -105,6 +105,6 @@ class ChunkGrouper:
 
 		# end
 		cost_sec = time.time() - start_time
-		self.logger.debug('blob chunks finalized in {:.2f}s, chunk group cnt {} (+{})'.format(
+		self.logger.debug('blob chunks finalized in {:.2f}s, chunk group count {} (+{})'.format(
 			cost_sec, len(raw_chunk_groups), len(new_chunk_group_hashes),
 		))

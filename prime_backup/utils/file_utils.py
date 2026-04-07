@@ -4,6 +4,7 @@ import os
 import queue
 import shutil
 import stat
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional
@@ -26,24 +27,38 @@ def __is_cow_not_supported_error(e: Optional[int]) -> bool:
 	)
 
 
-def copy_file_fast(src_path: Path, dst_path: Path):
-	# https://man7.org/linux/man-pages/man2/copy_file_range.2.html
-	if HAS_COPY_FILE_RANGE:
-		total_read = 0
-		try:
-			with open(src_path, 'rb') as f_src, open(dst_path, 'wb+') as f_dst:
-				while n := os.copy_file_range(f_src.fileno(), f_dst.fileno(), 2 ** 30):  # type: ignore[attr-defined]
-					total_read += n
-			return
-		except OSError as e:
-			# unsupported or read nothing -> retry with shutil.copyfile
-			# reference: https://github.com/coreutils/coreutils/blob/c343bee1b5de6087b70fe80db9e1f81bb1fc535c/src/copy.c#L312
-			if __is_cow_not_supported_error(e.errno) and total_read == 0:
-				pass
-			else:
-				raise
+def __copy_file_cow(src_path: Path, dst_path: Path) -> bool:
+	"""
+	https://man7.org/linux/man-pages/man2/copy_file_range.2.html
+	:return: True on success, False if CoW is unsupported (caller should fallback)
+	"""
+	total_read = 0
+	try:
+		with open(src_path, 'rb') as f_src, open(dst_path, 'wb+') as f_dst:
+			while n := os.copy_file_range(f_src.fileno(), f_dst.fileno(), 2 ** 30):  # type: ignore[attr-defined]
+				total_read += n
+		return True
+	except OSError as e:
+		# unsupported or read nothing -> retry with shutil.copyfile
+		# reference: https://github.com/coreutils/coreutils/blob/c343bee1b5de6087b70fe80db9e1f81bb1fc535c/src/copy.c#L312
+		if __is_cow_not_supported_error(e.errno) and total_read == 0:
+			return False
+		raise
 
-	shutil.copyfile(src_path, dst_path, follow_symlinks=False)
+
+def copy_file_fast(src_path: Path, dst_path: Path):
+	start_time = time.time()
+
+	if HAS_COPY_FILE_RANGE and __copy_file_cow(src_path, dst_path):
+		is_cow = True
+	else:
+		shutil.copyfile(src_path, dst_path, follow_symlinks=False)
+		is_cow = False
+
+	cost_sec = time.time() - start_time
+	if cost_sec > 2:
+		from prime_backup import logger
+		logger.get().debug("copy_file_fast() {!r} -> {!r} cow={} took {:.2f}s".format(str(src_path), str(dst_path), is_cow, cost_sec))
 
 
 class _ThreadedFastFileObjCopier:

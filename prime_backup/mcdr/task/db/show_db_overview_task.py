@@ -44,14 +44,19 @@ class ShowDbOverviewTask(LightTask[None]):
 
 		self.reply(make_section('section_backup'))
 		self.reply_tr('backup_count', TextComponents.number(result.backup_count))
-		self.reply_tr('blob_store_stored_size', make_size(blob_store_stored_size_sum), make_compression_ratio(blob_store_stored_size_sum, blob_store_raw_size_sum))
-		self.reply_tr('blob_store_raw_size', make_size(blob_store_raw_size_sum))
+		self.reply_tr('backup_storage_stored_size', make_size(blob_store_stored_size_sum), make_compression_ratio(blob_store_stored_size_sum, blob_store_raw_size_sum))
+		self.reply_tr('backup_storage_raw_size', make_size(blob_store_raw_size_sum))
+		self.reply_tr('backup_all_file_raw_size', make_size(result.file_raw_size_sum))
 		self.reply_tr('backup_overall_compression_ratio', make_compression_ratio(blob_store_stored_size_sum, result.file_raw_size_sum))
 
 		self.reply(make_section('section_file'))
 		self.reply_tr('fileset_count', TextComponents.number(result.fileset_count))
 		self.reply_tr('file_count', TextComponents.number(result.file_total_count), TextComponents.number(result.file_object_count))
-		self.reply_tr('file_raw_size', make_size(result.file_raw_size_sum))
+		self.reply_tr(
+			'file_dedup_stats',
+			TextComponents.percent(-(result.file_total_count - result.file_object_count), result.file_total_count, ndigits=2).
+			h(RTextList(TextComponents.number(result.file_total_count - result.file_object_count), ' / ', TextComponents.number(result.file_total_count)))
+		)
 
 		self.reply(make_section('section_blob'))
 		self.reply_tr('blob_count', TextComponents.number(result.blob_count))

@@ -1,7 +1,7 @@
 import argparse
 import dataclasses
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Any
 
 from typing_extensions import override
 
@@ -30,11 +30,15 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 			return '{:.2f}%'.format(100 * numerator / denominator)
 		return 'N/A'
 
+	@staticmethod
+	def __one_dedupe_str(ratio: Any, count_saved: Any, count_total: Any) -> str:
+		return '-{} ({} / {})'.format(ratio, count_saved, count_total)
+
 	def __dedup_stat_str(self, count_deduped: int, count_total: int, size_deduped: int, size_total: int) -> Tuple[str, str]:
 		count_saved = count_total - count_deduped
 		size_saved = size_total - size_deduped
-		count_str = '{} ({} / {})'.format(self.__ratio_str(-count_saved, count_total), count_saved, count_total)
-		size_str = '{} ({} / {})'.format(self.__ratio_str(-size_saved, size_total), ByteCount(size_saved).auto_str(), ByteCount(size_total).auto_str())
+		count_str = self.__one_dedupe_str(self.__ratio_str(count_saved, count_total), count_saved, count_total)
+		size_str = self.__one_dedupe_str(self.__ratio_str(size_saved, size_total), ByteCount(size_saved).auto_str(), ByteCount(size_total).auto_str())
 		return count_str, size_str
 
 	def handle(self):
@@ -50,14 +54,15 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 
 		self.logger.info('[Backup]')
 		self.logger.info('Backup count: %s', result.backup_count)
-		self.logger.info('Backup data stored size sum: %s (%s)', self.__size_str(blob_store_stored_size_sum), self.__ratio_str(blob_store_stored_size_sum, blob_store_raw_size_sum))
-		self.logger.info('Backup data raw size sum: %s', self.__size_str(blob_store_raw_size_sum))
+		self.logger.info('Backup storage actual size sum: %s (%s)', self.__size_str(blob_store_stored_size_sum), self.__ratio_str(blob_store_stored_size_sum, blob_store_raw_size_sum))
+		self.logger.info('Backup storage uncompressed size sum: %s', self.__size_str(blob_store_raw_size_sum))
+		self.logger.info('Total raw size of all backup files: %s', self.__size_str(result.file_raw_size_sum))
 		self.logger.info('Overall compression ratio (dedup + compress): %s', self.__ratio_str(blob_store_stored_size_sum, result.file_raw_size_sum))
 
 		self.logger.info('[File]')
 		self.logger.info('Fileset count: %s', result.fileset_count)
 		self.logger.info('File count: %s (%s objects)', result.file_total_count, result.file_object_count)
-		self.logger.info('File raw size sum: %s', self.__size_str(result.file_raw_size_sum))
+		self.logger.info('File object dedup stats: %s', self.__one_dedupe_str(self.__ratio_str(result.file_total_count - result.file_object_count, result.file_total_count), result.file_total_count - result.file_object_count, result.file_total_count))
 
 		self.logger.info('[Blob]')
 		self.logger.info('Blob count: %s', result.blob_count)

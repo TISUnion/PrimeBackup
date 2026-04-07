@@ -315,13 +315,14 @@ prime_backup:
       hash_method: '哈希算法: {}'
       section_backup: 备份
       backup_count: '备份数: {}'
-      blob_store_stored_size: '备份文件数据总储存大小: {} ({})'
-      blob_store_raw_size: '备份文件数据总原始大小: {}'
+      backup_storage_stored_size: '备份文件数据总储存大小: {} ({})'
+      backup_storage_raw_size: '备份文件数据总未压缩大小: {}'
+      backup_all_file_raw_size: '所有备份文件总大小: {}'
       backup_overall_compression_ratio: '最终存储压缩率 (去重+压缩): {}'
       section_file: 文件
       fileset_count: '文件集数: {}'
       file_count: '文件数: {} ({} 个对象)'
-      file_raw_size: '文件总大小: {}'
+      file_dedup_stats: '文件对象去重统计: 数量 {}'
       section_blob: 数据对象
       blob_count: '数据对象数: {}'
       blob_stored_size: '数据对象总储存大小: {} ({})'

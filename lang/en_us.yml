@@ -315,13 +315,14 @@ prime_backup:
       hash_method: 'Hash method: {}'
       section_backup: Backup
       backup_count: 'Backup count: {}'
-      blob_store_stored_size: 'Backup data stored size sum: {} ({})'
-      blob_store_raw_size: 'Backup data raw size sum: {}'
+      backup_storage_stored_size: 'Backup storage actual size sum: {} ({})'
+      backup_storage_raw_size: 'Backup storage uncompressed size sum: {}'
+      backup_all_file_raw_size: 'Total raw size of all backup files: {}'
       backup_overall_compression_ratio: 'Overall compression ratio (dedup + compress): {}'
       section_file: File
       fileset_count: 'Fileset count: {}'
       file_count: 'File count: {} ({} objects)'
-      file_raw_size: 'File raw size sum: {}'
+      file_dedup_stats: 'File object dedup stats: count {}'
       section_blob: Blob
       blob_count: 'Blob count: {}'
       blob_stored_size: 'Blob stored size sum: {} ({})'

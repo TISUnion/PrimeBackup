@@ -462,14 +462,14 @@ class BlobAllocator:
 				chunks = pre_cal_result.chunks
 				blob_hash = pre_cal_result.hash
 				blob_size = pre_cal_result.size
-				self.logger.debug('CDC chunked+hash file {} with size {} (precalc)'.format(src_path_str, ByteCount(blob_size).auto_str()))
+				self.logger.debug('CDC chunk+hash file {} with size {} (precalc)'.format(src_path_str, ByteCount(blob_size).auto_str()))
 			else:
 				chunker = chunk_utils.FileChunker(actual_path_to_read, need_entire_file_hash=True)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as cdc_cost:
 					chunks = chunker.cut_all()
 				blob_hash = chunker.get_entire_file_hash()
 				blob_size = chunker.get_read_file_size()
-				self.logger.debug('CDC chunked+hash file {} with size {} in {:.2f}s ({}/s)'.format(
+				self.logger.debug('CDC chunk+hash file {} with size {} in {:.2f}s ({}/s)'.format(
 					src_path_str, ByteCount(blob_size).auto_str(), cdc_cost(), ByteCount(blob_size / cdc_cost() if cdc_cost() > 0 else 0).auto_str(),
 				))
 			if blob_size == 0:

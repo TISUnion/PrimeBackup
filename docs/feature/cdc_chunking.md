@@ -53,7 +53,7 @@ The current chunking parameters are fixed in code:
 
 - average chunk size: `32 KiB`
 - minimum chunk size: `8 KiB`
-- maximum chunk size: `256 MiB`
+- maximum chunk size: `256 KiB`
 
 ### Metadata Optimization (Chunk Groups)
 

@@ -51,9 +51,9 @@ The current implementation works in the following order:
 
 The current chunking parameters are fixed in code:
 
-- average chunk size: `256 KiB`
-- minimum chunk size: `64 KiB`
-- maximum chunk size: `1 MiB`
+- average chunk size: `32 KiB`
+- minimum chunk size: `8 KiB`
+- maximum chunk size: `256 MiB`
 
 ### Metadata Optimization (Chunk Groups)
 

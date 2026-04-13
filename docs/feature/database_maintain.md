@@ -2,13 +2,14 @@
 title: 'Database Maintenance'
 ---
 
-Consistency check and Database Organization
+Consistency check and database organization
 
 ## Database Validation
 
 | Command                           | Description                                                                                        |
 |-----------------------------------|----------------------------------------------------------------------------------------------------|
 | `!!pb database validate blobs`    | Validate the correctness of blobs, e.g. data size, hash value                                      |
+| `!!pb database validate chunks`   | Validate the correctness of chunks, chunk groups and their relation bindings                       |
 | `!!pb database validate files`    | Validate the correctness of file objects, e.g. the association between files and blobs             |
 | `!!pb database validate filesets` | Validate the correctness of fileset objects, e.g. the association between filesets and their files |
 | `!!pb database validate backups`  | Validate the correctness of backup objects, e.g. the association between backups and filesets      |
@@ -31,6 +32,10 @@ Example output:
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4325, bad 0
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Validated 4325 / 4325 blobs
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] All 4325 blobs are healthy
+[MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Start validating chunks (chunks, chunk groups, relation bindings), please wait...
+[MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO] [prime_backup]: Chunk validation start
+[MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 0, validated 0, ok 0, bad 0
+[MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] All 0 chunks, 0 chunk groups, 0 + 0 bindings are healthy
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Start validating files (including file, directory and symlink), please wait...
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO] [prime_backup]: File validation start
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 9147 / 9147 file objects
@@ -50,7 +55,7 @@ Example output:
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO] [prime_backup]: Backup validation done: total 21, validated 21, ok 21, bad 0
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Validated 21 / 21 backups
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] All 21 backups are healthy
-[MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Validation done, cost 3.39s. blobs: good, files: good, filesets: good, backups: good
+[MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Validation done, cost 3.39s. blobs: good, chunks: good, files: good, filesets: good, backups: good
 ```
 
 ### Validation Content
@@ -61,6 +66,14 @@ Blobs:
 - Integrity: Verify the hash values of the blob files
 - Size Matching: Check if the stored size matches the record
 - Compression Validation: Verify the integrity of compressed data
+
+Chunks:
+
+- File Existence: Check if the chunk files exist in storage
+- Integrity: Verify the hash values of the chunk files
+- Size Matching: Check if the stored size matches the record
+- Orphan Detection: Check for chunks and chunk groups not referenced by any blob
+- Binding Consistency: Verify the correctness of chunk group chunk bindings and blob chunk group bindings
 
 Files:
 
@@ -114,6 +127,7 @@ Stuffs to be pruned
 - Orphaned Filesets: Filesets no longer referenced by any backups
 - Base Fileset Compression: Optimize the storage structure of base filesets
 - Unknown Blob Files: Blob files that exist in file system but have no records in the database
+- Unknown Chunk Files: Chunk files that exist in file system but have no records in the database
 
 !!! note
 
@@ -131,8 +145,8 @@ Example output:
 
 ```
 > !!pb database vacuum
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 开始压缩数据库...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 压缩完成: 耗时 2.34s, 大小 45.67MiB -> 32.15MiB (-13.52MiB, 70.4%)
+[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO]: [PB] Compacting database, minimizing the size of the database file, please wait...
+[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO]: [PB] Database compaction complete, cost 2.34s, size change: 45.67MiB -> 32.15MiB (-13.52MiB) (70.40%)
 ```
 
 !!! note

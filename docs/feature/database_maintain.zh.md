@@ -9,6 +9,7 @@ title: '数据库维护'
 | 命令                                | 说明                      |
 |-----------------------------------|-------------------------|
 | `!!pb database validate blobs`    | 验证数据对象的正确性，如数据大小、哈希值    |
+| `!!pb database validate chunks`   | 验证数据块、数据块组及其关系绑定的正确性    |
 | `!!pb database validate files`    | 验证文件对象的正确性，如文件与数据的关联    |
 | `!!pb database validate filesets` | 验证文件集对象的正确性，如文件集与其文件的关联 |
 | `!!pb database validate backups`  | 验证备份对象的正确性，如备份与文件集的关联   |
@@ -31,6 +32,10 @@ title: '数据库维护'
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4325, bad 0
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 已验证4325/4325个数据对象
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 全部4325个数据对象都是健康的
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 正在验证所有数据块相关对象 (包括数据块、数据块组、关系绑定), 请稍等...
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Chunk validation start
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 0, validated 0, ok 0, bad 0
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 全部0个数据块、0个数据块组、0 + 0 个数据块关系绑定对象都是健康的
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 正在验证所有文件对象 (包括文件、文件夹、符号链接), 请稍等...
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: File validation start
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 9147 / 9147 file objects
@@ -50,7 +55,7 @@ title: '数据库维护'
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Backup validation done: total 21, validated 21, ok 21, bad 0
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 已验证21/21个备份
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 全部21个备份都是健康的
-[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 验证完成, 耗时15.32s。数据对象: 健康, 文件对象: 健康, 文件集: 健康, 备份: 健康
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 验证完成, 耗时15.32s。数据对象: 健康, 数据块相关对象: 健康, 文件对象: 健康, 文件集: 健康, 备份: 健康
 ```
 
 ### 验证内容
@@ -61,6 +66,14 @@ title: '数据库维护'
 - 完整性: 验证数据对象文件的哈希值
 - 大小匹配: 检查存储大小与记录是否一致
 - 压缩验证: 验证压缩数据的完整性
+
+数据块：
+
+- 文件存在性: 检查数据块文件是否存在于存储中
+- 完整性: 验证数据块文件的哈希值
+- 大小匹配: 检查存储大小与记录是否一致
+- 孤儿检测: 检查未被任何数据对象引用的数据块和数据块组
+- 绑定一致性: 验证数据块组-数据块绑定与数据对象-数据块组绑定的正确性
 
 文件：
 
@@ -114,6 +127,7 @@ title: '数据库维护'
 - 孤立文件集: 不再被任何备份引用的文件集
 - 基础文件集压缩: 优化基础文件集的存储结构
 - 未知数据对象文件: 文件系统中存在但数据库中无记录的数据对象文件
+- 未知数据块文件: 文件系统中存在但数据库中无记录的数据块文件
 
 !!! note
 
@@ -131,10 +145,10 @@ title: '数据库维护'
 
 ```
 > !!pb database vacuum
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 开始压缩数据库...
-[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO] [prime_backup]: [PB] 压缩完成: 耗时 2.34s, 大小 45.67MiB -> 32.15MiB (-13.52MiB, 70.4%)
+[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO]: [PB] 正在整理数据库文件, 请稍等...
+[MCDR] [00:46:11] [PB@51f5-worker-heavy/INFO]: [PB] 数据库文件整理完毕, 耗时2.34s, 体积变化: 45.67MiB -> 32.15MiB (-13.52MiB) (70.40%)
 ```
 
 !!! note
 
-    在默认配置下，Prime Backup 会自动周期性执行 SQLite 数据库任务，因此大部分情况下，你都无需手动执行此命令 
+    在默认配置下，Prime Backup 会自动周期性执行 SQLite 数据库任务，因此大部分情况下，你都无需手动执行此命令

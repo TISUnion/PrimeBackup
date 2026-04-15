@@ -18,31 +18,31 @@ class _V4:
 		'blob',
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
-		Column('storage_method', Integer),
-		Column('hash', String, unique=True),
-		Column('compress', String),
-		Column('raw_size', BigInteger, index=True),
-		Column('stored_size', BigInteger),
+		Column('storage_method', Integer, nullable=False),
+		Column('hash', String, unique=True, nullable=False),
+		Column('compress', String, nullable=False),
+		Column('raw_size', BigInteger, index=True, nullable=False),
+		Column('stored_size', BigInteger, nullable=False),
 		sqlite_autoincrement=True
 	)
 	Chunk = Table(
 		'chunk',
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
-		Column('hash', String, unique=True),
-		Column('compress', String),
-		Column('raw_size', BigInteger, index=True),
-		Column('stored_size', BigInteger),
+		Column('hash', String, unique=True, nullable=False),
+		Column('compress', String, nullable=False),
+		Column('raw_size', BigInteger, index=True, nullable=False),
+		Column('stored_size', BigInteger, nullable=False),
 		sqlite_autoincrement=True
 	)
 	ChunkGroup = Table(
 		'chunk_group',
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
-		Column('hash', String, unique=True),
-		Column('chunk_count', Integer),
-		Column('chunk_raw_size_sum', BigInteger),
-		Column('chunk_stored_size_sum', BigInteger),
+		Column('hash', String, unique=True, nullable=False),
+		Column('chunk_count', Integer, nullable=False),
+		Column('chunk_raw_size_sum', BigInteger, nullable=False),
+		Column('chunk_stored_size_sum', BigInteger, nullable=False),
 		sqlite_autoincrement=True
 	)
 	ChunkGroupChunkBinding = Table(
@@ -50,22 +50,22 @@ class _V4:
 		Base.metadata,
 		Column('chunk_group_id', Integer, ForeignKey('chunk_group.id'), primary_key=True),
 		Column('chunk_offset', BigInteger, primary_key=True),
-		Column('chunk_id', Integer, ForeignKey('chunk.id'), index=True),
+		Column('chunk_id', Integer, ForeignKey('chunk.id'), index=True, nullable=False),
 	)
 	BlobChunkGroupBinding = Table(
 		'blob_chunk_group_binding',
 		Base.metadata,
 		Column('blob_id', Integer, ForeignKey('blob.id'), primary_key=True),
 		Column('chunk_group_offset', BigInteger, primary_key=True),
-		Column('chunk_group_id', Integer, ForeignKey('chunk_group.id'), index=True),
+		Column('chunk_group_id', Integer, ForeignKey('chunk_group.id'), index=True, nullable=False),
 	)
 	File = Table(
 		'file',
 		Base.metadata,
 		Column('fileset_id', Integer, ForeignKey('fileset.id'), primary_key=True),
 		Column('path', String, primary_key=True),
-		Column('role', Integer),
-		Column('mode', Integer),
+		Column('role', Integer, nullable=False),
+		Column('mode', Integer, nullable=False),
 		Column('content', LargeBinary, nullable=True),
 		Column('blob_id', Integer, ForeignKey('blob.id'), index=True, nullable=True),
 		Column('blob_storage_method', Integer, nullable=True),
@@ -82,28 +82,28 @@ class _V4:
 		'fileset',
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
-		Column('base_id', Integer),
-		Column('file_object_count', BigInteger),
-		Column('file_count', BigInteger),
-		Column('file_raw_size_sum', BigInteger),
-		Column('file_stored_size_sum', BigInteger),
+		Column('base_id', Integer, nullable=False),
+		Column('file_object_count', BigInteger, nullable=False),
+		Column('file_count', BigInteger, nullable=False),
+		Column('file_raw_size_sum', BigInteger, nullable=False),
+		Column('file_stored_size_sum', BigInteger, nullable=False),
 		sqlite_autoincrement=True
 	)
 	Backup = Table(
 		'backup',
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
-		Column('timestamp', BigInteger),
-		Column('timestamp_ns_part', Integer),
-		Column('creator', String),
-		Column('comment', String),
-		Column('targets', JSON),
-		Column('tags', JSON),
-		Column('fileset_id_base', Integer, ForeignKey('fileset.id')),
-		Column('fileset_id_delta', Integer, ForeignKey('fileset.id')),
-		Column('file_count', BigInteger),
-		Column('file_raw_size_sum', BigInteger),
-		Column('file_stored_size_sum', BigInteger),
+		Column('timestamp', BigInteger, nullable=False),
+		Column('timestamp_ns_part', Integer, nullable=False),
+		Column('creator', String, nullable=False),
+		Column('comment', String, nullable=False),
+		Column('targets', JSON, nullable=False),
+		Column('tags', JSON, nullable=False),
+		Column('fileset_id_base', Integer, ForeignKey('fileset.id'), nullable=False),
+		Column('fileset_id_delta', Integer, ForeignKey('fileset.id'), nullable=False),
+		Column('file_count', BigInteger, nullable=False),
+		Column('file_raw_size_sum', BigInteger, nullable=False),
+		Column('file_stored_size_sum', BigInteger, nullable=False),
 		sqlite_autoincrement=True
 	)
 
@@ -146,16 +146,14 @@ class MigrationImpl3To4(MigrationImplBase):
 			self.session.execute(text('CREATE TABLE old_blob_3to4 AS SELECT * FROM blob'))
 		if 'old_file_3to4' not in inspector.get_table_names():
 			self.session.execute(text('CREATE TABLE old_file_3to4 AS SELECT * FROM file'))
+		if 'old_fileset_3to4' not in inspector.get_table_names():
+			self.session.execute(text('CREATE TABLE old_fileset_3to4 AS SELECT * FROM fileset'))
 		if 'old_backup_3to4' not in inspector.get_table_names():
 			self.session.execute(text('CREATE TABLE old_backup_3to4 AS SELECT * FROM backup'))
 		self.session.execute(text('DROP TABLE IF EXISTS blob'))
 		self.session.execute(text('DROP TABLE IF EXISTS file'))
+		self.session.execute(text('DROP TABLE IF EXISTS fileset'))
 		self.session.execute(text('DROP TABLE IF EXISTS backup'))
-
-		# Drop redundant index on fileset.id (primary key already has index)
-		# Note: file table will be rebuilt, so no need to drop its indexes
-		self.logger.info('Dropping redundant index on fileset.id')
-		self.session.execute(text('DROP INDEX IF EXISTS ix_fileset_id'))
 
 		self.logger.info('Creating the new chunk tables')
 		_V4.Base.metadata.create_all(self.engine, tables=[
@@ -165,6 +163,7 @@ class MigrationImpl3To4(MigrationImplBase):
 			_V4.ChunkGroupChunkBinding,
 			_V4.BlobChunkGroupBinding,
 			_V4.File,
+			_V4.Fileset,
 			_V4.Backup,
 		])
 
@@ -179,6 +178,15 @@ class MigrationImpl3To4(MigrationImplBase):
 			'''
 			self.logger.debug('mapped insert {} -> {}: {!r}'.format(src_table, dst_table, sql))
 			return text(sql)
+
+		# rebuild filesets
+		self.logger.info('(fileset table) Migrating data from old table')
+		self.session.execute(get_mapped_insert_sql('old_fileset_3to4', 'fileset', {
+			**{name: name for name in [
+				'id', 'base_id', 'file_object_count',
+				'file_count', 'file_raw_size_sum', 'file_stored_size_sum',
+			]},
+		}))
 
 		# rebuild blobs
 		self.logger.info('(blob table) Migrating data from old table')
@@ -240,9 +248,13 @@ class MigrationImpl3To4(MigrationImplBase):
 		self.logger.info('Cleaning up')
 		self.session.execute(text('DROP TABLE old_blob_3to4'))
 		self.session.execute(text('DROP TABLE old_file_3to4'))
+		self.session.execute(text('DROP TABLE old_fileset_3to4'))
 		self.session.execute(text('DROP TABLE old_backup_3to4'))
 
 		cnt_blob = self.session.execute(text(f'SELECT COUNT(*) FROM blob')).scalar_one()
 		cnt_file = self.session.execute(text(f'SELECT COUNT(*) FROM file')).scalar_one()
+		cnt_fileset = self.session.execute(text(f'SELECT COUNT(*) FROM fileset')).scalar_one()
 		cnt_backup = self.session.execute(text(f'SELECT COUNT(*) FROM backup')).scalar_one()
-		self.logger.info('Done. Reconstructed {} blobs, {} files and {} backups in total'.format(cnt_blob, cnt_file, cnt_backup))
+		self.logger.info('Done. Reconstructed {} blobs, {} files, {} filesets and {} backups in total'.format(
+			cnt_blob, cnt_file, cnt_fileset, cnt_backup,
+		))

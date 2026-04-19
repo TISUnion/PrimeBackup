@@ -50,6 +50,10 @@ class _ScanResult:
 	all_files: List[_ScanResultEntry] = dataclasses.field(default_factory=list)
 	root_targets: List[str] = dataclasses.field(default_factory=list)  # list of posix path, related to the source_path
 
+	@property
+	def all_file_size_sum(self) -> int:
+		return sum(entry.stat.st_size for entry in self.all_files)
+
 
 @dataclasses.dataclass(frozen=True)
 class _PreCalculationResult:
@@ -323,8 +327,9 @@ class CreateBackupAction(Action[BackupInfo]):
 			timestamp=now_ns // (10 ** 9),
 			timestamp_ns_part=now_ns % (10 ** 9),
 		)
-		self.logger.info('Creating backup for {} at path {!r}, file count {}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
-			scan_result.root_targets, self.__source_path.as_posix(), len(scan_result.all_files),
+		self.logger.info('Creating backup for {} at path {!r}, file count {} size {}, timestamp {!r}, creator {!r}, comment {!r}, tags {!r}'.format(
+			scan_result.root_targets, self.__source_path.as_posix(),
+			len(scan_result.all_files), ByteCount(scan_result.all_file_size_sum).auto_str(),
 			backup.timestamp, backup.creator, backup.comment, backup.tags,
 		))
 

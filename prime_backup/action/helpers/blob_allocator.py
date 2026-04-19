@@ -464,17 +464,17 @@ class BlobAllocator:
 				chunks = pre_cal_result.chunks
 				blob_hash = pre_cal_result.hash
 				blob_size = pre_cal_result.size
-				self.logger.debug('Chunked and hashed file {} with size {} using {} (precalc)'.format(
-					src_path_str, chunk_method.name, ByteCount(blob_size).auto_str())
-				)
+				self.logger.debug('Cut and hashed file {} with size {} into {} chunks using {} (precalc)'.format(
+					src_path_str, ByteCount(blob_size).auto_str(), len(chunks), chunk_method.name,
+				))
 			else:
 				chunker = Chunker.create_file_chunker(chunk_method, actual_path_to_read, need_entire_file_hash=True)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as chunking_cost:
 					chunks = chunker.cut_all()
 				blob_hash = chunker.get_entire_file_hash()
 				blob_size = chunker.get_read_file_size()
-				self.logger.debug('Chunked and hashed file {} with size {} using {} in {:.2f}s ({}/s)'.format(
-					src_path_str, ByteCount(blob_size).auto_str(), chunk_method.name, chunking_cost(),
+				self.logger.debug('Cut and hashed file {} with size {} into {} chunks using {} in {:.2f}s ({}/s)'.format(
+					src_path_str, ByteCount(blob_size).auto_str(), len(chunks), chunk_method.name, chunking_cost(),
 					ByteCount(blob_size / chunking_cost() if chunking_cost() > 0 else 0).auto_str(),
 				))
 			if blob_size == 0:

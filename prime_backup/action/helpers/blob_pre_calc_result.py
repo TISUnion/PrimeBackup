@@ -2,8 +2,9 @@ import dataclasses
 from pathlib import Path
 from typing import List, IO
 
-from prime_backup.utils import misc_utils, chunk_utils, hash_utils
-from prime_backup.utils.chunk_utils import PrettyChunk
+from prime_backup.types.chunk_method import ChunkMethod
+from prime_backup.utils import misc_utils, hash_utils
+from prime_backup.utils.chunker import PrettyChunk, Chunker
 from prime_backup.utils.hash_utils import SizeAndHash
 
 
@@ -27,10 +28,10 @@ class BlobPrecalculateResult:
 
 	@classmethod
 	def from_stream(cls, stream: IO[bytes], rel_path: Path, size: int) -> 'BlobPrecalculateResult':
-		should_be_chunked = chunk_utils.should_chunk_blob(rel_path, size)
+		chunk_method = ChunkMethod.get_for_file(rel_path, size)
 		chunks: List[PrettyChunk] = []
-		if should_be_chunked:
-			chunker = chunk_utils.StreamChunker(stream, True)
+		if chunk_method is not None:
+			chunker = Chunker.create_stream_chunker(chunk_method, stream, need_entire_file_hash=True)
 			chunks = chunker.cut_all()
 			sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
 		else:
@@ -41,16 +42,16 @@ class BlobPrecalculateResult:
 		return BlobPrecalculateResult(
 			size=sah.size,
 			hash=sah.hash,
-			should_be_chunked=should_be_chunked,
+			should_be_chunked=chunk_method is not None,
 			chunks=chunks,
 		)
 
 	@classmethod
 	def from_file(cls, path: Path, rel_path: Path, size: int) -> 'BlobPrecalculateResult':
-		should_be_chunked = chunk_utils.should_chunk_blob(rel_path, size)
+		chunk_method = ChunkMethod.get_for_file(rel_path, size)
 		chunks: List[PrettyChunk] = []
-		if should_be_chunked:
-			chunker = chunk_utils.FileChunker(path, True)
+		if chunk_method is not None:
+			chunker = Chunker.create_file_chunker(chunk_method, path, need_entire_file_hash=True)
 			chunks = chunker.cut_all()
 			sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
 		else:
@@ -61,6 +62,6 @@ class BlobPrecalculateResult:
 		return BlobPrecalculateResult(
 			size=sah.size,
 			hash=sah.hash,
-			should_be_chunked=should_be_chunked,
+			should_be_chunked=chunk_method is not None,
 			chunks=chunks,
 		)

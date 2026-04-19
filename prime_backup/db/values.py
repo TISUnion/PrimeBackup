@@ -11,7 +11,7 @@ BackupTagDict = Dict[str, Any]
 class BlobStorageMethod(enum.IntEnum):
 	unknown = 0
 	direct = 1   # at blob store (regular method)
-	chunked = 2  # at chunk store (cdc chunked)
+	chunked = 2  # at chunk store (chunked into chunks)
 
 
 @dataclasses.dataclass(frozen=True)

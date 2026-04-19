@@ -24,6 +24,7 @@ from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import blob_utils, misc_utils, chunk_utils, collection_utils, file_utils
+from prime_backup.utils.chunker import Chunker
 from prime_backup.utils.hash_utils import SizeAndHash
 
 
@@ -110,7 +111,7 @@ class ImportBackupAction(Action[BackupInfo]):
 		new_db_chunks: List[schema.Chunk] = []
 		offset_to_db_chunk: Dict[int, schema.Chunk] = {}
 		offset = 0
-		for chunk in chunk_utils.StreamChunker(file_reader, need_entire_file_hash=False).cut():
+		for chunk in Chunker.create_stream_chunker(file_reader, need_entire_file_hash=False).cut():
 			if (db_chunk := self.__chunk_cache.get(chunk.hash)) is None:
 				db_chunk = self.__create_chunk(session, chunk.data, SizeAndHash(chunk.length, chunk.hash))
 				new_db_chunks.append(db_chunk)

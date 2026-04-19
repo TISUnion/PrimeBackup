@@ -25,8 +25,10 @@ from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import PrimeBackupError
+from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, chunk_utils
+from prime_backup.utils.chunker import Chunker
 from prime_backup.utils.hash_utils import SizeAndHash
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 from prime_backup.utils.time_cost_stats import TimeCostStats
@@ -429,7 +431,7 @@ class BlobAllocator:
 			stored_size=stored_size,
 		)
 
-	def __try_get_or_create_chunked_blob(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool, is_mutating_file: bool = False) -> Generator[Any, Any, schema.Blob]:
+	def __try_get_or_create_chunked_blob(self, src_path: Path, src_path_md5: str, st: os.stat_result, chunk_method: ChunkMethod, last_chance: bool, is_mutating_file: bool = False) -> Generator[Any, Any, schema.Blob]:
 		log_and_raise_blob_file_changed = functools.partial(self.__log_and_raise_blob_file_changed, last_chance=last_chance)
 		src_path_str = repr(src_path.as_posix())
 
@@ -462,15 +464,18 @@ class BlobAllocator:
 				chunks = pre_cal_result.chunks
 				blob_hash = pre_cal_result.hash
 				blob_size = pre_cal_result.size
-				self.logger.debug('CDC chunk+hash file {} with size {} (precalc)'.format(src_path_str, ByteCount(blob_size).auto_str()))
+				self.logger.debug('Chunked and hashed file {} with size {} using {} (precalc)'.format(
+					src_path_str, chunk_method.name, ByteCount(blob_size).auto_str())
+				)
 			else:
-				chunker = chunk_utils.FileChunker(actual_path_to_read, need_entire_file_hash=True)
-				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as cdc_cost:
+				chunker = Chunker.create_file_chunker(chunk_method, actual_path_to_read, need_entire_file_hash=True)
+				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as chunking_cost:
 					chunks = chunker.cut_all()
 				blob_hash = chunker.get_entire_file_hash()
 				blob_size = chunker.get_read_file_size()
-				self.logger.debug('CDC chunk+hash file {} with size {} in {:.2f}s ({}/s)'.format(
-					src_path_str, ByteCount(blob_size).auto_str(), cdc_cost(), ByteCount(blob_size / cdc_cost() if cdc_cost() > 0 else 0).auto_str(),
+				self.logger.debug('Chunked and hashed file {} with size {} using {} in {:.2f}s ({}/s)'.format(
+					src_path_str, ByteCount(blob_size).auto_str(), chunk_method.name, chunking_cost(),
+					ByteCount(blob_size / chunking_cost() if chunking_cost() > 0 else 0).auto_str(),
 				))
 			if blob_size == 0:
 				log_and_raise_blob_file_changed('Blob size becomes zero')
@@ -568,9 +573,10 @@ class BlobAllocator:
 		unique_chunk_cnt = len(known_db_chunks)
 		if len(new_db_chunks) >= max(5000, int(unique_chunk_cnt * 0.6)):
 			# 5000 chunks == 5000*32*1.2 == ~192MiB
-			self.logger.warning('Chunked a large file with lots of new chunks, please consider if it should really be in the CDC target patterns')
-			self.logger.warning('File path: {} size {}, chunk count {} (unique {}, new {} {:.1f}%), new chunk size {}'.format(
-				src_path_str, ByteCount(blob_raw_size_sum).auto_str(), len(chunks), unique_chunk_cnt,
+			self.logger.warning('Chunked a large file with lots of new chunks, please consider if it should really be in the chunking target patterns')
+			self.logger.warning('File path: {} size {}, chunk method {}, chunk count {} (unique {}, new {} {:.1f}%), new chunk size {}'.format(
+				src_path_str, ByteCount(blob_raw_size_sum).auto_str(),
+				chunk_method.name, len(chunks), unique_chunk_cnt,
 				len(new_db_chunks), 100.0 * len(new_db_chunks) / unique_chunk_cnt,
 				ByteCount(sum(db_chunk.raw_size for db_chunk in new_db_chunks)).auto_str(),
 			))
@@ -604,14 +610,14 @@ class BlobAllocator:
 				return self.config.backup.creation_skip_missing_file_patterns_spec.match_file(rel_path)
 		return False
 
-	def __should_chunk_blob(self, file_path: Path, file_size: int) -> bool:
+	def __get_chunk_method(self, file_path: Path, file_size: int) -> Optional[ChunkMethod]:
 		try:
 			rel_path = file_path.relative_to(self.__source_path)
 		except ValueError:
 			self.logger.error("Path {!r} is not inside the source path {!r}".format(str(file_path), str(self.__source_path)))
-			return False
+			return None
 		else:
-			return chunk_utils.should_chunk_blob(rel_path, file_size)
+			return ChunkMethod.get_for_file(rel_path, file_size)
 
 	def __is_mutating_file(self, file_path: Path) -> bool:
 		try:
@@ -623,8 +629,9 @@ class BlobAllocator:
 			return self.config.backup.mutating_file_patterns_spec.match_file(rel_path)
 
 	def __try_get_or_create_blob_once(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool, is_mutating_file: bool = False) -> Generator[Any, Any, schema.Blob]:
-		if self.__should_chunk_blob(src_path, st.st_size):
-			gen = self.__try_get_or_create_chunked_blob(src_path, src_path_md5, st, last_chance=last_chance, is_mutating_file=is_mutating_file)
+		chunk_method = self.__get_chunk_method(src_path, st.st_size)
+		if chunk_method is not None:
+			gen = self.__try_get_or_create_chunked_blob(src_path, src_path_md5, st, chunk_method=chunk_method, last_chance=last_chance, is_mutating_file=is_mutating_file)
 		else:
 			gen = self.__try_get_or_create_direct_blob(src_path, src_path_md5, st, last_chance=last_chance, is_mutating_file=is_mutating_file)
 		try:

@@ -7,9 +7,20 @@ from typing_extensions import override
 from prime_backup.action.diff_backup_action import DiffBackupAction
 from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
+from prime_backup.types.blob_info import BlobInfo
 from prime_backup.types.file_info import FileInfo
+from prime_backup.utils.hash_utils import SizeAndHash
 
 _T = TypeVar('_T')
+_R = TypeVar('_R')
+
+
+def _get_raw_size_and_hash_from_blob(blob: BlobInfo) -> SizeAndHash:
+	return SizeAndHash(blob.raw_size, blob.hash)
+
+
+def _map_or_none(value: Optional[_T], maper: Callable[[_T], _R]) -> Optional[_R]:
+	return maper(value) if value is not None else None
 
 
 class DiffBackupTask(LightTask[None]):
@@ -78,21 +89,20 @@ class DiffBackupTask(LightTask[None]):
 					RTextBase.format('{}: {}', t_bid_new, what_mapper(what_new) if what_new is not None else t_na),
 				]
 
-			def map_or_none(value: Optional[_T], maper: Callable[[_T], Any]):
-				return maper(value) if value is not None else None
-
 			if old_file.mode != new_file.mode:
 				t_change = self.tr('diff.mode')
 				make_hover(pretty_mode(old_file.mode), pretty_mode(new_file.mode))
-			elif (h1 := map_or_none(old_file.blob, lambda b: b.hash)) != (h2 := map_or_none(new_file.blob, lambda b: b.hash)):
+			elif (sah1 := _map_or_none(old_file.blob, _get_raw_size_and_hash_from_blob)) != (sah2 := _map_or_none(new_file.blob, _get_raw_size_and_hash_from_blob)):
 				t_change = self.tr('diff.blob')
 				n = 8
-				if h1 is not None and h2 is not None:
-					while n < min(len(h1), len(h2)):
-						if h1[:n] != h2[:n]:
+				if sah1 is not None and sah2 is not None:
+					while n < min(len(sah1.hash), len(sah2.hash)):
+						if sah1.hash[:n] != sah2.hash[:n]:
 							break
 						n += 8
-				make_hover(h1, h2, lambda h: h[:n])
+				def blob_what_mapper(sah: SizeAndHash):
+					return RTextList(TextComponents.blob_hash(sah.hash[:n]), ' ', TextComponents.file_size(sah.size))
+				make_hover(sah1, sah2, blob_what_mapper)
 			elif old_file.content != new_file.content:
 				# currently only symlink uses the content
 				t_change = self.tr('diff.link_target')

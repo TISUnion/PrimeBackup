@@ -1,0 +1,115 @@
+tables:
+  backup: |-
+    CREATE TABLE backup (
+    	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+    	timestamp BIGINT NOT NULL, 
+    	timestamp_ns_part INTEGER NOT NULL, 
+    	creator VARCHAR NOT NULL, 
+    	comment VARCHAR NOT NULL, 
+    	targets JSON NOT NULL, 
+    	tags JSON NOT NULL, 
+    	fileset_id_base INTEGER NOT NULL, 
+    	fileset_id_delta INTEGER NOT NULL, 
+    	file_count BIGINT NOT NULL, 
+    	file_raw_size_sum BIGINT NOT NULL, 
+    	file_stored_size_sum BIGINT NOT NULL, 
+    	FOREIGN KEY(fileset_id_base) REFERENCES fileset (id), 
+    	FOREIGN KEY(fileset_id_delta) REFERENCES fileset (id)
+    )
+  blob: |-
+    CREATE TABLE blob (
+    	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+    	storage_method INTEGER NOT NULL, 
+    	hash VARCHAR NOT NULL, 
+    	compress VARCHAR NOT NULL, 
+    	raw_size BIGINT NOT NULL, 
+    	stored_size BIGINT NOT NULL, 
+    	UNIQUE (hash)
+    )
+  blob_chunk_group_binding: |-
+    CREATE TABLE blob_chunk_group_binding (
+    	blob_id INTEGER NOT NULL, 
+    	chunk_group_offset BIGINT NOT NULL, 
+    	chunk_group_id INTEGER NOT NULL, 
+    	PRIMARY KEY (blob_id, chunk_group_offset), 
+    	FOREIGN KEY(blob_id) REFERENCES blob (id), 
+    	FOREIGN KEY(chunk_group_id) REFERENCES chunk_group (id)
+    )
+  chunk: |-
+    CREATE TABLE chunk (
+    	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+    	hash VARCHAR NOT NULL, 
+    	compress VARCHAR NOT NULL, 
+    	raw_size BIGINT NOT NULL, 
+    	stored_size BIGINT NOT NULL, 
+    	UNIQUE (hash)
+    )
+  chunk_group: |-
+    CREATE TABLE chunk_group (
+    	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+    	hash VARCHAR NOT NULL, 
+    	chunk_count INTEGER NOT NULL, 
+    	chunk_raw_size_sum BIGINT NOT NULL, 
+    	chunk_stored_size_sum BIGINT NOT NULL, 
+    	UNIQUE (hash)
+    )
+  chunk_group_chunk_binding: |-
+    CREATE TABLE chunk_group_chunk_binding (
+    	chunk_group_id INTEGER NOT NULL, 
+    	chunk_offset BIGINT NOT NULL, 
+    	chunk_id INTEGER NOT NULL, 
+    	PRIMARY KEY (chunk_group_id, chunk_offset), 
+    	FOREIGN KEY(chunk_group_id) REFERENCES chunk_group (id), 
+    	FOREIGN KEY(chunk_id) REFERENCES chunk (id)
+    )
+  db_meta: |-
+    CREATE TABLE db_meta (
+    	magic INTEGER NOT NULL, 
+    	version INTEGER NOT NULL, 
+    	hash_method VARCHAR NOT NULL, 
+    	PRIMARY KEY (magic)
+    )
+  file: |-
+    CREATE TABLE file (
+    	fileset_id INTEGER NOT NULL, 
+    	path VARCHAR NOT NULL, 
+    	role INTEGER NOT NULL, 
+    	mode INTEGER NOT NULL, 
+    	content BLOB, 
+    	blob_id INTEGER, 
+    	blob_storage_method INTEGER, 
+    	blob_hash VARCHAR, 
+    	blob_compress VARCHAR, 
+    	blob_raw_size BIGINT, 
+    	blob_stored_size BIGINT, 
+    	uid INTEGER, 
+    	gid INTEGER, 
+    	mtime BIGINT, 
+    	mtime_ns_part INTEGER, 
+    	PRIMARY KEY (fileset_id, path), 
+    	FOREIGN KEY(fileset_id) REFERENCES fileset (id), 
+    	FOREIGN KEY(blob_id) REFERENCES blob (id), 
+    	FOREIGN KEY(blob_hash) REFERENCES blob (hash)
+    )
+  fileset: |-
+    CREATE TABLE fileset (
+    	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+    	base_id INTEGER NOT NULL, 
+    	file_object_count BIGINT NOT NULL, 
+    	file_count BIGINT NOT NULL, 
+    	file_raw_size_sum BIGINT NOT NULL, 
+    	file_stored_size_sum BIGINT NOT NULL
+    )
+indexes:
+  ix_blob_chunk_group_binding_chunk_group_id: |-
+    CREATE INDEX ix_blob_chunk_group_binding_chunk_group_id ON blob_chunk_group_binding (chunk_group_id)
+  ix_blob_raw_size: |-
+    CREATE INDEX ix_blob_raw_size ON blob (raw_size)
+  ix_chunk_group_chunk_binding_chunk_id: |-
+    CREATE INDEX ix_chunk_group_chunk_binding_chunk_id ON chunk_group_chunk_binding (chunk_id)
+  ix_chunk_raw_size: |-
+    CREATE INDEX ix_chunk_raw_size ON chunk (raw_size)
+  ix_file_blob_hash: |-
+    CREATE INDEX ix_file_blob_hash ON file (blob_hash)
+  ix_file_blob_id: |-
+    CREATE INDEX ix_file_blob_id ON file (blob_id)

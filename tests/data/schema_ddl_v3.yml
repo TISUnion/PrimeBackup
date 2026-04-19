@@ -1,0 +1,70 @@
+tables:
+  backup: |-
+    CREATE TABLE backup (
+    	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+    	timestamp BIGINT NOT NULL, 
+    	creator VARCHAR NOT NULL, 
+    	comment VARCHAR NOT NULL, 
+    	targets JSON NOT NULL, 
+    	tags JSON NOT NULL, 
+    	fileset_id_base INTEGER NOT NULL, 
+    	fileset_id_delta INTEGER NOT NULL, 
+    	file_count BIGINT NOT NULL, 
+    	file_raw_size_sum BIGINT NOT NULL, 
+    	file_stored_size_sum BIGINT NOT NULL, 
+    	FOREIGN KEY(fileset_id_base) REFERENCES fileset (id), 
+    	FOREIGN KEY(fileset_id_delta) REFERENCES fileset (id)
+    )
+  blob: |-
+    CREATE TABLE blob (
+    	hash VARCHAR NOT NULL, 
+    	compress VARCHAR NOT NULL, 
+    	raw_size BIGINT NOT NULL, 
+    	stored_size BIGINT NOT NULL, 
+    	PRIMARY KEY (hash)
+    )
+  db_meta: |-
+    CREATE TABLE db_meta (
+    	magic INTEGER NOT NULL, 
+    	version INTEGER NOT NULL, 
+    	hash_method VARCHAR NOT NULL, 
+    	PRIMARY KEY (magic)
+    )
+  file: |-
+    CREATE TABLE file (
+    	fileset_id INTEGER NOT NULL, 
+    	path VARCHAR NOT NULL, 
+    	role INTEGER NOT NULL, 
+    	mode INTEGER NOT NULL, 
+    	content BLOB, 
+    	blob_hash VARCHAR, 
+    	blob_compress VARCHAR, 
+    	blob_raw_size BIGINT, 
+    	blob_stored_size BIGINT, 
+    	uid INTEGER, 
+    	gid INTEGER, 
+    	mtime BIGINT, 
+    	PRIMARY KEY (fileset_id, path), 
+    	FOREIGN KEY(fileset_id) REFERENCES fileset (id), 
+    	FOREIGN KEY(blob_hash) REFERENCES blob (hash)
+    )
+  fileset: |-
+    CREATE TABLE fileset (
+    	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+    	base_id INTEGER NOT NULL, 
+    	file_object_count BIGINT NOT NULL, 
+    	file_count BIGINT NOT NULL, 
+    	file_raw_size_sum BIGINT NOT NULL, 
+    	file_stored_size_sum BIGINT NOT NULL
+    )
+indexes:
+  ix_backup_id: |-
+    CREATE INDEX ix_backup_id ON backup (id)
+  ix_blob_raw_size: |-
+    CREATE INDEX ix_blob_raw_size ON blob (raw_size)
+  ix_file_blob_hash: |-
+    CREATE INDEX ix_file_blob_hash ON file (blob_hash)
+  ix_file_fileset_id: |-
+    CREATE INDEX ix_file_fileset_id ON file (fileset_id)
+  ix_fileset_id: |-
+    CREATE INDEX ix_fileset_id ON fileset (id)

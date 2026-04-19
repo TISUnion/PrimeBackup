@@ -1,3 +1,5 @@
 mypy
+pytest
+ruamel.yaml
 types-psutil
 types-pytz

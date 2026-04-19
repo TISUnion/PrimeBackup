@@ -689,6 +689,11 @@ class BlobAllocator:
 		schedule_queue: Deque[Tuple[Generator[BqmReq, Optional[BqmRsp], schema.File], Optional[BqmRsp]]] = collections.deque()
 		for gen in gen_list:
 			schedule_queue.append((gen, None))
+		gen_count = len(schedule_queue)
+		done_count = 0
+
+		start_time = time.time()
+		last_report_time = start_time
 
 		while len(schedule_queue) > 0:
 			gen, value = schedule_queue.popleft()
@@ -700,6 +705,10 @@ class BlobAllocator:
 				self.__batch_query_manager.query(query_req, callback)
 			except StopIteration as e:
 				files.append(misc_utils.ensure_type(e.value, schema.File))
+				done_count += 1
+				if (now := time.time()) - last_report_time > 30:
+					self.logger.info('Backup file creation progress: {} / {} done, elapsed time {:.2f}s'.format(done_count, gen_count, now - start_time))
+					last_report_time = now
 			except SourceFileNotFoundWrapper as e:
 				if self.__should_skip_missing_source_file(e.file_path):
 					self.logger.warning('Backup source file {!r} not found, suppressed and skipped by config'.format(str(e.file_path)))

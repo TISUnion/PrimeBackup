@@ -4,8 +4,7 @@ from pathlib import Path
 from typing import Dict
 
 from sqlalchemy import Table, Column, Integer, String, ForeignKey, LargeBinary, BigInteger, JSON, text, inspect, Engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, declarative_base
 from typing_extensions import override
 
 from prime_backup.db.migrations import MigrationImplBase

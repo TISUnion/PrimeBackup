@@ -35,6 +35,7 @@ tables:
     	FOREIGN KEY(blob_id) REFERENCES blob (id), 
     	FOREIGN KEY(chunk_group_id) REFERENCES chunk_group (id)
     )
+     WITHOUT ROWID
   chunk: |-
     CREATE TABLE chunk (
     	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
@@ -62,6 +63,7 @@ tables:
     	FOREIGN KEY(chunk_group_id) REFERENCES chunk_group (id), 
     	FOREIGN KEY(chunk_id) REFERENCES chunk (id)
     )
+     WITHOUT ROWID
   db_meta: |-
     CREATE TABLE db_meta (
     	magic INTEGER NOT NULL, 

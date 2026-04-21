@@ -28,6 +28,13 @@ def check_sqlite_row_number() -> bool:
 	return sqlite3.sqlite_version_info >= (3, 25, 0)
 
 
+def check_sqlite_without_rowid() -> bool:
+	"""
+	https://sqlite.org/withoutrowid.html#compatibility
+	"""
+	return sqlite3.sqlite_version_info >= (3, 8, 2)
+
+
 def vacuum_into_via_backup_api(src_db_path: PathLike, into_path: PathLike):
 	"""
 	Fallback for VACUUM INTO on old SQLite versions that do not support "VACUUM INTO"
@@ -48,3 +55,4 @@ if __name__ == '__main__':
 	print('json query:', check_sqlite_json_query_support())
 	print('vacuum into:', check_sqlite_vacuum_into_support())
 	print('row number:', check_sqlite_row_number())
+	print('without rowid:', check_sqlite_without_rowid())

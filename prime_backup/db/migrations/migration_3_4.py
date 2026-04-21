@@ -9,6 +9,7 @@ from typing_extensions import override
 
 from prime_backup.db.migrations import MigrationImplBase
 from prime_backup.db.values import BlobStorageMethod
+from prime_backup.utils import db_utils
 
 
 class _V4:
@@ -50,6 +51,7 @@ class _V4:
 		Column('chunk_group_id', Integer, ForeignKey('chunk_group.id'), primary_key=True),
 		Column('chunk_offset', BigInteger, primary_key=True),
 		Column('chunk_id', Integer, ForeignKey('chunk.id'), index=True, nullable=False),
+		**({'sqlite_with_rowid': False} if db_utils.check_sqlite_without_rowid() else {}),
 	)
 	BlobChunkGroupBinding = Table(
 		'blob_chunk_group_binding',
@@ -57,6 +59,7 @@ class _V4:
 		Column('blob_id', Integer, ForeignKey('blob.id'), primary_key=True),
 		Column('chunk_group_offset', BigInteger, primary_key=True),
 		Column('chunk_group_id', Integer, ForeignKey('chunk_group.id'), index=True, nullable=False),
+		**({'sqlite_with_rowid': False} if db_utils.check_sqlite_without_rowid() else {}),
 	)
 	File = Table(
 		'file',

@@ -5,11 +5,13 @@ How to regenerate the frozen_answer values -- Run the helper script from the rep
 
 Review the diff of the updated YAML files and commit them as the new golden values
 """
+import re
 import unittest
 from pathlib import Path
 
 from ruamel.yaml import YAML
 
+from prime_backup.utils import db_utils
 from tests import schema_utils
 
 __DATA_DIR = Path(__file__).parent / 'data'
@@ -22,7 +24,9 @@ def __load_expected(filename: str) -> schema_utils.SchemaDDL:
 
 
 def _assert_schema_matches(tc: unittest.TestCase, actual: schema_utils.SchemaDDL, filename: str, exact_match: bool):
-	import re
+	if not db_utils.check_sqlite_without_rowid():
+		tc.fail(f'SQLite without rowid is not supported, version: {db_utils.get_sqlite_version()}')
+
 	frozen_answer = __load_expected(filename)
 	hint = f'Re-run tests/tools/dump_schema_ddl.py to update {filename}.'
 	if exact_match:

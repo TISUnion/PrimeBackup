@@ -25,7 +25,7 @@ def collect_schema(engine: Engine) -> SchemaDDL:
 	with engine.connect() as conn:
 		def collect(sql: str) -> Dict[str, str]:
 			return {
-				row.name: row.sql
+				row.name: row.sql.strip()
 				for row in conn.execute(text(sql))
 				if not row.name.startswith(_SQLITE_INTERNAL_PREFIX)
 			}

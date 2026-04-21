@@ -30,7 +30,7 @@ class _V4:
 		Column('id', Integer, primary_key=True, autoincrement=True),
 		Column('hash', String, unique=True, nullable=False),
 		Column('compress', String, nullable=False),
-		Column('raw_size', BigInteger, index=True, nullable=False),
+		Column('raw_size', BigInteger, nullable=False),
 		Column('stored_size', BigInteger, nullable=False),
 		sqlite_autoincrement=True
 	)

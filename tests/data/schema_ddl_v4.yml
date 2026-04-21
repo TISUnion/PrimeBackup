@@ -107,8 +107,6 @@ indexes:
     CREATE INDEX ix_blob_raw_size ON blob (raw_size)
   ix_chunk_group_chunk_binding_chunk_id: |-
     CREATE INDEX ix_chunk_group_chunk_binding_chunk_id ON chunk_group_chunk_binding (chunk_id)
-  ix_chunk_raw_size: |-
-    CREATE INDEX ix_chunk_raw_size ON chunk (raw_size)
   ix_file_blob_hash: |-
     CREATE INDEX ix_file_blob_hash ON file (blob_hash)
   ix_file_blob_id: |-

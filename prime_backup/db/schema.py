@@ -53,7 +53,7 @@ class Chunk(Base):
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 	hash: Mapped[str] = mapped_column(String, unique=True)  # blake3
 	compress: Mapped[str] = mapped_column(String)
-	raw_size: Mapped[int] = mapped_column(BigInteger, index=True)
+	raw_size: Mapped[int] = mapped_column(BigInteger)
 	stored_size: Mapped[int] = mapped_column(BigInteger)
 
 	__fields_end__: bool

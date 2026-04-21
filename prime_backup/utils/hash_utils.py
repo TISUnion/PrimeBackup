@@ -2,8 +2,6 @@ import dataclasses
 from pathlib import Path
 from typing import IO, Optional, TYPE_CHECKING
 
-from prime_backup.utils.bypass_io import BypassReader
-
 if TYPE_CHECKING:
 	from prime_backup.types.hash_method import Hasher, HashMethod
 
@@ -33,6 +31,7 @@ def calc_reader_size_and_hash(
 		buf_size: int = _READ_BUF_SIZE,
 		hash_method: Optional['HashMethod'] = None,
 ) -> SizeAndHash:
+	from prime_backup.utils.bypass_io import BypassReader
 	reader = BypassReader(file_obj, calc_hash=True, hash_method=hash_method)
 	while reader.read(buf_size):
 		pass

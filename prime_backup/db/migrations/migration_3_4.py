@@ -1,15 +1,19 @@
 import dataclasses
 import time
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any
 
-from sqlalchemy import Table, Column, Integer, String, ForeignKey, LargeBinary, BigInteger, JSON, text, inspect, Engine
+from sqlalchemy import Table, Column, Integer, String, ForeignKey, LargeBinary, BigInteger, JSON, text, inspect, Engine, BINARY
 from sqlalchemy.orm import Session, declarative_base
 from typing_extensions import override
 
 from prime_backup.db.migrations import MigrationImplBase
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.utils import db_utils
+
+_with_rowid_kwargs: Dict[str, Any] = {}
+if db_utils.check_sqlite_without_rowid():
+	_with_rowid_kwargs['sqlite_with_rowid'] = False
 
 
 class _V4:
@@ -19,7 +23,7 @@ class _V4:
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
 		Column('storage_method', Integer, nullable=False),
-		Column('hash', String, unique=True, nullable=False),
+		Column('hash', BINARY, unique=True, nullable=False),
 		Column('compress', String, nullable=False),
 		Column('raw_size', BigInteger, index=True, nullable=False),
 		Column('stored_size', BigInteger, nullable=False),
@@ -29,7 +33,7 @@ class _V4:
 		'chunk',
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
-		Column('hash', String, unique=True, nullable=False),
+		Column('hash', BINARY, unique=True, nullable=False),
 		Column('compress', String, nullable=False),
 		Column('raw_size', BigInteger, nullable=False),
 		Column('stored_size', BigInteger, nullable=False),
@@ -39,7 +43,7 @@ class _V4:
 		'chunk_group',
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
-		Column('hash', String, unique=True, nullable=False),
+		Column('hash', BINARY, unique=True, nullable=False),
 		Column('chunk_count', Integer, nullable=False),
 		Column('chunk_raw_size_sum', BigInteger, nullable=False),
 		Column('chunk_stored_size_sum', BigInteger, nullable=False),
@@ -51,7 +55,7 @@ class _V4:
 		Column('chunk_group_id', Integer, ForeignKey('chunk_group.id'), primary_key=True),
 		Column('chunk_offset', BigInteger, primary_key=True),
 		Column('chunk_id', Integer, ForeignKey('chunk.id'), index=True, nullable=False),
-		**({'sqlite_with_rowid': False} if db_utils.check_sqlite_without_rowid() else {}),
+		**_with_rowid_kwargs,
 	)
 	BlobChunkGroupBinding = Table(
 		'blob_chunk_group_binding',
@@ -59,7 +63,7 @@ class _V4:
 		Column('blob_id', Integer, ForeignKey('blob.id'), primary_key=True),
 		Column('chunk_group_offset', BigInteger, primary_key=True),
 		Column('chunk_group_id', Integer, ForeignKey('chunk_group.id'), index=True, nullable=False),
-		**({'sqlite_with_rowid': False} if db_utils.check_sqlite_without_rowid() else {}),
+		**_with_rowid_kwargs,
 	)
 	File = Table(
 		'file',
@@ -71,7 +75,7 @@ class _V4:
 		Column('content', LargeBinary, nullable=True),
 		Column('blob_id', Integer, ForeignKey('blob.id'), index=True, nullable=True),
 		Column('blob_storage_method', Integer, nullable=True),
-		Column('blob_hash', String, ForeignKey('blob.hash'), index=True, nullable=True),
+		Column('blob_hash', BINARY, ForeignKey('blob.hash'), index=True, nullable=True),
 		Column('blob_compress', String, nullable=True),
 		Column('blob_raw_size', BigInteger, nullable=True),
 		Column('blob_stored_size', BigInteger, nullable=True),
@@ -196,6 +200,8 @@ class MigrationImpl3To4(MigrationImplBase):
 			'storage_method': str(BlobStorageMethod.direct.value),
 			**{name: name for name in ['hash', 'compress', 'raw_size', 'stored_size']},
 		}))
+		self.logger.info('(blob table) Converting hash to binary')
+		self.__convert_hex_column_to_binary('blob', 'hash')
 
 		# rebuild files
 		self.logger.info('(file table) Migrating data from old table')
@@ -226,6 +232,8 @@ class MigrationImpl3To4(MigrationImplBase):
 		self.logger.info('(file table) Updating mtime columns')  # old mtime was stored in us
 		self.session.execute(text('''UPDATE file SET mtime_ns_part = mtime % 1000000 * 1000'''))
 		self.session.execute(text('''UPDATE file SET mtime = mtime / 1000000'''))
+		self.logger.info('(file table) Converting blob_hash to binary')
+		self.__convert_hex_column_to_binary('file', 'blob_hash')
 
 		# rebuild backups
 		self.logger.info('(backup table) Migrating data from old table')
@@ -260,3 +268,44 @@ class MigrationImpl3To4(MigrationImplBase):
 		self.logger.info('Done. Reconstructed {} blobs, {} files, {} filesets and {} backups in total'.format(
 			cnt_blob, cnt_file, cnt_fileset, cnt_backup,
 		))
+
+	def __convert_hex_column_to_binary(self, table: str, column: str):
+		total = self.session.execute(text(f'SELECT COUNT(*) FROM {table} WHERE {column} IS NOT NULL')).scalar_one()
+
+		if total == 0:
+			self.logger.info(f'({table}.{column}) Already binary, skipping')
+			return
+
+		converted = 0
+		last_rowid = -1
+
+		while True:
+			rows = self.session.execute(
+				text(
+					f'SELECT rowid, {column} FROM {table} '
+					f'WHERE rowid > :last_rowid AND {column} IS NOT NULL '
+					f'ORDER BY rowid '
+					f'LIMIT :limit'
+				).
+				bindparams(last_rowid=last_rowid, limit=10000)
+			).fetchall()
+
+			if not rows:
+				break
+
+			for rowid, hex_str in rows:
+				try:
+					binary = bytes.fromhex(hex_str)
+				except ValueError as e:
+					raise ValueError(f'Failed to convert {table}.{column} rowid={rowid} value={hex_str!r}: {e}') from e
+				self.session.execute(
+					text(f'UPDATE {table} SET {column} = :b WHERE rowid = :r').
+					bindparams(b=binary, r=rowid)
+				)
+
+			last_rowid = rows[-1][0]
+			converted += len(rows)
+			self.logger.info(f'({table}.{column}) Converted {converted} / {total}')
+			self.session.flush()
+
+		self.logger.info(f'({table}.{column}) Done, {converted} rows converted')

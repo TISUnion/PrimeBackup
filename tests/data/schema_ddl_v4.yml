@@ -20,7 +20,7 @@ tables:
     CREATE TABLE blob (
     	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
     	storage_method INTEGER NOT NULL, 
-    	hash VARCHAR NOT NULL, 
+    	hash BINARY NOT NULL, 
     	compress VARCHAR NOT NULL, 
     	raw_size BIGINT NOT NULL, 
     	stored_size BIGINT NOT NULL, 
@@ -39,7 +39,7 @@ tables:
   chunk: |-
     CREATE TABLE chunk (
     	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-    	hash VARCHAR NOT NULL, 
+    	hash BINARY NOT NULL, 
     	compress VARCHAR NOT NULL, 
     	raw_size BIGINT NOT NULL, 
     	stored_size BIGINT NOT NULL, 
@@ -48,7 +48,7 @@ tables:
   chunk_group: |-
     CREATE TABLE chunk_group (
     	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-    	hash VARCHAR NOT NULL, 
+    	hash BINARY NOT NULL, 
     	chunk_count INTEGER NOT NULL, 
     	chunk_raw_size_sum BIGINT NOT NULL, 
     	chunk_stored_size_sum BIGINT NOT NULL, 
@@ -80,7 +80,7 @@ tables:
     	content BLOB, 
     	blob_id INTEGER, 
     	blob_storage_method INTEGER, 
-    	blob_hash VARCHAR, 
+    	blob_hash BINARY, 
     	blob_compress VARCHAR, 
     	blob_raw_size BIGINT, 
     	blob_stored_size BIGINT, 

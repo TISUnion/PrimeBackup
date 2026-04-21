@@ -3,6 +3,7 @@ from typing import Optional, List, get_type_hints
 from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from prime_backup.db.types import HashHex
 from prime_backup.db.values import BackupTagDict
 from prime_backup.utils import db_utils
 
@@ -39,7 +40,7 @@ class Blob(Base):
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 	storage_method: Mapped[int] = mapped_column(Integer)  # see enum BlobStorageMethod
 
-	hash: Mapped[str] = mapped_column(String, unique=True)
+	hash: Mapped[str] = mapped_column(HashHex, unique=True)
 	compress: Mapped[str] = mapped_column(String)
 	raw_size: Mapped[int] = mapped_column(BigInteger, index=True)
 	stored_size: Mapped[int] = mapped_column(BigInteger)  # for chunked blob, this is the sum of unique chunk stored sizes
@@ -52,7 +53,7 @@ class Chunk(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-	hash: Mapped[str] = mapped_column(String, unique=True)  # blake3
+	hash: Mapped[str] = mapped_column(HashHex, unique=True)  # blake3
 	compress: Mapped[str] = mapped_column(String)
 	raw_size: Mapped[int] = mapped_column(BigInteger)
 	stored_size: Mapped[int] = mapped_column(BigInteger)
@@ -65,7 +66,7 @@ class ChunkGroup(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-	hash: Mapped[str] = mapped_column(String, unique=True)  # blake3 of b'\0'.join(chunk hashes)
+	hash: Mapped[str] = mapped_column(HashHex, unique=True)  # blake3 of b'\0'.join(chunk hashes)
 	chunk_count: Mapped[int] = mapped_column(Integer)
 	chunk_raw_size_sum: Mapped[int] = mapped_column(BigInteger)
 	chunk_stored_size_sum: Mapped[int] = mapped_column(BigInteger)  # sum of unique chunk stored sizes
@@ -123,7 +124,7 @@ class File(Base):
 	# associated Blob object, and all the blob's fields
 	blob_id: Mapped[Optional[int]] = mapped_column(ForeignKey('blob.id'), index=True)
 	blob_storage_method: Mapped[Optional[int]] = mapped_column(Integer)  # see enum BlobStorageMethod
-	blob_hash: Mapped[Optional[str]] = mapped_column(ForeignKey('blob.hash'), index=True)
+	blob_hash: Mapped[Optional[str]] = mapped_column(HashHex, ForeignKey('blob.hash'), index=True)
 	blob_compress: Mapped[Optional[str]] = mapped_column(String)
 	blob_raw_size: Mapped[Optional[int]] = mapped_column(BigInteger)
 	blob_stored_size: Mapped[Optional[int]] = mapped_column(BigInteger)

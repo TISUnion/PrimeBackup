@@ -2,12 +2,13 @@ import contextlib
 import dataclasses
 import functools
 import sqlite3
+import string
 from pathlib import Path
 from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple, Any
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row, update, inspect
-from sqlalchemy.orm import Session, Mapper
+from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row, update, inspect, ColumnElement
+from sqlalchemy.orm import Session, Mapper, InstrumentedAttribute
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
@@ -22,6 +23,12 @@ _TP = TypeVar('_TP', bound=Tuple[Any, ...])
 
 class UnsupportedDatabaseOperation(PrimeBackupError):
 	pass
+
+
+def _ensure_hex_str(s: str):
+	for c in s:
+		if c not in string.hexdigits:
+			raise ValueError(f'invalid hex string {s!r}')
 
 
 # make type checker happy
@@ -94,6 +101,28 @@ class DbSession:
 				validation_utils.validate_int64(value, bad_msg)
 			elif isinstance(col.type, Integer):
 				validation_utils.validate_int32(value, bad_msg)
+
+	@classmethod
+	def __get_hash_hex_bounds(cls, prefix: str) -> Tuple[str, Optional[str]]:
+		is_odd = len(prefix) % 2 != 0
+		pad = '0' if is_odd else ''
+		lower = prefix + pad
+
+		val = int(prefix, 16)
+		if val == 16 ** len(prefix) - 1:  # all 'f'
+			return lower, None
+
+		upper_hex = format(val + 1, f'0{len(prefix)}x')
+		return lower, upper_hex + pad
+
+	@classmethod
+	def __get_hash_prefix_conditions(cls, hash_prefix: str, row: InstrumentedAttribute[str]) -> List[ColumnElement]:
+		_ensure_hex_str(hash_prefix)
+		lower, upper = cls.__get_hash_hex_bounds(hash_prefix)
+		conditions = [row >= lower]
+		if upper is not None:
+			conditions.append(row < upper)
+		return conditions
 
 	# ========================= General Database Operations =========================
 
@@ -226,7 +255,7 @@ class DbSession:
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def list_blob_with_hash_prefix(self, hash_prefix: str, limit: int) -> List[schema.Blob]:
-		s = select(schema.Blob).where(schema.Blob.hash.startswith(hash_prefix, autoescape=True)).limit(limit)
+		s = select(schema.Blob).where(*self.__get_hash_prefix_conditions(hash_prefix, schema.Blob.hash)).limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def iterate_blob_batch(self, *, batch_size: int) -> Iterator[List[schema.Blob]]:
@@ -421,7 +450,7 @@ class DbSession:
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def list_chunk_with_hash_prefix(self, hash_prefix: str, limit: int) -> List[schema.Chunk]:
-		s = select(schema.Chunk).where(schema.Chunk.hash.startswith(hash_prefix, autoescape=True)).limit(limit)
+		s = select(schema.Chunk).where(*self.__get_hash_prefix_conditions(hash_prefix, schema.Chunk.hash)).limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def iterate_chunk_batch(self, *, batch_size: int) -> Iterator[List[schema.Chunk]]:
@@ -523,7 +552,7 @@ class DbSession:
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def list_chunk_group_with_hash_prefix(self, hash_prefix: str, limit: int) -> List[schema.ChunkGroup]:
-		s = select(schema.ChunkGroup).where(schema.ChunkGroup.hash.startswith(hash_prefix, autoescape=True)).limit(limit)
+		s = select(schema.ChunkGroup).where(self.__get_hash_prefix_conditions(hash_prefix, schema.ChunkGroup.hash)).limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def iterate_chunk_group_batch(self, *, batch_size: int) -> Iterator[List[schema.ChunkGroup]]:

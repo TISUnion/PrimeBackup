@@ -20,10 +20,8 @@ class ChunkMethod(enum.Enum):
 		if file_size <= 0:
 			return None
 
-		# XXX: seal due to the speed of handling tons of 4k chunks are too slow
-		#
-		# if backup_config.f4k_enabled and file_size >= backup_config.f4k_file_size_threshold:
-		# 	if backup_config.f4k_patterns_spec.match_file(file_path):
+		# if backup_config.f4c_enabled and file_size >= backup_config.f4c_file_size_threshold:
+		# 	if backup_config.f4c_patterns_spec.match_file(file_path):
 		# 		return ChunkMethod.fixed_4k
 
 		if backup_config.cdc_enabled and file_size >= backup_config.cdc_file_size_threshold:

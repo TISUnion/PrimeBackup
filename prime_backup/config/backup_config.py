@@ -39,9 +39,9 @@ class BackupConfig(Serializable):
 	]
 
 	# Fixed 4K chunking for .mca region files
-	# f4k_enabled: bool = False
-	# f4k_file_size_threshold: int = 128 * 1024  # 128KiB
-	# f4k_patterns: List[str] = [
+	# f4c_enabled: bool = False
+	# f4c_file_size_threshold: int = 128 * 1024  # 128KiB
+	# f4c_patterns: List[str] = [
 	# 	'**/*.mca',
 	# ]
 
@@ -107,9 +107,9 @@ class BackupConfig(Serializable):
 		return pathspec_utils.compile_gitignore_spec(self.cdc_patterns)
 
 	# @property
-	# def f4k_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
+	# def f4c_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
 	# 	from prime_backup.utils import pathspec_utils
-	# 	return pathspec_utils.compile_gitignore_spec(self.f4k_patterns)
+	# 	return pathspec_utils.compile_gitignore_spec(self.f4c_patterns)
 
 	@property
 	def mutating_file_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':

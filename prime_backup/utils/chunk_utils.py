@@ -42,10 +42,6 @@ def prepare_chunk_directories():
 		p.mkdir(parents=True, exist_ok=True)
 
 
-def should_chunk_blob(file_path: PathLike, file_size: int) -> bool:
-	return ChunkMethod.get_for_file(file_path, file_size) is not None
-
-
 def create_chunk_group_hash(chunk_hashes: 'Iterable[str]') -> str:
 	hasher = create_hasher()
 	hasher.update('\0'.join(chunk_hashes).encode('utf8'))

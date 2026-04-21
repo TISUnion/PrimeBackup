@@ -19,6 +19,7 @@ from prime_backup.db.values import FileRole, BlobStorageMethod
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_meta import BackupMeta
+from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
@@ -107,11 +108,11 @@ class ImportBackupAction(Action[BackupInfo]):
 		self.__chunk_cache[sah.hash] = chunk
 		return chunk
 
-	def __create_blob_chunked(self, session: DbSession, file_reader: IO[bytes], pre_cal_result: BlobPrecalculateResult) -> schema.Blob:
+	def __create_blob_chunked(self, session: DbSession, file_reader: IO[bytes], chunk_method: ChunkMethod, pre_cal_result: BlobPrecalculateResult) -> schema.Blob:
 		new_db_chunks: List[schema.Chunk] = []
 		offset_to_db_chunk: Dict[int, schema.Chunk] = {}
 		offset = 0
-		for chunk in Chunker.create_stream_chunker(file_reader, need_entire_file_hash=False).cut():
+		for chunk in Chunker.create_stream_chunker(chunk_method, file_reader, need_entire_file_hash=False).cut():
 			if (db_chunk := self.__chunk_cache.get(chunk.hash)) is None:
 				db_chunk = self.__create_chunk(session, chunk.data, SizeAndHash(chunk.length, chunk.hash))
 				new_db_chunks.append(db_chunk)
@@ -135,8 +136,9 @@ class ImportBackupAction(Action[BackupInfo]):
 		return blob
 
 	def __create_blob(self, session: DbSession, file_path: str, file_reader: IO[bytes], pre_cal_result: BlobPrecalculateResult) -> schema.Blob:
-		if chunk_utils.should_chunk_blob(Path(file_path), pre_cal_result.size):
-			blob = self.__create_blob_chunked(session, file_reader, pre_cal_result)
+		chunk_method = ChunkMethod.get_for_file(Path(file_path), pre_cal_result.size)
+		if chunk_method is not None:
+			blob = self.__create_blob_chunked(session, file_reader, chunk_method, pre_cal_result)
 		else:
 			blob = self.__create_blob_direct(session, file_reader, SizeAndHash(pre_cal_result.size, pre_cal_result.hash))
 

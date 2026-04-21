@@ -51,7 +51,7 @@ class _V3:
 		Column('file_count', BigInteger, nullable=False),
 		Column('file_raw_size_sum', BigInteger, nullable=False),
 		Column('file_stored_size_sum', BigInteger, nullable=False),
-		sqlite_autoincrement=True
+		sqlite_autoincrement=True,
 	)
 	Backup = Table(
 		'backup',
@@ -67,7 +67,7 @@ class _V3:
 		Column('file_count', BigInteger, nullable=False),
 		Column('file_raw_size_sum', BigInteger, nullable=False),
 		Column('file_stored_size_sum', BigInteger, nullable=False),
-		sqlite_autoincrement=True
+		sqlite_autoincrement=True,
 	)
 
 

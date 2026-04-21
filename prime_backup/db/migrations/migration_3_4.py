@@ -22,7 +22,7 @@ class _V4:
 		Column('compress', String, nullable=False),
 		Column('raw_size', BigInteger, index=True, nullable=False),
 		Column('stored_size', BigInteger, nullable=False),
-		sqlite_autoincrement=True
+		sqlite_autoincrement=True,
 	)
 	Chunk = Table(
 		'chunk',
@@ -32,7 +32,7 @@ class _V4:
 		Column('compress', String, nullable=False),
 		Column('raw_size', BigInteger, nullable=False),
 		Column('stored_size', BigInteger, nullable=False),
-		sqlite_autoincrement=True
+		sqlite_autoincrement=True,
 	)
 	ChunkGroup = Table(
 		'chunk_group',
@@ -42,7 +42,7 @@ class _V4:
 		Column('chunk_count', Integer, nullable=False),
 		Column('chunk_raw_size_sum', BigInteger, nullable=False),
 		Column('chunk_stored_size_sum', BigInteger, nullable=False),
-		sqlite_autoincrement=True
+		sqlite_autoincrement=True,
 	)
 	ChunkGroupChunkBinding = Table(
 		'chunk_group_chunk_binding',
@@ -86,7 +86,7 @@ class _V4:
 		Column('file_count', BigInteger, nullable=False),
 		Column('file_raw_size_sum', BigInteger, nullable=False),
 		Column('file_stored_size_sum', BigInteger, nullable=False),
-		sqlite_autoincrement=True
+		sqlite_autoincrement=True,
 	)
 	Backup = Table(
 		'backup',
@@ -103,7 +103,7 @@ class _V4:
 		Column('file_count', BigInteger, nullable=False),
 		Column('file_raw_size_sum', BigInteger, nullable=False),
 		Column('file_stored_size_sum', BigInteger, nullable=False),
-		sqlite_autoincrement=True
+		sqlite_autoincrement=True,
 	)
 
 

@@ -46,12 +46,13 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 		with DbAccess.open_session() as session:
 			meta = session.get_db_meta()
 			blob_size_sums = session.get_blob_size_sums_by_storage_method()
+			chunk_stats = session.get_chunk_overview_stats()
 			return DbOverviewResult(
 				db_version=meta.version,
 				hash_method=meta.hash_method,
 
 				blob_count=session.get_blob_count(),
-				chunk_count=session.get_chunk_count(),
+				chunk_count=chunk_stats.count,
 				chunk_group_count=session.get_chunk_group_count(),
 				chunk_group_chunk_binding_count=session.get_chunk_group_chunk_binding_count(),
 				blob_chunk_group_binding_count=session.get_blob_chunk_group_binding_count(),
@@ -68,8 +69,8 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 				chunked_blob_stored_size_sum=blob_size_sums[BlobStorageMethod.chunked].stored_size,
 				chunked_blob_raw_size_sum=blob_size_sums[BlobStorageMethod.chunked].raw_size,
 				chunked_blob_chunk_count=session.get_chunked_blob_chunk_count(),
-				chunk_raw_size_sum=session.get_chunk_raw_size_sum(),
-				chunk_stored_size_sum=session.get_chunk_stored_size_sum(),
+				chunk_raw_size_sum=chunk_stats.raw_size_sum,
+				chunk_stored_size_sum=chunk_stats.stored_size_sum,
 				file_raw_size_sum=session.get_file_total_raw_size_sum(),
 
 				db_file_size=db_file_size,

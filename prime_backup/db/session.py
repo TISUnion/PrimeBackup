@@ -441,6 +441,24 @@ class DbSession:
 	def get_chunk_stored_size_sum(self) -> int:
 		return _int_or_0(self.session.execute(func.sum(schema.Chunk.stored_size).select()).scalar_one())
 
+	@dataclasses.dataclass(frozen=True)
+	class ChunkOverviewStats:
+		count: int
+		stored_size_sum: int
+		raw_size_sum: int
+
+	def get_chunk_overview_stats(self) -> ChunkOverviewStats:
+		count, stored_size_sum, raw_size_sum = self.session.execute(select(
+			func.count(schema.Chunk.id),
+			func.sum(schema.Chunk.stored_size),
+			func.sum(schema.Chunk.raw_size)
+		)).one()
+		return self.ChunkOverviewStats(
+			count=_int_or_0(count),
+			stored_size_sum=_int_or_0(stored_size_sum),
+			raw_size_sum=_int_or_0(raw_size_sum),
+		)
+
 	def list_chunks(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Chunk]:
 		s = select(schema.Chunk)
 		if limit is not None:

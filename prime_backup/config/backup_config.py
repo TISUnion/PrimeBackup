@@ -3,10 +3,22 @@ from typing import List, Optional, TYPE_CHECKING
 from mcdreforged.api.utils import Serializable
 
 from prime_backup.compressors import CompressMethod
+from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.hash_method import HashMethod
 
 if TYPE_CHECKING:
 	import pathspec
+
+
+class ChunkingRule(Serializable):
+	algorithm: ChunkMethod
+	file_size_threshold: int
+	patterns: List[str] = []
+
+	@property
+	def patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
+		from prime_backup.utils import pathspec_utils
+		return pathspec_utils.compile_gitignore_spec(self.patterns)
 
 
 class BackupConfig(Serializable):
@@ -31,19 +43,17 @@ class BackupConfig(Serializable):
 	]
 	mutating_file_patterns: List[str] = []
 
-	# Content-Define-Chunking for Large files
-	cdc_enabled: bool = False
-	cdc_file_size_threshold: int = 100 * 1048576  # 100MiB
-	cdc_patterns: List[str] = [
-		'**/*.db',
+	# Chunking
+	chunking_enabled: bool = False
+	chunking_rules: List[ChunkingRule] = [
+		ChunkingRule(
+			algorithm=ChunkMethod.cdc,
+			file_size_threshold=100 * 1048576,
+			patterns=[
+				'**/*.db'
+			],
+		),
 	]
-
-	# Fixed 4K chunking for .mca region files
-	# f4c_enabled: bool = False
-	# f4c_file_size_threshold: int = 128 * 1024  # 128KiB
-	# f4c_patterns: List[str] = [
-	# 	'**/*.mca',
-	# ]
 
 	# Storage
 	hash_method: HashMethod = HashMethod.blake3
@@ -100,16 +110,6 @@ class BackupConfig(Serializable):
 	def creation_skip_missing_file_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
 		from prime_backup.utils import pathspec_utils
 		return pathspec_utils.compile_gitignore_spec(self.creation_skip_missing_file_patterns)
-
-	@property
-	def cdc_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
-		from prime_backup.utils import pathspec_utils
-		return pathspec_utils.compile_gitignore_spec(self.cdc_patterns)
-
-	# @property
-	# def f4c_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':
-	# 	from prime_backup.utils import pathspec_utils
-	# 	return pathspec_utils.compile_gitignore_spec(self.f4c_patterns)
 
 	@property
 	def mutating_file_patterns_spec(self) -> 'pathspec.GitIgnoreSpec':

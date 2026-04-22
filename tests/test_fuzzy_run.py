@@ -36,8 +36,10 @@ from prime_backup.action.validate_chunks_action import ValidateChunksAction
 from prime_backup.action.validate_files_action import ValidateFilesAction
 from prime_backup.action.validate_filesets_action import ValidateFilesetsAction
 from prime_backup.compressors import CompressMethod
+from prime_backup.config.backup_config import ChunkingRule
 from prime_backup.config.config import Config
 from prime_backup.db.access import DbAccess
+from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
 from prime_backup.types.tar_format import TarFormat
@@ -495,9 +497,12 @@ class FuzzyRunTestCase(unittest.TestCase):
 		Config.get().backup.targets = [env_dir.name]
 		Config.get().backup.hash_method = HashMethod.xxh128
 		Config.get().backup.compress_method = CompressMethod.plain
-		Config.get().backup.cdc_enabled = True
-		Config.get().backup.cdc_file_size_threshold = 1 * 1048756  # 1MiB
-		Config.get().backup.cdc_patterns = ['**']
+		Config.get().backup.chunking_enabled = True
+		Config.get().backup.chunking_rules = [ChunkingRule(
+			algorithm=ChunkMethod.cdc,
+			file_size_threshold=1 * 1048576,  # 1MiB
+			patterns=['**'],
+		)]
 		DbAccess.init(create=True, migrate=False)
 
 		with contextlib.ExitStack() as es:

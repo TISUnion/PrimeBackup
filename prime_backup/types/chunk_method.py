@@ -19,13 +19,11 @@ class ChunkMethod(enum.Enum):
 
 		if file_size <= 0:
 			return None
+		if not backup_config.chunking_enabled:
+			return None
 
-		# if backup_config.f4c_enabled and file_size >= backup_config.f4c_file_size_threshold:
-		# 	if backup_config.f4c_patterns_spec.match_file(file_path):
-		# 		return ChunkMethod.fixed_4k
-
-		if backup_config.cdc_enabled and file_size >= backup_config.cdc_file_size_threshold:
-			if backup_config.cdc_patterns_spec.match_file(file_path):
-				return ChunkMethod.cdc
+		for cfg in backup_config.chunking_rules:
+			if file_size >= cfg.file_size_threshold and cfg.patterns_spec.match_file(file_path):
+				return cfg.algorithm
 
 		return None

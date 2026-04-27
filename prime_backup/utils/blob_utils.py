@@ -8,6 +8,8 @@ def get_blob_store() -> Path:
 
 
 def get_blob_path(h: str) -> Path:
+	if not isinstance(h, str):
+		raise TypeError(h)
 	if len(h) <= 2:
 		raise ValueError(f'hash {h!r} too short')
 

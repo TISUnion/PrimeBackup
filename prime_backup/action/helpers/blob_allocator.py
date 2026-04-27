@@ -527,6 +527,7 @@ class BlobAllocator:
 						known_db_chunks[db_chunk.hash] = db_chunk
 
 						def write_task(db_chunk_=db_chunk, compressor_=compressor, chunk_buf_=chunk_buf):
+							# WARNING: cannot reference any not-captured locals since they might be modified in other thread
 							chunk_path = chunk_utils.get_chunk_path(db_chunk_.hash)
 							self.__blob_recorder.add_remove_file_rollbacker(chunk_path)
 

@@ -3,10 +3,8 @@ from pathlib import Path
 from typing import Iterator
 
 from prime_backup.constants import chunk_constants
-from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.hash_method import HashMethod, Hasher
 from prime_backup.utils import blob_utils
-from prime_backup.utils.path_like import PathLike
 
 __HASH_METHOD = HashMethod[chunk_constants.HASH_METHOD]
 __HASHER_FACTORY = __HASH_METHOD.value.create_hasher
@@ -25,6 +23,8 @@ def get_chunk_store() -> Path:
 
 
 def get_chunk_path(h: str) -> Path:
+	if not isinstance(h, str):
+		raise TypeError(h)
 	if len(h) <= 2:
 		raise ValueError(f'hash {h!r} too short')
 

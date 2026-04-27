@@ -69,6 +69,8 @@ class _ExportBackupActionBase(Action[ExportFailures], ABC):
 
 	@classmethod
 	def _verify_exported_blob(cls, file: schema.File, written_size: int, written_hash: str):
+		if file.blob_hash is None:
+			raise AssertionError('File {!r} has no blob_hash'.format(file))
 		if written_size != file.blob_raw_size:
 			raise VerificationError('raw size mismatched for {}, expected {}, actual written {}'.format(file.path, file.blob_raw_size, written_size))
 		if written_hash != file.blob_hash:

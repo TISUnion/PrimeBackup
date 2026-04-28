@@ -9,7 +9,7 @@ Document: https://tisunion.github.io/PrimeBackup/
 ## Features
 
 - Hash-based, compressed file pool deduplication. Only new or changed data is stored, with no hard limit on backup count
-- Optional CDC (content-defined chunking) for large, locally edited files to improve deduplication across backups
+- Optional blob chunking algorithm. Supports CDC (content-defined chunking) for large, locally edited files to improve deduplication across backups
 - Safe restore workflow: confirmation + countdown, automatic pre-restore backup, recycle-bin rollback, and data verification
 - Comprehensive backup operations, including backup/restore, list/delete, import/export, comments/tags, etc.
 - Smooth in-game interaction, with most operations achievable through mouse clicks

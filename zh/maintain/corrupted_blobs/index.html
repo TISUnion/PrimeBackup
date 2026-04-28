@@ -1,0 +1,1636 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world">
+      
+      
+        <meta name="author" content="Fallen_Breath">
+      
+      
+        <link rel="canonical" href="https://tisunion.github.io/PrimeBackup/zh/maintain/corrupted_blobs/">
+      
+      
+        <link rel="prev" href="../../concept/storage_structure/">
+      
+      
+      
+        
+          <link rel="alternate" href="../../../maintain/corrupted_blobs/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="zh">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>数据文件损坏的处理 - Prime Backup 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#数据文件损坏的处理" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../" title="Prime Backup 文档" class="md-header__button md-logo" aria-label="Prime Backup 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Prime Backup 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              数据文件损坏的处理
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="选择当前语言">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../maintain/corrupted_blobs/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="zh" class="md-select__link">
+              简体中文
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/TISUnion/PrimeBackup" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="Prime Backup 文档" class="md-nav__button md-logo" aria-label="Prime Backup 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Prime Backup 文档
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/TISUnion/PrimeBackup" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速上手
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置文件
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    指令
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    命令行工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../feature/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    功能列表
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../concept/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    概念列表
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    维护指南
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    维护指南
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    数据文件损坏的处理
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    数据文件损坏的处理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#背景知识" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        背景知识
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#问题的表现" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        问题的表现
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="问题的表现">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#回档失败" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        回档失败
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#扫描与确认问题" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        扫描与确认问题
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="扫描与确认问题">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#一键检查validate-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一键检查（validate all）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#扫描直存-blob-文件" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        扫描直存 blob 文件
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="扫描直存 blob 文件">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#异常类型说明" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        异常类型说明
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#查阅详细日志" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        查阅详细日志
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#扫描分块-blob-的-chunk-文件" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        扫描分块 blob 的 chunk 文件
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#进一步定位受影响的文件和备份" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        进一步定位受影响的文件和备份
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#临时绕过措施" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        临时绕过措施
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="临时绕过措施">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#跳过失败的文件--fail-soft" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        跳过失败的文件（--fail-soft）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#跳过哈希校验--no-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        跳过哈希校验（--no-verify）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#修复方法" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        修复方法
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="修复方法">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#不应该做的事" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        不应该做的事
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#方法一从外部备份恢复-blobchunk-文件" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法一：从外部备份恢复 blob/chunk 文件
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#方法二删除受影响的备份" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法二：删除受影响的备份
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#方法三未实现提供包含完好数据的文件以重建-blobchunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法三：（未实现）提供包含完好数据的文件以重建 blob/chunk
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#总结" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#背景知识" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        背景知识
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#问题的表现" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        问题的表现
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="问题的表现">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#回档失败" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        回档失败
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#扫描与确认问题" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        扫描与确认问题
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="扫描与确认问题">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#一键检查validate-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一键检查（validate all）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#扫描直存-blob-文件" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        扫描直存 blob 文件
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="扫描直存 blob 文件">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#异常类型说明" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        异常类型说明
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#查阅详细日志" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        查阅详细日志
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#扫描分块-blob-的-chunk-文件" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        扫描分块 blob 的 chunk 文件
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#进一步定位受影响的文件和备份" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        进一步定位受影响的文件和备份
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#临时绕过措施" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        临时绕过措施
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="临时绕过措施">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#跳过失败的文件--fail-soft" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        跳过失败的文件（--fail-soft）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#跳过哈希校验--no-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        跳过哈希校验（--no-verify）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#修复方法" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        修复方法
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="修复方法">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#不应该做的事" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        不应该做的事
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#方法一从外部备份恢复-blobchunk-文件" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法一：从外部备份恢复 blob/chunk 文件
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#方法二删除受影响的备份" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法二：删除受影响的备份
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#方法三未实现提供包含完好数据的文件以重建-blobchunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        方法三：（未实现）提供包含完好数据的文件以重建 blob/chunk
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#总结" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        总结
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="导航栏" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../../" class="md-path__link">
+        
+  <span class="md-ellipsis">
+    首页
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="./" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    维护指南
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="数据文件损坏的处理">数据文件损坏的处理<a class="headerlink" href="#数据文件损坏的处理" title="Permanent link">&para;</a></h1>
+<p>本文档介绍当 Prime Backup 存储池中的数据对象文件（blob）或数据块文件（chunk）发生损坏时，如何确认问题、临时绕过回档失败，以及如何修复损坏</p>
+<h2 id="背景知识">背景知识<a class="headerlink" href="#背景知识" title="Permanent link">&para;</a></h2>
+<p>Prime Backup 将备份数据以数据对象（Blob）的形式持久化到文件系统中。有两种存储方式：</p>
+<ul>
+<li>直存（direct）：每个 blob 对应一个独立文件，存储路径为 <code>pb_files/blobs/{哈希前2位}/{完整哈希}</code>，
+  例如：<code>pb_files/blobs/8b/8b36d71e250e25527f59b8fd9e0f2dce</code></li>
+<li>分块（chunked）：大文件经 CDC 算法切分成多个数据块（chunk），各 chunk 分别独立存储在 <code>pb_files/blobs/_chunks/{哈希前2位}/{完整哈希}</code> 路径下，
+  例如：<code>pb_files/blobs/_chunks/3a/3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5</code></li>
+</ul>
+<p>当磁盘故障、文件系统错误、意外断电或误操作等原因导致这些文件内容被破坏或丢失时，PB 在回档（或导出）时将无法正常还原对应文件，进而导致操作失败</p>
+<blockquote>
+<p>关于存储结构的详细说明，请参阅<a href="../../concept/storage_structure/">存储结构</a></p>
+</blockquote>
+<h2 id="问题的表现">问题的表现<a class="headerlink" href="#问题的表现" title="Permanent link">&para;</a></h2>
+<h3 id="回档失败">回档失败<a class="headerlink" href="#回档失败" title="Permanent link">&para;</a></h3>
+<p>默认情况下，PB 在回档时会对每个还原后的文件进行哈希校验（<code>verify_blob=True</code>）。若 blob 或 chunk 文件缺失、损坏，或哈希/大小与数据库记录不符，回档将报错中止并回滚所有已写入的文件</p>
+<p>场景一：直存 blob 文件损坏（哈希不匹配）</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file &#39;world/region/r.0.0.mca&#39; to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e250e25527f59b8fd9e0f2dce, actual written 9f4c7b3e5d1a2c8e6f0b4d9e2a7f3c1d
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: Error occurs during export to directory, applying rollback
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Restore to backup #78 failed: hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e250e25527f59b8fd9e0f2dce, actual written 9f4c7b3e5d1a2c8e6f0b4d9e2a7f3c1d
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: The server is left stopped due to the failure. Prime Backup will not attempt to restart it automatically
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: You can try to fix the issue and perform another restoration, or just start the server manually via MCDR command
+</code></pre></div>
+<p>场景二：分块 blob 的某个 chunk 文件损坏（哈希不匹配）</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file &#39;world/region/r.0.0.mca&#39; to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (chunk 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5), expected 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5, actual written ff92dcb10e3a7b5c2d4f8e1a9c6b0d3f
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: Error occurs during export to directory, applying rollback
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Restore to backup #78 failed: hash mismatched for world/region/r.0.0.mca (chunk 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5), expected 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5, actual written ff92dcb10e3a7b5c2d4f8e1a9c6b0d3f
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: The server is left stopped due to the failure. Prime Backup will not attempt to restart it automatically
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: You can try to fix the issue and perform another restoration, or just start the server manually via MCDR command
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>回档失败后，服务器进程将保持停止状态，PB 不会自动重启它<br />
+你需要先处理损坏问题，或使用 MCDR 命令手动启动服务器：<code>!!MCDR start</code></p>
+</div>
+<p>由于 PB 在失败时会将回档目标目录回滚到原始状态，因此回档失败不会破坏现有的服务器文件</p>
+<h2 id="扫描与确认问题">扫描与确认问题<a class="headerlink" href="#扫描与确认问题" title="Permanent link">&para;</a></h2>
+<h3 id="一键检查validate-all">一键检查（<code>validate all</code>）<a class="headerlink" href="#一键检查validate-all" title="Permanent link">&para;</a></h3>
+<p>使用以下命令可以一次性验证数据库中所有组件的正确性：</p>
+<div class="highlight"><pre><span></span><code>!!pb database validate all
+</code></pre></div>
+<p>该命令依次验证：数据对象（blobs）、数据块相关对象（chunks）、文件对象（files）、文件集（filesets）、备份（backups）</p>
+<p>输出示例（全部正常）：</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO]: [PB] 正在验证所有数据对象, 请稍等...
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation start
+[MCDR] [23:15:51] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 4325 / 4325 blobs
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4325, bad 0
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] 已验证4325/4325个数据对象
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] 全部4325个数据对象都是健康的
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] 正在验证所有数据块相关对象 (包括数据块、数据块组、关系绑定), 请稍等...
+[MCDR] [23:15:57] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 8765, validated 8765, ok 8765, bad 0
+[MCDR] [23:15:57] [PB@xxx-worker-heavy/INFO]: [PB] 全部8765个数据块、...个数据块组、... + ...个数据块关系绑定对象都是健康的
+[MCDR] [23:15:57] [PB@xxx-worker-heavy/INFO]: [PB] ...（files/filesets/backups 验证略）...
+[MCDR] [23:16:12] [PB@xxx-worker-heavy/INFO]: [PB] 验证完成, 耗时34.21s。数据对象: 健康, 数据块相关对象: 健康, 文件对象: 健康, 文件集: 健康, 备份: 健康
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>本文档仅涉及 blob/chunk 文件层面的损坏处理（对应 <code>blobs</code> 和 <code>chunks</code> 两部分的验证结果）
+<code>files</code>、<code>filesets</code>、<code>backups</code> 等组件若出现异常，属于数据库结构层面的问题，处理方式不在本文档范围内</p>
+</div>
+<h3 id="扫描直存-blob-文件">扫描直存 blob 文件<a class="headerlink" href="#扫描直存-blob-文件" title="Permanent link">&para;</a></h3>
+<p>使用以下命令对所有数据对象进行全面扫描：</p>
+<div class="highlight"><pre><span></span><code>!!pb database validate blobs
+</code></pre></div>
+<p>正常情况的输出：</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO]: [PB] 正在验证所有数据对象, 请稍等...
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation start
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 3000 / 4325 blobs
+[MCDR] [23:15:51] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 4325 / 4325 blobs
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4325, bad 0
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] 已验证4325/4325个数据对象
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] 全部4325个数据对象都是健康的
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] 验证完成, 耗时15.32s。数据对象: 健康
+</code></pre></div>
+<p>发现异常时的输出（示例）：</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO]: [PB] 正在验证所有数据对象, 请稍等...
+[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation start
+[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 3000 / 4325 blobs
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 4325 / 4325 blobs
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4322, bad 3
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 已验证4325/4325个数据对象
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 发现了3/4325个异常数据对象
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 文件缺失的数据对象: 2个
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 1. 4fc02ad5e7508949634f012fb96c2968: blob file /path/to/pb_files/blobs/4f/4fc02ad5e7508949634f012fb96c2968 does not exist
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 2. 54695a153daae89e685894ee966a277e: blob file /path/to/pb_files/blobs/54/54695a153daae89e685894ee966a277e does not exist
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 信息不匹配的数据对象: 1个
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 1. 8b36d71e250e25527f59b8fd9e0f2dce: stored size mismatch, expect 786432, found 786428
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 影响范围: 6/9147个文件对象, 2/26个文件集, 16/21个备份
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 见日志文件 pb_files/logs/validate.log 以了解这些数据对象的详细信息及影响范围
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 验证完成, 耗时6.34s。数据对象: 异常
+</code></pre></div>
+<h4 id="异常类型说明">异常类型说明<a class="headerlink" href="#异常类型说明" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>类型键</th>
+<th>中文名</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>missing</code></td>
+<td>文件缺失的数据对象</td>
+<td>blob 文件在存储路径下不存在</td>
+</tr>
+<tr>
+<td><code>corrupted</code></td>
+<td>文件损坏的数据对象</td>
+<td>blob 文件存在，但解压缩失败</td>
+</tr>
+<tr>
+<td><code>mismatched</code></td>
+<td>信息不匹配的数据对象</td>
+<td>解压后的哈希值或大小与数据库记录不符</td>
+</tr>
+<tr>
+<td><code>bad_layout</code></td>
+<td>分块布局异常的数据对象</td>
+<td>chunked blob 的数据块组绑定关系异常</td>
+</tr>
+<tr>
+<td><code>invalid</code></td>
+<td>非法数据对象</td>
+<td>blob 的压缩方式等基本字段非法</td>
+</tr>
+<tr>
+<td><code>orphan</code></td>
+<td>孤儿数据对象</td>
+<td>blob 没有被任何文件引用（不影响回档，可用 <code>database prune</code> 清理）</td>
+</tr>
+</tbody>
+</table>
+<p>前三种（<code>missing</code>、<code>corrupted</code>、<code>mismatched</code>）是最常见的"文件层面"损坏，会直接导致回档失败</p>
+<h4 id="查阅详细日志">查阅详细日志<a class="headerlink" href="#查阅详细日志" title="Permanent link">&para;</a></h4>
+<p>输出末尾会提示日志文件路径（<code>pb_files/logs/validate.log</code>），其中记录了完整的受影响备份 ID 列表和受影响文件样本，建议优先查阅：</p>
+<div class="highlight"><pre><span></span><code>Affected file objects / total file objects: 6 / 9147
+Affected file samples (len=3):
+- FileInfo(fileset_id=12, path=&#39;world/region/r.0.0.mca&#39;, ...)
+- FileInfo(fileset_id=15, path=&#39;world/region/r.0.0.mca&#39;, ...)
+- FileInfo(fileset_id=18, path=&#39;world/region/r.0.0.mca&#39;, ...)
+Affected backup / total backups: 16 / 21
+Affected backup IDs (bad blobs): [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33]
+</code></pre></div>
+<h3 id="扫描分块-blob-的-chunk-文件">扫描分块 blob 的 chunk 文件<a class="headerlink" href="#扫描分块-blob-的-chunk-文件" title="Permanent link">&para;</a></h3>
+<p>使用以下命令对所有数据块及其关联对象（数据块组、绑定关系）进行扫描：</p>
+<div class="highlight"><pre><span></span><code>!!pb database validate chunks
+</code></pre></div>
+<p>发现 chunk 损坏时的输出（示例）：</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO]: [PB] 正在验证所有数据块相关对象 (包括数据块、数据块组、关系绑定), 请稍等...
+[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation start
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 8765 / 8765 chunks
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 8765, validated 8765, ok 8763, bad 2
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 发现了2/8765个异常数据块
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 文件损坏的数据块: 2个
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 1. id=1234 hash=3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5: cannot read and decompress chunk file: (&lt;class &#39;zlib.error&#39;&gt; Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 2. id=5678 hash=9b4c3d7e2f1a0b6c8e7d5c3a2b1f9e0d: cannot read and decompress chunk file: (&lt;class &#39;zlib.error&#39;&gt; Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 影响范围: 3/9147个文件对象, 1/26个文件集, 8/21个备份
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 见日志文件 pb_files/logs/validate.log 以了解这些数据对象的详细信息及影响范围
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 验证完成, 耗时4.56s。数据块相关对象: 异常
+</code></pre></div>
+<p>chunk 的损坏类型与 blob 类似，包括：<code>missing_file</code>（文件缺失）、<code>corrupted</code>（解压失败）、<code>mismatched</code>（哈希/大小不匹配）</p>
+<p>由于一个 chunk 可被多个 chunked blob 复用，一个 chunk 损坏可能影响多个备份中的多个文件</p>
+<h3 id="进一步定位受影响的文件和备份">进一步定位受影响的文件和备份<a class="headerlink" href="#进一步定位受影响的文件和备份" title="Permanent link">&para;</a></h3>
+<p>通过 <code>!!pb database inspect</code> 系列命令可以深入排查受影响的对象：</p>
+<p>审查指定数据对象（blob）：</p>
+<div class="highlight"><pre><span></span><code>!!pb database inspect blob 8b36d71e250e25527f59b8fd9e0f2dce
+</code></pre></div>
+<p>输出示例：</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] ======== 数据对象8b36d71e250e2552 ========
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] ID: 42
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 存储方法: 直存
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 哈希: 8b36d71e250e25527f59b8fd9e0f2dce (xxh128)
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 压缩方法: zstd
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 原始大小: 1048576 (1.00MiB)
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 储存大小: 786432 (768.00KiB)
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 关联文件数: 6。样本：
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 1. 文件集12, 路径: world/region/r.0.0.mca
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 2. 文件集15, 路径: world/region/r.0.0.mca
+</code></pre></div>
+<p>审查指定备份的某个文件：</p>
+<div class="highlight"><pre><span></span><code>!!pb database inspect file 78 world/region/r.0.0.mca
+</code></pre></div>
+<p>审查指定备份：</p>
+<div class="highlight"><pre><span></span><code>!!pb database inspect backup 78
+</code></pre></div>
+<h2 id="临时绕过措施">临时绕过措施<a class="headerlink" href="#临时绕过措施" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>以下措施仅用于临时应急，并不能修复损坏的数据。使用后回档出的备份内容将不完整，相关游戏文件（如存档）可能已损坏。请在充分了解风险后谨慎使用</p>
+</div>
+<h3 id="跳过失败的文件--fail-soft">跳过失败的文件（<code>--fail-soft</code>）<a class="headerlink" href="#跳过失败的文件--fail-soft" title="Permanent link">&para;</a></h3>
+<p>在回档命令中加入 <code>--fail-soft</code> 参数，PB 会捕获并记录每个文件的导出错误，跳过失败的文件并继续回档过程：</p>
+<div class="highlight"><pre><span></span><code>!!pb back 78 --fail-soft
+</code></pre></div>
+<p><code>--fail-soft</code> 适用于所有类型的导出失败（包括文件缺失、解压失败、哈希不匹配）。回档完成后，PB 会在日志中列出所有跳过的文件：</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [22:10:12] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file &#39;world/region/r.0.0.mca&#39; to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e..., actual written 9f4c7b3e...
+[MCDR] [22:10:12] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file &#39;world/region/r.1.0.mca&#39; to path world/region/r.1.0.mca failed: hash mismatched for world/region/r.1.0.mca (chunk 3a7f29c4...), expected 3a7f29c4..., actual written ff92dcb1...
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/INFO] [prime_backup]: Export done with 2 failures
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Found 2 failures during backup export
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/ERROR] [prime_backup]: world/region/r.0.0.mca mode=0o100644: (VerificationError) hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e..., actual written 9f4c7b3e...
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/ERROR] [prime_backup]: world/region/r.1.0.mca mode=0o100644: (VerificationError) hash mismatched for world/region/r.1.0.mca (chunk 3a7f29c4...), expected 3a7f29c4..., actual written ff92dcb1...
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/INFO] [prime_backup]: Restore to backup #78 done, cost 10.32s (backup 2.41s, restore 7.91s), starting the server
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>使用 <code>--fail-soft</code> 时，跳过失败的文件后，这些文件在回档目录中的最终状态取决于错误类型：</p>
+<ul>
+<li>文件缺失（<code>missing</code>/<code>missing_file</code>）：blob/chunk 文件不存在，无法写入，目标路径上将不存在该文件</li>
+<li>文件损坏（<code>corrupted</code>）：解压过程中发生异常，目标文件可能以截断/部分写入的形式存在</li>
+<li>哈希不匹配（<code>mismatched</code>）：文件被完整写入，但内容来自损坏的数据，内容不正确</li>
+</ul>
+<p>此外，由于回档在开始时会清空回档目标目录，失败文件的回档前内容也已被删除，无法自动恢复。如需恢复需手动还原至回档前的备份（如有创建）</p>
+</div>
+<h3 id="跳过哈希校验--no-verify">跳过哈希校验（<code>--no-verify</code>）<a class="headerlink" href="#跳过哈希校验--no-verify" title="Permanent link">&para;</a></h3>
+<p>在回档命令中加入 <code>--no-verify</code> 参数，PB 会跳过对还原文件的哈希/大小校验：</p>
+<div class="highlight"><pre><span></span><code>!!pb back 78 --no-verify
+</code></pre></div>
+<p><code>--no-verify</code> 适用于 blob/chunk 文件内容可以正常读取和解压，但哈希值或大小与数据库记录不符的情况（即 <code>mismatched</code> 类型）
+对于文件缺失或无法解压的情况，<code>--no-verify</code> 无效，仍需配合 <code>--fail-soft</code> 使用</p>
+<p>两个参数可以组合使用：</p>
+<div class="highlight"><pre><span></span><code>!!pb back 78 --fail-soft --no-verify
+</code></pre></div>
+<h2 id="修复方法">修复方法<a class="headerlink" href="#修复方法" title="Permanent link">&para;</a></h2>
+<h3 id="不应该做的事">不应该做的事<a class="headerlink" href="#不应该做的事" title="Permanent link">&para;</a></h3>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p><strong>不要直接删除 blob 或 chunk 文件</strong></p>
+<p>直接在文件系统中删除 <code>pb_files/blobs/</code> 或 <code>pb_files/blobs/_chunks/</code> 下的文件，会使数据库中的记录与文件系统不一致
+PB 并不知道文件已被删除，后续的回档、导出等操作仍会尝试读取不存在的文件，导致各种难以排查的错误</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p><strong>不要直接修改 SQLite 数据库</strong></p>
+<p>PrimeBackup 的数据库（<code>pb_files/prime_backup.db</code>）有复杂的关系结构（blob、chunk、chunk_group、binding 等多层关联）
+手动修改很容易破坏引用完整性，导致数据库进入难以恢复的损坏状态</p>
+</div>
+<h3 id="方法一从外部备份恢复-blobchunk-文件">方法一：从外部备份恢复 blob/chunk 文件<a class="headerlink" href="#方法一从外部备份恢复-blobchunk-文件" title="Permanent link">&para;</a></h3>
+<p>适用场景： 你持有 <code>pb_files</code> 目录的外部备份（如操作系统级别的文件备份），其中包含完好的 blob 或 chunk 文件</p>
+<p>操作步骤：</p>
+<ol>
+<li>确认需要恢复的文件路径（从 validate 输出中获取哈希值）：</li>
+<li>直存 blob：<code>pb_files/blobs/{哈希前2位}/{完整哈希}</code><br />
+     例如：<code>pb_files/blobs/8b/8b36d71e250e25527f59b8fd9e0f2dce</code></li>
+<li>
+<p>chunk 文件：<code>pb_files/blobs/_chunks/{哈希前2位}/{完整哈希}</code><br />
+     例如：<code>pb_files/blobs/_chunks/3a/3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5</code></p>
+</li>
+<li>
+<p>从外部备份中将对应文件复制回原路径，覆盖损坏的文件（或在文件缺失时直接放入）</p>
+</li>
+<li>
+<p>再次运行 <code>!!pb database validate blobs</code>（或 <code>validate chunks</code>）确认问题已修复</p>
+</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>恢复前可用 <code>!!pb database inspect blob &lt;哈希&gt;</code> 确认该 blob 的存储方式（直存/分块）和压缩方式，以便确认外部备份文件是否匹配</p>
+</div>
+<h3 id="方法二删除受影响的备份">方法二：删除受影响的备份<a class="headerlink" href="#方法二删除受影响的备份" title="Permanent link">&para;</a></h3>
+<p>适用场景： 损坏的 blob/chunk 所对应的备份已不再需要，或者你宁愿丢弃这些备份而不是保留不完整的数据</p>
+<p>操作步骤：</p>
+<ol>
+<li>
+<p>从 validate 输出或日志文件中获取受影响的备份 ID 列表</p>
+</li>
+<li>
+<p>逐个删除受影响的备份：</p>
+<div class="highlight"><pre><span></span><code>!!pb delete &lt;备份ID&gt;
+</code></pre></div>
+<p>例如，删除备份 #3、#5、#7：</p>
+<div class="highlight"><pre><span></span><code>!!pb delete 3 5 7
+</code></pre></div>
+<p>或使用范围删除（如受影响备份 ID 连续）：</p>
+<div class="highlight"><pre><span></span><code>!!pb delete_range 3-7
+</code></pre></div>
+</li>
+<li>
+<p>删除备份后，PB 会自动清理不再被任何备份引用的孤儿 blob 和 chunk（包括删除其对应的物理文件）。如果仍有残留，可手动执行：</p>
+<div class="highlight"><pre><span></span><code>!!pb database prune
+</code></pre></div>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>删除备份时，如果某个 blob/chunk 仍被其他未删除的备份引用，它不会被自动删除，相应的损坏数据依然存在于存储池中，只是不再影响被删除的备份
+因此，若要彻底清除损坏数据，你需要删除所有引用它的备份</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>受影响的备份 ID 可以从 validate 命令的游戏内输出直接点击，也可以从 <code>validate.log</code> 日志文件中完整获取</p>
+</div>
+<h3 id="方法三未实现提供包含完好数据的文件以重建-blobchunk">方法三：（未实现）提供包含完好数据的文件以重建 blob/chunk<a class="headerlink" href="#方法三未实现提供包含完好数据的文件以重建-blobchunk" title="Permanent link">&para;</a></h3>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>此功能尚未实现</p>
+</div>
+<p>从理论上讲，如果你持有一个或多个与受损 blob/chunk 内容相同的文件，可以通过专用修复命令让 PB 重新入库这些文件，从而修复损坏的存储条目</p>
+<p>计划中的大致使用方式：提供一个或多个文件路径（或包含这些文件的压缩包），PB 会对每个输入文件计算哈希值，
+并在数据库中查找具有匹配哈希且处于损坏状态（<code>missing</code>、<code>corrupted</code>、<code>mismatched</code>）的 blob 或 chunk 条目。若找到，则将该文件重新写入到对应存储路径，完成修复</p>
+<p>当前版本的 PrimeBackup 尚不支持此操作：<code>!!pb import</code> 命令在处理文件时，若数据库中已存在相同哈希的 blob 记录，不会重新写入对应的物理文件，
+因此即使导入包含相同内容的备份，损坏的 blob 文件也不会被替换</p>
+<p>如需此功能，请关注后续版本的更新</p>
+<h2 id="总结">总结<a class="headerlink" href="#总结" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>问题类型</th>
+<th>推荐处理方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>blob/chunk 文件缺失（<code>missing</code>/<code>missing_file</code>）</td>
+<td>从外部备份恢复文件，或删除受影响备份</td>
+</tr>
+<tr>
+<td>blob/chunk 文件损坏，无法解压（<code>corrupted</code>）</td>
+<td>从外部备份恢复文件，或删除受影响备份</td>
+</tr>
+<tr>
+<td>哈希/大小不匹配（<code>mismatched</code>）</td>
+<td>从外部备份恢复文件，或删除受影响备份；临时可用 <code>--no-verify</code> 绕过</td>
+</tr>
+<tr>
+<td>临时需要回档某个受损的备份</td>
+<td><code>!!pb back &lt;ID&gt; --fail-soft</code>（跳过损坏文件）或 <code>--no-verify</code>（跳过哈希校验）</td>
+</tr>
+<tr>
+<td>想确认损坏的范围</td>
+<td><code>!!pb database validate blobs</code> / <code>validate chunks</code> / <code>validate all</code>，并查阅 <code>pb_files/logs/validate.log</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 Fallen_Breath
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "navigation.expand", "navigation.path", "navigation.prune", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

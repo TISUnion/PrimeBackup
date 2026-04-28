@@ -1,0 +1,1636 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world">
+      
+      
+        <meta name="author" content="Fallen_Breath">
+      
+      
+        <link rel="canonical" href="https://tisunion.github.io/PrimeBackup/maintain/corrupted_blobs/">
+      
+      
+        <link rel="prev" href="../../concept/storage_structure/">
+      
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../zh/maintain/corrupted_blobs/" hreflang="zh">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Handling Corrupted Data Files - Prime Backup Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#handling-corrupted-data-files" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Prime Backup Documentation" class="md-header__button md-logo" aria-label="Prime Backup Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Prime Backup Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Handling Corrupted Data Files
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../zh/maintain/corrupted_blobs/" hreflang="zh" class="md-select__link">
+              简体中文
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/TISUnion/PrimeBackup" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Prime Backup Documentation" class="md-nav__button md-logo" aria-label="Prime Backup Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Prime Backup Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/TISUnion/PrimeBackup" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../feature/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../concept/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Maintenance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Handling Corrupted Data Files
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Handling Corrupted Data Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#symptoms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptoms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Symptoms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#restoration-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restoration Failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scanning-and-identifying-the-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanning and Identifying the Problem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scanning and Identifying the Problem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quick-check-validate-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Check (validate all)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scanning-direct-blob-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanning Direct Blob Files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scanning Direct Blob Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#anomaly-type-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anomaly Type Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checking-the-detailed-log" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking the Detailed Log
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scanning-chunk-files-of-chunked-blobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanning Chunk Files of Chunked Blobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#further-locating-affected-files-and-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further Locating Affected Files and Backups
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#temporary-bypass-measures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporary Bypass Measures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Temporary Bypass Measures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#skip-failed-files---fail-soft" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip Failed Files (--fail-soft)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skip-hash-verification---no-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip Hash Verification (--no-verify)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repair-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repair Methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Repair Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-not-to-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Not to Do
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-1-restore-blobchunk-files-from-an-external-backup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method 1: Restore blob/chunk Files from an External Backup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-2-delete-the-affected-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method 2: Delete the Affected Backups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-3-not-yet-implemented-provide-files-with-intact-data-to-rebuild-blobchunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method 3: (Not Yet Implemented) Provide Files with Intact Data to Rebuild blob/chunk
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#symptoms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptoms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Symptoms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#restoration-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restoration Failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scanning-and-identifying-the-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanning and Identifying the Problem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scanning and Identifying the Problem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quick-check-validate-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Check (validate all)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scanning-direct-blob-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanning Direct Blob Files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scanning Direct Blob Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#anomaly-type-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anomaly Type Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checking-the-detailed-log" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking the Detailed Log
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scanning-chunk-files-of-chunked-blobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanning Chunk Files of Chunked Blobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#further-locating-affected-files-and-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further Locating Affected Files and Backups
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#temporary-bypass-measures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporary Bypass Measures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Temporary Bypass Measures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#skip-failed-files---fail-soft" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip Failed Files (--fail-soft)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skip-hash-verification---no-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip Hash Verification (--no-verify)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repair-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repair Methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Repair Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-not-to-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Not to Do
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-1-restore-blobchunk-files-from-an-external-backup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method 1: Restore blob/chunk Files from an External Backup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-2-delete-the-affected-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method 2: Delete the Affected Backups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-3-not-yet-implemented-provide-files-with-intact-data-to-rebuild-blobchunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method 3: (Not Yet Implemented) Provide Files with Intact Data to Rebuild blob/chunk
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="./" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Maintenance
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="handling-corrupted-data-files">Handling Corrupted Data Files<a class="headerlink" href="#handling-corrupted-data-files" title="Permanent link">&para;</a></h1>
+<p>This document describes how to identify problems, temporarily bypass restoration failures, and repair corruption when data object files (blobs) or data chunk files (chunks) in the Prime Backup storage pool become corrupted</p>
+<h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
+<p>Prime Backup persists backup data to the file system in the form of data objects (Blobs). There are two storage methods:</p>
+<ul>
+<li>Direct (<code>direct</code>): each blob corresponds to an independent file, stored at <code>pb_files/blobs/{first 2 chars of hash}/{full hash}</code>,
+  e.g.: <code>pb_files/blobs/8b/8b36d71e250e25527f59b8fd9e0f2dce</code></li>
+<li>Chunked (<code>chunked</code>): large files are split into multiple data chunks (chunks) via the CDC algorithm, each chunk stored independently at <code>pb_files/blobs/_chunks/{first 2 chars of hash}/{full hash}</code>,
+  e.g.: <code>pb_files/blobs/_chunks/3a/3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5</code></li>
+</ul>
+<p>When these files are corrupted or lost due to disk failures, file system errors, unexpected power loss, or accidental operations, PB will be unable to restore the corresponding files during a restoration (or export), causing the operation to fail</p>
+<blockquote>
+<p>For a detailed description of the storage structure, see <a href="../../concept/storage_structure/">Storage Structure</a></p>
+</blockquote>
+<h2 id="symptoms">Symptoms<a class="headerlink" href="#symptoms" title="Permanent link">&para;</a></h2>
+<h3 id="restoration-failure">Restoration Failure<a class="headerlink" href="#restoration-failure" title="Permanent link">&para;</a></h3>
+<p>By default, PB performs a hash verification on each restored file during restoration (<code>verify_blob=True</code>). If a blob or chunk file is missing, corrupted, or its hash/size does not match the database record, the restoration aborts with an error and rolls back all written files</p>
+<p>Scenario 1: Direct blob file corrupted (hash mismatch)</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file &#39;world/region/r.0.0.mca&#39; to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e250e25527f59b8fd9e0f2dce, actual written 9f4c7b3e5d1a2c8e6f0b4d9e2a7f3c1d
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: Error occurs during export to directory, applying rollback
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Restore to backup #78 failed: hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e250e25527f59b8fd9e0f2dce, actual written 9f4c7b3e5d1a2c8e6f0b4d9e2a7f3c1d
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: The server is left stopped due to the failure. Prime Backup will not attempt to restart it automatically
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: You can try to fix the issue and perform another restoration, or just start the server manually via MCDR command
+</code></pre></div>
+<p>Scenario 2: A chunk file of a chunked blob corrupted (hash mismatch)</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file &#39;world/region/r.0.0.mca&#39; to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (chunk 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5), expected 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5, actual written ff92dcb10e3a7b5c2d4f8e1a9c6b0d3f
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: Error occurs during export to directory, applying rollback
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Restore to backup #78 failed: hash mismatched for world/region/r.0.0.mca (chunk 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5), expected 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5, actual written ff92dcb10e3a7b5c2d4f8e1a9c6b0d3f
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: The server is left stopped due to the failure. Prime Backup will not attempt to restart it automatically
+[MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: You can try to fix the issue and perform another restoration, or just start the server manually via MCDR command
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>After a restoration failure, the server process remains stopped and PB will not restart it automatically<br />
+You need to fix the issue first, or start the server manually via MCDR command: <code>!!MCDR start</code></p>
+</div>
+<p>Since PB rolls back the restoration target directory to its original state upon failure, a failed restoration will not corrupt existing server files</p>
+<h2 id="scanning-and-identifying-the-problem">Scanning and Identifying the Problem<a class="headerlink" href="#scanning-and-identifying-the-problem" title="Permanent link">&para;</a></h2>
+<h3 id="quick-check-validate-all">Quick Check (<code>validate all</code>)<a class="headerlink" href="#quick-check-validate-all" title="Permanent link">&para;</a></h3>
+<p>Use the following command to validate all components in the database at once:</p>
+<div class="highlight"><pre><span></span><code>!!pb database validate all
+</code></pre></div>
+<p>This command validates in sequence: blobs, chunk-related objects (chunks), files, filesets, and backups</p>
+<p>Example output (all healthy):</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO]: [PB] Start validating blobs, please wait...
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation start
+[MCDR] [23:15:51] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 4325 / 4325 blobs
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4325, bad 0
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] Validated 4325 / 4325 blobs
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] All 4325 blobs are healthy
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] Start validating chunks (chunks, chunk groups, relation bindings), please wait...
+[MCDR] [23:15:57] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 8765, validated 8765, ok 8765, bad 0
+[MCDR] [23:15:57] [PB@xxx-worker-heavy/INFO]: [PB] All 8765 chunks, ... chunk groups, ... + ... bindings are healthy
+[MCDR] [23:15:57] [PB@xxx-worker-heavy/INFO]: [PB] ...(files/filesets/backups validation omitted)...
+[MCDR] [23:16:12] [PB@xxx-worker-heavy/INFO]: [PB] Validation done, cost 34.21s. blobs: good, chunks: good, files: good, filesets: good, backups: good
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This document only covers blob/chunk file-level corruption handling (corresponding to the <code>blobs</code> and <code>chunks</code> validation results)
+For anomalies in <code>files</code>, <code>filesets</code>, <code>backups</code> and other components, these are database structure-level issues and are outside the scope of this document</p>
+</div>
+<h3 id="scanning-direct-blob-files">Scanning Direct Blob Files<a class="headerlink" href="#scanning-direct-blob-files" title="Permanent link">&para;</a></h3>
+<p>Use the following command to perform a full scan of all data objects:</p>
+<div class="highlight"><pre><span></span><code>!!pb database validate blobs
+</code></pre></div>
+<p>Output when all is healthy:</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO]: [PB] Start validating blobs, please wait...
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation start
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 3000 / 4325 blobs
+[MCDR] [23:15:51] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 4325 / 4325 blobs
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4325, bad 0
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] Validated 4325 / 4325 blobs
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] All 4325 blobs are healthy
+[MCDR] [23:15:53] [PB@xxx-worker-heavy/INFO]: [PB] Validation done, cost 15.32s. blobs: good
+</code></pre></div>
+<p>Output when anomalies are found (example):</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO]: [PB] Start validating blobs, please wait...
+[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation start
+[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 3000 / 4325 blobs
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 4325 / 4325 blobs
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation done: total 4325, validated 4325, ok 4322, bad 3
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] Validated 4325 / 4325 blobs
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] Found 3 / 4325 bad blobs in total
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] Missing blob amount: 2
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 1. 4fc02ad5e7508949634f012fb96c2968: blob file /path/to/pb_files/blobs/4f/4fc02ad5e7508949634f012fb96c2968 does not exist
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 2. 54695a153daae89e685894ee966a277e: blob file /path/to/pb_files/blobs/54/54695a153daae89e685894ee966a277e does not exist
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] Mismatched blob amount: 1
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] 1. 8b36d71e250e25527f59b8fd9e0f2dce: stored size mismatch, expect 786432, found 786428
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] Affected range: 6 / 9147 file objects, 2 / 26 filesets, 16 / 21 backups
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] See log file pb_files/logs/validate.log for details and affected stuffs of these bad blobs
+[MCDR] [23:19:06] [PB@xxx-worker-heavy/INFO]: [PB] Validation done, cost 6.34s. blobs: bad
+</code></pre></div>
+<h4 id="anomaly-type-reference">Anomaly Type Reference<a class="headerlink" href="#anomaly-type-reference" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Type Key</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>missing</code></td>
+<td>Missing blob</td>
+<td>The blob file does not exist at its storage path</td>
+</tr>
+<tr>
+<td><code>corrupted</code></td>
+<td>Corrupted blob</td>
+<td>The blob file exists but decompression fails</td>
+</tr>
+<tr>
+<td><code>mismatched</code></td>
+<td>Mismatched blob</td>
+<td>The decompressed hash or size does not match the database record</td>
+</tr>
+<tr>
+<td><code>bad_layout</code></td>
+<td>Bad-layout blob</td>
+<td>The chunk group bindings of a chunked blob are abnormal</td>
+</tr>
+<tr>
+<td><code>invalid</code></td>
+<td>Invalid blob</td>
+<td>A basic field of the blob (such as compress method) is illegal</td>
+</tr>
+<tr>
+<td><code>orphan</code></td>
+<td>Orphan blob</td>
+<td>The blob is not referenced by any file (does not affect restoration, can be cleaned with <code>database prune</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>The first three (<code>missing</code>, <code>corrupted</code>, <code>mismatched</code>) are the most common file-level corruptions that directly cause restoration failures</p>
+<h4 id="checking-the-detailed-log">Checking the Detailed Log<a class="headerlink" href="#checking-the-detailed-log" title="Permanent link">&para;</a></h4>
+<p>The end of the output shows the log file path (<code>pb_files/logs/validate.log</code>), which contains the full list of affected backup IDs and file samples — check this file first:</p>
+<div class="highlight"><pre><span></span><code>Affected file objects / total file objects: 6 / 9147
+Affected file samples (len=3):
+- FileInfo(fileset_id=12, path=&#39;world/region/r.0.0.mca&#39;, ...)
+- FileInfo(fileset_id=15, path=&#39;world/region/r.0.0.mca&#39;, ...)
+- FileInfo(fileset_id=18, path=&#39;world/region/r.0.0.mca&#39;, ...)
+Affected backup / total backups: 16 / 21
+Affected backup IDs (bad blobs): [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33]
+</code></pre></div>
+<h3 id="scanning-chunk-files-of-chunked-blobs">Scanning Chunk Files of Chunked Blobs<a class="headerlink" href="#scanning-chunk-files-of-chunked-blobs" title="Permanent link">&para;</a></h3>
+<p>Use the following command to scan all chunks and their associated objects (chunk groups, binding relationships):</p>
+<div class="highlight"><pre><span></span><code>!!pb database validate chunks
+</code></pre></div>
+<p>Example output when chunk corruption is found:</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO]: [PB] Start validating chunks (chunks, chunk groups, relation bindings), please wait...
+[MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation start
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 8765 / 8765 chunks
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 8765, validated 8765, ok 8763, bad 2
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Found 2 / 8765 bad chunks in total
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Corrupted chunk file: 2
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 1. id=1234 hash=3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5: cannot read and decompress chunk file: (&lt;class &#39;zlib.error&#39;&gt; Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 2. id=5678 hash=9b4c3d7e2f1a0b6c8e7d5c3a2b1f9e0d: cannot read and decompress chunk file: (&lt;class &#39;zlib.error&#39;&gt; Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Affected range: 3 / 9147 file objects, 1 / 26 filesets, 8 / 21 backups
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] See log file pb_files/logs/validate.log for details and affected stuffs of these bad blobs
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Validation done, cost 4.56s. chunks: bad
+</code></pre></div>
+<p>Chunk corruption types are similar to blobs: <code>missing_file</code> (file missing), <code>corrupted</code> (decompression failed), <code>mismatched</code> (hash/size mismatch)</p>
+<p>Since a chunk can be shared by multiple chunked blobs, a single corrupted chunk may affect multiple files across multiple backups</p>
+<h3 id="further-locating-affected-files-and-backups">Further Locating Affected Files and Backups<a class="headerlink" href="#further-locating-affected-files-and-backups" title="Permanent link">&para;</a></h3>
+<p>The <code>!!pb database inspect</code> series of commands can be used to drill down into affected objects:</p>
+<p>Inspect a specific data object (blob):</p>
+<div class="highlight"><pre><span></span><code>!!pb database inspect blob 8b36d71e250e25527f59b8fd9e0f2dce
+</code></pre></div>
+<p>Example output:</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] ======== Blob 8b36d71e250e2552 ========
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] ID: 42
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] Storage method: direct
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] Hash: 8b36d71e250e25527f59b8fd9e0f2dce (xxh128)
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] Compress: zstd
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] Raw size: 1048576 (1.00MiB)
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] Stored size: 786432 (768.00KiB)
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] Associated file count: 6. Samples:
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 1. fileset 12, path: world/region/r.0.0.mca
+[MCDR] [22:11:00] [PB@xxx-worker-light/INFO]: [PB] 2. fileset 15, path: world/region/r.0.0.mca
+</code></pre></div>
+<p>Inspect a specific file in a backup:</p>
+<div class="highlight"><pre><span></span><code>!!pb database inspect file 78 world/region/r.0.0.mca
+</code></pre></div>
+<p>Inspect a specific backup:</p>
+<div class="highlight"><pre><span></span><code>!!pb database inspect backup 78
+</code></pre></div>
+<h2 id="temporary-bypass-measures">Temporary Bypass Measures<a class="headerlink" href="#temporary-bypass-measures" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The following measures are for temporary emergency use only and do not fix the underlying corruption. The backup content restored using these options will be incomplete, and the relevant game files (e.g., world saves) may be corrupted. Use with caution after fully understanding the risks</p>
+</div>
+<h3 id="skip-failed-files---fail-soft">Skip Failed Files (<code>--fail-soft</code>)<a class="headerlink" href="#skip-failed-files---fail-soft" title="Permanent link">&para;</a></h3>
+<p>Add the <code>--fail-soft</code> flag to the restoration command, and PB will catch and log export errors for each file, skip the failed files, and continue the restoration:</p>
+<div class="highlight"><pre><span></span><code>!!pb back 78 --fail-soft
+</code></pre></div>
+<p><code>--fail-soft</code> applies to all types of export failures (including missing files, decompression failures, and hash mismatches). After restoration completes, PB logs all skipped files:</p>
+<div class="highlight"><pre><span></span><code>[MCDR] [22:10:12] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file &#39;world/region/r.0.0.mca&#39; to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e..., actual written 9f4c7b3e...
+[MCDR] [22:10:12] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file &#39;world/region/r.1.0.mca&#39; to path world/region/r.1.0.mca failed: hash mismatched for world/region/r.1.0.mca (chunk 3a7f29c4...), expected 3a7f29c4..., actual written ff92dcb1...
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/INFO] [prime_backup]: Export done with 2 failures
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Found 2 failures during backup export
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/ERROR] [prime_backup]: world/region/r.0.0.mca mode=0o100644: (VerificationError) hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e..., actual written 9f4c7b3e...
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/ERROR] [prime_backup]: world/region/r.1.0.mca mode=0o100644: (VerificationError) hash mismatched for world/region/r.1.0.mca (chunk 3a7f29c4...), expected 3a7f29c4..., actual written ff92dcb1...
+[MCDR] [22:10:13] [PB@ecac-worker-heavy/INFO] [prime_backup]: Restore to backup #78 done, cost 10.32s (backup 2.41s, restore 7.91s), starting the server
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>When using <code>--fail-soft</code>, the final state of skipped files in the restoration directory depends on the error type:</p>
+<ul>
+<li>Missing file (<code>missing</code>/<code>missing_file</code>): blob/chunk file does not exist and cannot be written; the file will be absent at the destination path</li>
+<li>Corrupted file (<code>corrupted</code>): an exception occurs during decompression; the destination file may exist in a truncated/partially written state</li>
+<li>Hash mismatch (<code>mismatched</code>): the file is fully written but the content comes from corrupted data, so the content is incorrect</li>
+</ul>
+<p>Additionally, since PB clears the restoration target directory at the start, the pre-restoration content of any failed file has already been deleted and cannot be automatically recovered. Manual restoration to a pre-restoration backup is required if one was created</p>
+</div>
+<h3 id="skip-hash-verification---no-verify">Skip Hash Verification (<code>--no-verify</code>)<a class="headerlink" href="#skip-hash-verification---no-verify" title="Permanent link">&para;</a></h3>
+<p>Add the <code>--no-verify</code> flag to the restoration command, and PB will skip hash/size verification on restored files:</p>
+<div class="highlight"><pre><span></span><code>!!pb back 78 --no-verify
+</code></pre></div>
+<p><code>--no-verify</code> applies to cases where the blob/chunk file content can be read and decompressed normally, but the hash or size does not match the database record (i.e., <code>mismatched</code> type)
+For missing files or files that cannot be decompressed, <code>--no-verify</code> has no effect and must be used together with <code>--fail-soft</code></p>
+<p>The two flags can be combined:</p>
+<div class="highlight"><pre><span></span><code>!!pb back 78 --fail-soft --no-verify
+</code></pre></div>
+<h2 id="repair-methods">Repair Methods<a class="headerlink" href="#repair-methods" title="Permanent link">&para;</a></h2>
+<h3 id="what-not-to-do">What Not to Do<a class="headerlink" href="#what-not-to-do" title="Permanent link">&para;</a></h3>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p><strong>Do not directly delete blob or chunk files</strong></p>
+<p>Directly deleting files under <code>pb_files/blobs/</code> or <code>pb_files/blobs/_chunks/</code> in the file system will cause the database records to become inconsistent with the file system
+PB has no knowledge of the deletion; subsequent restoration, export, and other operations will still attempt to read the non-existent files, leading to various hard-to-diagnose errors</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p><strong>Do not directly modify the SQLite database</strong></p>
+<p>The PrimeBackup database (<code>pb_files/prime_backup.db</code>) has a complex relational structure (multiple layers of associations including blob, chunk, chunk_group, binding, etc.)
+Manual modification can easily break referential integrity, putting the database into a corrupted state that is difficult to recover from</p>
+</div>
+<h3 id="method-1-restore-blobchunk-files-from-an-external-backup">Method 1: Restore blob/chunk Files from an External Backup<a class="headerlink" href="#method-1-restore-blobchunk-files-from-an-external-backup" title="Permanent link">&para;</a></h3>
+<p>Applicable scenario: You have an external backup of the <code>pb_files</code> directory (e.g., an OS-level file backup) that contains intact blob or chunk files</p>
+<p>Steps:</p>
+<ol>
+<li>Identify the file paths to restore (obtain hashes from validate output):</li>
+<li>Direct blob: <code>pb_files/blobs/{first 2 chars of hash}/{full hash}</code><br />
+     e.g.: <code>pb_files/blobs/8b/8b36d71e250e25527f59b8fd9e0f2dce</code></li>
+<li>
+<p>Chunk file: <code>pb_files/blobs/_chunks/{first 2 chars of hash}/{full hash}</code><br />
+     e.g.: <code>pb_files/blobs/_chunks/3a/3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5</code></p>
+</li>
+<li>
+<p>Copy the corresponding file from the external backup to its original path, overwriting the corrupted file (or placing it there if the file is missing)</p>
+</li>
+<li>
+<p>Run <code>!!pb database validate blobs</code> (or <code>validate chunks</code>) again to confirm the issue has been fixed</p>
+</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Before restoring, use <code>!!pb database inspect blob &lt;hash&gt;</code> to confirm the blob's storage method (direct/chunked) and compression method, ensuring the external backup file matches</p>
+</div>
+<h3 id="method-2-delete-the-affected-backups">Method 2: Delete the Affected Backups<a class="headerlink" href="#method-2-delete-the-affected-backups" title="Permanent link">&para;</a></h3>
+<p>Applicable scenario: The backups corresponding to the corrupted blob/chunk are no longer needed, or you prefer to discard these backups rather than keep incomplete data</p>
+<p>Steps:</p>
+<ol>
+<li>
+<p>Obtain the list of affected backup IDs from the validate output or log file</p>
+</li>
+<li>
+<p>Delete the affected backups one by one:</p>
+<div class="highlight"><pre><span></span><code>!!pb delete &lt;backup_id&gt;
+</code></pre></div>
+<p>For example, to delete backups #3, #5, #7:</p>
+<div class="highlight"><pre><span></span><code>!!pb delete 3 5 7
+</code></pre></div>
+<p>Or use range deletion (if affected backup IDs are consecutive):</p>
+<div class="highlight"><pre><span></span><code>!!pb delete_range 3-7
+</code></pre></div>
+</li>
+<li>
+<p>After deleting backups, PB will automatically clean up orphan blobs and chunks no longer referenced by any backup (including deleting their physical files). If any remain, you can manually run:</p>
+<div class="highlight"><pre><span></span><code>!!pb database prune
+</code></pre></div>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When deleting backups, if a blob/chunk is still referenced by other non-deleted backups, it will not be automatically deleted; the corrupted data still exists in the storage pool, just no longer affecting the deleted backups
+To completely remove corrupted data, you need to delete all backups that reference it</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Affected backup IDs can be clicked directly from the in-game validate output, or retrieved in full from the <code>validate.log</code> log file</p>
+</div>
+<h3 id="method-3-not-yet-implemented-provide-files-with-intact-data-to-rebuild-blobchunk">Method 3: (Not Yet Implemented) Provide Files with Intact Data to Rebuild blob/chunk<a class="headerlink" href="#method-3-not-yet-implemented-provide-files-with-intact-data-to-rebuild-blobchunk" title="Permanent link">&para;</a></h3>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>This feature has not yet been implemented</p>
+</div>
+<p>In theory, if you have one or more files with the same content as the damaged blob/chunk, a dedicated repair command could allow PB to re-ingest those files and fix the corrupted storage entries</p>
+<p>The planned usage would be: provide one or more file paths (or an archive containing those files), PB computes the hash of each input file,
+and searches the database for blob or chunk entries with a matching hash in a corrupted state (<code>missing</code>, <code>corrupted</code>, <code>mismatched</code>). If found, it re-writes the file to the corresponding storage path, completing the repair</p>
+<p>The current version of PrimeBackup does not support this: the <code>!!pb import</code> command, when processing files, will not re-write the physical file if a blob record with the same hash already exists in the database,
+so even importing a backup with the same content will not replace the corrupted blob file</p>
+<p>Watch future versions for updates on this feature</p>
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Issue Type</th>
+<th>Recommended Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>blob/chunk file missing (<code>missing</code>/<code>missing_file</code>)</td>
+<td>Restore the file from an external backup, or delete the affected backups</td>
+</tr>
+<tr>
+<td>blob/chunk file corrupted, cannot decompress (<code>corrupted</code>)</td>
+<td>Restore the file from an external backup, or delete the affected backups</td>
+</tr>
+<tr>
+<td>Hash/size mismatch (<code>mismatched</code>)</td>
+<td>Restore from external backup, or delete affected backups; temporarily use <code>--no-verify</code> to bypass</td>
+</tr>
+<tr>
+<td>Temporarily need to restore a corrupted backup</td>
+<td><code>!!pb back &lt;ID&gt; --fail-soft</code> (skip corrupted files) or <code>--no-verify</code> (skip hash check)</td>
+</tr>
+<tr>
+<td>Want to determine the scope of corruption</td>
+<td><code>!!pb database validate blobs</code> / <code>validate chunks</code> / <code>validate all</code>, and check <code>pb_files/logs/validate.log</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 Fallen_Breath
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.expand", "navigation.path", "navigation.prune", "navigation.top"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

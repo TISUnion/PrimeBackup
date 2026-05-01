@@ -28,7 +28,6 @@ from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, chunk_utils
-from prime_backup.utils.chunker import Chunker
 from prime_backup.utils.hash_utils import SizeAndHash
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 from prime_backup.utils.time_cost_stats import TimeCostStats
@@ -468,7 +467,7 @@ class BlobAllocator:
 					src_path_str, ByteCount(blob_size).auto_str(), len(chunks), chunk_method.name,
 				))
 			else:
-				chunker = Chunker.create_file_chunker(chunk_method, actual_path_to_read, need_entire_file_hash=True)
+				chunker = chunk_method.create_file_chunker(actual_path_to_read, need_entire_file_hash=True)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as chunking_cost:
 					chunks = chunker.cut_all()
 				blob_hash = chunker.get_entire_file_hash()

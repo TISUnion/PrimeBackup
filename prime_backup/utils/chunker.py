@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, List, Generator, IO
 from typing_extensions import override
 
 from prime_backup.constants import chunk_constants
-from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.utils import misc_utils, hash_utils, chunk_utils
 
 if TYPE_CHECKING:
@@ -83,24 +82,6 @@ class Chunker(ABC):
 	def get_read_file_size(self) -> int:
 		return self.__file_size_sum
 
-	@classmethod
-	def create_file_chunker(cls, method: ChunkMethod, file_path: Path, need_entire_file_hash: bool) -> 'Chunker':
-		if method == ChunkMethod.cdc_32k:
-			return _CDCFileChunker(file_path, need_entire_file_hash)
-		elif method == ChunkMethod.fixed_4k:
-			return _Fixed4KFileChunker(file_path, need_entire_file_hash)
-		else:
-			raise ValueError(method)
-
-	@classmethod
-	def create_stream_chunker(cls, method: ChunkMethod, stream, need_entire_file_hash: bool) -> 'Chunker':
-		if method == ChunkMethod.cdc_32k:
-			return _CDCStreamChunker(stream, need_entire_file_hash)
-		elif method == ChunkMethod.fixed_4k:
-			return _Fixed4KStreamChunker(stream, need_entire_file_hash)
-		else:
-			raise ValueError(method)
-
 
 # ======================== CDC Chunker ========================
 
@@ -115,7 +96,7 @@ def _create_cdc_engine() -> 'pyfastcdc.FastCDC':
 	)
 
 
-class _CDCFileChunker(Chunker):
+class CDCFileChunker(Chunker):
 	def __init__(self, file_path: Path, need_entire_file_hash: bool = False):
 		super().__init__(need_entire_file_hash)
 		self.file_path = file_path
@@ -127,7 +108,7 @@ class _CDCFileChunker(Chunker):
 			yield _RawChunk(offset=c.offset, length=c.length, data=c.data)
 
 
-class _CDCStreamChunker(Chunker):
+class CDCStreamChunker(Chunker):
 	def __init__(self, stream: 'pyfastcdc.BinaryStreamReader', need_entire_file_hash: bool = False):
 		super().__init__(need_entire_file_hash)
 		self.stream = stream
@@ -153,7 +134,7 @@ def _cut_stream_by_fixed_4k(stream: IO[bytes]) -> Generator[_RawChunk, None, Non
 		offset += len(buf)
 
 
-class _Fixed4KFileChunker(Chunker):
+class Fixed4KFileChunker(Chunker):
 	def __init__(self, file_path: Path, need_entire_file_hash: bool = False):
 		super().__init__(need_entire_file_hash)
 		self.file_path = file_path
@@ -164,7 +145,7 @@ class _Fixed4KFileChunker(Chunker):
 			yield from _cut_stream_by_fixed_4k(f)
 
 
-class _Fixed4KStreamChunker(Chunker):
+class Fixed4KStreamChunker(Chunker):
 	def __init__(self, stream: IO[bytes], need_entire_file_hash: bool = False):
 		super().__init__(need_entire_file_hash)
 		self.stream = stream

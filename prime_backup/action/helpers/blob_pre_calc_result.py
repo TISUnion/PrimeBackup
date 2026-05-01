@@ -4,7 +4,7 @@ from typing import List, IO
 
 from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.utils import misc_utils, hash_utils
-from prime_backup.utils.chunker import PrettyChunk, Chunker
+from prime_backup.utils.chunker import PrettyChunk
 from prime_backup.utils.hash_utils import SizeAndHash
 
 
@@ -31,7 +31,7 @@ class BlobPrecalculateResult:
 		chunk_method = ChunkMethod.get_for_file(rel_path, size)
 		chunks: List[PrettyChunk] = []
 		if chunk_method is not None:
-			chunker = Chunker.create_stream_chunker(chunk_method, stream, need_entire_file_hash=True)
+			chunker = chunk_method.create_stream_chunker(stream, need_entire_file_hash=True)
 			chunks = chunker.cut_all()
 			sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
 		else:
@@ -51,7 +51,7 @@ class BlobPrecalculateResult:
 		chunk_method = ChunkMethod.get_for_file(rel_path, size)
 		chunks: List[PrettyChunk] = []
 		if chunk_method is not None:
-			chunker = Chunker.create_file_chunker(chunk_method, path, need_entire_file_hash=True)
+			chunker = chunk_method.create_file_chunker(path, need_entire_file_hash=True)
 			chunks = chunker.cut_all()
 			sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
 		else:

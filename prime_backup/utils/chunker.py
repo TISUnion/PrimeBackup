@@ -85,7 +85,7 @@ class Chunker(ABC):
 
 	@classmethod
 	def create_file_chunker(cls, method: ChunkMethod, file_path: Path, need_entire_file_hash: bool) -> 'Chunker':
-		if method == ChunkMethod.cdc:
+		if method == ChunkMethod.cdc_32k:
 			return _CDCFileChunker(file_path, need_entire_file_hash)
 		elif method == ChunkMethod.fixed_4k:
 			return _Fixed4KFileChunker(file_path, need_entire_file_hash)
@@ -94,7 +94,7 @@ class Chunker(ABC):
 
 	@classmethod
 	def create_stream_chunker(cls, method: ChunkMethod, stream, need_entire_file_hash: bool) -> 'Chunker':
-		if method == ChunkMethod.cdc:
+		if method == ChunkMethod.cdc_32k:
 			return _CDCStreamChunker(stream, need_entire_file_hash)
 		elif method == ChunkMethod.fixed_4k:
 			return _Fixed4KStreamChunker(stream, need_entire_file_hash)

@@ -228,7 +228,7 @@ Configs on how the backup is made
     "chunking_enabled": false,
     "chunking_rules": [
         {
-            "algorithm": "cdc",
+            "algorithm": "cdc_32k",
             "file_size_threshold": 104857600,
             "patterns": [
                 "**/*.db"
@@ -469,7 +469,7 @@ If no rule matches, the file is stored as a regular direct blob
 
 Each rule contains the following fields:
 
-- `algorithm`: The chunking algorithm to use. Currently only `"cdc"` is available
+- `algorithm`: The chunking algorithm to use. Currently only `"cdc_32k"` is available
 
     CDC stands for Content-Defined Chunking. Unlike fixed-size chunking, CDC determines chunk boundaries from the file content itself,
     so when data is inserted, deleted, or modified locally, many unchanged regions can still be cut into the same chunks and be reused across backups

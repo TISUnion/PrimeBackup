@@ -5,7 +5,7 @@ from prime_backup.utils.path_like import PathLike
 
 
 class ChunkMethod(enum.Enum):
-	cdc = enum.auto()
+	cdc_32k = enum.auto()
 	fixed_4k = enum.auto()
 
 	@classmethod

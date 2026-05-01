@@ -570,7 +570,7 @@ class DbSession:
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def list_chunk_group_with_hash_prefix(self, hash_prefix: str, limit: int) -> List[schema.ChunkGroup]:
-		s = select(schema.ChunkGroup).where(self.__get_hash_prefix_conditions(hash_prefix, schema.ChunkGroup.hash)).limit(limit)
+		s = select(schema.ChunkGroup).where(*self.__get_hash_prefix_conditions(hash_prefix, schema.ChunkGroup.hash)).limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
 
 	def iterate_chunk_group_batch(self, *, batch_size: int) -> Iterator[List[schema.ChunkGroup]]:

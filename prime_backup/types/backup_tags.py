@@ -1,5 +1,5 @@
 import enum
-from typing import Optional, Any, Type, List
+from typing import Optional, Any, Type, List, TYPE_CHECKING
 
 from mcdreforged.api.all import RText, RTextBase, RColor
 
@@ -30,6 +30,9 @@ class BackupTagName(enum.Enum):
 	temporary = BackupTagValue(bool, 'T', RColor.yellow)
 	protected = BackupTagValue(bool, 'P', RColor.dark_green)
 	scheduled = BackupTagValue(bool, 'S', RColor.dark_blue)
+
+	if TYPE_CHECKING:
+		value: BackupTagValue
 
 	@classmethod
 	def bool_tags(cls) -> List['BackupTagName']:

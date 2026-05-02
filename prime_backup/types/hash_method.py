@@ -1,7 +1,7 @@
 import dataclasses
 import enum
 import importlib
-from typing import Protocol, Union
+from typing import Protocol, Union, TYPE_CHECKING
 
 
 class Hasher(Protocol):
@@ -29,6 +29,9 @@ class HashMethod(enum.Enum):
 	md5 = _HashMethodItem('hashlib.md5', 32)
 	sha256 = _HashMethodItem('hashlib.sha256', 64)
 	blake3 = _HashMethodItem('blake3.blake3', 64)
+
+	if TYPE_CHECKING:
+		value: _HashMethodItem
 
 
 def __verify_hex_length():

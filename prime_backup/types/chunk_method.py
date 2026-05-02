@@ -1,8 +1,8 @@
 import enum
 from pathlib import Path
-from typing import Optional, IO
+from typing import Optional, IO, TYPE_CHECKING
 
-from prime_backup.types.chunker_factory import CDCChunkerFactory, FixedSizeChunkerFactory
+from prime_backup.types.chunker_factory import ChunkerFactory, CDCChunkerFactory, FixedSizeChunkerFactory
 from prime_backup.utils.chunker import Chunker
 from prime_backup.utils.path_like import PathLike
 
@@ -17,6 +17,9 @@ class ChunkMethod(enum.Enum):
 	fixed_4k = FixedSizeChunkerFactory(4 * 1024)
 	fixed_32k = FixedSizeChunkerFactory(32 * 1024)
 	fixed_128k = FixedSizeChunkerFactory(128 * 1024)
+
+	if TYPE_CHECKING:
+		value: ChunkerFactory
 
 	@classmethod
 	def get_for_file(cls, file_path: PathLike, file_size: int) -> Optional['ChunkMethod']:

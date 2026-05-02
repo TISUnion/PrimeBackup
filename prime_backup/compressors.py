@@ -2,7 +2,7 @@ import contextlib
 import dataclasses
 import enum
 from abc import abstractmethod, ABC
-from typing import BinaryIO, Union, ContextManager, Tuple, Callable, Literal, Generator
+from typing import BinaryIO, Union, ContextManager, Tuple, Callable, Literal, Generator, TYPE_CHECKING, Type
 
 from typing_extensions import Protocol, override
 
@@ -221,6 +221,9 @@ class CompressMethod(enum.Enum):
 	lzma = LzmaCompressor
 	zstd = ZstdCompressor
 	lz4 = Lz4Compressor
+
+	if TYPE_CHECKING:
+		value: Type[Compressor]
 
 	def __repr__(self) -> str:
 		return '{}({!r})'.format(self.__class__.__name__, self.name)

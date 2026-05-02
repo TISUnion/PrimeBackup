@@ -1,7 +1,7 @@
 import dataclasses
 import enum
 import os
-from typing import Optional, List
+from typing import Optional, List, Union, TYPE_CHECKING
 
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.utils.path_like import PathLike
@@ -24,12 +24,16 @@ class StandaloneBackupFormat(enum.Enum):
 	tar_zst = TarFormat.zstd
 	zip = ZipFormat('.zip')
 
+	if TYPE_CHECKING:
+		value: Union[TarFormat, ZipFormat]
+
 	@property
 	def __all_file_extensions(self) -> List[str]:
-		if isinstance(self.value, TarFormat):
-			return self.value.value.all_extensions
-		elif isinstance(self.value, ZipFormat):
-			return self.value.all_extensions
+		format_value = self.value
+		if isinstance(format_value, TarFormat):
+			return format_value.value.all_extensions
+		elif isinstance(format_value, ZipFormat):
+			return format_value.all_extensions
 		else:
 			raise ValueError(self.value)
 

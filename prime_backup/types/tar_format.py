@@ -1,6 +1,6 @@
 import dataclasses
 import enum
-from typing import Tuple, List, Literal, cast
+from typing import Tuple, List, Literal, cast, TYPE_CHECKING
 
 from prime_backup.compressors import CompressMethod
 
@@ -34,6 +34,9 @@ class TarFormat(enum.Enum):
 	bz2 = _TarFormatItem('.tar.bz2', ('.tbz2',), ':bz2', CompressMethod.plain)
 	lzma = _TarFormatItem('.tar.xz', ('.txz',), ':xz', CompressMethod.plain)
 	zstd = _TarFormatItem('.tar.zst', ('.tar.zstd', '.tzst', '.tzstd'), ':', CompressMethod.zstd)
+
+	if TYPE_CHECKING:
+		value: _TarFormatItem
 
 
 def __validate_tar_formats():

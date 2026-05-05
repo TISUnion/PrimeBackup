@@ -17,9 +17,6 @@ class ChunkMethod(enum.Enum):
 	fixed_32k = FixedSizeChunkerDefinition(32 * 1024)
 	fixed_128k = FixedSizeChunkerDefinition(128 * 1024)
 
-	# Common Alias
-	cdc = fastcdc_32k
-
 	if TYPE_CHECKING:
 		value: ChunkerDefinition
 

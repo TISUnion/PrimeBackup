@@ -2,24 +2,24 @@ import enum
 from pathlib import Path
 from typing import Optional, IO, TYPE_CHECKING
 
-from prime_backup.types.chunker_factory import ChunkerFactory, CDCChunkerFactory, FixedSizeChunkerFactory
-from prime_backup.utils.chunker import Chunker
+from prime_backup.types.chunker import Chunker
+from prime_backup.types.chunker_definition import ChunkerDefinition, CDCChunkerDefinition, FixedSizeChunkerDefinition
 from prime_backup.utils.path_like import PathLike
 
 
 class ChunkMethod(enum.Enum):
 	# Content-Defined Chunking (CDC)
-	cdc_32k = CDCChunkerFactory(avg_size=32 * 1024, min_size=8 * 1024, max_size=256 * 1024)
-	cdc_128k = CDCChunkerFactory(avg_size=128 * 1024, min_size=64 * 1024, max_size=1024 * 1024)
+	cdc_32k = CDCChunkerDefinition(avg_size=32 * 1024, min_size=8 * 1024, max_size=256 * 1024)
+	cdc_128k = CDCChunkerDefinition(avg_size=128 * 1024, min_size=64 * 1024, max_size=1024 * 1024)
 	cdc = cdc_32k
 
 	# Fixed-Size Chunking
-	fixed_4k = FixedSizeChunkerFactory(4 * 1024)
-	fixed_32k = FixedSizeChunkerFactory(32 * 1024)
-	fixed_128k = FixedSizeChunkerFactory(128 * 1024)
+	fixed_4k = FixedSizeChunkerDefinition(4 * 1024)
+	fixed_32k = FixedSizeChunkerDefinition(32 * 1024)
+	fixed_128k = FixedSizeChunkerDefinition(128 * 1024)
 
 	if TYPE_CHECKING:
-		value: ChunkerFactory
+		value: ChunkerDefinition
 
 	@classmethod
 	def get_for_file(cls, file_path: PathLike, file_size: int) -> Optional['ChunkMethod']:

@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import List, IO
 
 from prime_backup.types.chunk_method import ChunkMethod
+from prime_backup.types.chunker import PrettyChunk
 from prime_backup.utils import misc_utils, hash_utils
-from prime_backup.utils.chunker import PrettyChunk
 from prime_backup.utils.hash_utils import SizeAndHash
 
 

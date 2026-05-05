@@ -5,10 +5,10 @@ from typing import IO
 
 from typing_extensions import override
 
-from prime_backup.utils.chunker import Chunker, CDCFileChunker, CDCStreamChunker, FixedSizeFileChunker, FixedSizeStreamChunker, CDCChunkerConfig
+from prime_backup.types.chunker import Chunker, CDCFileChunker, CDCStreamChunker, FixedSizeFileChunker, FixedSizeStreamChunker, CDCChunkerConfig
 
 
-class ChunkerFactory(ABC):
+class ChunkerDefinition(ABC):
 	@abstractmethod
 	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool) -> Chunker:
 		...
@@ -19,7 +19,7 @@ class ChunkerFactory(ABC):
 
 
 @dataclasses.dataclass(frozen=True)
-class CDCChunkerFactory(ChunkerFactory):
+class CDCChunkerDefinition(ChunkerDefinition):
 	avg_size: int
 	min_size: int
 	max_size: int
@@ -38,7 +38,7 @@ class CDCChunkerFactory(ChunkerFactory):
 
 
 @dataclasses.dataclass(frozen=True)
-class FixedSizeChunkerFactory(ChunkerFactory):
+class FixedSizeChunkerDefinition(ChunkerDefinition):
 	chunk_size: int
 
 	@override

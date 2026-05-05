@@ -2,7 +2,7 @@
 title: 'Database Internal Object Inspection'
 ---
 
-View and inspect object information in the database.
+View and inspect object information in the database
 
 ## Overview
 
@@ -87,7 +87,7 @@ View detailed information for a specific file in a fileset:
 !!pb database inspect file2 <fileset_id> <file_path>
 ```
 
-Displays the same content as above.
+Displays the same content as above
 
 ## Fileset Inspection
 
@@ -129,7 +129,7 @@ View complete information for a specific blob:
 !!pb database inspect blob <hash>
 ```
 
-The parameter `<hash>` can be a prefix of the complete hash string, as long as it uniquely identifies the object.
+The parameter `<hash>` can be a prefix of the complete hash string, as long as it uniquely identifies the object
 
 Example:
 

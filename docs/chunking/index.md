@@ -8,10 +8,10 @@ Split large files into smaller chunks for better deduplication across backups
 
 File chunking is a storage strategy where a large file is split into smaller pieces called chunks before being stored.
 Each chunk is hashed and deduplicated independently, so when only part of a large file changes between backups,
-only the modified chunks need to be written anew. The unchanged chunks are reused directly from existing storage.
+only the modified chunks need to be written anew. The unchanged chunks are reused directly from existing storage
 
 In Prime Backup, restoring a chunked file is transparent to users.
-The original file is reconstructed automatically when the backup is read or exported.
+The original file is reconstructed automatically when the backup is read or exported
 
 ## When It Is Applied
 
@@ -25,7 +25,7 @@ A rule matches when both conditions are true:
 - the file size is at least `file_size_threshold`
 - the file path relative to `source_root` matches the rule's `patterns`
 
-If no rule matches, the file is stored as a regular direct blob without chunking.
+If no rule matches, the file is stored as a regular direct blob without chunking
 
 The default configuration is:
 
@@ -45,11 +45,11 @@ The default configuration is:
 ```
 
 Changing these options only affects files newly stored in future backups.
-Existing direct blobs or chunked blobs will not be converted automatically.
+Existing direct blobs or chunked blobs will not be converted automatically
 
 ## How It Is Stored
 
-Prime Backup still creates one blob record for the whole file, but the blob uses the `chunked` storage method instead of `direct`.
+Prime Backup still creates one blob record for the whole file, but the blob uses the `chunked` storage method instead of `direct`
 
 The current implementation works in the following order:
 
@@ -78,13 +78,13 @@ so the implementation groups consecutive chunks into chunk groups and stores two
 +--------+--------+--------+--------+--------+--------+--------+--------+--------+
 ```
 
-This reduces metadata overhead without changing the logical model.
+This reduces metadata overhead without changing the logical model
 
-Chunk hashes and chunk group hashes always use `blake3`, while the whole-file blob hash still follows `backup.hash_method`.
+Chunk hashes and chunk group hashes always use `blake3`, while the whole-file blob hash still follows `backup.hash_method`
 
 ## Compression and Performance
 
-Chunking does not disable compression.
+Chunking does not disable compression
 
 For a chunked blob:
 
@@ -94,7 +94,7 @@ For a chunked blob:
 
 Compared with direct blob storage, chunked storage is slower on the first backup of a file,
 because Prime Backup needs extra work to cut the file, calculate hashes, and process each chunk.
-The benefit becomes apparent on subsequent backups where many chunks can be reused.
+The benefit becomes apparent on subsequent backups where many chunks can be reused
 
 ## Available Algorithms
 
@@ -114,7 +114,7 @@ See the detailed pages for each approach:
 ## Observation
 
 Prime Backup maintenance logic already understands chunked storage.
-You can inspect the effect with `!!pb database overview`, which includes a dedicated chunk statistics section.
+You can inspect the effect with `!!pb database overview`, which includes a dedicated chunk statistics section
 
 If Prime Backup finds that one chunked file produced many brand new chunks in a single backup, it will emit a warning in logs.
-That usually means the file is not a good chunking target, unless this is the first backup containing that file.
+That usually means the file is not a good chunking target, unless this is the first backup containing that file

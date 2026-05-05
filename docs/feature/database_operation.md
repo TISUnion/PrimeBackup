@@ -2,7 +2,7 @@
 title: 'Database Operations'
 ---
 
-Configuration migration and data modification operations.
+Configuration migration and data modification operations
 
 ## Hash Algorithm Migration
 

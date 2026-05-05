@@ -499,7 +499,7 @@ class FuzzyRunTestCase(unittest.TestCase):
 		Config.get().backup.compress_method = CompressMethod.plain
 		Config.get().backup.chunking_enabled = True
 		Config.get().backup.chunking_rules = [ChunkingRule(
-			algorithm=ChunkMethod.cdc_32k,
+			algorithm=ChunkMethod.fastcdc_32k,
 			file_size_threshold=1 * 1048576,  # 1MiB
 			patterns=['**'],
 		)]

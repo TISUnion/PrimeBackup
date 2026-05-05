@@ -3,20 +3,22 @@ from pathlib import Path
 from typing import Optional, IO, TYPE_CHECKING
 
 from prime_backup.types.chunker import Chunker
-from prime_backup.types.chunker_definition import ChunkerDefinition, CDCChunkerDefinition, FixedSizeChunkerDefinition
+from prime_backup.types.chunker_definition import ChunkerDefinition, FastCDCChunkerDefinition, FixedSizeChunkerDefinition
 from prime_backup.utils.path_like import PathLike
 
 
 class ChunkMethod(enum.Enum):
-	# Content-Defined Chunking (CDC)
-	cdc_32k = CDCChunkerDefinition(avg_size=32 * 1024, min_size=8 * 1024, max_size=256 * 1024)
-	cdc_128k = CDCChunkerDefinition(avg_size=128 * 1024, min_size=64 * 1024, max_size=1024 * 1024)
-	cdc = cdc_32k
+	# Content-Defined Chunking with FastCDC
+	fastcdc_32k = FastCDCChunkerDefinition(avg_size=32 * 1024, min_size=8 * 1024, max_size=256 * 1024)
+	fastcdc_128k = FastCDCChunkerDefinition(avg_size=128 * 1024, min_size=64 * 1024, max_size=1024 * 1024)
 
 	# Fixed-Size Chunking
 	fixed_4k = FixedSizeChunkerDefinition(4 * 1024)
 	fixed_32k = FixedSizeChunkerDefinition(32 * 1024)
 	fixed_128k = FixedSizeChunkerDefinition(128 * 1024)
+
+	# Common Alias
+	cdc = fastcdc_32k
 
 	if TYPE_CHECKING:
 		value: ChunkerDefinition

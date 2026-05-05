@@ -82,17 +82,17 @@ class Chunker(ABC):
 		return self.__file_size_sum
 
 
-# ======================== CDC Chunker ========================
+# ======================== FastCDC Chunker ========================
 
 @dataclasses.dataclass(frozen=True)
-class CDCChunkerConfig:
+class FastCDCChunkerConfig:
 	avg_size: int
 	min_size: int
 	max_size: int
 
 
 class _CDCChunker(Chunker, ABC):
-	def __init__(self, cfg: CDCChunkerConfig, need_entire_file_hash: bool):
+	def __init__(self, cfg: FastCDCChunkerConfig, need_entire_file_hash: bool):
 		super().__init__(need_entire_file_hash)
 		self.cfg = cfg
 
@@ -107,8 +107,8 @@ class _CDCChunker(Chunker, ABC):
 		)
 
 
-class CDCFileChunker(_CDCChunker):
-	def __init__(self, cfg: CDCChunkerConfig, file_path: Path, need_entire_file_hash: bool = False):
+class FastCDCFileChunker(_CDCChunker):
+	def __init__(self, cfg: FastCDCChunkerConfig, file_path: Path, need_entire_file_hash: bool = False):
 		super().__init__(cfg, need_entire_file_hash)
 		self.file_path = file_path
 
@@ -119,8 +119,8 @@ class CDCFileChunker(_CDCChunker):
 			yield _RawChunk(offset=c.offset, length=c.length, data=c.data)
 
 
-class CDCStreamChunker(_CDCChunker):
-	def __init__(self, cfg: CDCChunkerConfig, stream: 'pyfastcdc.BinaryStreamReader', need_entire_file_hash: bool = False):
+class FastCDCStreamChunker(_CDCChunker):
+	def __init__(self, cfg: FastCDCChunkerConfig, stream: 'pyfastcdc.BinaryStreamReader', need_entire_file_hash: bool = False):
 		super().__init__(cfg, need_entire_file_hash)
 		self.stream = stream
 

@@ -5,7 +5,7 @@ from typing import IO
 
 from typing_extensions import override
 
-from prime_backup.types.chunker import Chunker, CDCFileChunker, CDCStreamChunker, FixedSizeFileChunker, FixedSizeStreamChunker, CDCChunkerConfig
+from prime_backup.types.chunker import Chunker, FastCDCFileChunker, FastCDCStreamChunker, FixedSizeFileChunker, FixedSizeStreamChunker, FastCDCChunkerConfig
 
 
 class ChunkerDefinition(ABC):
@@ -19,22 +19,22 @@ class ChunkerDefinition(ABC):
 
 
 @dataclasses.dataclass(frozen=True)
-class CDCChunkerDefinition(ChunkerDefinition):
+class FastCDCChunkerDefinition(ChunkerDefinition):
 	avg_size: int
 	min_size: int
 	max_size: int
-	_config: CDCChunkerConfig = dataclasses.field(init=False, repr=False, compare=False)
+	_config: FastCDCChunkerConfig = dataclasses.field(init=False, repr=False, compare=False)
 
 	def __post_init__(self):
-		object.__setattr__(self, '_config', CDCChunkerConfig(self.avg_size, self.min_size, self.max_size))
+		object.__setattr__(self, '_config', FastCDCChunkerConfig(self.avg_size, self.min_size, self.max_size))
 
 	@override
 	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool) -> Chunker:
-		return CDCFileChunker(self._config, file_path, need_entire_file_hash)
+		return FastCDCFileChunker(self._config, file_path, need_entire_file_hash)
 
 	@override
 	def create_stream_chunker(self, stream: IO[bytes], need_entire_file_hash: bool) -> Chunker:
-		return CDCStreamChunker(self._config, stream, need_entire_file_hash)
+		return FastCDCStreamChunker(self._config, stream, need_entire_file_hash)
 
 
 @dataclasses.dataclass(frozen=True)

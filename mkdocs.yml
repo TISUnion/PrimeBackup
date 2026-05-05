@@ -80,6 +80,7 @@ plugins:
           nav_translations:
             Features: 功能列表
             Concepts: 概念列表
+            Chunking: 文件分块
             Maintenance: 维护指南
   - macros
   # https://mkdocs-mermaid2.readthedocs.io/
@@ -99,15 +100,21 @@ nav:
   - Features:
     - feature/index.md
     - feature/backup_create.md
-    - feature/cdc_chunking.md
     - feature/backup_restore.md
     - feature/backup_display.md
     - feature/backup_edit.md
+    - feature/chunking.md
+    - feature/chunking_cdc.md
+    - feature/chunking_fixed.md
     - feature/backup_import.md
     - feature/database_overview.md
     - feature/database_inspect.md
     - feature/database_maintain.md
     - feature/database_operation.md
+  - Chunking:
+    - chunking/index.md
+    - chunking/cdc.md
+    - chunking/fixed_size.md
   - Concepts:
     - concept/index.md
     - concept/backup_tag.md

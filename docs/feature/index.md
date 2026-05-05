@@ -7,7 +7,6 @@ Prime Backup feature list
 ### Backup Features
 
 - [Backup create](backup_create.md)
-- [CDC chunking](cdc_chunking.md)
 - [Backup restore](backup_restore.md)
 - [Backup display](backup_display.md)
 - [Backup edit](backup_edit.md)
@@ -17,6 +16,12 @@ Prime Backup feature list
 
 - Scheduled backup
 - Backup pruning
+
+### File Chunking
+
+- [File Chunking](../chunking/chunking.md)
+- [CDC Chunking](../chunking/chunking_cdc.md)
+- [Fixed-Size Chunking](../chunking/chunking_fixed.md)
 
 ### Database Operations (Advanced)
 

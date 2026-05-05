@@ -228,7 +228,7 @@ Configs on how the backup is made
     "chunking_enabled": false,
     "chunking_rules": [
         {
-            "algorithm": "cdc_32k",
+            "algorithm": "fastcdc_32k",
             "file_size_threshold": 104857600,
             "patterns": [
                 "**/*.db"
@@ -469,16 +469,32 @@ If no rule matches, the file is stored as a regular direct blob
 
 Each rule contains the following fields:
 
-- `algorithm`: The chunking algorithm to use. Currently only `"cdc_32k"` is available
+- `algorithm`: The chunking algorithm to use. Available options:
 
-    CDC stands for Content-Defined Chunking. Unlike fixed-size chunking, CDC determines chunk boundaries from the file content itself,
-    so when data is inserted, deleted, or modified locally, many unchanged regions can still be cut into the same chunks and be reused across backups
+    | Value | Type | Description |
+    |-------|------|-------------|
+    | `fastcdc_32k` | CDC | avg 32 KiB chunks; good general-purpose choice for locally modified files |
+    | `fastcdc_128k` | CDC | avg 128 KiB chunks; coarser granularity for very large files |
+    | `fixed_4k` | Fixed (alpha) | 4 KiB chunks; aligns with MC region file pages, but causes heavy metadata overhead |
+    | `fixed_32k` | Fixed (alpha) | 32 KiB chunks; intermediate fixed-size option |
+    | `fixed_128k` | Fixed (alpha) | 128 KiB chunks; well-suited for append-write files |
+
+    CDC algorithms determine chunk boundaries from file content, so local insertions, deletions, or in-place edits leave many chunks unchanged for reuse.
+    See [CDC Chunking](chunking/chunking_cdc.md) for details.
+
+    Fixed-size algorithms split at fixed byte offsets. They are simpler but less adaptive to arbitrary edits.
+    See [Fixed-Size Chunking](chunking/chunking_fixed.md) for details.
+
+    !!! warning
+
+        Fixed-size algorithms (`fixed_4k`, `fixed_32k`, `fixed_128k`) are in alpha status and not recommended for production use.
 
     !!! note
 
-        CDC chunking requires the optional `pyfastcdc` dependency.
+        CDC algorithms require the optional `pyfastcdc` dependency.
         You can install all optional dependencies with `pip3 install -r requirements.optional.txt`,
-        or install `pyfastcdc` manually
+        or install `pyfastcdc` manually.
+        Fixed-size algorithms have no additional dependencies.
 
 - `file_size_threshold`: The minimum file size in bytes for a file to be eligible for this rule.
   Files smaller than this value will not match this rule, even if their path matches `patterns`
@@ -486,7 +502,7 @@ Each rule contains the following fields:
 - `patterns`: A list of [gitignore flavor](http://git-scm.com/docs/gitignore) pattern strings,
   matched against file paths relative to [source_root](#source_root)
 
-The default value contains one rule that applies CDC chunking to `.db` files larger than 100 MiB.
+The default value contains one rule that applies `fastcdc_32k` CDC chunking to `.db` files larger than 100 MiB.
 It is recommended to keep the rules narrow and only cover large files that are often modified locally and really need to be backed up
 
 Changing this option only affects files newly stored in future backups.

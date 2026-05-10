@@ -10,7 +10,7 @@ You can run it with a valid Python 3 interpreter, provided all requirements are 
 ```
 $ python3 PrimeBackup.pyz
 usage: PrimeBackup.pyz [-h] [-d DB] [-c CONFIG] [--version] [--debug]
-                       {back,overview,export,extract,fuse,import,list,make,migrate_db,show}
+                       {back,overview,export,extract,fuse,import,init,list,make,migrate_db,show}
                        ...
 
 Prime Backup v1.x.x CLI tools
@@ -29,7 +29,7 @@ options:
   --debug               Enable debug logging (default: False)
 
 Command:
-  {back,overview,export,extract,fuse,import,list,make,migrate_db,show}
+  {back,overview,export,extract,fuse,import,init,list,make,migrate_db,show}
                         Available commands
     back                Restore the server files to a backup
     overview            Show overview information of the database
@@ -40,6 +40,7 @@ Command:
                         needs to have a backup metadata file
                         '.prime_backup.meta.json', or the --auto-meta option
                         need to be supplied
+    init                Initialize a new database at the directory given by --db
     list                List backups
     make                Create a new backup
     migrate_db          Migrate the database to the current version X

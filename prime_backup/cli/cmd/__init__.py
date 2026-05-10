@@ -39,30 +39,42 @@ class CliCommandHandlerBase(ABC):
 		if root_path.is_file() and root_path.name == db_constants.DB_FILE_NAME:
 			root_path = root_path.parent
 
-		if config_path is None:
-			auto_config_path = root_path.parent / 'config' / 'prime_backup' / 'config.json'
-			if auto_config_path.is_file():
-				config = self.__load_config(auto_config_path)
-				self.logger.info('Config file auto-detected and loaded from {!r}'.format(auto_config_path.as_posix()))
-			else:
-				config = Config.get_default()
-				self.logger.info('Config file not provided; auto-detected path {!r} does not exist, using default config'.format(auto_config_path.as_posix()))
-		else:
-			config = self.__load_config(config_path)
-			self.logger.info('Config file loaded from {!r}'.format(config_path.as_posix()))
-
+		config = self.load_config(root_path, config_path)
 		set_config_instance(config)
 
 		if not (dbf := root_path / db_constants.DB_FILE_NAME).is_file():
 			self.logger.error('Database file {!r} does not exist'.format(dbf.as_posix()))
 			ErrorReturnCodes.invalid_argument.sys_exit()
+		self.init_db(root_path, create=False, migrate=migrate)
+
+	@classmethod
+	def load_config(cls, root_path: Path, config_path: Optional[Path]) -> Config:
+		if config_path is None:
+			auto_config_path = root_path.parent / 'config' / 'prime_backup' / 'config.json'
+			if auto_config_path.is_file():
+				config = cls.__load_config(auto_config_path)
+				logger.get().info('Config file auto-detected and loaded from {!r}'.format(auto_config_path.as_posix()))
+			else:
+				config = Config.get_default()
+				logger.get().info('Config file not provided; auto-detected path {!r} does not exist, using default config'.format(auto_config_path.as_posix()))
+		else:
+			config = cls.__load_config(config_path)
+			logger.get().info('Config file loaded from {!r}'.format(config_path.as_posix()))
+		return config
+
+	def init_db(self, root_path: Path, *, create: bool, migrate: bool):
+		if root_path.is_file():
+			self.logger.error('Storage root {!r} is a file'.format(root_path.as_posix()))
+			ErrorReturnCodes.invalid_argument.sys_exit()
+
+		config = Config.get()
 		config.storage_root = str(root_path.as_posix())
 
 		self.logger.info('Storage root set to {!r}'.format(config.storage_root))
 		try:
 			if DbAccess.is_initialized():
 				DbAccess.shutdown()
-			DbAccess.init(create=False, migrate=migrate)
+			DbAccess.init(create=create, migrate=migrate)
 		except BadDbVersion as e:
 			self.logger.info('Load database failed, you need to ensure the database is accessible with MCDR plugin: {}'.format(e))
 			ErrorReturnCodes.action_failed.sys_exit()

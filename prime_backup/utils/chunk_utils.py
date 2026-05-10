@@ -4,18 +4,17 @@ from typing import Iterator
 
 from prime_backup.constants import chunk_constants
 from prime_backup.types.hash_method import HashMethod, Hasher
-from prime_backup.utils import blob_utils
+from prime_backup.utils import blob_utils, hash_utils
 
-__HASH_METHOD = HashMethod[chunk_constants.HASH_METHOD]
-__HASHER_FACTORY = __HASH_METHOD.value.create_hasher
+_CHUNK_GROUP_HASH_METHOD = HashMethod[chunk_constants.CHUNK_GROUP_HASH_METHOD]
 
 
 def get_hash_method() -> HashMethod:
-	return __HASH_METHOD
+	return hash_utils.get_configured_hash_method()
 
 
 def create_hasher() -> Hasher:
-	return __HASHER_FACTORY()
+	return hash_utils.create_hasher()
 
 
 def get_chunk_store() -> Path:
@@ -42,7 +41,11 @@ def prepare_chunk_directories():
 		p.mkdir(parents=True, exist_ok=True)
 
 
+def get_chunk_group_hash_method() -> HashMethod:
+	return _CHUNK_GROUP_HASH_METHOD
+
+
 def create_chunk_group_hash(chunk_hashes: 'Iterable[str]') -> str:
-	hasher = create_hasher()
+	hasher = _CHUNK_GROUP_HASH_METHOD.value.create_hasher()
 	hasher.update('\0'.join(chunk_hashes).encode('utf8'))
 	return hasher.hexdigest()

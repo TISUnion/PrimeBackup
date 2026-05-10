@@ -53,7 +53,7 @@ class Chunk(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-	hash: Mapped[str] = mapped_column(HashHex, unique=True)  # blake3
+	hash: Mapped[str] = mapped_column(HashHex, unique=True)  # configured db hash method
 	compress: Mapped[str] = mapped_column(String)
 	raw_size: Mapped[int] = mapped_column(BigInteger)
 	stored_size: Mapped[int] = mapped_column(BigInteger)
@@ -66,7 +66,7 @@ class ChunkGroup(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-	hash: Mapped[str] = mapped_column(HashHex, unique=True)  # blake3 of b'\0'.join(chunk hashes)
+	hash: Mapped[str] = mapped_column(HashHex, unique=True)  # sha256 of b'\0'.join(chunk hashes)
 	chunk_count: Mapped[int] = mapped_column(Integer)
 	chunk_raw_size_sum: Mapped[int] = mapped_column(BigInteger)
 	chunk_stored_size_sum: Mapped[int] = mapped_column(BigInteger)  # sum of unique chunk stored sizes

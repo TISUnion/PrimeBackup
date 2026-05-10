@@ -325,7 +325,7 @@ class InspectChunkGroupTask(_InspectObjectTaskBase):
 		self.reply(TextComponents.title(self.tr('title', self._gt_chunk_group_hash(chunk_group.hash, shorten_hash=True))))
 
 		self.reply_tr('id', TextComponents.chunk_group_id(chunk_group.id))
-		self.reply_tr('hash', self._gt_chunk_group_hash(chunk_group.hash), chunk_utils.get_hash_method().name)
+		self.reply_tr('hash', self._gt_chunk_group_hash(chunk_group.hash), chunk_utils.get_chunk_group_hash_method().name)
 		self.reply_tr('chunk_count', chunk_group.chunk_count)
 		self.reply_tr('chunk_raw_size_sum', RText(chunk_group.chunk_raw_size_sum, TextColors.byte_count), TextComponents.file_size(chunk_group.chunk_raw_size_sum))
 		self.reply_tr('chunk_stored_size_sum', RText(chunk_group.chunk_stored_size_sum, TextColors.byte_count), TextComponents.file_size(chunk_group.chunk_stored_size_sum))

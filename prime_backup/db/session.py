@@ -221,6 +221,7 @@ class DbSession:
 		"""
 		result: Dict[int, Optional[schema.Blob]] = {blob_id: None for blob_id in blob_ids}
 		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):
+			blob: schema.Blob
 			for blob in self.session.execute(select(schema.Blob).where(schema.Blob.id.in_(view))).scalars().all():
 				result[blob.id] = blob
 		return result
@@ -421,6 +422,7 @@ class DbSession:
 		"""
 		result: Dict[int, Optional[schema.Chunk]] = {chunk_id: None for chunk_id in chunk_ids}
 		for view in collection_utils.slicing_iterate(chunk_ids, self.__safe_var_limit):
+			chunk: schema.Chunk
 			for chunk in self.session.execute(select(schema.Chunk).where(schema.Chunk.id.in_(view))).scalars().all():
 				result[chunk.id] = chunk
 		return result
@@ -431,6 +433,7 @@ class DbSession:
 		"""
 		result: Dict[str, Optional[schema.Chunk]] = {h: None for h in hashes}
 		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+			chunk: schema.Chunk
 			for chunk in self.session.execute(select(schema.Chunk).where(schema.Chunk.hash.in_(view))).scalars().all():
 				result[chunk.hash] = chunk
 		return result
@@ -547,6 +550,7 @@ class DbSession:
 		"""
 		result: Dict[int, Optional[schema.ChunkGroup]] = {chunk_group_id: None for chunk_group_id in chunk_group_ids}
 		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
+			chunk_group: schema.ChunkGroup
 			for chunk_group in self.session.execute(select(schema.ChunkGroup).where(schema.ChunkGroup.id.in_(view))).scalars().all():
 				result[chunk_group.id] = chunk_group
 		return result
@@ -841,6 +845,7 @@ class DbSession:
 	def get_blobs_by_chunk_group_ids(self, chunk_group_ids: List[int]) -> List[schema.Blob]:
 		blob_by_ids: Dict[int, schema.Blob] = {}
 		for v_chunk_group_ids in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
+			blob: schema.Blob
 			for blob in self.session.execute(
 	            select(schema.Blob).
 	            join(schema.BlobChunkGroupBinding, schema.Blob.id == schema.BlobChunkGroupBinding.blob_id).
@@ -952,11 +957,12 @@ class DbSession:
 		if offset is not None:
 			stmt = stmt.offset(offset)
 
-		result: Sequence[Row[Tuple[schema.BlobChunkGroupBinding, schema.Blob]]] = self.session.execute(stmt).all()
-		return [
-			self.ListBlobChunkGroupBindingsItem(binding, blob if (blob is not None and blob.id is not None) else None)
-			for binding, blob in result
-		]
+		blob: Optional[schema.Blob]
+		rows: Sequence[Row[Tuple[schema.BlobChunkGroupBinding, schema.Blob]]] = self.session.execute(stmt).all()
+		result: List[DbSession.ListBlobChunkGroupBindingsItem] = []
+		for binding, blob in rows:
+			result.append(self.ListBlobChunkGroupBindingsItem(binding, blob if (blob is not None and blob.id is not None) else None))
+		return result
 
 	def delete_blob_chunk_group_bindings_for_blobs(self, blob_ids: List[int]):
 		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):
@@ -1216,6 +1222,7 @@ class DbSession:
 		"""
 		result: Dict[int, Optional[schema.Fileset]] = {fsid: None for fsid in fileset_ids}
 		for view in collection_utils.slicing_iterate(fileset_ids, self.__safe_var_limit):
+			fileset: schema.Fileset
 			for fileset in self.session.execute(select(schema.Fileset).where(schema.Fileset.id.in_(view))).scalars().all():
 				result[fileset.id] = fileset
 		return result
@@ -1579,6 +1586,7 @@ class DbSession:
 		"""
 		result: Dict[int, Optional[schema.Backup]] = {bid: None for bid in backup_ids}
 		for view in collection_utils.slicing_iterate(backup_ids, self.__safe_var_limit):
+			backup: schema.Backup
 			for backup in self.session.execute(select(schema.Backup).where(schema.Backup.id.in_(view))).scalars().all():
 				result[backup.id] = backup
 		return result

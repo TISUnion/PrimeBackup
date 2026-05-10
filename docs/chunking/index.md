@@ -54,7 +54,7 @@ Prime Backup still creates one blob record for the whole file, but the blob uses
 The current implementation works in the following order:
 
 1. Cut the file into chunks using the selected algorithm
-2. Calculate a BLAKE3 hash for each chunk
+2. Calculate a hash for each chunk using `backup.hash_method`
 3. Reuse chunks that already exist in storage
 4. Compress and write only the new chunks
 5. Bind the ordered chunk list back to the whole-file blob (by offset)
@@ -80,7 +80,7 @@ so the implementation groups consecutive chunks into chunk groups and stores two
 
 This reduces metadata overhead without changing the logical model
 
-Chunk hashes and chunk group hashes always use `blake3`, while the whole-file blob hash still follows `backup.hash_method`
+Chunk hashes follow `backup.hash_method`, the same as the whole-file blob hash. Chunk group hashes always use `sha256` regardless of `backup.hash_method`
 
 ## Compression and Performance
 

@@ -98,7 +98,15 @@ Example:
 
 ### Command Line Environment
 
-Prime Backup currently does not support restoring backups in command line environment (maybe next time!)
+Prime Backup also supports the core restoration operation in command line environment:
+
+```
+python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s ./server 78 --confirm
+```
+
+The command line `back` command does not stop or start the Minecraft server. Stop the server yourself before running it.
+If `command.backup_on_restore` is enabled, it creates a temporary backup from `--source-root` before restoring.
+Add `--no-pre-restore-backup` to skip the temporary backup
 
 ## Related Configuration
 

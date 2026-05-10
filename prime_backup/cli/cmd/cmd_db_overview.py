@@ -42,7 +42,7 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 		return count_str, size_str
 
 	def handle(self):
-		self.init_environment(self.args.db_path)
+		self.init_environment_from_args(self.args)
 		result = GetDbOverviewAction().run()
 		blob_store_stored_size_sum = result.direct_blob_stored_size_sum + result.chunk_stored_size_sum
 		blob_store_raw_size_sum = result.direct_blob_raw_size_sum + result.chunk_raw_size_sum
@@ -98,5 +98,6 @@ class DbOverviewCommandAdapter(CliCommandAdapterBase):
 	def run(self, args: argparse.Namespace):
 		handler = DbOverviewCommandHandler(DbOverviewCommandArgs(
 			db_path=Path(args.db),
+			config_path=Path(args.config) if args.config is not None else None,
 		))
 		handler.handle()

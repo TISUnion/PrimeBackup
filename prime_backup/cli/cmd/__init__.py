@@ -1,8 +1,10 @@
 import argparse
 import dataclasses
+import json
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Optional
 
 from prime_backup import logger
 from prime_backup.cli.return_codes import ErrorReturnCodes
@@ -16,6 +18,7 @@ from prime_backup.utils.backup_id_parser import BackupIdParser
 @dataclasses.dataclass(frozen=True)
 class CommonCommandArgs:
 	db_path: Path
+	config_path: Optional[Path]
 
 
 class CliCommandHandlerBase(ABC):
@@ -28,13 +31,27 @@ class CliCommandHandlerBase(ABC):
 
 	# ==================== Utils ====================
 
-	def init_environment(self, db_path: Path, *, migrate: bool = False):
-		config = Config.get_default()
-		set_config_instance(config)
+	def init_environment_from_args(self, args: CommonCommandArgs):
+		self.init_environment(args.db_path, config_path=args.config_path)
 
+	def init_environment(self, db_path: Path, *, migrate: bool = False, config_path: Optional[Path] = None):
 		root_path = db_path
 		if root_path.is_file() and root_path.name == db_constants.DB_FILE_NAME:
 			root_path = root_path.parent
+
+		if config_path is None:
+			auto_config_path = root_path.parent / 'config' / 'prime_backup' / 'config.json'
+			if auto_config_path.is_file():
+				config = self.__load_config(auto_config_path)
+				self.logger.info('Config file auto-detected and loaded from {!r}'.format(auto_config_path.as_posix()))
+			else:
+				config = Config.get_default()
+				self.logger.info('Config file not provided; auto-detected path {!r} does not exist, using default config'.format(auto_config_path.as_posix()))
+		else:
+			config = self.__load_config(config_path)
+			self.logger.info('Config file loaded from {!r}'.format(config_path.as_posix()))
+
+		set_config_instance(config)
 
 		if not (dbf := root_path / db_constants.DB_FILE_NAME).is_file():
 			self.logger.error('Database file {!r} does not exist'.format(dbf.as_posix()))
@@ -43,11 +60,22 @@ class CliCommandHandlerBase(ABC):
 
 		self.logger.info('Storage root set to {!r}'.format(config.storage_root))
 		try:
+			if DbAccess.is_initialized():
+				DbAccess.shutdown()
 			DbAccess.init(create=False, migrate=migrate)
 		except BadDbVersion as e:
 			self.logger.info('Load database failed, you need to ensure the database is accessible with MCDR plugin: {}'.format(e))
 			ErrorReturnCodes.action_failed.sys_exit()
 		config.backup.hash_method = DbAccess.get_hash_method()  # use the hash method from the db
+
+	@classmethod
+	def __load_config(cls, config_path: Path) -> Config:
+		try:
+			with config_path.open('r', encoding='utf8') as f:
+				return Config.deserialize(json.load(f))
+		except Exception as e:
+			logger.get().error('Failed to load config file {!r}: {}'.format(config_path.as_posix(), e))
+			ErrorReturnCodes.invalid_argument.sys_exit()
 
 
 class CliCommandAdapterBase(ABC):

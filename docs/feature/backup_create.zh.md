@@ -61,7 +61,14 @@ Prime Backup 目前仅支持在 MCDR 环境中进行备份创建
 
 ### 命令行环境
 
-Prime Backup 暂不支持在命令行环境里创建备份（下次一定！）
+Prime Backup 也支持在命令行环境里执行核心的备份创建操作：
+
+```
+python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json make -s ./server "示例注释"
+```
+
+命令行 `make` 命令不会与 Minecraft 服务端交互，不会关闭自动保存、执行保存命令或等待存档保存完成。
+请在运行前自行保存或停止服务端
 
 
 ## 相关配置

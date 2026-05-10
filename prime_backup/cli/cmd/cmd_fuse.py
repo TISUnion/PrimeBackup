@@ -7,9 +7,9 @@ from pathlib import Path
 
 from typing_extensions import override
 
-from prime_backup.constants import constants
 from prime_backup.cli.cmd import CliCommandHandlerBase, CommonCommandArgs, CliCommandAdapterBase
 from prime_backup.cli.return_codes import ErrorReturnCodes
+from prime_backup.constants import constants
 
 
 @dataclasses.dataclass(frozen=True)
@@ -48,7 +48,7 @@ class FuseCommandHandler(CliCommandHandlerBase):
 			ErrorReturnCodes.missing_dependency.sys_exit()
 
 		self.__adjust_fuse_config()
-		self.init_environment(self.args.db_path)
+		self.init_environment_from_args(self.args)
 
 		from prime_backup.cli.fuse.fs import PrimeBackupFuseFs
 		fs = PrimeBackupFuseFs()
@@ -96,6 +96,7 @@ class FuseCommandAdapter(CliCommandAdapterBase):
 	def run(self, args: argparse.Namespace):
 		handler = FuseCommandHandler(FuseCommandArgs(
 			db_path=Path(args.db),
+			config_path=Path(args.config) if args.config is not None else None,
 			mount_point=args.mount,
 			foreground=args.foreground,
 			debug=args.debug,

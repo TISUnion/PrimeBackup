@@ -20,7 +20,7 @@ class MigrateDbCommandHandler(CliCommandHandlerBase):
 		self.args = args
 
 	def handle(self):
-		self.init_environment(self.args.db_path, migrate=True)
+		self.init_environment(self.args.db_path, migrate=True, config_path=self.args.config_path)
 		result = GetDbOverviewAction().run()
 		self.logger.info('Migration done, current DB version: {}'.format(result.db_version))
 
@@ -44,5 +44,6 @@ class MigrateDbCommandAdapter(CliCommandAdapterBase):
 	def run(self, args: argparse.Namespace):
 		handler = MigrateDbCommandHandler(MigrateDbCommandArgs(
 			db_path=Path(args.db),
+			config_path=Path(args.config) if args.config is not None else None,
 		))
 		handler.handle()

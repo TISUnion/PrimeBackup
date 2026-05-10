@@ -98,7 +98,15 @@ Prime Backup 目前仅支持在 MCDR 环境中进行备份回档
 
 ### 命令行环境
 
-Prime Backup 暂不支持在命令行环境里恢复备份（下次一定！）
+Prime Backup 也支持在命令行环境里执行核心的回档操作：
+
+```
+python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s ./server 78 --confirm
+```
+
+命令行 `back` 命令不会停止或启动 Minecraft 服务端。请在运行前自行停止服务端。
+如果启用了 `command.backup_on_restore`，它会在回档前从 `--source-root` 创建一个临时备份。
+添加 `--no-pre-restore-backup` 可以跳过这个临时备份
 
 ## 相关配置
 

@@ -4,12 +4,14 @@ from typing import List, Dict
 
 from prime_backup.cli import cli_utils
 from prime_backup.cli.cmd import CliCommandAdapterBase
+from prime_backup.cli.cmd.cmd_back import BackCommandAdapter
 from prime_backup.cli.cmd.cmd_db_overview import DbOverviewCommandAdapter
 from prime_backup.cli.cmd.cmd_export import ExportCommandAdapter
 from prime_backup.cli.cmd.cmd_extract import ExtractCommandAdapter
 from prime_backup.cli.cmd.cmd_fuse import FuseCommandAdapter
 from prime_backup.cli.cmd.cmd_import import ImportCommandAdapter
 from prime_backup.cli.cmd.cmd_list import ListCommandAdapter
+from prime_backup.cli.cmd.cmd_make import MakeCommandAdapter
 from prime_backup.cli.cmd.cmd_migrate_db import MigrateDbCommandAdapter
 from prime_backup.cli.cmd.cmd_show import ShowCommandAdapter
 from prime_backup.cli.return_codes import ErrorReturnCodes
@@ -40,12 +42,14 @@ class CliEntrypoint:
 	@classmethod
 	def __create_command_adapters(cls) -> Dict[str, CliCommandAdapterBase]:
 		all_adapters: List[CliCommandAdapterBase] = [
+			BackCommandAdapter(),
 			DbOverviewCommandAdapter(),
 			ExportCommandAdapter(),
 			ExtractCommandAdapter(),
 			FuseCommandAdapter(),
 			ImportCommandAdapter(),
 			ListCommandAdapter(),
+			MakeCommandAdapter(),
 			MigrateDbCommandAdapter(),
 			ShowCommandAdapter(),
 		]
@@ -59,6 +63,7 @@ class CliEntrypoint:
 	def main(self):
 		parser = argparse.ArgumentParser(description='Prime Backup v{} CLI tools'.format(cli_utils.get_plugin_version()), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 		parser.add_argument('-d', '--db', default=_DEFAULT_STORAGE_ROOT, help='Path to the {db} database file, or path to the directory that contains the {db} database file, e.g. "/my/path/{db}", or "/my/path"'.format(db=db_constants.DB_FILE_NAME))
+		parser.add_argument('-c', '--config', help='Path to the Prime Backup config.json file. If omitted, attempt to load ../config/prime_backup/config.json relative to the database directory')
 		parser.add_argument('--version', action='store_true', help='Show version and exit')
 		parser.add_argument('--debug', action='store_true', help='Enable debug logging')
 		subparsers = parser.add_subparsers(title='Command', help='Available commands', dest='command')

@@ -725,6 +725,7 @@ prime_backup:
       unknown: Unknown
       prime_backup:
         .: Prime Backup
+        cli: CLI
         import: Import
         test: Test
         scheduled_backup: Scheduled backup

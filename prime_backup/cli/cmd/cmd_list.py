@@ -22,7 +22,7 @@ class ListCommandHandler(CliCommandHandlerBase):
 		self.args = args
 
 	def handle(self):
-		self.init_environment(self.args.db_path)
+		self.init_environment_from_args(self.args)
 
 		backup_ids = ListBackupIdAction().run()
 		self.logger.info('Backup amount: {}'.format(len(backup_ids)))
@@ -61,6 +61,7 @@ class ListCommandAdapter(CliCommandAdapterBase):
 	def run(self, args: argparse.Namespace):
 		handler = ListCommandHandler(ListCommandArgs(
 			db_path=Path(args.db),
+			config_path=Path(args.config) if args.config is not None else None,
 			human=args.human,
 		))
 		handler.handle()

@@ -61,7 +61,14 @@ For specific operation steps, please refer to the [Backup Display](backup_displa
 
 ### Command Line Environment
 
-Prime Backup currently does not support creating backups in command line environment (maybe next time!)
+Prime Backup also supports the core backup creation operation in command line environment:
+
+```
+python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json make -s ./server "Example Comment Here"
+```
+
+The command line `make` command does not interact with the Minecraft server. It will not disable autosave, execute save commands, or wait for world-save completion,
+so save or stop the server yourself before running it
 
 
 ## Related Configuration

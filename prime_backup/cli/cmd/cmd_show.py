@@ -21,7 +21,7 @@ class ShowCommandHandler(CliCommandHandlerBase):
 		self.args = args
 
 	def handle(self):
-		self.init_environment(self.args.db_path)
+		self.init_environment_from_args(self.args)
 		backup_id = cli_utils.parse_backup_id(self.args.backup_id)
 		backup = GetBackupAction(backup_id).run()
 		ss = backup.stored_size
@@ -58,6 +58,7 @@ class ShowCommandAdapter(CliCommandAdapterBase):
 	def run(self, args: argparse.Namespace):
 		handler = ShowCommandHandler(ShowCommandArgs(
 			db_path=Path(args.db),
+			config_path=Path(args.config) if args.config is not None else None,
 			backup_id=args.backup_id,
 		))
 		handler.handle()

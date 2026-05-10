@@ -36,7 +36,7 @@ class ExportCommandHandler(CliCommandHandlerBase):
 
 	def handle(self):
 		fmt = cli_utils.get_ebf(self.args.output_path, self.args.format)
-		self.init_environment(self.args.db_path)
+		self.init_environment_from_args(self.args)
 
 		backup_id = cli_utils.parse_backup_id(self.args.backup_id)
 		backup = GetBackupAction(backup_id).run()
@@ -84,6 +84,7 @@ class ExportCommandAdapter(CliCommandAdapterBase):
 	def run(self, args: argparse.Namespace):
 		handler = ExportCommandHandler(ExportCommandArgs(
 			db_path=Path(args.db),
+			config_path=Path(args.config) if args.config is not None else None,
 			backup_id=args.backup_id,
 			output_path=Path(args.output),
 			format=args.format,

@@ -57,15 +57,16 @@ class DbMigration:
 				raise BadDbVersion('DbMeta table not found')
 
 			self.logger.info('Table {} does not exist, assuming newly created db, create everything'.format(schema.DbMeta.__tablename__))
-			self.__create_the_world()
+			self.create_the_world(self.engine)
 
-	def __create_the_world(self):
-		schema.Base.metadata.create_all(self.engine)
+	@classmethod
+	def create_the_world(cls, engine: Engine):
+		schema.Base.metadata.create_all(engine)
 		config = Config.get()
-		with Session(self.engine) as session, session.begin():
+		with Session(engine) as session, session.begin():
 			session.add(schema.DbMeta(
-				magic=self.DB_MAGIC_INDEX,
-				version=self.DB_VERSION,
+				magic=cls.DB_MAGIC_INDEX,
+				version=cls.DB_VERSION,
 				hash_method=config.backup.hash_method.name,
 			))
 

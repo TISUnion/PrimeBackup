@@ -29,7 +29,7 @@ class ImportCommandHandler(CliCommandHandlerBase):
 
 	def handle(self):
 		fmt = cli_utils.get_ebf(self.args.input_path, self.args.format)
-		self.init_environment(self.args.db_path)
+		self.init_environment_from_args(self.args)
 
 		meta_override: Optional[dict] = None
 		if (args_meta_str := self.args.meta_override) is not None:
@@ -77,6 +77,7 @@ class ImportCommandAdapter(CliCommandAdapterBase):
 	def run(self, args: argparse.Namespace):
 		handler = ImportCommandHandler(ImportCommandArgs(
 			db_path=Path(args.db),
+			config_path=Path(args.config) if args.config is not None else None,
 			input_path=Path(args.input),
 			format=args.format,
 			auto_meta=args.auto_meta,

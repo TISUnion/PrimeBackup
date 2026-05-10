@@ -725,6 +725,7 @@ prime_backup:
       unknown: 未知
       prime_backup:
         .: Prime Backup
+        cli: 命令行
         import: 导入
         test: 测试
         scheduled_backup: 定时备份

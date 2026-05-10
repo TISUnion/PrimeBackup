@@ -17,6 +17,7 @@ class PrimeBackupOperatorNames:
 	"""
 	For :meth:`prime_backup.types.operator.Operator.pb`
 	"""
+	cli = _PrimeBackupOperatorName('cli')
 	import_ = _PrimeBackupOperatorName('import')
 	pre_restore = _PrimeBackupOperatorName('pre_restore')
 	scheduled_backup = _PrimeBackupOperatorName('scheduled_backup')

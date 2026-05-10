@@ -42,6 +42,19 @@ class DbAccess:
 		cls.sync_hash_method()
 
 	@classmethod
+	def init_memory_db(cls):
+		cls.__engine = create_engine('sqlite://')
+		cls.__db_file_path = None
+
+		try:
+			DbMigration.create_the_world(cls.__engine)
+		except Exception:
+			cls.__engine = None
+			raise
+
+		cls.sync_hash_method()
+
+	@classmethod
 	def shutdown(cls):
 		if (engine := cls.__engine) is not None:
 			engine.dispose()

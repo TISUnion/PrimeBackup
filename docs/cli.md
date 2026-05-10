@@ -9,32 +9,41 @@ You can run it with a valid Python 3 interpreter, provided all requirements are 
 
 ```
 $ python3 PrimeBackup.pyz
-usage: PrimeBackup.pyz [-h] [-d DB]
-                       {overview,list,show,import,export,extract,migrate_db}   
+usage: PrimeBackup.pyz [-h] [-d DB] [-c CONFIG] [--version] [--debug]
+                       {back,overview,export,extract,fuse,import,list,make,migrate_db,show}
                        ...
 
-Prime Backup v1.7.0 CLI tools
+Prime Backup v1.x.x CLI tools
 
 options:
   -h, --help            show this help message and exit
-  -d DB, --db DB        Path to the prime_backup.db database file, or path to  
-                        the directory that contains the prime_backup.db        
-                        database file, e.g. "/my/path/prime_backup.db", or     
+  -d DB, --db DB        Path to the prime_backup.db database file, or path to
+                        the directory that contains the prime_backup.db
+                        database file, e.g. "/my/path/prime_backup.db", or
                         "/my/path" (default: ./pb_files)
+  -c CONFIG, --config CONFIG
+                        Path to the Prime Backup config.json file. If omitted,
+                        attempt to load ../config/prime_backup/config.json
+                        relative to the database directory (default: None)
+  --version             Show version and exit (default: False)
+  --debug               Enable debug logging (default: False)
 
 Command:
-  {overview,list,show,import,export,extract,migrate_db}
+  {back,overview,export,extract,fuse,import,list,make,migrate_db,show}
                         Available commands
+    back                Restore the server files to a backup
     overview            Show overview information of the database
-    list                List backups
-    show                Show detailed information of the given backup
-    import              Import a backup from the given file. The backup file   
-                        needs to have a backup metadata file
-                        '.prime_backup.meta.json', or the --auto-meta flag     
-                        need to be supplied
     export              Export the given backup to a single file
     extract             Extract a single file / directory from a backup
-    migrate_db          Migrate the database to the current version (2)  
+    fuse                Mount all backups as a file system using libfuse
+    import              Import a backup from the given file. The backup file
+                        needs to have a backup metadata file
+                        '.prime_backup.meta.json', or the --auto-meta option
+                        need to be supplied
+    list                List backups
+    make                Create a new backup
+    migrate_db          Migrate the database to the current version X
+    show                Show detailed information of the given backup
 ```
 
 You can append `--help` to each subcommand to display its help message. For example:

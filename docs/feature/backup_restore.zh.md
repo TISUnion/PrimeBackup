@@ -105,7 +105,7 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
 ```
 
 命令行 `back` 命令不会停止或启动 Minecraft 服务端。请在运行前自行停止服务端。
-如果启用了 `command.backup_on_restore`，它会在回档前从 `--source-root` 创建一个临时备份。
+如果配置文件启用了 `command.backup_on_restore`，回档会创建一个临时备份。
 添加 `--no-pre-restore-backup` 可以跳过这个临时备份
 
 ## 相关配置

@@ -105,7 +105,7 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
 ```
 
 The command line `back` command does not stop or start the Minecraft server. Stop the server yourself before running it.
-If `command.backup_on_restore` is enabled, it creates a temporary backup from `--source-root` before restoring.
+If config `command.backup_on_restore` is enabled, it creates a temporary backup before restoring.
 Add `--no-pre-restore-backup` to skip the temporary backup
 
 ## Related Configuration

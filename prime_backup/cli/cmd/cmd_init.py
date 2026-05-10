@@ -22,6 +22,10 @@ class InitCommandHandler(CliCommandHandlerBase):
 		super().__init__()
 		self.args = args
 
+	@override
+	def requires_user_config_file(self) -> bool:
+		return False
+
 	def handle(self):
 		root_path = self.args.db_path
 		if root_path.name == db_constants.DB_FILE_NAME and not root_path.is_dir():

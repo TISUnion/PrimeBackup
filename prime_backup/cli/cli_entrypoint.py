@@ -65,7 +65,7 @@ class CliEntrypoint:
 	def main(self):
 		parser = argparse.ArgumentParser(description='Prime Backup v{} CLI tools'.format(cli_utils.get_plugin_version()), formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 		parser.add_argument('-d', '--db', default=_DEFAULT_STORAGE_ROOT, help='Path to the {db} database file, or path to the directory that contains the {db} database file, e.g. "/my/path/{db}", or "/my/path"'.format(db=db_constants.DB_FILE_NAME))
-		parser.add_argument('-c', '--config', help='Path to the Prime Backup config.json file. If omitted, attempt to load ../config/prime_backup/config.json relative to the database directory')
+		parser.add_argument('-c', '--config', help='Path to the Prime Backup config.json file. If omitted, attempt to load ../config/prime_backup/config.json relative to the database directory. Commands that need user backup settings, such as make and back, fail if no config file is found; other commands use default config')
 		parser.add_argument('--version', action='store_true', help='Show version and exit')
 		parser.add_argument('--debug', action='store_true', help='Enable debug logging')
 		subparsers = parser.add_subparsers(title='Command', help='Available commands', dest='command')

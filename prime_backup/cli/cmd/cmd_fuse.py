@@ -27,6 +27,10 @@ class FuseCommandHandler(CliCommandHandlerBase):
 		super().__init__()
 		self.args = args
 
+	@override
+	def requires_user_config_file(self) -> bool:
+		return False
+
 	def __adjust_fuse_config(self):
 		from prime_backup.cli.fuse.config import FuseConfig
 		fuse_config = FuseConfig.get()

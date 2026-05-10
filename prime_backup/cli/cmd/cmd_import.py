@@ -27,6 +27,10 @@ class ImportCommandHandler(CliCommandHandlerBase):
 		super().__init__()
 		self.args = args
 
+	@override
+	def requires_user_config_file(self) -> bool:
+		return False
+
 	def handle(self):
 		fmt = cli_utils.get_ebf(self.args.input_path, self.args.format)
 		self.init_environment_from_args(self.args)

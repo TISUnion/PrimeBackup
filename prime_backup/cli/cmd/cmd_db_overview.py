@@ -20,6 +20,10 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 		super().__init__()
 		self.args = args
 
+	@override
+	def requires_user_config_file(self) -> bool:
+		return False
+
 	@staticmethod
 	def __size_str(size: int) -> str:
 		return '{} ({} bytes)'.format(ByteCount(size).auto_str(), size)

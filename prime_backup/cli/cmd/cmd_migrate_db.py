@@ -19,6 +19,10 @@ class MigrateDbCommandHandler(CliCommandHandlerBase):
 		super().__init__()
 		self.args = args
 
+	@override
+	def requires_user_config_file(self) -> bool:
+		return False
+
 	def handle(self):
 		self.init_environment(self.args.db_path, migrate=True, config_path=self.args.config_path)
 		result = GetDbOverviewAction().run()

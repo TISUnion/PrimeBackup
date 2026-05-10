@@ -25,6 +25,10 @@ class CliCommandHandlerBase(ABC):
 	def __init__(self):
 		self.logger: logging.Logger = logger.get()
 
+	@abstractmethod
+	def requires_user_config_file(self) -> bool:
+		raise NotImplementedError()
+
 	@property
 	def config(self) -> Config:
 		return Config.get()
@@ -47,18 +51,20 @@ class CliCommandHandlerBase(ABC):
 			ErrorReturnCodes.invalid_argument.sys_exit()
 		self.init_db(root_path, create=False, migrate=migrate)
 
-	@classmethod
-	def load_config(cls, root_path: Path, config_path: Optional[Path]) -> Config:
+	def load_config(self, root_path: Path, config_path: Optional[Path]) -> Config:
 		if config_path is None:
 			auto_config_path = root_path.parent / 'config' / 'prime_backup' / 'config.json'
 			if auto_config_path.is_file():
-				config = cls.__load_config(auto_config_path)
+				config = self.__load_config(auto_config_path)
 				logger.get().info('Config file auto-detected and loaded from {!r}'.format(auto_config_path.as_posix()))
+			elif self.requires_user_config_file():
+				logger.get().error('Config file is required for this command, but it was not provided and the auto-detected path {!r} does not exist'.format(auto_config_path.as_posix()))
+				ErrorReturnCodes.invalid_argument.sys_exit()
 			else:
 				config = Config.get_default()
 				logger.get().info('Config file not provided; auto-detected path {!r} does not exist, using default config'.format(auto_config_path.as_posix()))
 		else:
-			config = cls.__load_config(config_path)
+			config = self.__load_config(config_path)
 			logger.get().info('Config file loaded from {!r}'.format(config_path.as_posix()))
 		return config
 

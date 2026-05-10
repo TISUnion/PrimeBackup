@@ -35,6 +35,10 @@ class BackCommandHandler(CliCommandHandlerBase):
 		super().__init__()
 		self.args = args
 
+	@override
+	def requires_user_config_file(self) -> bool:
+		return True
+
 	def __get_backup(self) -> BackupInfo:
 		if self.args.backup_id is not None:
 			backup_id = cli_utils.parse_backup_id(self.args.backup_id)

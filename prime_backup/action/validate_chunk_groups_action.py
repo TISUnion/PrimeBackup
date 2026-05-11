@@ -143,7 +143,8 @@ class ValidateChunkGroupsAction(Action[ValidateChunkGroupsResult]):
 				if self.is_interrupted.is_set():
 					break
 				cnt += len(chunk_groups)
-				self.logger.info('Validating {} / {} chunk groups'.format(cnt, result.total))
+				if cnt % 400 == 0 or cnt == result.total:
+					self.logger.info('Validating {} / {} chunk groups'.format(cnt, result.total))
 				self.__validate(session, result, list(map(ChunkGroupInfo.of, chunk_groups)))
 
 		self.logger.info('Chunk group validation done: total {}, validated {}, ok {}, bad {}'.format(

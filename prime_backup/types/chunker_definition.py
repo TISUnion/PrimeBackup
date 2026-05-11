@@ -1,21 +1,24 @@
 import dataclasses
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import IO
+from typing import IO, Optional, Iterable
 
 from typing_extensions import override
 
-from prime_backup.types.chunker import Chunker, FastCDCFileChunker, FastCDCStreamChunker, FixedSizeFileChunker, FixedSizeStreamChunker, FastCDCChunkerConfig
+from prime_backup.types.chunker import Chunker, FastCDCFileChunker, FastCDCStreamChunker, FixedSizeFileChunker, FixedSizeStreamChunker, FastCDCChunkerConfig, FixedAutoFileChunker, PrettyChunk
 
 
 class ChunkerDefinition(ABC):
 	@abstractmethod
-	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool) -> Chunker:
+	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool, *, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> Chunker:
 		...
 
 	@abstractmethod
 	def create_stream_chunker(self, stream, need_entire_file_hash: bool) -> Chunker:
 		...
+
+	def needs_previous_chunks(self) -> bool:
+		return False
 
 
 @dataclasses.dataclass(frozen=True)
@@ -29,7 +32,7 @@ class FastCDCChunkerDefinition(ChunkerDefinition):
 		object.__setattr__(self, '_config', FastCDCChunkerConfig(self.avg_size, self.min_size, self.max_size))
 
 	@override
-	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool) -> Chunker:
+	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool, *, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> Chunker:
 		return FastCDCFileChunker(self._config, file_path, need_entire_file_hash)
 
 	@override
@@ -42,9 +45,24 @@ class FixedSizeChunkerDefinition(ChunkerDefinition):
 	chunk_size: int
 
 	@override
-	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool) -> Chunker:
+	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool, *, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> Chunker:
 		return FixedSizeFileChunker(self.chunk_size, file_path, need_entire_file_hash)
 
 	@override
 	def create_stream_chunker(self, stream, need_entire_file_hash: bool) -> Chunker:
 		return FixedSizeStreamChunker(self.chunk_size, stream, need_entire_file_hash)
+
+
+@dataclasses.dataclass(frozen=True)
+class FixedAutoChunkerDefinition(ChunkerDefinition):
+	@override
+	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool, *, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> Chunker:
+		return FixedAutoFileChunker(file_path, previous_chunks, need_entire_file_hash)
+
+	@override
+	def create_stream_chunker(self, stream, need_entire_file_hash: bool) -> Chunker:
+		return FixedSizeStreamChunker(FixedAutoFileChunker.BIG_CHUNK_SIZE, stream, need_entire_file_hash)
+
+	@override
+	def needs_previous_chunks(self) -> bool:
+		return True

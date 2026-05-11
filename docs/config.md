@@ -229,9 +229,17 @@ Configs on how the backup is made
     "chunking_rules": [
         {
             "algorithm": "fastcdc_32k",
-            "file_size_threshold": 104857600,
+            "file_size_threshold": 20971520,
             "patterns": [
-                "**/*.db"
+                "**/*.db",
+                "**/*.log"
+            ]
+        },
+        {
+            "algorithm": "fixed_auto",
+            "file_size_threshold": 262144,
+            "patterns": [
+                "**/*.mca"
             ]
         }
     ],
@@ -478,6 +486,7 @@ Each rule contains the following fields:
     | `fixed_4k` | Fixed (alpha) | 4 KiB chunks; aligns with MC region file pages, but causes heavy metadata overhead |
     | `fixed_32k` | Fixed (alpha) | 32 KiB chunks; intermediate fixed-size option |
     | `fixed_128k` | Fixed (alpha) | 128 KiB chunks; well-suited for append-write files |
+    | `fixed_auto` | Fixed (alpha) | Adaptive 128 KiB / 4 KiB chunks based on the previous backup's same-path chunk layout |
 
     CDC algorithms determine chunk boundaries from file content, so local insertions, deletions, or in-place edits leave many chunks unchanged for reuse.
     See [CDC Chunking](chunking/chunking_cdc.md) for details.
@@ -487,7 +496,7 @@ Each rule contains the following fields:
 
     !!! warning
 
-        Fixed-size algorithms (`fixed_4k`, `fixed_32k`, `fixed_128k`) are in alpha status and not recommended for production use.
+        Fixed-size algorithms (`fixed_4k`, `fixed_32k`, `fixed_128k`, `fixed_auto`) are in alpha status and not recommended for production use.
 
     !!! note
 
@@ -502,7 +511,7 @@ Each rule contains the following fields:
 - `patterns`: A list of [gitignore flavor](http://git-scm.com/docs/gitignore) pattern strings,
   matched against file paths relative to [source_root](#source_root)
 
-The default value contains one rule that applies `fastcdc_32k` CDC chunking to `.db` files larger than 100 MiB.
+The default value contains two rules: `fastcdc_32k` CDC chunking for `.db` and `.log` files larger than 20 MiB, and `fixed_auto` chunking for `.mca` files larger than 256 KiB.
 It is recommended to keep the rules narrow and only cover large files that are often modified locally and really need to be backed up
 
 Changing this option only affects files newly stored in future backups.

@@ -26,6 +26,7 @@ from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.chunk_method import ChunkMethod
+from prime_backup.types.chunker import PrettyChunk
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, chunk_utils
 from prime_backup.utils.hash_utils import SizeAndHash
@@ -227,7 +228,8 @@ class BlobAllocator:
 			blob_recorder: BlobRecorder,
 			source_path: Path,
 			temp_path: Path,
-			pre_calc_result_getter: Callable[[Path], Optional[BlobPrecalculateResult]]
+			pre_calc_result_getter: Callable[[Path], Optional[BlobPrecalculateResult]],
+			previous_chunks_getter: Callable[[Path], Optional[List[PrettyChunk]]],
 	):
 		from prime_backup import logger
 		from prime_backup.config.config import Config
@@ -240,6 +242,7 @@ class BlobAllocator:
 		self.__source_path = source_path
 		self.__temp_path = temp_path
 		self.__pre_calc_result_getter = pre_calc_result_getter
+		self.__previous_chunks_getter = previous_chunks_getter
 
 		self.__blob_by_size_cache: Dict[int, bool] = {}
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
@@ -445,6 +448,7 @@ class BlobAllocator:
 				src_path, st.st_size, pre_cal_result.simple_repr(),
 			))
 			pre_cal_result = None
+		previous_chunks = self.__previous_chunks_getter(src_path) if chunk_method.needs_previous_chunks() else None
 
 		with contextlib.ExitStack() as es:
 			if policy == _ChunkedBlobCreatePolicy.default:
@@ -467,7 +471,7 @@ class BlobAllocator:
 					src_path_str, ByteCount(blob_size).auto_str(), len(chunks), chunk_method.name,
 				))
 			else:
-				chunker = chunk_method.create_file_chunker(actual_path_to_read, need_entire_file_hash=True)
+				chunker = chunk_method.create_file_chunker(actual_path_to_read, need_entire_file_hash=True, previous_chunks=previous_chunks)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as chunking_cost:
 					chunks = chunker.cut_all()
 				blob_hash = chunker.get_entire_file_hash()

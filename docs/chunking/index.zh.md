@@ -35,9 +35,17 @@ title: '文件分块'
     "chunking_rules": [
         {
             "algorithm": "fastcdc_32k",
-            "file_size_threshold": 104857600,
+            "file_size_threshold": 20971520,
             "patterns": [
-                "**/*.db"
+                "**/*.db",
+                "**/*.log"
+            ]
+        },
+        {
+            "algorithm": "fixed_auto",
+            "file_size_threshold": 262144,
+            "patterns": [
+                "**/*.mca"
             ]
         }
     ]
@@ -105,6 +113,7 @@ Prime Backup 仍会为整个文件创建一条数据对象（blob）记录，但
 | `fixed_4k`     | 固定大小 | 4 KiB   | MC region 文件（与 4 KiB 页边界对齐）；注意：会导致严重的元数据膨胀 |
 | `fixed_32k`    | 固定大小 | 32 KiB  | 中等粒度的固定大小场景                                |
 | `fixed_128k`   | 固定大小 | 128 KiB | 以追加写为主的文件                                  |
+| `fixed_auto`   | 固定大小 | 128 KiB / 4 KiB | 根据上一次同路径备份自适应切块                         |
 
 各方式的详细说明见独立文档：
 

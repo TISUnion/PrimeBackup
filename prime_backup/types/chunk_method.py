@@ -1,9 +1,10 @@
 import enum
 from pathlib import Path
-from typing import Optional, IO, TYPE_CHECKING
+from typing import Optional, IO, TYPE_CHECKING, Iterable
 
 from prime_backup.types.chunker import Chunker
-from prime_backup.types.chunker_definition import ChunkerDefinition, FastCDCChunkerDefinition, FixedSizeChunkerDefinition
+from prime_backup.types.chunker import PrettyChunk
+from prime_backup.types.chunker_definition import ChunkerDefinition, FastCDCChunkerDefinition, FixedSizeChunkerDefinition, FixedAutoChunkerDefinition
 from prime_backup.utils.path_like import PathLike
 
 
@@ -16,6 +17,7 @@ class ChunkMethod(enum.Enum):
 	fixed_4k = FixedSizeChunkerDefinition(4 * 1024)
 	fixed_32k = FixedSizeChunkerDefinition(32 * 1024)
 	fixed_128k = FixedSizeChunkerDefinition(128 * 1024)
+	fixed_auto = FixedAutoChunkerDefinition()
 
 	if TYPE_CHECKING:
 		value: ChunkerDefinition
@@ -40,8 +42,11 @@ class ChunkMethod(enum.Enum):
 
 		return None
 
-	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool) -> Chunker:
-		return self.value.create_file_chunker(file_path, need_entire_file_hash)
+	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool, *, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> Chunker:
+		return self.value.create_file_chunker(file_path, need_entire_file_hash, previous_chunks=previous_chunks)
 
 	def create_stream_chunker(self, stream: IO[bytes], need_entire_file_hash: bool) -> Chunker:
 		return self.value.create_stream_chunker(stream, need_entire_file_hash)
+
+	def needs_previous_chunks(self) -> bool:
+		return self.value.needs_previous_chunks()

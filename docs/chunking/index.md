@@ -35,9 +35,17 @@ The default configuration is:
     "chunking_rules": [
         {
             "algorithm": "fastcdc_32k",
-            "file_size_threshold": 104857600,
+            "file_size_threshold": 20971520,
             "patterns": [
-                "**/*.db"
+                "**/*.db",
+                "**/*.log"
+            ]
+        },
+        {
+            "algorithm": "fixed_auto",
+            "file_size_threshold": 262144,
+            "patterns": [
+                "**/*.mca"
             ]
         }
     ]
@@ -105,6 +113,7 @@ The benefit becomes apparent on subsequent backups where many chunks can be reus
 | `fixed_4k`     | Fixed | 4 KiB          | MC region files (matches 4 KiB page boundaries); note: causes severe metadata bloat |
 | `fixed_32k`    | Fixed | 32 KiB         | medium fixed-size use cases                                                         |
 | `fixed_128k`   | Fixed | 128 KiB        | append-write files with predictable end-growth                                      |
+| `fixed_auto`   | Fixed | 128 KiB / 4 KiB | adaptive fixed-size chunks based on the previous same-path backup                  |
 
 See the detailed pages for each approach:
 

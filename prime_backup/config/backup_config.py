@@ -48,9 +48,17 @@ class BackupConfig(Serializable):
 	chunking_rules: List[ChunkingRule] = [
 		ChunkingRule(
 			algorithm=ChunkMethod.fastcdc_32k,
-			file_size_threshold=100 * 1048576,
+			file_size_threshold=20 * 1048576,
 			patterns=[
-				'**/*.db'
+				'**/*.db',
+				'**/*.log',
+			],
+		),
+		ChunkingRule(
+			algorithm=ChunkMethod.fixed_auto,
+			file_size_threshold=256 * 1024,
+			patterns=[
+				'**/*.mca'
 			],
 		),
 	]

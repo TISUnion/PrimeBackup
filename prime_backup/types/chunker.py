@@ -1,8 +1,9 @@
 import dataclasses
+import logging
 from abc import abstractmethod, ABC
 from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Generator, IO
+from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable as TypingIterable, Dict
 
 from typing_extensions import override
 
@@ -168,3 +169,128 @@ class FixedSizeStreamChunker(_FixedSizeChunker):
 	@override
 	def _iter_raw_chunks(self) -> Iterable[_RawChunk]:
 		yield from self._cut_stream_by_fixed_size(self.stream)
+
+
+# ======================== Fixed Auto Chunker ========================
+
+
+class FixedAutoFileChunker(Chunker):
+	BIG_CHUNK_SIZE = 128 * 1024
+	SMALL_CHUNK_SIZE = 4 * 1024
+	SMALL_CHUNK_COUNT = BIG_CHUNK_SIZE // SMALL_CHUNK_SIZE
+
+	def __init__(
+			self,
+			file_path: Path,
+			previous_chunks: Optional[TypingIterable[PrettyChunk]] = None,
+			need_entire_file_hash: bool = False,
+	):
+		super().__init__(need_entire_file_hash)
+		self.file_path = file_path
+		self.previous_chunks_by_offset: Dict[int, PrettyChunk] = {
+			chunk.offset: chunk for chunk in previous_chunks or []
+		}
+
+	@staticmethod
+	def __calc_chunk_hash(data: memoryview) -> str:
+		hasher = chunk_utils.create_hasher()
+		hasher.update(data)
+		return hasher.hexdigest()
+
+	def __get_previous_big_chunk(self, offset: int) -> Optional[PrettyChunk]:
+		chunk = self.previous_chunks_by_offset.get(offset)
+		if chunk is not None and chunk.length == self.BIG_CHUNK_SIZE:
+			return chunk
+		return None
+
+	def __get_previous_small_chunks(self, offset: int) -> Optional[List[PrettyChunk]]:
+		chunks: List[PrettyChunk] = []
+		for idx in range(self.SMALL_CHUNK_COUNT):
+			chunk_offset = offset + idx * self.SMALL_CHUNK_SIZE
+			chunk = self.previous_chunks_by_offset.get(chunk_offset)
+			if chunk is None or chunk.length != self.SMALL_CHUNK_SIZE:
+				return None
+			chunks.append(chunk)
+		return chunks
+
+	def __iter_small_chunks(self, offset: int, data: memoryview) -> Generator[_RawChunk, None, None]:
+		for idx in range(self.SMALL_CHUNK_COUNT):
+			small_offset = offset + idx * self.SMALL_CHUNK_SIZE
+			start = idx * self.SMALL_CHUNK_SIZE
+			end = start + self.SMALL_CHUNK_SIZE
+			yield _RawChunk(offset=small_offset, length=self.SMALL_CHUNK_SIZE, data=data[start:end])
+
+	@override
+	def _iter_raw_chunks(self) -> Iterable[_RawChunk]:
+		window_count = 0
+		tail_window_count = 0
+		emitted_big_count = 0
+		emitted_small_count = 0
+		emitted_tail_count = 0
+		fallback_big_count = 0
+		previous_big_reused_count = 0
+		previous_big_split_count = 0
+		previous_small_merged_count = 0
+		previous_small_kept_count = 0
+
+		with open(self.file_path, 'rb') as f:
+			offset = 0
+			while True:
+				buf = f.read(self.BIG_CHUNK_SIZE)
+				if not buf:
+					break
+
+				window_count += 1
+				data = memoryview(buf)
+				if len(buf) != self.BIG_CHUNK_SIZE:
+					tail_window_count += 1
+					emitted_tail_count += 1
+					yield _RawChunk(offset=offset, length=len(buf), data=data)
+					offset += len(buf)
+					continue
+
+				if (previous_big_chunk := self.__get_previous_big_chunk(offset)) is not None:
+					if self.__calc_chunk_hash(data) == previous_big_chunk.hash:
+						previous_big_reused_count += 1
+						emitted_big_count += 1
+						yield _RawChunk(offset=offset, length=self.BIG_CHUNK_SIZE, data=data)
+					else:
+						previous_big_split_count += 1
+						emitted_small_count += self.SMALL_CHUNK_COUNT
+						yield from self.__iter_small_chunks(offset, data)
+				elif (previous_small_chunks := self.__get_previous_small_chunks(offset)) is not None:
+					current_small_hashes = [
+						self.__calc_chunk_hash(data[idx * self.SMALL_CHUNK_SIZE:(idx + 1) * self.SMALL_CHUNK_SIZE])
+						for idx in range(self.SMALL_CHUNK_COUNT)
+					]
+					changed_count = sum(
+						1
+						for previous_chunk, current_hash in zip(previous_small_chunks, current_small_hashes)
+						if previous_chunk.hash != current_hash
+					)
+					if changed_count == 0:
+						previous_small_merged_count += 1
+						emitted_big_count += 1
+						yield _RawChunk(offset=offset, length=self.BIG_CHUNK_SIZE, data=data)
+					else:
+						previous_small_kept_count += 1
+						emitted_small_count += self.SMALL_CHUNK_COUNT
+						yield from self.__iter_small_chunks(offset, data)
+				else:
+					fallback_big_count += 1
+					emitted_big_count += 1
+					yield _RawChunk(offset=offset, length=self.BIG_CHUNK_SIZE, data=data)
+
+				offset += len(buf)
+
+		from prime_backup import logger
+		log = logger.get()
+		has_changed_windows = previous_big_split_count > 0 or previous_small_kept_count > 0
+		if has_changed_windows and log.isEnabledFor(logging.DEBUG):
+			log.debug('fixed_auto stats {!r}: windows {}+{}, chunks big/small/tail {}/{}/{}, big reuse/split/fallback {}/{}/{}, small merge/keep {}/{}'.format(
+				self.file_path.as_posix(),
+				window_count, tail_window_count,
+				emitted_big_count, emitted_small_count, emitted_tail_count,
+				previous_big_reused_count, previous_big_split_count, fallback_big_count,
+				previous_small_merged_count, previous_small_kept_count,
+			))

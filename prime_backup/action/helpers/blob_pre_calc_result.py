@@ -1,6 +1,6 @@
 import dataclasses
 from pathlib import Path
-from typing import List, IO
+from typing import List, IO, Optional, Iterable
 
 from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.chunker import PrettyChunk
@@ -47,11 +47,11 @@ class BlobPrecalculateResult:
 		)
 
 	@classmethod
-	def from_file(cls, path: Path, rel_path: Path, size: int) -> 'BlobPrecalculateResult':
+	def from_file(cls, path: Path, rel_path: Path, size: int, *, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> 'BlobPrecalculateResult':
 		chunk_method = ChunkMethod.get_for_file(rel_path, size)
 		chunks: List[PrettyChunk] = []
 		if chunk_method is not None:
-			chunker = chunk_method.create_file_chunker(path, need_entire_file_hash=True)
+			chunker = chunk_method.create_file_chunker(path, need_entire_file_hash=True, previous_chunks=previous_chunks)
 			chunks = chunker.cut_all()
 			sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
 		else:

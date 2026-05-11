@@ -40,11 +40,12 @@ and the rest of the chunks are identical to those already stored
 
 ## Available Algorithms
 
-| Algorithm    | Chunk Size | Typical Use Case                                                                                                                       |
-|--------------|------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `fixed_4k`   | 4 KiB      | Minecraft region files (`.mca`): each region file is organized in 4 KiB pages, so changes in one chunk only invalidate that 4 KiB page |
-| `fixed_32k`  | 32 KiB     | General intermediate granularity                                                                                                       |
-| `fixed_128k` | 128 KiB    | Append-only files: growth at the tail only creates new trailing chunks, leaving all previous chunks intact                             |
+| Algorithm    | Chunk Size      | Typical Use Case                                                                                                                            |
+|--------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| `fixed_4k`   | 4 KiB           | Minecraft region files (`.mca`): each region file is organized in 4 KiB pages, so changes in one chunk only invalidate that 4 KiB page      |
+| `fixed_32k`  | 32 KiB          | General intermediate granularity                                                                                                            |
+| `fixed_128k` | 128 KiB         | Append-only files: growth at the tail only creates new trailing chunks, leaving all previous chunks intact                                  |
+| `fixed_auto` | 128 KiB / 4 KiB | Adaptive fixed-size strategy that uses the previous backup's same-path chunk layout to limit metadata growth while keeping some 4 KiB reuse |
 
 ### fixed_4k
 
@@ -69,6 +70,17 @@ The 128 KiB chunk size is well-suited for files that grow by appending data at t
 When new data is appended, only the trailing chunks change; all preceding chunks retain the same hash and are reused
 
 This makes `fixed_128k` a reasonable alternative to CDC for pure append-write files
+
+### fixed_auto
+
+`fixed_auto` walks the file in 128 KiB windows.
+For each full window, it checks the previous backup's same-path chunk layout at the same offset:
+
+- if the previous window was one 128 KiB chunk and the current content is unchanged, it keeps one 128 KiB chunk
+- if the previous window was one 128 KiB chunk and the current content changed, it stores the current window as thirty-two 4 KiB chunks
+- if the previous window was thirty-two 4 KiB chunks, it compares the 4 KiB hashes first; when none changed, it stores one 128 KiB chunk, otherwise it keeps thirty-two 4 KiB chunks
+
+Missing previous data, direct blobs, irregular previous layouts, and incomplete tail windows are stored as one chunk for that window.
 
 ## Poor Candidates
 

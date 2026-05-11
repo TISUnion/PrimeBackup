@@ -18,11 +18,13 @@ from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCost
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.db.values import FileRole
+from prime_backup.db.values import FileRole, BlobStorageMethod
 from prime_backup.exceptions import UnsupportedFileFormat
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_tags import BackupTags
 from prime_backup.types.blob_info import BlobDeltaSummary
+from prime_backup.types.chunk_method import ChunkMethod
+from prime_backup.types.chunker import PrettyChunk
 from prime_backup.types.operator import Operator
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import sqlalchemy_utils
@@ -60,6 +62,8 @@ class _PreCalculationResult:
 	stats: Dict[Path, os.stat_result] = dataclasses.field(default_factory=dict)
 	hashes_and_chunks: Dict[Path, BlobPrecalculateResult] = dataclasses.field(default_factory=dict)
 	reused_files: Dict[Path, schema.File] = dataclasses.field(default_factory=dict)
+	previous_backup_files: Dict[str, schema.File] = dataclasses.field(default_factory=dict)
+	previous_file_chunks: Dict[Path, List[PrettyChunk]] = dataclasses.field(default_factory=dict)
 
 
 class CreateBackupAction(Action[BackupInfo]):
@@ -154,12 +158,19 @@ class CreateBackupAction(Action[BackupInfo]):
 		for file_entry in scan_result.all_files:
 			stats[file_entry.path] = file_entry.stat
 
-	def __reuse_unchanged_files(self, session: DbSession, scan_result: _ScanResult):
+	def __load_previous_backup_files(self, session: DbSession):
+		previous_backup_files = self.__pre_calc_result.previous_backup_files
+		previous_backup_files.clear()
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 			backup = session.get_last_backup()
 		if backup is None:
 			return
 
+		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
+			for file in session.get_backup_files(backup):
+				previous_backup_files[file.path] = file
+
+	def __reuse_unchanged_files(self, scan_result: _ScanResult):
 		@dataclasses.dataclass(frozen=True)
 		class StatKey:
 			path: str
@@ -169,11 +180,8 @@ class CreateBackupAction(Action[BackupInfo]):
 			gid: int
 			mtime_ns: int
 
-		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
-			backup_files = session.get_backup_files(backup.id)
-
 		stat_to_files: Dict[StatKey, schema.File] = {}
-		for file in backup_files:
+		for file in self.__pre_calc_result.previous_backup_files.values():
 			if stat.S_ISREG(file.mode):
 				if file.uid is None or file.gid is None or file.mtime is None:
 					raise AssertionError('file {!r} with ISREG mode has missing fields'.format(file))
@@ -200,6 +208,32 @@ class CreateBackupAction(Action[BackupInfo]):
 				if (file_opt := stat_to_files.get(key)) is not None:
 					self.__pre_calc_result.reused_files[file_entry.path] = file_opt
 
+	def __cache_previous_chunks_for_fixed_auto(self, session: DbSession, scan_result: _ScanResult):
+		previous_file_chunks = self.__pre_calc_result.previous_file_chunks
+		previous_file_chunks.clear()
+
+		for file_entry in scan_result.all_files:
+			if not file_entry.is_file() or file_entry.path in self.__pre_calc_result.reused_files:
+				continue
+
+			rel_path = file_entry.path.relative_to(self.__source_path)
+			if ChunkMethod.get_for_file(rel_path, file_entry.stat.st_size) != ChunkMethod.fixed_auto:
+				continue
+
+			previous_file = self.__pre_calc_result.previous_backup_files.get(rel_path.as_posix())
+			if (
+					previous_file is None or
+					previous_file.blob_id is None or
+					previous_file.blob_storage_method != BlobStorageMethod.chunked.value
+			):
+				continue
+
+			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
+				previous_file_chunks[file_entry.path] = [
+					PrettyChunk(offset=offset_chunk.offset, length=offset_chunk.chunk.raw_size, hash=offset_chunk.chunk.hash)
+					for offset_chunk in session.get_blob_chunks(previous_file.blob_id)
+				]
+
 	def __pre_calculate_hash_and_chunks(self, session: DbSession, blob_allocator: BlobAllocator, scan_result: _ScanResult):
 		hashes_and_chunks = self.__pre_calc_result.hashes_and_chunks
 		hashes_and_chunks.clear()
@@ -220,7 +254,12 @@ class CreateBackupAction(Action[BackupInfo]):
 		def hash_worker(pth: Path, pth_size: int):
 			rel_path = pth.relative_to(self.__source_path)
 			try:
-				result = BlobPrecalculateResult.from_file(pth, rel_path, pth_size)
+				result = BlobPrecalculateResult.from_file(
+					pth,
+					rel_path,
+					pth_size,
+					previous_chunks=self.__pre_calc_result.previous_file_chunks.get(pth),
+				)
 			except BlobPrecalculateResult.SizeMismatched:
 				return  # the file keeps changing, so it's not good to create a pre-calc result for it
 			hashes_and_chunks[pth] = result
@@ -304,6 +343,9 @@ class CreateBackupAction(Action[BackupInfo]):
 		def pre_calc_result_getter(src_path: Path) -> Optional[BlobPrecalculateResult]:
 			return self.__pre_calc_result.hashes_and_chunks.pop(src_path, None)  # one-time use
 
+		def previous_chunks_getter(src_path: Path) -> Optional[List[PrettyChunk]]:
+			return self.__pre_calc_result.previous_file_chunks.get(src_path)
+
 		blob_allocator = BlobAllocator(
 			session=session,
 			time_costs=self.__time_costs,
@@ -311,6 +353,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			source_path=self.__source_path,
 			temp_path=self.__temp_path,
 			pre_calc_result_getter=pre_calc_result_getter,
+			previous_chunks_getter=previous_chunks_getter,
 		)
 
 		self.logger.info('Scanning file for backup creation at path {!r}, targets: {}'.format(
@@ -334,10 +377,12 @@ class CreateBackupAction(Action[BackupInfo]):
 		))
 
 		self.__pre_calculate_stats(scan_result)
+		self.__load_previous_backup_files(session)
 		if self.config.backup.reuse_stat_unchanged_file:
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_reuse_unchanged_files):
-				self.__reuse_unchanged_files(session, scan_result)
+				self.__reuse_unchanged_files(scan_result)
 			self.logger.info('Reused {} / {} stat unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
+		self.__cache_previous_chunks_for_fixed_auto(session, scan_result)
 		if self.config.get_effective_concurrency() > 1:
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_pre_calculate_hash):
 				self.__pre_calculate_hash_and_chunks(session, blob_allocator, scan_result)

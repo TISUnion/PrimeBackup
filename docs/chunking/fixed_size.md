@@ -45,6 +45,7 @@ and the rest of the chunks are identical to those already stored
 | `fixed_4k`   | 4 KiB           | Minecraft region files (`.mca`): each region file is organized in 4 KiB pages, so changes in one chunk only invalidate that 4 KiB page      |
 | `fixed_32k`  | 32 KiB          | General intermediate granularity                                                                                                            |
 | `fixed_128k` | 128 KiB         | Append-only files: growth at the tail only creates new trailing chunks, leaving all previous chunks intact                                  |
+| `fixed_1m`   | 1 MiB           | Very large append-only files: even lower metadata overhead than `fixed_128k`, useful when fine-grained deduplication is not required        |
 | `fixed_auto` | 128 KiB / 4 KiB | Adaptive fixed-size strategy that uses the previous backup's same-path chunk layout to limit metadata growth while keeping some 4 KiB reuse |
 
 ### fixed_4k
@@ -70,6 +71,13 @@ The 128 KiB chunk size is well-suited for files that grow by appending data at t
 When new data is appended, only the trailing chunks change; all preceding chunks retain the same hash and are reused
 
 This makes `fixed_128k` a reasonable alternative to CDC for pure append-write files
+
+### fixed_1m
+
+The 1 MiB chunk size further reduces metadata overhead compared to `fixed_128k`, at the cost of coarser deduplication granularity.
+It is suitable for extremely large append-only files where even the 128 KiB metadata overhead becomes a concern
+
+For most use cases, `fixed_128k` or CDC variants are preferred. Consider `fixed_1m` only when the file is very large and write patterns are exclusively append-only
 
 ### fixed_auto
 

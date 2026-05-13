@@ -11,12 +11,14 @@ from prime_backup.utils.path_like import PathLike
 class ChunkMethod(enum.Enum):
 	# Content-Defined Chunking with FastCDC
 	fastcdc_32k = FastCDCChunkerDefinition(avg_size=32 * 1024, min_size=8 * 1024, max_size=256 * 1024)
-	fastcdc_128k = FastCDCChunkerDefinition(avg_size=128 * 1024, min_size=64 * 1024, max_size=1024 * 1024)
+	fastcdc_128k = FastCDCChunkerDefinition(avg_size=128 * 1024, min_size=32 * 1024, max_size=1024 * 1024)
+	fastcdc_1m = FastCDCChunkerDefinition(avg_size=1024 * 1024, min_size=256 * 1024, max_size=4 * 1024 * 1024)
 
 	# Fixed-Size Chunking
 	fixed_4k = FixedSizeChunkerDefinition(4 * 1024)
 	fixed_32k = FixedSizeChunkerDefinition(32 * 1024)
 	fixed_128k = FixedSizeChunkerDefinition(128 * 1024)
+	fixed_1m = FixedSizeChunkerDefinition(1024 * 1024)
 	fixed_auto = FixedAutoChunkerDefinition()
 
 	if TYPE_CHECKING:

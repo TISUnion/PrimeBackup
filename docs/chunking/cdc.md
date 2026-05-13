@@ -38,9 +38,11 @@ that delivers near-native chunking throughput
 |----------------|----------------|----------------|----------------|
 | `fastcdc_32k`  | 32 KiB         | 8 KiB          | 256 KiB        |
 | `fastcdc_128k` | 128 KiB        | 64 KiB         | 1 MiB          |
+| `fastcdc_1m`   | 1 MiB          | 512 KiB        | 8 MiB          |
 
 `fastcdc_32k` is the default and works well for most use cases
 `fastcdc_128k` uses a coarser granularity and is better suited for very large files (10 GiB or more) where the per-chunk metadata overhead of `fastcdc_32k` becomes noticeable
+`fastcdc_1m` uses an even coarser granularity with a 1 MiB average chunk size, minimizing metadata overhead for extremely large files at the cost of deduplication granularity
 
 Both algorithms use FastCDC with normalized chunking and a fixed seed (`0`) for reproducibility
 

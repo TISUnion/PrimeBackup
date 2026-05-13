@@ -255,6 +255,11 @@ class DbSession:
 			s = s.offset(offset)
 		return _list_it(self.session.execute(s).scalars().all())
 
+	def list_blobs_by_storage_method(self, storage_method: 'BlobStorageMethod') -> List[schema.Blob]:
+		return _list_it(self.session.execute(
+			select(schema.Blob).where(schema.Blob.storage_method == storage_method.value)
+		).scalars().all())
+
 	def list_blob_with_hash_prefix(self, hash_prefix: str, limit: int) -> List[schema.Blob]:
 		s = select(schema.Blob).where(*self.__get_hash_prefix_conditions(hash_prefix, schema.Blob.hash)).limit(limit)
 		return _list_it(self.session.execute(s).scalars().all())
@@ -605,6 +610,9 @@ class DbSession:
 		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
 			self.session.execute(delete(schema.ChunkGroup).where(schema.ChunkGroup.id.in_(view)))
 
+	def delete_all_chunk_groups(self):
+		self.session.execute(delete(schema.ChunkGroup))
+
 	def calc_chunk_group_stored_size_sum(self, chunk_group_id: int) -> int:
 		return _int_or_0(self.session.execute(
 			select(func.sum(schema.Chunk.stored_size)).
@@ -756,6 +764,9 @@ class DbSession:
 				delete(schema.ChunkGroupChunkBinding).
 				where(schema.ChunkGroupChunkBinding.chunk_group_id.in_(view))
 			)
+
+	def delete_all_chunk_group_chunk_bindings(self):
+		self.session.execute(delete(schema.ChunkGroupChunkBinding))
 
 	def delete_chunk_group_chunk_binding(self, binding: schema.ChunkGroupChunkBinding):
 		self.session.delete(binding)
@@ -970,6 +981,9 @@ class DbSession:
 				delete(schema.BlobChunkGroupBinding).
 				where(schema.BlobChunkGroupBinding.blob_id.in_(view))
 			)
+
+	def delete_all_blob_chunk_group_bindings(self):
+		self.session.execute(delete(schema.BlobChunkGroupBinding))
 
 	def delete_blob_chunk_group_binding(self, binding: schema.BlobChunkGroupBinding):
 		self.session.delete(binding)

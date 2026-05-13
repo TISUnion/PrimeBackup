@@ -7,6 +7,7 @@ from typing import Callable, Dict, Generic, List, Protocol, TypeVar, cast, Tuple
 from typing_extensions import override
 
 from prime_backup.action import Action
+from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
 from prime_backup.compressors import Compressor
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
@@ -177,22 +178,32 @@ class MigrateHashMethodAction(Action[None]):
 		self.__ensure_paths_can_migrate(moves, chunk_utils.get_chunk_path)
 		return _changed_moves(moves)
 
-	def __collect_chunk_group_moves(self, session: DbSession) -> List[_HashMove[schema.ChunkGroup]]:
-		moves: List[_HashMove[schema.ChunkGroup]] = []
-		chunk_groups = session.list_chunk_groups()
-		chunks_by_group_id = session.get_chunk_group_chunks_batch([chunk_group.id for chunk_group in chunk_groups])
-		total = len(chunk_groups)
-		for i, chunk_group in enumerate(chunk_groups):
-			new_hash = chunk_utils.create_chunk_group_hash(
-				offset_chunk.chunk.hash
-				for offset_chunk in chunks_by_group_id[chunk_group.id]
-			)
-			moves.append(_HashMove(object=chunk_group, old_hash=chunk_group.hash, new_hash=new_hash))
-			if (i + 1) % 5000 == 0 or i + 1 == total:
-				self.logger.info('Calculated chunk group hashes {} / {}'.format(i + 1, total))
+	def __regroup_chunked_blobs(self, session: DbSession):
+		# Step 1 - collect blob -> ordered chunks before destroying the binding chain
+		chunked_blobs = session.list_blobs_by_storage_method(BlobStorageMethod.chunked)
+		total = len(chunked_blobs)
+		blob_chunks_map: Dict[int, Dict[int, schema.Chunk]] = {}
+		for blob in chunked_blobs:
+			offset_chunks = session.get_blob_chunks(blob.id)  # sorted by absolute_offset
+			blob_chunks_map[blob.id] = {oc.offset: oc.chunk for oc in offset_chunks}
 
-		self.__ensure_hashes_can_migrate(moves, 'chunk group')
-		return _changed_moves(moves)
+		chunk_group_count = session.get_chunk_group_count()
+		self.logger.info('Dropping {} chunk group and all bindings, then re-grouping {} chunked blob with the new chunk hashes'.format(chunk_group_count, total))
+
+		# Step 2 - wipe all chunk group data
+		session.delete_all_blob_chunk_group_bindings()
+		session.delete_all_chunk_group_chunk_bindings()
+		session.delete_all_chunk_groups()
+		session.flush()
+
+		# Step 3 - re-group using ChunkGrouper (which applies the endswith('00') cut rule)
+		if total == 0:
+			return
+		chunk_grouper = ChunkGrouper(session, None)
+		for i, blob in enumerate(chunked_blobs):
+			chunk_grouper.create_chunk_groups(blob, blob_chunks_map[blob.id])
+			if (i + 1) % 200 == 0 or i + 1 == total:
+				self.logger.info('Re-grouped chunked blobs {} / {}'.format(i + 1, total))
 
 	# ==================== DB Updates ====================
 
@@ -233,11 +244,6 @@ class MigrateHashMethodAction(Action[None]):
 			move.object.hash = move.new_hash
 		session.flush()
 
-	def __migrate_chunk_group_hashes(self, session: DbSession, moves: List[_HashMove[schema.ChunkGroup]]):
-		for move in moves:
-			move.object.hash = move.new_hash
-		session.flush()
-
 	def __rollback_files(self):
 		self.__move_journal.rollback()
 
@@ -260,7 +266,7 @@ class MigrateHashMethodAction(Action[None]):
 
 				self.__migrate_blob_hashes(session, self.__collect_blob_moves(session))
 				self.__migrate_chunk_hashes(session, self.__collect_chunk_moves(session))
-				self.__migrate_chunk_group_hashes(session, self.__collect_chunk_group_moves(session))
+				self.__regroup_chunked_blobs(session)
 
 				meta = session.get_db_meta()
 				meta.hash_method = self.new_hash_method.name

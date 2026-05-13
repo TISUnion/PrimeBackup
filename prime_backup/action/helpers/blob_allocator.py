@@ -448,7 +448,6 @@ class BlobAllocator:
 				src_path, st.st_size, pre_cal_result.simple_repr(),
 			))
 			pre_cal_result = None
-		previous_chunks = self.__previous_chunks_getter(src_path) if chunk_method.needs_previous_chunks() else None
 
 		with contextlib.ExitStack() as es:
 			if policy == _ChunkedBlobCreatePolicy.default:
@@ -471,6 +470,7 @@ class BlobAllocator:
 					src_path_str, ByteCount(blob_size).auto_str(), len(chunks), chunk_method.name,
 				))
 			else:
+				previous_chunks = self.__previous_chunks_getter(src_path) if chunk_method.needs_previous_chunks() else None
 				chunker = chunk_method.create_file_chunker(actual_path_to_read, need_entire_file_hash=True, previous_chunks=previous_chunks)
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as chunking_cost:
 					chunks = chunker.cut_all()

@@ -1,9 +1,8 @@
 import dataclasses
 import logging
 from abc import abstractmethod, ABC
-from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable as TypingIterable, Dict
+from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable, Dict
 
 from typing_extensions import override
 
@@ -182,7 +181,7 @@ class FixedAutoFileChunker(Chunker):
 	def __init__(
 			self,
 			file_path: Path,
-			previous_chunks: Optional[TypingIterable[PrettyChunk]] = None,
+			previous_chunks: Optional[Iterable[PrettyChunk]] = None,
 			need_entire_file_hash: bool = False,
 	):
 		super().__init__(need_entire_file_hash)

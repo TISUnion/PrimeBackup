@@ -4,6 +4,11 @@ title: 'CDC Chunking'
 
 Content-Defined Chunking: chunk boundaries are determined by file content, not fixed byte offsets
 
+!!! note "Beta"
+
+    CDC chunking is a beta feature.
+    The overall functionality is usable, but specifications and behavior may change in future releases
+
 ## What CDC Is
 
 CDC stands for Content-Defined Chunking.

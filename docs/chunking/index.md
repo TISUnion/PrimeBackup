@@ -4,6 +4,12 @@ title: 'File Chunking'
 
 Split large files into smaller chunks for better deduplication across backups
 
+!!! note "Beta"
+
+    File chunking is a beta feature.
+    The overall functionality is usable, but specifications and behavior may change in future releases.
+    Note that `fixed_auto` is in alpha status; see the [Fixed-Size Chunking](chunking_fixed.md) page for details
+
 ## What File Chunking Is
 
 File chunking is a storage strategy where a large file is split into smaller pieces called chunks before being stored.
@@ -113,12 +119,12 @@ The benefit becomes apparent on subsequent backups where many chunks can be reus
 | `fixed_4k`     | Fixed | 4 KiB          | MC region files (matches 4 KiB page boundaries); note: causes severe metadata bloat |
 | `fixed_32k`    | Fixed | 32 KiB         | medium fixed-size use cases                                                         |
 | `fixed_128k`   | Fixed | 128 KiB        | append-write files with predictable end-growth                                      |
-| `fixed_auto`   | Fixed | 128 KiB / 4 KiB | adaptive fixed-size chunks based on the previous same-path backup                  |
+| `fixed_auto`   | Fixed | 128 KiB / 4 KiB | adaptive fixed-size chunks based on the previous same-path backup (alpha)           |
 
 See the detailed pages for each approach:
 
 - [CDC Chunking](chunking_cdc.md): content-aware chunk boundaries; works well for any kind of local modification
-- [Fixed-Size Chunking](chunking_fixed.md): fixed byte-offset boundaries; simpler but less adaptive (alpha)
+- [Fixed-Size Chunking](chunking_fixed.md): fixed byte-offset boundaries; simpler but less adaptive; `fixed_auto` is alpha
 
 ## Observation
 

@@ -2,11 +2,11 @@
 title: 'Fixed-Size Chunking'
 ---
 
-!!! warning "Alpha Status"
+!!! note "Beta"
 
-    Fixed-size chunking is currently a proof of concept and is in alpha status.
-    It is not recommended for production use.
-    Use [CDC Chunking](chunking_cdc.md) instead unless you have a specific reason to use fixed-size chunking
+    Fixed-size chunking is a beta feature.
+    The overall functionality is usable, but specifications and behavior may change in future releases.
+    Note that `fixed_auto` is in alpha status; see its section below for details
 
 Fixed-size chunking splits files at predictable byte-offset boundaries, with every chunk being exactly the configured size
 (the last chunk may be smaller if the file size is not a multiple of the chunk size)
@@ -80,6 +80,10 @@ It is suitable for extremely large append-only files where even the 128 KiB meta
 For most use cases, `fixed_128k` or CDC variants are preferred. Consider `fixed_1m` only when the file is very large and write patterns are exclusively append-only
 
 ### fixed_auto
+
+!!! warning "Alpha"
+
+    `fixed_auto` is in alpha status and is not recommended for production use
 
 `fixed_auto` walks the file in 128 KiB windows.
 For each full window, it checks the previous backup's same-path chunk layout at the same offset:

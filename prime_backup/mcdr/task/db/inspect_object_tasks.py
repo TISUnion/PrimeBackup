@@ -13,14 +13,16 @@ from prime_backup.action.get_chunk_action import GetBlobChunksAction, GetBlobChu
 from prime_backup.action.get_chunk_group_action import GetChunkGroupByHashPrefixAction, GetChunkGroupByIdAction
 from prime_backup.action.get_file_action import GetBackupFileAction, GetFilesetFileAction
 from prime_backup.action.get_fileset_action import GetFilesetAction
+from prime_backup.action.get_pack_action import GetPackByIdAction, GetPackByNamePrefixAction
 from prime_backup.db.values import BlobStorageMethod
-from prime_backup.exceptions import BlobNotFound, ChunkNotFound, ChunkGroupNotFound
+from prime_backup.exceptions import BlobNotFound, ChunkNotFound, ChunkGroupNotFound, PackNotFound
 from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents, TextColors
 from prime_backup.types.blob_info import BlobInfo
 from prime_backup.types.chunk_group_info import ChunkGroupInfo
 from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.file_info import FileInfo
+from prime_backup.types.pack_info import PackInfo
 from prime_backup.utils import platform_utils, chunk_utils, hash_utils
 from prime_backup.utils.mcdr_utils import TranslationContext, mkcmd
 
@@ -72,6 +74,15 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 			TextComponents.chunk_group_hash(chunk_group_hash, shorten_hash=shorten_hash).
 			h(cls.__base_tr.tr('chunk_group_hash.hover', RText(chunk_group_hash, TextColors.chunk_group))).
 			c(RAction.run_command, mkcmd(f'database inspect chunk_group {chunk_group_hash}'))
+		)
+
+	@classmethod
+	def _gt_pack_name(cls, pack_name: str, shorten: bool = False) -> RTextBase:
+		t_name = RText(pack_name[:16] if shorten else pack_name, TextColors.file)
+		return (
+			t_name.
+			h(cls.__base_tr.tr('pack_name.hover', RText(pack_name, TextColors.file))).
+			c(RAction.run_command, mkcmd(f'database inspect pack {pack_name}'))
 		)
 
 	@classmethod
@@ -297,6 +308,7 @@ class InspectChunkTask(_InspectObjectTaskBase):
 		self.reply_tr('compress', chunk.compress.name)
 		self.reply_tr('raw_size', RText(chunk.raw_size, TextColors.byte_count), TextComponents.file_size(chunk.raw_size))
 		self.reply_tr('stored_size', RText(chunk.stored_size, TextColors.byte_count), TextComponents.file_size(chunk.stored_size))
+		self.reply_tr('pack', self._gt_pack_name(chunk.pack_entry.pack_name, shorten=True), TextComponents.number(chunk.pack_entry.pack_id), TextComponents.number(chunk.pack_entry.pack_offset))
 
 
 class InspectChunkGroupTask(_InspectObjectTaskBase):
@@ -329,3 +341,36 @@ class InspectChunkGroupTask(_InspectObjectTaskBase):
 		self.reply_tr('chunk_count', chunk_group.chunk_count)
 		self.reply_tr('chunk_raw_size_sum', RText(chunk_group.chunk_raw_size_sum, TextColors.byte_count), TextComponents.file_size(chunk_group.chunk_raw_size_sum))
 		self.reply_tr('chunk_stored_size_sum', RText(chunk_group.chunk_stored_size_sum, TextColors.byte_count), TextComponents.file_size(chunk_group.chunk_stored_size_sum))
+
+
+class InspectPackTask(_InspectObjectTaskBase):
+	def __init__(self, source: CommandSource, pack_id_or_name: str):
+		super().__init__(source)
+		self.pack_id_or_name = pack_id_or_name
+
+	@property
+	@override
+	def id(self) -> str:
+		return 'db_inspect_pack'
+
+	@override
+	def run(self):
+		pack: Optional[PackInfo] = None
+		try:
+			pack_id = int(self.pack_id_or_name)
+		except ValueError:
+			pass
+		else:
+			with contextlib.suppress(PackNotFound):
+				pack = GetPackByIdAction(pack_id).run()
+		if pack is None:
+			pack = GetPackByNamePrefixAction(self.pack_id_or_name).run()
+
+		self.reply(TextComponents.title(self.tr('title', self._gt_pack_name(pack.name, shorten=True))))
+		self.reply_tr('id', TextComponents.number(pack.id))
+		self.reply_tr('pack_name', self._gt_pack_name(pack.name))
+		self.reply_tr('size', RText(pack.size, TextColors.byte_count), TextComponents.file_size(pack.size))
+		self.reply_tr('count', TextComponents.number(pack.count))
+		self.reply_tr('live_size', RText(pack.live_size, TextColors.byte_count), TextComponents.file_size(pack.live_size), TextComponents.percent(pack.live_size, pack.size, ndigits=2))
+		self.reply_tr('live_count', TextComponents.number(pack.live_count), TextComponents.percent(pack.live_count, pack.count, ndigits=2))
+		self.reply_tr('file_path', str(pack.file_path))

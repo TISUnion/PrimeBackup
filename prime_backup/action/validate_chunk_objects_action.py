@@ -62,8 +62,11 @@ class ValidateChunkObjectsAction(Action[ValidateChunkObjectsResult]):
 
 			bad_chunk_ids = [bad_item.chunk.id for bad_item in chunk_result.bad_chunks]
 			bad_chunk_group_ids = [bad_item.chunk_group.id for bad_item in chunk_group_result.bad_chunk_groups]
+			affected_chunk_group_ids_from_chunks: List[int] = []
 			if len(bad_chunk_ids) > 0:
-				affected_chunk_group_ids = collection_utils.deduplicated_list(bad_chunk_group_ids + session.get_chunk_group_ids_by_chunk_ids(bad_chunk_ids))
+				affected_chunk_group_ids_from_chunks = session.get_chunk_group_ids_by_chunk_ids(bad_chunk_ids)
+			if len(bad_chunk_ids) > 0:
+				affected_chunk_group_ids = collection_utils.deduplicated_list(bad_chunk_group_ids + affected_chunk_group_ids_from_chunks)
 			else:
 				affected_chunk_group_ids = bad_chunk_group_ids
 

@@ -57,11 +57,12 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 			self.logger.debug('Shrinking base fileset {} since it''s still alive'.format(backup_info.fileset_id_base))
 			sbf_action = ShrinkBaseFilesetAction(backup_info.fileset_id_base)
 			try:
-				sbf_action.run()
+				sbf_result = sbf_action.run()
+				bds += sbf_result.blob_summary
 			except FilesetNotFound as e:
 				self.logger.warning('Base fileset {} not found during shrink (concurrent deletion?), skipped: {}'.format(backup_info.fileset_id_base, e))
 
-		self.logger.info('Deleted backup #{} done, removed {} blobs and {} chunks (size {} / {})'.format(
-			backup_info.id, bds.blob_count, bds.chunk_count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
+		self.logger.info('Deleted backup #{} done, removed {} blobs and {} chunks (freed disk {} / raw {})'.format(
+			backup_info.id, bds.blob_count, bds.chunk_count, ByteCount(bds.freed_disk_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
 		))
 		return DeleteBackupResult(backup_info, bds)

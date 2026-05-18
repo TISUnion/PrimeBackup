@@ -26,6 +26,7 @@ from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.scan_unknown_blob_files import ScanUnknownBlobFilesAction
 from prime_backup.action.scan_unknown_chunk_files import ScanUnknownChunkFilesAction
+from prime_backup.action.scan_unknown_pack_files import ScanUnknownPackFilesAction
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
 from prime_backup.action.validate_backups_action import ValidateBackupsAction
 from prime_backup.action.validate_blob_chunk_group_bindings_action import ValidateBlobChunkGroupBindingsAction
@@ -35,6 +36,7 @@ from prime_backup.action.validate_chunk_groups_action import ValidateChunkGroups
 from prime_backup.action.validate_chunks_action import ValidateChunksAction
 from prime_backup.action.validate_files_action import ValidateFilesAction
 from prime_backup.action.validate_filesets_action import ValidateFilesetsAction
+from prime_backup.action.validate_packs_action import ValidatePacksAction
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.backup_config import ChunkingRule
 from prime_backup.config.config import Config
@@ -563,6 +565,7 @@ class FuzzyRunTestCase(unittest.TestCase):
 				# Validate database
 				validate_results: Dict[str, _WithBadField] = {
 					'ValidateBlobsAction': ValidateBlobsAction().run(),
+					'ValidatePacksAction': ValidatePacksAction().run(),
 					'ValidateChunkGroupsAction': ValidateChunkGroupsAction().run(),
 					'ValidateChunksAction': ValidateChunksAction().run(),
 					'ValidateChunkGroupChunkBindingsAction': ValidateChunkGroupChunkBindingsAction().run(),
@@ -589,6 +592,10 @@ class FuzzyRunTestCase(unittest.TestCase):
 				for uc in r_uc.samples:
 					self.logger.info(str(uc))
 				self.assertEqual(0, r_uc.count, 'ScanUnknownChunkFilesAction found {} unknown chunk files'.format(r_uc.count))
+				r_up = ScanUnknownPackFilesAction(delete=False, result_sample_limit=100).run()
+				for up in r_up.samples:
+					self.logger.info(str(up))
+				self.assertEqual(0, r_up.count, 'ScanUnknownPackFilesAction found {} unknown pack files'.format(r_up.count))
 
 				# tidying
 				VacuumSqliteAction().run()

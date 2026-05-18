@@ -15,14 +15,17 @@ class ShowDbOverviewTask(LightTask[None]):
 
 	@override
 	def run(self) -> None:
-		def make_section(key: str):
+		def make_section(key: str) -> RTextBase:
 			return RTextList('[', self.tr(key), ']').set_color(RColor.light_purple)
 
-		def make_size(size: int):
+		def make_size(size: int) -> RTextBase:
 			return TextComponents.file_size(size).h(f'{size} bytes')
 
 		def make_compression_ratio(size_stored: int, size_raw: int) -> RTextBase:
 			return TextComponents.percent(size_stored, size_raw, ndigits=2).h(self.tr('compression_ratio'))
+
+		def make_pack_live_size_ratio(live_size: int, pack_size: int) -> RTextBase:
+			return TextComponents.percent(live_size, pack_size, ndigits=2).h(self.tr('pack_live_size_ratio'))
 
 		def reply_tr_dedup_stats(tr_key: str, count_deduped: int, count_raw_total: int, size_deduped: int, size_raw_total: int):
 			count_saved = count_raw_total - count_deduped
@@ -34,7 +37,7 @@ class ShowDbOverviewTask(LightTask[None]):
 			)
 
 		result = GetDbOverviewAction().run()
-		blob_store_stored_size_sum = result.direct_blob_stored_size_sum + result.chunk_stored_size_sum
+		blob_store_stored_size_sum = result.direct_blob_stored_size_sum + result.pack_size_sum
 		blob_store_raw_size_sum = result.direct_blob_raw_size_sum + result.chunk_raw_size_sum
 
 		self.reply(TextComponents.title(self.tr('title')))
@@ -69,3 +72,9 @@ class ShowDbOverviewTask(LightTask[None]):
 		self.reply_tr('chunk_stored_size', make_size(result.chunk_stored_size_sum), make_compression_ratio(result.chunk_stored_size_sum, result.chunk_raw_size_sum))
 		self.reply_tr('chunk_raw_size', make_size(result.chunk_raw_size_sum))
 		reply_tr_dedup_stats('chunk_dedup_stats', result.chunk_count, result.chunk_group_chunk_binding_count, result.chunk_raw_size_sum, result.chunked_blob_raw_size_sum)
+
+		self.reply(make_section('section_pack'))
+		self.reply_tr('pack_count', TextComponents.number(result.pack_count))
+		self.reply_tr('pack_size', make_size(result.pack_size_sum))
+		self.reply_tr('pack_live_size', make_size(result.pack_live_size_sum), make_pack_live_size_ratio(result.pack_live_size_sum, result.pack_size_sum))
+		self.reply_tr('pack_live_count', TextComponents.number(result.pack_live_count_sum))

@@ -17,6 +17,7 @@ from prime_backup.action.validate_chunk_objects_action import ValidateChunkObjec
 from prime_backup.action.validate_chunks_action import BadChunkItem, ValidateChunksResult
 from prime_backup.action.validate_files_action import ValidateFilesAction, BadFileItemType
 from prime_backup.action.validate_filesets_action import ValidateFilesetsAction, BadFilesetItemType
+from prime_backup.action.validate_packs_action import BadPackItem, ValidatePacksAction
 from prime_backup.mcdr.task.basic_task import HeavyTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.file_info import FileInfo
@@ -25,6 +26,7 @@ from prime_backup.utils import log_utils
 
 
 class ValidatePart(enum.Flag):
+	packs = enum.auto()
 	blobs = enum.auto()
 	chunks = enum.auto()
 	files = enum.auto()
@@ -133,6 +135,23 @@ class ValidateDbTask(HeavyTask[None]):
 			self.reply_tr(f'validate_chunks.chunk.bad_type.{bad_type.name}', TextComponents.number(len(bad_items)))
 			self.__show_bad_objects(vlogger, bad_items, item_formatter)
 		return False, result.validated
+
+	def __validate_packs(self, vlogger: logging.Logger) -> bool:
+		result = self.run_action(ValidatePacksAction())
+
+		vlogger.info('Validate packs result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
+		if result.ok == result.validated:
+			self.reply(self.tr('validate_packs.all_ok', TextComponents.number(result.validated)).set_color(RColor.green))
+			return True
+
+		self.reply(self.tr('validate_packs.found_bad_packs', TextComponents.number(result.bad), TextComponents.number(result.validated)).set_color(RColor.red))
+		for bad_type, bad_items in result.group_bad_by_type().items():
+			def item_formatter(item: BadPackItem) -> str:
+				return f'id={item.pack.id} name={item.pack.name}: {item.desc}'
+			vlogger.info('bad pack with category {!r} (len={})'.format(bad_type.name, len(bad_items)))
+			self.reply_tr(f'validate_packs.bad_type.{bad_type.name}', TextComponents.number(len(bad_items)))
+			self.__show_bad_objects(vlogger, bad_items, item_formatter)
+		return False
 
 	def __validate_chunk_groups(self, result: ValidateChunkGroupsResult, vlogger: logging.Logger) -> Tuple[bool, int]:
 		vlogger.info('Validate chunk groups result: total={} validated={} ok={}'.format(result.total, result.validated, result.ok))
@@ -277,6 +296,7 @@ class ValidateDbTask(HeavyTask[None]):
 			validate_logger.info('Validation start, parts: {}'.format(self.parts))
 
 			validators: Dict[ValidatePart, Callable[[log_utils.FileLogger], bool]] = {
+				ValidatePart.packs: self.__validate_packs,
 				ValidatePart.blobs: self.__validate_blobs,
 				ValidatePart.chunks: self.__validate_chunk_objects,
 				ValidatePart.files: self.__validate_files,

@@ -34,6 +34,10 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 			return '{:.2f}%'.format(100 * numerator / denominator)
 		return 'N/A'
 
+	@classmethod
+	def __live_size_ratio_str(cls, live_size: int, pack_size: int) -> str:
+		return cls.__ratio_str(live_size, pack_size)
+
 	@staticmethod
 	def __one_dedupe_str(ratio: Any, count_saved: Any, count_total: Any) -> str:
 		return '-{} ({} / {})'.format(ratio, count_saved, count_total)
@@ -48,7 +52,7 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 	def handle(self):
 		self.init_environment_from_args(self.args)
 		result = GetDbOverviewAction().run()
-		blob_store_stored_size_sum = result.direct_blob_stored_size_sum + result.chunk_stored_size_sum
+		blob_store_stored_size_sum = result.direct_blob_stored_size_sum + result.pack_size_sum
 		blob_store_raw_size_sum = result.direct_blob_raw_size_sum + result.chunk_raw_size_sum
 
 		self.logger.info('======== Database overview ========')
@@ -81,6 +85,12 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 		self.logger.info('Chunk raw size sum: %s', self.__size_str(result.chunk_raw_size_sum))
 		chunk_count_str, chunk_size_str = self.__dedup_stat_str(result.chunk_count, result.chunk_group_chunk_binding_count, result.chunk_raw_size_sum, result.chunked_blob_raw_size_sum)
 		self.logger.info('Chunk dedup stats: count %s, size %s', chunk_count_str, chunk_size_str)
+
+		self.logger.info('[Pack]')
+		self.logger.info('Pack count: %s', result.pack_count)
+		self.logger.info('Pack file size sum: %s', self.__size_str(result.pack_size_sum))
+		self.logger.info('Pack live size sum: %s (%s)', self.__size_str(result.pack_live_size_sum), self.__live_size_ratio_str(result.pack_live_size_sum, result.pack_size_sum))
+		self.logger.info('Pack live entry count: %s', result.pack_live_count_sum)
 
 
 class DbOverviewCommandAdapter(CliCommandAdapterBase):

@@ -10,12 +10,13 @@ from typing_extensions import Optional, override
 
 from prime_backup import logger
 from prime_backup.action.get_chunk_action import GetBlobChunksAction
+from prime_backup.action.helpers.chunk_io import ChunkIO
 from prime_backup.cli.fuse.utils import fuse_operation_wrapper, FuseErrnoReturnError
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.types.blob_info import BlobInfo
 from prime_backup.types.chunk_info import OffsetChunkInfo, ChunkInfo
-from prime_backup.utils import blob_utils, chunk_utils
+from prime_backup.utils import blob_utils
 
 
 class _FileReader(ABC):
@@ -69,7 +70,7 @@ class _SingleFileReader(_FileReader):
 
 	@classmethod
 	def create_from_chunk(cls, chunk: ChunkInfo) -> '_SingleFileReader':
-		return _SingleFileReader.create_from_file(chunk_utils.get_chunk_path(chunk.hash), chunk.compress)
+		return _SingleFileReader(cast(AbstractContextManager[IO[bytes]], ChunkIO(chunk).open_decompressed()))
 
 
 class _MultiFileReader(_FileReader):

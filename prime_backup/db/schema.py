@@ -33,6 +33,21 @@ class DbMeta(Base):
 	hash_method: Mapped[str] = mapped_column(String)
 
 
+class Pack(Base):
+	__tablename__ = 'pack'
+	__table_args__ = {'sqlite_autoincrement': True}
+
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+	name: Mapped[str] = mapped_column(String, unique=True)  # unique uuid hex, without dashes
+
+	size: Mapped[int] = mapped_column(BigInteger)  # file size
+	count: Mapped[int] = mapped_column(Integer)  # entry count
+	live_size: Mapped[int] = mapped_column(BigInteger)  # live entries size sum
+	live_count: Mapped[int] = mapped_column(Integer)  # live entry count
+
+	__fields_end__: bool
+
+
 class Blob(Base):
 	__tablename__ = 'blob'
 	__table_args__ = {'sqlite_autoincrement': True}
@@ -58,7 +73,13 @@ class Chunk(Base):
 	raw_size: Mapped[int] = mapped_column(BigInteger)
 	stored_size: Mapped[int] = mapped_column(BigInteger)
 
+	# pack entry location
+	pack_id: Mapped[int] = mapped_column(ForeignKey('pack.id'), index=True)
+	pack_offset: Mapped[int] = mapped_column(BigInteger)
+
 	__fields_end__: bool
+
+	pack: Mapped['Pack'] = relationship(viewonly=True, foreign_keys=[pack_id], lazy='selectin')
 
 
 class ChunkGroup(Base):

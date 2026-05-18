@@ -18,6 +18,17 @@ if db_utils.check_sqlite_without_rowid():
 
 class _V4:
 	Base = declarative_base()
+	Pack = Table(
+		'pack',
+		Base.metadata,
+		Column('id', Integer, primary_key=True, autoincrement=True),
+		Column('name', String, unique=True, nullable=False),
+		Column('size', BigInteger, nullable=False),
+		Column('count', Integer, nullable=False),
+		Column('live_size', BigInteger, nullable=False),
+		Column('live_count', Integer, nullable=False),
+		sqlite_autoincrement=True,
+	)
 	Blob = Table(
 		'blob',
 		Base.metadata,
@@ -37,6 +48,8 @@ class _V4:
 		Column('compress', String, nullable=False),
 		Column('raw_size', BigInteger, nullable=False),
 		Column('stored_size', BigInteger, nullable=False),
+		Column('pack_id', Integer, ForeignKey('pack.id'), index=True, nullable=False),
+		Column('pack_offset', BigInteger, nullable=False),
 		sqlite_autoincrement=True,
 	)
 	ChunkGroup = Table(
@@ -164,6 +177,7 @@ class MigrationImpl3To4(MigrationImplBase):
 		self.logger.info('Creating the new chunk tables')
 		_V4.Base.metadata.create_all(self.engine, tables=[
 			_V4.Blob,
+			_V4.Pack,
 			_V4.Chunk,
 			_V4.ChunkGroup,
 			_V4.ChunkGroupChunkBinding,

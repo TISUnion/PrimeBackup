@@ -233,6 +233,17 @@ prime_backup:
       compress: 'Compress: {}'
       raw_size: 'Raw size: {} ({})'
       stored_size: 'Stored size: {} ({})'
+      pack: 'Pack: {}, ID {}, offset {}'
+    db_inspect_pack:
+      name: inspect pack
+      title: 'Pack {}'
+      id: 'ID: {}'
+      pack_name: 'Name: {}'
+      size: 'File size: {} ({})'
+      count: 'Entry count: {}'
+      live_size: 'Live size: {} ({}, {})'
+      live_count: 'Live entry count: {} ({})'
+      file_path: 'File path: {}'
     db_inspect_chunk_group:
       name: inspect chunk group
       title: 'Chunk group {}'
@@ -279,6 +290,7 @@ prime_backup:
         blob_hash: Click to inspect blob {}
         chunk_hash: Click to inspect chunk {}
         chunk_group_hash: Click to inspect chunk group {}
+        pack_name: Click to inspect pack {}
     db_migrate_compress_method:
       name: migrate compress method
       missing_library:
@@ -333,10 +345,16 @@ prime_backup:
       chunk_stored_size: 'Chunk stored size sum: {} ({})'
       chunk_raw_size: 'Chunk raw size sum: {}'
       chunk_dedup_stats: 'Chunk dedup stats: count {}, size {}'
+      section_pack: Pack
+      pack_count: 'Pack count: {}'
+      pack_size: 'Pack file size sum: {}'
+      pack_live_size: 'Pack live size sum: {} ({})'
+      pack_live_size_ratio: live size / pack file size
+      pack_live_count: 'Pack live entry count: {}'
     db_prune:
       name: prune database
       start: Pruning database, deleting useless objects inside, please wait...
-      done: Pruning done, deleted {} orphan objects (including {} blobs, {} files and {} filesets), {} unused fileset files, {} unknown blob files, {} unknown chunk files
+      done: Pruning done, deleted {} orphan objects (including {} blobs, {} files and {} filesets), {} unused fileset files, {} unknown blob files, {} unknown chunk files, compacted {} packs and freed {} bytes, deleted {} unknown pack files
       done_clean: Pruning done, deleted 0 object, the database is already clean
     db_vacuum:
       name: tidy up database
@@ -346,6 +364,7 @@ prime_backup:
       name: validate database
       nothing_to_validate: Nothing is requested to be validated
       part:
+        packs: packs
         blobs: blobs
         chunks: chunks
         files: files
@@ -373,7 +392,9 @@ prime_backup:
           bad_type:
             invalid: 'Invalid chunk meta: {}'
             orphan: 'Orphan chunk: {}'
-            missing_file: 'Missing chunk file: {}'
+            missing_pack: 'Missing pack relationship: {}'
+            missing_file: 'Missing pack file: {}'
+            bad_pack_entry: 'Bad pack entry: {}'
             corrupted: 'Corrupted chunk file: {}'
             mismatched: 'Chunk stats mismatched: {}'
         chunk_group:
@@ -392,6 +413,13 @@ prime_backup:
           bad_type:
             orphan: 'Orphan blob chunk group binding: {}'
             bad_storage_method: 'Unexpected blob storage_method: {}'
+      validate_packs:
+        .: Start validating packs, please wait...
+        all_ok: All {} packs are healthy
+        found_bad_packs: Found {} / {} bad packs in total
+        bad_type:
+          missing_file: 'Missing pack file: {}'
+          mismatched: 'Pack stats mismatched: {}'
       validate_files:
         .: Start validating files (including file, directory and symlink), please wait...
         done: Validated {} / {} files
@@ -493,6 +521,7 @@ prime_backup:
           §7{prefix} database inspect blob §d<id_or_hash>§r: Inspect the internal data of the given blob
           §7{prefix} database inspect chunk §d<id_or_hash>§r: Inspect the internal data of the given chunk
           §7{prefix} database inspect chunk_group §d<id_or_hash>§r: Inspect the internal data of the given chunk group
+          §7{prefix} database inspect pack §d<id_or_name>§r: Inspect the internal data of the given pack
           §7{prefix} database delete file §6<backup_id> §3<file_path> §7[--recursive]§r: Delete given file in the given backup. If §7[--recursive]§r and it's a directory, delete everything inside it
           §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database. Might take a long time
           §7{prefix} database vacuum§r: Compact the SQLite database manually, to reduce the size of the database file
@@ -508,6 +537,7 @@ prime_backup:
           §d<hash_method>§r: Available options: {hash_methods}
           §3<reassign_backup_order>§r: Sort order for ID reassignment. Available options: id, id_r, time, time_r
           §a<part>§r: 
+          - §apacks§r: Validate the correctness of packs, e.g. pack file size
           - §ablobs§r: Validate the correctness of blobs, e.g. data size, hash value
           - §afiles§r: Validate the correctness of file objects, e.g. the association between files and blobs
           - §afilesets§r: Validate the correctness of fileset objects, e.g. the association between filesets and their files
@@ -629,6 +659,9 @@ prime_backup:
     chunk_group_hash_not_found: Chunk group with hash {} does not exist
     chunk_group_hash_not_unique: 'The given hash {} cannot uniquely identify a chunk group'
     chunk_group_hash_not_unique.candidates: 'Found at least {} candidates: {}'
+    pack_id_not_found: Pack with id {} does not exist
+    pack_name_not_found: Pack with name {} does not exist
+    pack_name_not_unique: 'The given name {} cannot uniquely identify a pack. Candidates: {}'
     db_locked: Task {} execution error cuz the database is locked. Please retry later
     initializing: Plugin initializing
     disabled: Plugin disabled
@@ -669,9 +702,10 @@ prime_backup:
       hover_creator: 'Creator: {}'
       hover_click_hint: Click to show details
     blob_delta_summary:
-      total_blobs: 'Total blobs: {} ({} / {})'
+      total_blobs: 'Total blobs: {} ({} / {}, disk touched {})'
       direct_blobs: 'Direct blobs: {} ({} / {})'
       chunks: 'Chunks: {} ({} / {})'
+      pack_gc: 'Pack GC: {} packs, {} -> {}, freed {}'
     blob_storage_method:
       unknown: unknown
       direct: direct

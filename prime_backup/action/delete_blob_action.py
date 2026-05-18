@@ -79,7 +79,8 @@ class DeleteBlobsAction(Action[BlobDeltaSummary]):
 
 				session.delete_blobs_by_ids(list(all_to_delete_blobs.keys()))
 				if len(affected_chunk_group_ids) > 0:
-					chunk_group_summary = DeleteOrphanChunkGroupsAction(ids=affected_chunk_group_ids.keys()).run(session=session)
+					action = DeleteOrphanChunkGroupsAction(ids=affected_chunk_group_ids.keys())
+					chunk_group_summary = action.run(session=session)
 				else:
 					session.commit()
 			else:
@@ -93,7 +94,7 @@ class DeleteBlobsAction(Action[BlobDeltaSummary]):
 			self.logger.error('Found {} blob erasing failures in total'.format(len(errors)))
 			raise errors[0]
 
-		return BlobDeltaSummary.of(list(all_to_delete_blobs.values()), chunk_group_summary.chunk_summary)
+		return BlobDeltaSummary.of(list(all_to_delete_blobs.values()), chunk_group_summary.chunk_summary, packs=chunk_group_summary.chunk_summary.packs)
 
 	def __collect_blobs_to_delete(self, session: DbSession) -> Dict[int, BlobInfo]:
 		self_blob_ids_set = set(self.blob_ids)

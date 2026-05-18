@@ -60,4 +60,4 @@ class DeleteBackupFileTask(HeavyTask[None]):
 			self.__reply_cannot_delete_dir()
 			return
 
-		self.reply_tr('done', TextComponents.backup_id(self.backup_id), TextComponents.file_name(self.file_path), TextComponents.file_size(bds.stored_size))
+		self.reply_tr('done', TextComponents.backup_id(self.backup_id), TextComponents.file_name(self.file_path), TextComponents.blob_delta_summary(bds))

@@ -12,6 +12,7 @@ from prime_backup.utils import misc_utils
 if TYPE_CHECKING:
 	from prime_backup.types.chunk_info import ChunkListSummary, ChunkInfo
 	from prime_backup.types.file_info import FileInfo
+	from prime_backup.types.pack_info import PackChangeSummary
 
 
 @dataclasses.dataclass(frozen=True)
@@ -95,23 +96,28 @@ class BlobDeltaSummary:
 	direct_blobs: BlobListSummary
 	chunked_blobs: BlobListSummary
 	chunks: 'ChunkListSummary'
+	packs: 'PackChangeSummary'
 
 	@classmethod
 	def zero(cls) -> 'BlobDeltaSummary':
 		from prime_backup.types.chunk_info import ChunkListSummary
+		from prime_backup.types.pack_info import PackChangeSummary
 		return BlobDeltaSummary(
 			chunked_blobs=BlobListSummary.zero(),
 			direct_blobs=BlobListSummary.zero(),
 			chunks=ChunkListSummary.zero(),
+			packs=PackChangeSummary.zero(),
 		)
 
 	@classmethod
-	def of(cls, new_blobs: Sequence[BlobInfo], new_chunks: Union[Sequence['ChunkInfo'], 'ChunkListSummary']) -> 'BlobDeltaSummary':
+	def of(cls, new_blobs: Sequence[BlobInfo], new_chunks: Union[Sequence['ChunkInfo'], 'ChunkListSummary'], *, packs: Optional['PackChangeSummary'] = None) -> 'BlobDeltaSummary':
 		from prime_backup.types.chunk_info import ChunkListSummary
+		from prime_backup.types.pack_info import PackChangeSummary
 		return BlobDeltaSummary(
 			direct_blobs=BlobListSummary.of(blob for blob in new_blobs if blob.storage_method == BlobStorageMethod.direct),
 			chunked_blobs=BlobListSummary.of(blob for blob in new_blobs if blob.storage_method == BlobStorageMethod.chunked),
 			chunks=new_chunks if isinstance(new_chunks, ChunkListSummary) else ChunkListSummary.of(new_chunks),
+			packs=packs or PackChangeSummary.zero(),
 		)
 
 	@property
@@ -134,10 +140,23 @@ class BlobDeltaSummary:
 	def stored_size(self) -> int:
 		return self.direct_blobs.stored_size + self.chunks.stored_size
 
+	@property
+	def disk_size(self) -> int:
+		return self.created_disk_size
+
+	@property
+	def created_disk_size(self) -> int:
+		return self.direct_blobs.stored_size + self.packs.created_size
+
+	@property
+	def freed_disk_size(self) -> int:
+		return self.direct_blobs.stored_size + self.packs.freed_size_clamped
+
 	def __add__(self, other: 'BlobDeltaSummary') -> 'BlobDeltaSummary':
 		misc_utils.ensure_type(other, type(self))
 		return BlobDeltaSummary(
 			direct_blobs=self.direct_blobs + other.direct_blobs,
 			chunked_blobs=self.chunked_blobs + other.chunked_blobs,
 			chunks=self.chunks + other.chunks,
+			packs=self.packs + other.packs,
 		)

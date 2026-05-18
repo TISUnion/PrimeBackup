@@ -4,14 +4,14 @@ import functools
 import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Callable, Any, List, Generator, Union
+from typing import Optional, Callable, Any, List, Generator
 
 from typing_extensions import override
 
 from prime_backup import logger
+from prime_backup.action.helpers.chunk_io import ChunkIO
 from prime_backup.compressors import CompressMethod
 from prime_backup.compressors import Compressor
-from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import VerificationError
@@ -37,7 +37,7 @@ class ThreadSafeBlobChunksGetter(BlobChunksGetter):
 	@override
 	def get(self, blob_id: int) -> List[OffsetChunkInfo]:
 		with self.lock:
-			return [OffsetChunkInfo.of(oc) for oc in self.session.get_blob_chunks(blob_id)]
+			return [OffsetChunkInfo.of(oc) for oc in self.session.get_blob_chunks(blob_id, with_pack_name=True)]
 
 
 class _PeekReader:
@@ -172,10 +172,8 @@ class BlobExporter:
 
 		with open(output_path, 'wb') as f_out:
 			for oc in blob_chunks:
-				compressor = Compressor.create(oc.chunk.compress)
-				chunk_path = chunk_utils.get_chunk_path(oc.chunk.hash)
 				bypass_reader: Optional[BypassReader] = None
-				with compressor.open_decompressed(chunk_path) as f_in:
+				with ChunkIO(oc.chunk).open_decompressed() as f_in:
 					if self.verify_blob:
 						bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=chunk_utils.get_hash_method())
 						file_utils.copy_file_obj_fast(bypass_reader, f_out, estimate_read_size=oc.chunk.raw_size)
@@ -221,15 +219,12 @@ class BlobExporter:
 
 		def open_chunk_gen() -> Generator[_OpenedChunk, None, None]:
 			for oc in blob_chunks:
-				compressor = Compressor.create(oc.chunk.compress)
-				chunk_path = chunk_utils.get_chunk_path(oc.chunk.hash)
-
-				with compressor.open_decompressed(chunk_path) as f_in:
+				with ChunkIO(oc.chunk).open_decompressed() as f_in:
 					try:
 						peek_reader = _PeekReader(f_in, 32 * 1024)
 						peek_reader.peek()
 					except Exception as e:
-						self.logger.error(f'Failed to peek-read chunk file {chunk_path!r} for {oc}: {e}')
+						self.logger.error(f'Failed to peek-read chunk {oc.chunk.hash} in pack entry {oc.chunk.pack_entry.pack_name}@{oc.chunk.pack_entry.pack_offset} for {oc}: {e}')
 						raise
 
 					if self.verify_blob:
@@ -257,7 +252,7 @@ class BlobExporter:
 	def __verify_exported_blob(self, written_size: int, written_hash: str):
 		self.__verify_exported_data(lambda: 'blob', self.blob.raw_size, self.blob.hash, written_size, written_hash)
 
-	def __verify_exported_chunk(self, chunk: Union[schema.Chunk, ChunkInfo], written_size: int, written_hash: str):
+	def __verify_exported_chunk(self, chunk: ChunkInfo, written_size: int, written_hash: str):
 		self.__verify_exported_data(lambda: f'chunk {chunk.hash}', chunk.raw_size, chunk.hash, written_size, written_hash)
 
 	def __verify_exported_data(self, what: Callable[[], str], expected_size: int, expected_hash: str, written_size: int, written_hash: str):

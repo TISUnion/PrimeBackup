@@ -162,11 +162,21 @@ class TextComponents:
 
 	@classmethod
 	def blob_delta_summary(cls, bds: BlobDeltaSummary) -> RTextBase:
-		return cls.file_size(bds.raw_size).h(RTextBase.join('\n', [
-			cls.tr('blob_delta_summary.total_blobs', cls.number(bds.blob_count), cls.file_size(bds.blobs.raw_size), cls.file_size(bds.blobs.stored_size)),
+		disk_size = max(bds.created_disk_size, bds.freed_disk_size)
+		lines = [
+			cls.tr('blob_delta_summary.total_blobs', cls.number(bds.blob_count), cls.file_size(bds.blobs.raw_size), cls.file_size(bds.blobs.stored_size), cls.file_size(disk_size)),
 			cls.tr('blob_delta_summary.direct_blobs', cls.number(bds.direct_blobs.count), cls.file_size(bds.direct_blobs.raw_size), cls.file_size(bds.direct_blobs.stored_size)),
 			cls.tr('blob_delta_summary.chunks', cls.number(bds.chunks.count), cls.file_size(bds.chunks.raw_size), cls.file_size(bds.chunks.stored_size)),
-		]))
+		]
+		if bds.packs.touched_pack_count > 0:
+			lines.append(cls.tr(
+				'blob_delta_summary.pack_gc',
+				cls.number(bds.packs.touched_pack_count),
+				cls.file_size(bds.packs.old_size),
+				cls.file_size(bds.packs.new_size),
+				cls.file_size(bds.packs.freed_size_clamped),
+			))
+		return cls.file_size(disk_size).h(RTextBase.join('\n', lines))
 
 	@classmethod
 	def blob_hash(cls, blob_hash: str, *, shorten_hash: bool = False) -> RTextBase:

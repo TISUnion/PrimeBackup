@@ -15,6 +15,7 @@ from prime_backup.action.helpers.blob_allocator import BlobAllocator, GetOrCreat
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
+from prime_backup.action.helpers.pack_writer import PackWriter
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
@@ -339,7 +340,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			blob=blob,
 		)
 
-	def __create_backup(self, session_context: ContextManager[DbSession], session: DbSession, blob_recorder: BlobRecorder) -> BackupInfo:
+	def __create_backup(self, session_context: ContextManager[DbSession], session: DbSession, pack_writer: PackWriter, blob_recorder: BlobRecorder) -> BackupInfo:
 		def pre_calc_result_getter(src_path: Path) -> Optional[BlobPrecalculateResult]:
 			return self.__pre_calc_result.hashes_and_chunks.pop(src_path, None)  # one-time use
 
@@ -354,6 +355,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			temp_path=self.__temp_path,
 			pre_calc_result_getter=pre_calc_result_getter,
 			previous_chunks_getter=previous_chunks_getter,
+			pack_writer=pack_writer,
 		)
 
 		self.logger.info('Scanning file for backup creation at path {!r}, targets: {}'.format(
@@ -398,6 +400,7 @@ class CreateBackupAction(Action[BackupInfo]):
 
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_finalize):
 			BackupFinalizer(session).finalize_files_and_backup(backup, files)
+		pack_writer.close()
 		info = BackupInfo.of(backup)
 
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_flush_db, CreateBackupTimeCostKey.kind_db):
@@ -415,18 +418,21 @@ class CreateBackupAction(Action[BackupInfo]):
 			pass
 		action_start_ts = time.time()
 
-		blob_recorder = BlobRecorder()
+		blob_recorder: Optional[BlobRecorder] = None
 		try:
 			session_context = DbAccess.open_session()
 			with session_context as session:
-				info = self.__create_backup(session_context, session, blob_recorder)
+				pack_writer = PackWriter(session)
+				blob_recorder = BlobRecorder(pack_writer)
+				info = self.__create_backup(session_context, session, pack_writer, blob_recorder)
 		except Exception as e:
-			blob_recorder.apply_file_rollback()
+			if blob_recorder is not None:
+				blob_recorder.apply_file_rollback()
 			raise e
 
 		bds = blob_recorder.get_blob_storage_delta()
-		self.logger.info('Create backup #{} done, added {} blobs and {} chunks (size {} / {})'.format(
-			info.id, bds.blobs.count, bds.chunks.count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
+		self.logger.info('Create backup #{} done, added {} blobs and {} chunks (size {} / {}, disk +{})'.format(
+			info.id, bds.blobs.count, bds.chunks.count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(), ByteCount(bds.created_disk_size).auto_str(),
 		))
 		self.__log_costs(time.time() - action_start_ts)
 

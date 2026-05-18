@@ -9,8 +9,9 @@ import os
 import threading
 import time
 from abc import ABC, abstractmethod
+from concurrent.futures import Future
 from pathlib import Path
-from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, overload, Deque, ContextManager
+from typing import List, Optional, Tuple, Callable, Any, Dict, Generator, Union, Set, overload, Deque, ContextManager, TYPE_CHECKING, cast
 
 from typing_extensions import NoReturn, override
 
@@ -25,13 +26,17 @@ from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import PrimeBackupError
+from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.chunker import PrettyChunk
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, chunk_utils
+from prime_backup.utils import hash_utils, misc_utils, blob_utils, file_utils, chunk_utils, pack_utils
 from prime_backup.utils.hash_utils import SizeAndHash
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 from prime_backup.utils.time_cost_stats import TimeCostStats
+
+if TYPE_CHECKING:
+	from prime_backup.action.helpers.pack_writer import PackWriter
 
 
 class VolatileBlobFile(PrimeBackupError):
@@ -220,6 +225,12 @@ class GetOrCreateBlobResult:
 	st: os.stat_result
 
 
+@dataclasses.dataclass(frozen=True)
+class _CompressedChunk:
+	chunk: schema.Chunk
+	data: bytes
+
+
 class BlobAllocator:
 	def __init__(
 			self,
@@ -230,6 +241,7 @@ class BlobAllocator:
 			temp_path: Path,
 			pre_calc_result_getter: Callable[[Path], Optional[BlobPrecalculateResult]],
 			previous_chunks_getter: Callable[[Path], Optional[List[PrettyChunk]]],
+			pack_writer: 'PackWriter',
 	):
 		from prime_backup import logger
 		from prime_backup.config.config import Config
@@ -238,6 +250,7 @@ class BlobAllocator:
 
 		self.session = session
 		self.__time_costs = time_costs
+		self.__pack_writer = pack_writer
 		self.__blob_recorder = blob_recorder
 		self.__source_path = source_path
 		self.__temp_path = temp_path
@@ -502,13 +515,29 @@ class BlobAllocator:
 				known_db_chunks = self.session.get_chunks_by_hashes_opt([chunk.hash for chunk in chunks])
 			new_db_chunks: List[schema.Chunk] = []
 			offset_to_db_chunk: Dict[int, schema.Chunk] = {}
-			with open(actual_path_to_read, 'rb') as src_file, FailFastBlockingThreadPool('chunk_write') as pool:
+			compressed_chunk_futures: List['Future[_CompressedChunk]'] = []
+			max_pending_compressed_chunks = 10
+			max_pending_compressed_chunk_bytes = 32 * 1024 * 1024
+			pending_compressed_chunk_bytes = 0
+
+			def flush_compressed_chunk_futures(force: bool):
+				nonlocal pending_compressed_chunk_bytes
+				while len(compressed_chunk_futures) > 0 and (force or len(compressed_chunk_futures) >= max_pending_compressed_chunks or pending_compressed_chunk_bytes >= max_pending_compressed_chunk_bytes):
+					compressed_chunk = compressed_chunk_futures.pop(0).result()
+					pending_compressed_chunk_bytes -= compressed_chunk.chunk.raw_size
+					entry_location = self.__pack_writer.write_pack_entry(compressed_chunk.data)
+					compressed_chunk.chunk.stored_size = len(compressed_chunk.data)
+					compressed_chunk.chunk.pack_id = entry_location.pack_id
+					compressed_chunk.chunk.pack_offset = entry_location.pack_offset
+
+			with open(actual_path_to_read, 'rb') as src_file, FailFastBlockingThreadPool('chunk_compress') as pool:
 				offset = 0
 				for chunk in chunks:
 					misc_utils.assert_true(offset == chunk.offset, lambda: f'offset mismatch {offset} {chunk.offset}')
 					misc_utils.assert_true(chunk.length > 0, lambda: 'chunk with zero length')
 
-					if (db_chunk := known_db_chunks[chunk.hash]) is None:
+					db_chunk = known_db_chunks[chunk.hash]
+					if db_chunk is None:
 						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
 							chunk_buf = src_file.read(chunk.length)
 						if len(chunk_buf) != chunk.length:
@@ -524,23 +553,25 @@ class BlobAllocator:
 							hash=chunk.hash,
 							compress=compress_method.name,
 							raw_size=len(chunk_buf),
+							# following fields are filled in write_task()
 							stored_size=-1,
+							pack_id=-1,
+							pack_offset=-1,
 						)
 						new_db_chunks.append(db_chunk)
 						known_db_chunks[db_chunk.hash] = db_chunk
 
-						def write_task(db_chunk_=db_chunk, compressor_=compressor, chunk_buf_=chunk_buf):
-							# WARNING: cannot reference any not-captured locals since they might be modified in other thread
-							chunk_path = chunk_utils.get_chunk_path(db_chunk_.hash)
-							self.__blob_recorder.add_remove_file_rollbacker(chunk_path)
+						db_chunk_to_compress = db_chunk
+						db_chunk_for_write = cast(schema.Chunk, db_chunk_to_compress)
 
-							with compressor_.open_compressed_bypassed(chunk_path) as (writer, f):
-								f.write(chunk_buf_)
-
-							db_chunk_.stored_size = writer.get_write_len()
+						def write_task(db_chunk_: schema.Chunk = db_chunk_for_write, compressor_: Compressor = compressor, chunk_buf_: bytes = chunk_buf) -> _CompressedChunk:
+							compressed = compressor_.compress_bytes(chunk_buf_)
+							return _CompressedChunk(db_chunk_, compressed)
 
 						with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
-							pool.submit(write_task)
+							compressed_chunk_futures.append(pool.submit(write_task))
+							pending_compressed_chunk_bytes += db_chunk.raw_size
+							flush_compressed_chunk_futures(False)
 					else:
 						if src_file.seekable():
 							src_file.seek(offset + chunk.length)
@@ -558,6 +589,7 @@ class BlobAllocator:
 
 				with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
 					pool.wait_and_ensure_no_error()
+					flush_compressed_chunk_futures(True)
 
 				blob_raw_size_sum = 0
 				blob_stored_size_sum = sum({db_chunk.hash: db_chunk.stored_size for db_chunk in offset_to_db_chunk.values()}.values())
@@ -588,7 +620,7 @@ class BlobAllocator:
 
 		for new_db_chunk in new_db_chunks:
 			misc_utils.assert_true(new_db_chunk.stored_size >= 0, lambda: f'bad stored_size {new_db_chunk}')
-			self.__blob_recorder.record_chunk(new_db_chunk)
+			self.__blob_recorder.record_new_chunk(ChunkInfo.of(new_db_chunk))
 			self.session.add(new_db_chunk)
 		blob = self.__blob_recorder.create_blob(
 			self.session,
@@ -681,7 +713,7 @@ class BlobAllocator:
 	def init_blob_store(self):
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_prepare_blob_store, CreateBackupTimeCostKey.kind_fs):
 			blob_utils.prepare_blob_directories()
-			chunk_utils.prepare_chunk_directories()
+			pack_utils.prepare_pack_directories()
 
 			bs_path = blob_utils.get_blob_store()
 			self.__blob_store_st = bs_path.stat()

@@ -261,9 +261,9 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 						result.freed_blob_delta_summary += dr.delta
 						result.deleted_backup_count += 1
 			for logger in [self.logger, prune_logger]:
-				logger.info('Pruned backup done, deleted {} backups, freed {} blobs and {} chunks ({} / {})'.format(
+				logger.info('Pruned backup done, deleted {} backups, freed {} blobs and {} chunks (freed disk {} / raw {})'.format(
 					result.deleted_backup_count, result.freed_blob_delta_summary.blob_count, result.freed_blob_delta_summary.chunk_count,
-					ByteCount(result.freed_blob_delta_summary.stored_size).auto_str(), ByteCount(result.freed_blob_delta_summary.raw_size).auto_str(),
+					ByteCount(result.freed_blob_delta_summary.freed_disk_size).auto_str(), ByteCount(result.freed_blob_delta_summary.raw_size).auto_str(),
 				))
 
 		if self.verbose >= _PruneVerbose.delete:

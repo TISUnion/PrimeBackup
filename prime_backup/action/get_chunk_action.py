@@ -4,9 +4,16 @@ from typing import List, Optional
 from typing_extensions import override
 
 from prime_backup.action import Action
+from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
+from prime_backup.db.session import DbSession
 from prime_backup.exceptions import ChunkHashNotFound, ChunkHashNotUnique
 from prime_backup.types.chunk_info import OffsetChunkInfo, ChunkInfo
+
+
+def _to_chunk_info_with_pack_name(session: DbSession, chunk: schema.Chunk) -> ChunkInfo:
+	pack = session.get_pack_by_id(chunk.pack_id)
+	return ChunkInfo.of(chunk, pack_name=pack.name)
 
 
 class GetChunkByIdAction(Action[ChunkInfo]):
@@ -21,7 +28,7 @@ class GetChunkByIdAction(Action[ChunkInfo]):
 		"""
 		with DbAccess.open_session() as session:
 			chunk = session.get_chunk_by_id(self.chunk_id)
-			return ChunkInfo.of(chunk)
+			return _to_chunk_info_with_pack_name(session, chunk)
 
 
 class GetChunkByHashAction(Action[ChunkInfo]):
@@ -36,7 +43,7 @@ class GetChunkByHashAction(Action[ChunkInfo]):
 		"""
 		with DbAccess.open_session() as session:
 			chunk = session.get_chunk_by_hash(self.chunk_hash)
-			return ChunkInfo.of(chunk)
+			return _to_chunk_info_with_pack_name(session, chunk)
 
 
 class GetChunkByHashPrefixAction(Action[ChunkInfo]):
@@ -56,8 +63,8 @@ class GetChunkByHashPrefixAction(Action[ChunkInfo]):
 			elif len(chunks) > 1:
 				def get_hash_for_sort(b: 'ChunkInfo'):
 					return b.hash
-				raise ChunkHashNotUnique(self.chunk_hash_prefix, sorted(map(ChunkInfo.of, chunks), key=get_hash_for_sort))
-			return ChunkInfo.of(chunks[0])
+				raise ChunkHashNotUnique(self.chunk_hash_prefix, sorted((_to_chunk_info_with_pack_name(session, chunk) for chunk in chunks), key=get_hash_for_sort))
+			return _to_chunk_info_with_pack_name(session, chunks[0])
 
 
 class GetBlobChunksAction(Action[List[OffsetChunkInfo]]):
@@ -69,7 +76,7 @@ class GetBlobChunksAction(Action[List[OffsetChunkInfo]]):
 	@override
 	def run(self) -> List[OffsetChunkInfo]:
 		with DbAccess.open_session() as session:
-			oc_list = session.get_blob_chunks(self.blob_id, limit=self.limit)
+			oc_list = session.get_blob_chunks(self.blob_id, limit=self.limit, with_pack_name=True)
 			return [OffsetChunkInfo.of(oc) for oc in oc_list]
 
 

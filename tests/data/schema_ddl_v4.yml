@@ -43,7 +43,10 @@ tables:
     	compress VARCHAR NOT NULL, 
     	raw_size BIGINT NOT NULL, 
     	stored_size BIGINT NOT NULL, 
-    	UNIQUE (hash)
+    	pack_id INTEGER NOT NULL, 
+    	pack_offset BIGINT NOT NULL, 
+    	UNIQUE (hash), 
+    	FOREIGN KEY(pack_id) REFERENCES pack (id)
     )
   chunk_group: |-
     CREATE TABLE chunk_group (
@@ -102,6 +105,16 @@ tables:
     	file_raw_size_sum BIGINT NOT NULL, 
     	file_stored_size_sum BIGINT NOT NULL
     )
+  pack: |-
+    CREATE TABLE pack (
+    	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+    	name VARCHAR NOT NULL, 
+    	size BIGINT NOT NULL, 
+    	count INTEGER NOT NULL, 
+    	live_size BIGINT NOT NULL, 
+    	live_count INTEGER NOT NULL, 
+    	UNIQUE (name)
+    )
 indexes:
   ix_blob_chunk_group_binding_chunk_group_id: |-
     CREATE INDEX ix_blob_chunk_group_binding_chunk_group_id ON blob_chunk_group_binding (chunk_group_id)
@@ -109,6 +122,8 @@ indexes:
     CREATE INDEX ix_blob_raw_size ON blob (raw_size)
   ix_chunk_group_chunk_binding_chunk_id: |-
     CREATE INDEX ix_chunk_group_chunk_binding_chunk_id ON chunk_group_chunk_binding (chunk_id)
+  ix_chunk_pack_id: |-
+    CREATE INDEX ix_chunk_pack_id ON chunk (pack_id)
   ix_file_blob_hash: |-
     CREATE INDEX ix_file_blob_hash ON file (blob_hash)
   ix_file_blob_id: |-

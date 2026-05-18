@@ -34,6 +34,11 @@ class DbOverviewResult:
 	chunk_raw_size_sum: int     # total raw size of all unique chunks
 	chunk_stored_size_sum: int  # total on-disk stored size of all unique chunks
 
+	pack_count: int
+	pack_size_sum: int
+	pack_live_size_sum: int
+	pack_live_count_sum: int
+
 	file_raw_size_sum: int         # total raw size of all file references across all backups, shared files won't be deduplicated
 
 	db_file_size: int  # size of the SQLite database file on disk
@@ -47,6 +52,7 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 			meta = session.get_db_meta()
 			blob_size_sums = session.get_blob_size_sums_by_storage_method()
 			chunk_stats = session.get_chunk_overview_stats()
+			pack_stats = session.get_pack_overview_stats()
 			return DbOverviewResult(
 				db_version=meta.version,
 				hash_method=meta.hash_method,
@@ -71,6 +77,10 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 				chunked_blob_chunk_count=session.get_chunked_blob_chunk_count(),
 				chunk_raw_size_sum=chunk_stats.raw_size_sum,
 				chunk_stored_size_sum=chunk_stats.stored_size_sum,
+				pack_count=pack_stats.count,
+				pack_size_sum=pack_stats.size_sum,
+				pack_live_size_sum=pack_stats.live_size_sum,
+				pack_live_count_sum=pack_stats.live_count_sum,
 				file_raw_size_sum=session.get_file_total_raw_size_sum(),
 
 				db_file_size=db_file_size,

@@ -1,6 +1,8 @@
 import dataclasses
 from pathlib import Path
-from typing import IO, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
+
+from prime_backup.utils.io_types import SupportsReadBytes
 
 if TYPE_CHECKING:
 	from prime_backup.types.hash_method import Hasher, HashMethod
@@ -27,7 +29,7 @@ class SizeAndHash:
 
 
 def calc_reader_size_and_hash(
-		file_obj: IO[bytes], *,
+		file_obj: SupportsReadBytes, *,
 		buf_size: int = _READ_BUF_SIZE,
 		hash_method: Optional['HashMethod'] = None,
 ) -> SizeAndHash:
@@ -43,7 +45,7 @@ def calc_file_size_and_hash(path: Path, **kwargs) -> SizeAndHash:
 		return calc_reader_size_and_hash(f, **kwargs)
 
 
-def calc_reader_hash(file_obj: IO[bytes], **kwargs) -> str:
+def calc_reader_hash(file_obj: SupportsReadBytes, **kwargs) -> str:
 	return calc_reader_size_and_hash(file_obj, **kwargs).hash
 
 

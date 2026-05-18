@@ -6,18 +6,21 @@ from typing import List, Dict, Optional
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.compressors import Compressor
+from prime_backup.action.helpers.chunk_io import ChunkIO
+from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.types.chunk_info import ChunkInfo
-from prime_backup.utils import chunk_utils, hash_utils
+from prime_backup.utils import chunk_utils, collection_utils, hash_utils
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
 
 
 class BadChunkItemType(enum.Enum):
 	invalid = enum.auto()
 	orphan = enum.auto()
+	missing_pack = enum.auto()
 	missing_file = enum.auto()
+	bad_pack_entry = enum.auto()
 	corrupted = enum.auto()
 	mismatched = enum.auto()
 
@@ -55,6 +58,9 @@ class ValidateChunksAction(Action[ValidateChunksResult]):
 	def is_interruptable(self) -> bool:
 		return True
 
+	def __to_chunk_info(self, chunk: schema.Chunk, pack_name_by_id: Dict[int, str]) -> ChunkInfo:
+		return ChunkInfo.of(chunk, pack_name=pack_name_by_id.get(chunk.pack_id, ''))
+
 	def __validate(self, session: DbSession, result: ValidateChunksResult, chunks: List[ChunkInfo]):
 		id_to_good_chunks: Dict[int, ChunkInfo] = {}
 
@@ -62,23 +68,24 @@ class ValidateChunksAction(Action[ValidateChunksResult]):
 			if not chunk.id:
 				result.add_bad(chunk, BadChunkItemType.invalid, f'invalid id {chunk.id!r}')
 				return
+			if chunk.pack_entry.pack_id <= 0 or len(chunk.pack_entry.pack_name) == 0:
+				result.add_bad(chunk, BadChunkItemType.missing_pack, f'missing pack for pack_id {chunk.pack_entry.pack_id}')
+				return
 
-			chunk_path = chunk_utils.get_chunk_path(chunk.hash)
-			if not chunk_path.is_file():
-				result.add_bad(chunk, BadChunkItemType.missing_file, f'chunk file {chunk_path} does not exist')
+			pack_path = chunk.pack_file_path
+			if not pack_path.is_file():
+				result.add_bad(chunk, BadChunkItemType.missing_file, f'pack file {pack_path} does not exist')
+				return
+			pack_size = pack_path.stat().st_size
+			if chunk.pack_entry.pack_offset < 0 or chunk.stored_size < 0 or chunk.pack_entry.pack_offset + chunk.stored_size > pack_size:
+				result.add_bad(chunk, BadChunkItemType.bad_pack_entry, f'bad pack entry range, offset {chunk.pack_entry.pack_offset}, size {chunk.stored_size}, pack size {pack_size}')
 				return
 
 			try:
-				compressor = Compressor.create(chunk.compress)
-			except ValueError:
-				result.add_bad(chunk, BadChunkItemType.invalid, f'unknown compress method {chunk.compress!r}')
-				return
-
-			try:
-				with compressor.open_decompressed_bypassed(chunk_path) as (reader, f_decompressed):
+				with ChunkIO(chunk).open_decompressed_bypassed() as (reader, f_decompressed):
 					sah = hash_utils.calc_reader_size_and_hash(f_decompressed, hash_method=chunk_utils.get_hash_method())
 			except Exception as e:
-				result.add_bad(chunk, BadChunkItemType.corrupted, f'cannot read and decompress chunk file: ({type(e)} {e}')
+				result.add_bad(chunk, BadChunkItemType.corrupted, f'cannot read and decompress pack entry: ({type(e)} {e})')
 				return
 
 			file_size = reader.get_read_len()
@@ -128,7 +135,13 @@ class ValidateChunksAction(Action[ValidateChunksResult]):
 					break
 				cnt += len(chunks)
 				self.logger.info('Validating {} / {} chunks'.format(cnt, result.total))
-				self.__validate(session, result, list(map(ChunkInfo.of, chunks)))
+				pack_ids = collection_utils.deduplicated_list(chunk.pack_id for chunk in chunks if chunk.pack_id > 0)
+				pack_name_by_id = {
+					pack_id: pack.name
+					for pack_id, pack in session.get_packs_by_ids(pack_ids).items()
+					if pack is not None
+				}
+				self.__validate(session, result, [self.__to_chunk_info(chunk, pack_name_by_id) for chunk in chunks])
 
 		self.logger.info('Chunk validation done: total {}, validated {}, ok {}, bad {}'.format(
 			result.total, result.validated, result.ok, len(result.bad_chunks),

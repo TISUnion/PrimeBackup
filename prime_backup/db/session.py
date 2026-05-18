@@ -13,8 +13,9 @@ from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
 from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, FileIdentifier
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound, PackIdNotFound, PackNameNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
+from prime_backup.types.pack_info import PackEntryInfo, PackEntryLocation
 from prime_backup.utils import collection_utils, db_utils, validation_utils
 
 _T = TypeVar('_T')
@@ -163,6 +164,129 @@ class DbSession:
 				raise UnsupportedDatabaseOperation('current sqlite version {} does not support "VACUUM INTO" statement'.format(sqlite3.sqlite_version))
 		else:
 			self.session.execute(text('VACUUM'))
+
+	# ==================================== Pack ====================================
+
+	class CreatePackKwargs(TypedDict):
+		name: str
+		size: int
+		count: int
+		live_size: int
+		live_count: int
+
+	def create_and_add_pack(self, **kwargs: Unpack[CreatePackKwargs]) -> schema.Pack:
+		pack = schema.Pack(**kwargs)
+		for c in pack.name:
+			if c not in '0123456789abcdef':
+				raise ValueError(f'Invalid pack name {pack.name!r}')
+
+		self.__validate_int_fields_range(pack)
+		self.add(pack)
+		return pack
+
+	def get_pack_by_id_opt(self, pack_id: int) -> Optional[schema.Pack]:
+		return self.session.get(schema.Pack, pack_id)
+
+	def get_pack_by_id(self, pack_id: int) -> schema.Pack:
+		pack = self.get_pack_by_id_opt(pack_id)
+		if pack is None:
+			raise PackIdNotFound(pack_id)
+		return pack
+
+	def get_pack_by_name_opt(self, name: str) -> Optional[schema.Pack]:
+		return self.session.execute(select(schema.Pack).where(schema.Pack.name == name)).scalars().one_or_none()
+
+	def get_pack_by_name(self, name: str) -> schema.Pack:
+		pack = self.get_pack_by_name_opt(name)
+		if pack is None:
+			raise PackNameNotFound(name)
+		return pack
+
+	def list_packs_by_name_prefix(self, name_prefix: str, limit: Optional[int] = None) -> List[schema.Pack]:
+		s = select(schema.Pack).where(schema.Pack.name.startswith(name_prefix)).order_by(schema.Pack.name)
+		if limit is not None:
+			s = s.limit(limit)
+		return _list_it(self.session.execute(s).scalars().all())
+
+	def get_packs_by_ids(self, pack_ids: List[int]) -> Dict[int, Optional[schema.Pack]]:
+		result: Dict[int, Optional[schema.Pack]] = {pack_id: None for pack_id in pack_ids}
+		for view in collection_utils.slicing_iterate(pack_ids, self.__safe_var_limit):
+			for pack in self.session.execute(select(schema.Pack).where(schema.Pack.id.in_(view))).scalars().all():
+				result[pack.id] = pack
+		return result
+
+	def list_packs(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.Pack]:
+		s = select(schema.Pack)
+		if limit is not None:
+			s = s.limit(limit)
+		if offset is not None:
+			s = s.offset(offset)
+		return _list_it(self.session.execute(s).scalars().all())
+
+	def iterate_pack_batch(self, *, batch_size: int) -> Iterator[List[schema.Pack]]:
+		limit, offset = batch_size, 0
+		while True:
+			packs = self.list_packs(limit=limit, offset=offset)
+			if len(packs) == 0:
+				break
+			yield packs
+			offset += limit
+
+	def get_pack_count(self) -> int:
+		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.Pack)).scalar_one())
+
+	def get_all_pack_names(self) -> List[str]:
+		return _list_it(self.session.execute(select(schema.Pack.name)).scalars().all())
+
+	@dataclasses.dataclass(frozen=True)
+	class PackOverviewStats:
+		count: int
+		size_sum: int
+		live_size_sum: int
+		live_count_sum: int
+
+	def get_pack_overview_stats(self) -> PackOverviewStats:
+		count, size_sum, live_size_sum, live_count_sum = self.session.execute(select(
+			func.count(schema.Pack.id),
+			func.sum(schema.Pack.size),
+			func.sum(schema.Pack.live_size),
+			func.sum(schema.Pack.live_count),
+		)).one()
+		return self.PackOverviewStats(
+			count=_int_or_0(count),
+			size_sum=_int_or_0(size_sum),
+			live_size_sum=_int_or_0(live_size_sum),
+			live_count_sum=_int_or_0(live_count_sum),
+		)
+
+	def get_live_entries_by_pack_id(self, pack_id: int) -> List[PackEntryInfo]:
+		return [
+			PackEntryInfo(id=chunk.id, pack_id=chunk.pack_id, offset=chunk.pack_offset, size=chunk.stored_size)
+			for chunk in self.session.execute(
+				select(schema.Chunk).
+				where(schema.Chunk.pack_id == pack_id).
+				order_by(schema.Chunk.pack_offset)
+			).scalars().all()
+		]
+
+	def get_live_chunks_by_pack_id(self, pack_id: int) -> List[schema.Chunk]:
+		return _list_it(self.session.execute(
+			select(schema.Chunk).
+			where(schema.Chunk.pack_id == pack_id).
+			order_by(schema.Chunk.pack_offset)
+		).scalars().all())
+
+	def move_pack_entry(self, entry: PackEntryInfo, location: PackEntryLocation):
+		chunk = self.get_chunk_by_id(entry.id)
+		chunk.pack_id = location.pack_id
+		chunk.pack_offset = location.pack_offset
+
+	def delete_pack(self, pack: schema.Pack):
+		self.session.delete(pack)
+
+	def delete_packs_by_ids(self, pack_ids: List[int]):
+		for view in collection_utils.slicing_iterate(pack_ids, self.__safe_var_limit):
+			self.session.execute(delete(schema.Pack).where(schema.Pack.id.in_(view)))
 
 	# ==================================== DbMeta ====================================
 
@@ -341,7 +465,7 @@ class DbSession:
 		return result
 
 	def get_blob_store_fs_file_size_sum(self) -> int:
-		return self.get_direct_blob_stored_size_sum() + self.get_chunk_stored_size_sum()
+		return self.get_direct_blob_stored_size_sum() + self.get_pack_overview_stats().size_sum
 
 	def get_blob_raw_size_sum(self) -> int:
 		return _int_or_0(self.session.execute(func.sum(schema.Blob.raw_size).select()).scalar_one())
@@ -386,6 +510,8 @@ class DbSession:
 		compress: str
 		raw_size: int
 		stored_size: int
+		pack_id: int
+		pack_offset: int
 
 	@classmethod
 	def create_chunk(cls, **kwargs: Unpack[CreateChunkKwargs]) -> schema.Chunk:
@@ -402,7 +528,10 @@ class DbSession:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.Chunk)).scalar_one())
 
 	def get_chunk_by_id_opt(self, chunk_id: int) -> Optional[schema.Chunk]:
-		return self.session.get(schema.Chunk, chunk_id)
+		return self.session.execute(
+			select(schema.Chunk).
+			where(schema.Chunk.id == chunk_id)
+		).scalars().one_or_none()
 
 	def get_chunk_by_id(self, chunk_id: int) -> schema.Chunk:
 		chunk = self.get_chunk_by_id_opt(chunk_id)
@@ -696,6 +825,19 @@ class DbSession:
 			)
 		return list(sorted(chunk_group_ids))
 
+	def get_chunk_group_ids_by_pack_ids(self, pack_ids: List[int]) -> List[int]:
+		chunk_group_ids: Set[int] = set()
+		for v_pack_ids in collection_utils.slicing_iterate(pack_ids, self.__safe_var_limit):
+			chunk_group_ids.update(
+				self.session.execute(
+					select(schema.ChunkGroupChunkBinding.chunk_group_id).
+					join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
+					where(schema.Chunk.pack_id.in_(v_pack_ids)).
+					distinct()
+				).scalars().all()
+			)
+		return list(sorted(chunk_group_ids))
+
 	def list_chunk_group_chunk_bindings(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.ChunkGroupChunkBinding]:
 		s = select(schema.ChunkGroupChunkBinding)
 		if limit is not None:
@@ -713,32 +855,53 @@ class DbSession:
 			yield bindings
 			offset += limit
 
-	def get_chunk_group_chunks(self, chunk_group_id: int) -> List[OffsetChunk]:
+	def get_chunk_group_chunks(self, chunk_group_id: int, *, with_pack_name: bool = False) -> List[OffsetChunk]:
 		"""
 		result is sorted
 		"""
-		stmt = (
+		if with_pack_name:
+			stmt_with_pack_name = (
+				select(schema.ChunkGroupChunkBinding.chunk_offset, schema.Chunk, schema.Pack.name).
+				join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
+				join(schema.Pack, schema.Chunk.pack_id == schema.Pack.id).
+				where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
+			)
+			result_with_pack_name: Sequence[Row[Tuple[int, schema.Chunk, str]]] = self.session.execute(stmt_with_pack_name).all()
+			return sorted(OffsetChunk(offset, chunk, pack_name) for offset, chunk, pack_name in result_with_pack_name)
+
+		stmt_without_pack_name = (
 			select(schema.ChunkGroupChunkBinding.chunk_offset, schema.Chunk).
 			join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
 			where(schema.ChunkGroupChunkBinding.chunk_group_id == chunk_group_id)
 		)
-		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
-		return sorted(OffsetChunk(offset, chunk) for offset, chunk in result)
+		result_without_pack_name: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt_without_pack_name).all()
+		return sorted(OffsetChunk(offset, chunk, '') for offset, chunk in result_without_pack_name)
 
-	def get_chunk_group_chunks_batch(self, chunk_group_ids: List[int]) -> Dict[int, List[OffsetChunk]]:
+	def get_chunk_group_chunks_batch(self, chunk_group_ids: List[int], *, with_pack_name: bool = False) -> Dict[int, List[OffsetChunk]]:
 		"""
 		return chunk_group_id -> list of chunks in this chunk group. all given chunk_group_ids are in the dict
 		"""
 		result: Dict[int, List[OffsetChunk]] = {cg_id: [] for cg_id in chunk_group_ids}
 		for view in collection_utils.slicing_iterate(chunk_group_ids, self.__safe_var_limit):
-			stmt = (
-				select(schema.ChunkGroupChunkBinding.chunk_group_id, schema.ChunkGroupChunkBinding.chunk_offset, schema.Chunk).
-				join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
-				where(schema.ChunkGroupChunkBinding.chunk_group_id.in_(view))
-			)
-			rows: Sequence[Row[Tuple[int, int, schema.Chunk]]] = self.session.execute(stmt).all()
-			for chunk_group_id, offset, chunk in rows:
-				result[chunk_group_id].append(OffsetChunk(offset, chunk))
+			if with_pack_name:
+				stmt_with_pack_name = (
+					select(schema.ChunkGroupChunkBinding.chunk_group_id, schema.ChunkGroupChunkBinding.chunk_offset, schema.Chunk, schema.Pack.name).
+					join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
+					join(schema.Pack, schema.Chunk.pack_id == schema.Pack.id).
+					where(schema.ChunkGroupChunkBinding.chunk_group_id.in_(view))
+				)
+				rows_with_pack_name: Sequence[Row[Tuple[int, int, schema.Chunk, str]]] = self.session.execute(stmt_with_pack_name).all()
+				for chunk_group_id, offset, chunk, pack_name in rows_with_pack_name:
+					result[chunk_group_id].append(OffsetChunk(offset, chunk, pack_name))
+			else:
+				stmt_without_pack_name = (
+					select(schema.ChunkGroupChunkBinding.chunk_group_id, schema.ChunkGroupChunkBinding.chunk_offset, schema.Chunk).
+					join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
+					where(schema.ChunkGroupChunkBinding.chunk_group_id.in_(view))
+				)
+				rows_without_pack_name: Sequence[Row[Tuple[int, int, schema.Chunk]]] = self.session.execute(stmt_without_pack_name).all()
+				for chunk_group_id, offset, chunk in rows_without_pack_name:
+					result[chunk_group_id].append(OffsetChunk(offset, chunk, ''))
 		for cg_id in result:
 			result[cg_id].sort()
 		return result
@@ -913,12 +1076,38 @@ class DbSession:
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
 		).scalar_one())
 
-	def get_blob_chunks(self, blob_id: int, *, limit: Optional[int] = None) -> List[OffsetChunk]:
+	def get_blob_chunks(self, blob_id: int, *, limit: Optional[int] = None, with_pack_name: bool = False) -> List[OffsetChunk]:
 		"""
 		result is sorted
 		"""
+		if with_pack_name:
+			absolute_offset = (schema.BlobChunkGroupBinding.chunk_group_offset + schema.ChunkGroupChunkBinding.chunk_offset).label('absolute_offset')
+			stmt_with_pack_name = (
+				select(
+					absolute_offset,
+					schema.Chunk,
+					schema.Pack.name
+				).
+				select_from(schema.BlobChunkGroupBinding).
+				join(
+					schema.ChunkGroupChunkBinding,
+					schema.BlobChunkGroupBinding.chunk_group_id == schema.ChunkGroupChunkBinding.chunk_group_id
+				).
+				join(
+					schema.Chunk,
+					schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id
+				).
+				join(schema.Pack, schema.Chunk.pack_id == schema.Pack.id).
+				where(schema.BlobChunkGroupBinding.blob_id == blob_id).
+				order_by(absolute_offset)
+			)
+			if limit is not None:
+				stmt_with_pack_name = stmt_with_pack_name.limit(limit)
+			result_with_pack_name: Sequence[Row[Tuple[int, schema.Chunk, str]]] = self.session.execute(stmt_with_pack_name).all()
+			return [OffsetChunk(offset, chunk, pack_name) for offset, chunk, pack_name in result_with_pack_name]
+
 		absolute_offset = (schema.BlobChunkGroupBinding.chunk_group_offset + schema.ChunkGroupChunkBinding.chunk_offset).label('absolute_offset')
-		stmt = (
+		stmt_without_pack_name = (
 			select(
 				absolute_offset,
 				schema.Chunk
@@ -935,12 +1124,10 @@ class DbSession:
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id).
 			order_by(absolute_offset)
 		)
-
 		if limit is not None:
-			stmt = stmt.limit(limit)
-
-		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
-		return [OffsetChunk(offset, chunk) for offset, chunk in result]
+			stmt_without_pack_name = stmt_without_pack_name.limit(limit)
+		result_without_pack_name: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt_without_pack_name).all()
+		return [OffsetChunk(offset, chunk, '') for offset, chunk in result_without_pack_name]
 
 	@dataclasses.dataclass(frozen=True)
 	class ListBlobChunkGroupBindingsItem:

@@ -4,6 +4,7 @@ if TYPE_CHECKING:
 	from prime_backup.types.blob_info import BlobInfo
 	from prime_backup.types.chunk_group_info import ChunkGroupInfo
 	from prime_backup.types.chunk_info import ChunkInfo
+	from prime_backup.types.pack_info import PackInfo
 
 
 class PrimeBackupError(Exception):
@@ -112,6 +113,29 @@ class ChunkGroupHashNotUnique(PrimeBackupError):
 	def __init__(self, chunk_group_hash_prefix: str, candidates: List['ChunkGroupInfo']):
 		super().__init__()
 		self.chunk_group_hash_prefix = chunk_group_hash_prefix
+		self.candidates = candidates
+
+
+class PackNotFound(PrimeBackupError):
+	pass
+
+
+class PackIdNotFound(PackNotFound):
+	def __init__(self, pack_id: int):
+		super().__init__()
+		self.pack_id = pack_id
+
+
+class PackNameNotFound(PackNotFound):
+	def __init__(self, pack_name: str):
+		super().__init__()
+		self.pack_name = pack_name
+
+
+class PackNameNotUnique(PrimeBackupError):
+	def __init__(self, pack_name_prefix: str, candidates: List['PackInfo']):
+		super().__init__()
+		self.pack_name_prefix = pack_name_prefix
 		self.candidates = candidates
 
 

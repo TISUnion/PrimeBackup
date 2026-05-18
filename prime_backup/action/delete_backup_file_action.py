@@ -115,8 +115,8 @@ class DeleteBackupFileAction(Action[BlobDeltaSummary]):
 		fls = ShrinkBaseFilesetAction(fileset_id_base).run()
 		bds += fls.blob_summary
 
-		self.logger.info('Deleting file {!r} in backup #{}, removed {} blobs and {} chunks (size {} / {})'.format(
+		self.logger.info('Deleting file {!r} in backup #{}, removed {} blobs and {} chunks (freed disk {} / raw {})'.format(
 			self.file_path, self.backup_id,
-			bds.blob_count, bds.chunk_count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
+			bds.blob_count, bds.chunk_count, ByteCount(bds.freed_disk_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
 		))
 		return bds

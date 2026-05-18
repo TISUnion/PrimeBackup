@@ -8,14 +8,16 @@ from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
+from prime_backup.action.helpers.chunk_io import ChunkIO
 from prime_backup.compressors import Compressor
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import PrimeBackupError
+from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.hash_method import HashMethod
-from prime_backup.utils import blob_utils, chunk_utils, hash_utils
+from prime_backup.utils import blob_utils, hash_utils
 
 _READ_BUF_SIZE = 128 * 1024
 _FILE_BLOB_HASH_BATCH_SIZE = 200
@@ -114,10 +116,10 @@ class MigrateHashMethodAction(Action[None]):
 	def __calc_chunked_blob_new_hash(self, session: DbSession, blob: schema.Blob) -> str:
 		hasher = self.new_hash_method.value.create_hasher()
 		size = 0
-		for offset_chunk in session.get_blob_chunks(blob.id):
+		for offset_chunk in session.get_blob_chunks(blob.id, with_pack_name=True):
 			chunk = offset_chunk.chunk
 			chunk_size = 0
-			with Compressor.create(chunk.compress).open_decompressed(chunk_utils.get_chunk_path(chunk.hash)) as f:
+			with ChunkIO(ChunkInfo.of(chunk, pack_name=offset_chunk.pack_name)).open_decompressed() as f:
 				while True:
 					buf = f.read(_READ_BUF_SIZE)
 					if len(buf) == 0:
@@ -131,8 +133,9 @@ class MigrateHashMethodAction(Action[None]):
 			raise ValueError('raw size mismatch for chunked blob {}, expect {}, found {}'.format(blob.hash, blob.raw_size, size))
 		return hasher.hexdigest()
 
-	def __calc_chunk_new_hash(self, chunk: schema.Chunk) -> str:
-		with Compressor.create(chunk.compress).open_decompressed_bypassed(chunk_utils.get_chunk_path(chunk.hash)) as (reader, f):
+	def __calc_chunk_new_hash(self, session: DbSession, chunk: schema.Chunk) -> str:
+		pack = session.get_pack_by_id(chunk.pack_id)
+		with ChunkIO(ChunkInfo.of(chunk, pack_name=pack.name)).open_decompressed_bypassed() as (reader, f):
 			sah = hash_utils.calc_reader_size_and_hash(f, hash_method=self.new_hash_method)
 		if reader.get_read_len() != chunk.stored_size:
 			raise ValueError('stored size mismatch for chunk {}, expect {}, found {}'.format(chunk.hash, chunk.stored_size, reader.get_read_len()))
@@ -169,13 +172,12 @@ class MigrateHashMethodAction(Action[None]):
 		chunks = session.list_chunks()
 		total = len(chunks)
 		for i, chunk in enumerate(chunks):
-			new_hash = self.__calc_chunk_new_hash(chunk)
-			moves.append(_HashMove(object=chunk, old_hash=chunk.hash, new_hash=new_hash, has_file_to_move=True))
+			new_hash = self.__calc_chunk_new_hash(session, chunk)
+			moves.append(_HashMove(object=chunk, old_hash=chunk.hash, new_hash=new_hash, has_file_to_move=False))
 			if (i + 1) % 2000 == 0 or i + 1 == total:
 				self.logger.info('Calculated chunk hashes {} / {}'.format(i + 1, total))
 
 		self.__ensure_hashes_can_migrate(moves, 'chunk')
-		self.__ensure_paths_can_migrate(moves, chunk_utils.get_chunk_path)
 		return _changed_moves(moves)
 
 	def __regroup_chunked_blobs(self, session: DbSession):
@@ -239,7 +241,6 @@ class MigrateHashMethodAction(Action[None]):
 			session.flush()
 
 	def __migrate_chunk_hashes(self, session: DbSession, moves: List[_HashMove[schema.Chunk]]):
-		self.__move_files_to_new_hashes('chunk', moves, chunk_utils.get_chunk_path)
 		for move in moves:
 			move.object.hash = move.new_hash
 		session.flush()
@@ -262,7 +263,6 @@ class MigrateHashMethodAction(Action[None]):
 
 				self.logger.info('Migrating hash method from {} to {}'.format(meta.hash_method, self.new_hash_method.name))
 				blob_utils.prepare_blob_directories()
-				chunk_utils.prepare_chunk_directories()
 
 				self.__migrate_blob_hashes(session, self.__collect_blob_moves(session))
 				self.__migrate_chunk_hashes(session, self.__collect_chunk_moves(session))

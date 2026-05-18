@@ -32,7 +32,7 @@ from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
 from prime_backup.mcdr.task.db.delete_backup_file_task import DeleteBackupFileTask
-from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask, InspectFilesetFileTask, InspectChunkTask, InspectChunkGroupTask
+from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask, InspectFilesetFileTask, InspectChunkTask, InspectChunkGroupTask, InspectPackTask
 from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompressMethodTask
 from prime_backup.mcdr.task.db.migrate_hash_method_task import MigrateHashMethodTask
 from prime_backup.mcdr.task.db.prune_database_task import PruneDatabaseTask
@@ -119,6 +119,10 @@ class CommandManager:
 	def cmd_db_inspect_chunk_group(self, source: CommandSource, context: CommandContext):
 		chunk_group_id_or_hash: str = context['id_or_hash']
 		self.task_manager.add_task(InspectChunkGroupTask(source, chunk_group_id_or_hash))
+
+	def cmd_db_inspect_pack(self, source: CommandSource, context: CommandContext):
+		pack_id_or_name: str = context['id_or_hash']
+		self.task_manager.add_task(InspectPackTask(source, pack_id_or_name))
 
 	def cmd_db_delete_file(self, source: CommandSource, context: CommandContext):
 		def backup_id_consumer(backup_id: int):
@@ -431,7 +435,9 @@ class CommandManager:
 		builder.command('database inspect blob <id_or_hash>', self.cmd_db_inspect_blob)
 		builder.command('database inspect chunk <id_or_hash>', self.cmd_db_inspect_chunk)
 		builder.command('database inspect chunk_group <id_or_hash>', self.cmd_db_inspect_chunk_group)
+		builder.command('database inspect pack <id_or_hash>', self.cmd_db_inspect_pack)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))
+		builder.command('database validate packs', functools.partial(self.cmd_db_validate, parts=ValidatePart.packs))
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidatePart.blobs))
 		builder.command('database validate chunks', functools.partial(self.cmd_db_validate, parts=ValidatePart.chunks))
 		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidatePart.files))

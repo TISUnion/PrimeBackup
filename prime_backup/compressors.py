@@ -8,6 +8,7 @@ from typing_extensions import Protocol, override
 
 from prime_backup.utils import file_utils
 from prime_backup.utils.bypass_io import BypassReader, BypassWriter
+from prime_backup.utils.io_types import SupportsReadBytes
 from prime_backup.utils.path_like import PathLike
 
 
@@ -88,7 +89,7 @@ class Compressor(ABC):
 				yield writer, f_compressed
 
 	@contextlib.contextmanager
-	def open_decompressed(self, source_path: PathLike) -> Generator[BinaryIO, None, None]:
+	def open_decompressed(self, source_path: PathLike) -> Generator[SupportsReadBytes, None, None]:
 		"""
 		source_path --[decompress]--> (reader)
 		"""
@@ -97,7 +98,7 @@ class Compressor(ABC):
 				yield f_decompressed
 
 	@contextlib.contextmanager
-	def open_decompressed_bypassed(self, source_path: PathLike) -> Generator[Tuple[BypassReader, BinaryIO], None, None]:
+	def open_decompressed_bypassed(self, source_path: PathLike) -> Generator[Tuple[BypassReader, SupportsReadBytes], None, None]:
 		"""
 		source_path --[decompress]--> (reader)
 		             ^- bypassed
@@ -114,7 +115,7 @@ class Compressor(ABC):
 		with self.compress_stream(f_out) as compressed_out:
 			file_utils.copy_file_obj_fast(f_in, compressed_out, estimate_read_size=estimate_read_size)
 
-	def _copy_decompressed(self, f_in: BinaryIO, f_out: BinaryIO, *, estimate_read_size: int = 0):
+	def _copy_decompressed(self, f_in: SupportsReadBytes, f_out: BinaryIO, *, estimate_read_size: int = 0):
 		"""
 		(f_in) --[decompress]--> (f_out)
 		"""
@@ -129,10 +130,18 @@ class Compressor(ABC):
 		...
 
 	@abstractmethod
-	def decompress_stream(self, f_in: BinaryIO) -> ContextManager[BinaryIO]:
+	def decompress_stream(self, f_in: SupportsReadBytes) -> ContextManager[SupportsReadBytes]:
 		"""
 		Open a stream from decompressing read
 		"""
+		...
+
+	@abstractmethod
+	def compress_bytes(self, data: bytes) -> bytes:
+		...
+
+	@abstractmethod
+	def decompress_bytes(self, data: bytes) -> bytes:
 		...
 
 
@@ -149,12 +158,26 @@ class PlainCompressor(Compressor):
 
 	@contextlib.contextmanager
 	@override
-	def decompress_stream(self, f_in: BinaryIO) -> Generator[BinaryIO, None, None]:
+	def decompress_stream(self, f_in: SupportsReadBytes) -> Generator[SupportsReadBytes, None, None]:
 		yield f_in
+
+	@override
+	def compress_bytes(self, data: bytes) -> bytes:
+		return data
+
+	@override
+	def decompress_bytes(self, data: bytes) -> bytes:
+		return data
 
 
 class _GzipLikeLibrary(Protocol):
-	def open(self, file_obj: BinaryIO, mode: str) -> BinaryIO:
+	def open(self, file_obj: SupportsReadBytes, mode: str) -> BinaryIO:
+		...
+
+	def compress(self, data: bytes) -> bytes:
+		...
+
+	def decompress(self, data: bytes) -> bytes:
 		...
 
 
@@ -177,9 +200,17 @@ class _GzipLikeCompressorBase(Compressor, ABC):
 
 	@contextlib.contextmanager
 	@override
-	def decompress_stream(self, f_in: BinaryIO) -> Generator[BinaryIO, None, None]:
+	def decompress_stream(self, f_in: SupportsReadBytes) -> Generator[SupportsReadBytes, None, None]:
 		with self._lib().open(f_in, 'rb') as compressed_in:
 			yield compressed_in
+
+	@override
+	def compress_bytes(self, data: bytes) -> bytes:
+		return self._lib().compress(data)
+
+	@override
+	def decompress_bytes(self, data: bytes) -> bytes:
+		return self._lib().decompress(data)
 
 
 class GzipCompressor(_GzipLikeCompressorBase):

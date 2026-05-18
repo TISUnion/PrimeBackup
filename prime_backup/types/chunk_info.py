@@ -1,13 +1,17 @@
 import dataclasses
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, TYPE_CHECKING
 
 from typing_extensions import Self
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.values import OffsetChunk
+from prime_backup.types.pack_info import PackEntryLocation
 from prime_backup.utils import misc_utils
+
+if TYPE_CHECKING:
+	from prime_backup.types.pack_info import PackChangeSummary
 
 
 @dataclasses.dataclass(frozen=True)
@@ -17,21 +21,23 @@ class ChunkInfo:
 	compress: CompressMethod
 	raw_size: int
 	stored_size: int
+	pack_entry: PackEntryLocation
 
 	@classmethod
-	def of(cls, chunk: schema.Chunk) -> 'ChunkInfo':
+	def of(cls, chunk: schema.Chunk, *, pack_name: str = '') -> 'ChunkInfo':
 		return ChunkInfo(
 			id=chunk.id,
 			hash=chunk.hash,
 			compress=CompressMethod[chunk.compress],
 			raw_size=chunk.raw_size,
 			stored_size=chunk.stored_size,
+			pack_entry=PackEntryLocation(chunk.pack_id, pack_name, chunk.pack_offset),
 		)
 
 	@property
-	def chunk_file_path(self) -> Path:
-		from prime_backup.utils import chunk_utils
-		return chunk_utils.get_chunk_path(self.hash)
+	def pack_file_path(self) -> Path:
+		from prime_backup.utils import pack_utils
+		return pack_utils.get_pack_path(self.pack_entry.pack_name)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -45,7 +51,7 @@ class OffsetChunkInfo:
 
 	@classmethod
 	def of(cls, offset_chunk: OffsetChunk) -> 'OffsetChunkInfo':
-		return cls(offset_chunk.offset, ChunkInfo.of(offset_chunk.chunk))
+		return cls(offset_chunk.offset, ChunkInfo.of(offset_chunk.chunk, pack_name=offset_chunk.pack_name))
 
 	def __lt__(self, other: 'OffsetChunkInfo') -> bool:
 		return self.offset < other.offset
@@ -56,10 +62,12 @@ class ChunkListSummary:
 	count: int
 	raw_size: int
 	stored_size: int
+	packs: 'PackChangeSummary'
 
 	@classmethod
 	def zero(cls) -> Self:
-		return cls(0, 0, 0)
+		from prime_backup.types.pack_info import PackChangeSummary
+		return cls(0, 0, 0, PackChangeSummary.zero())
 
 	@classmethod
 	def of(cls, chunks: Iterable[ChunkInfo]) -> 'ChunkListSummary':
@@ -68,10 +76,12 @@ class ChunkListSummary:
 			cnt += 1
 			raw_size_sum += chunk.raw_size
 			stored_size_sum += chunk.stored_size
+		from prime_backup.types.pack_info import PackChangeSummary
 		return ChunkListSummary(
 			count=cnt,
 			raw_size=raw_size_sum,
 			stored_size=stored_size_sum,
+			packs=PackChangeSummary.zero(),
 		)
 
 	def __add__(self, other: Self) -> 'ChunkListSummary':
@@ -80,4 +90,5 @@ class ChunkListSummary:
 			count=self.count + other.count,
 			raw_size=self.raw_size + other.raw_size,
 			stored_size=self.stored_size + other.stored_size,
+			packs=self.packs + other.packs,
 		)

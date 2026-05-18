@@ -1,0 +1,2 @@
+PACK_MAX_SIZE: int = 16 * 1024 * 1024
+PACK_MAX_COUNT: int = 4096

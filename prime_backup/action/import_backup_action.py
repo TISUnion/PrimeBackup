@@ -9,6 +9,7 @@ from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
+from prime_backup.action.helpers.pack_writer import PackWriter
 from prime_backup.action.helpers.packed_backup_file_reader import PackedBackupFileReader, TarBackupReader, ZipBackupReader, PackedBackupFileMember, PackedBackupFileHolder
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.constants.constants import BACKUP_META_FILE_NAME
@@ -19,12 +20,14 @@ from prime_backup.db.values import FileRole, BlobStorageMethod
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_meta import BackupMeta
+from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
+from prime_backup.types.pack_info import PackEntryLocation
 from prime_backup.types.standalone_backup_format import StandaloneBackupFormat
 from prime_backup.types.tar_format import TarFormat
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import blob_utils, misc_utils, chunk_utils, collection_utils, file_utils
+from prime_backup.utils import blob_utils, misc_utils, collection_utils, file_utils, pack_utils
 from prime_backup.utils.hash_utils import SizeAndHash
 
 
@@ -44,7 +47,7 @@ class ImportBackupAction(Action[BackupInfo]):
 	def __init__(
 			self, file_path: Path, backup_format: Optional[StandaloneBackupFormat] = None, *,
 			ensure_meta: bool = True, meta_override: Optional[dict] = None,
-	):
+	) -> None:
 		super().__init__()
 
 		if backup_format is None:
@@ -59,11 +62,22 @@ class ImportBackupAction(Action[BackupInfo]):
 
 		self.__blob_cache: Dict[str, schema.Blob] = {}
 		self.__chunk_cache: Dict[str, schema.Chunk] = {}
-		self.__blob_recorder = BlobRecorder()
+		self.__blob_recorder: Optional[BlobRecorder] = None
+		self.__pack_writer: Optional[PackWriter] = None
+
+	def __get_blob_recorder(self) -> BlobRecorder:
+		if self.__blob_recorder is None:
+			raise RuntimeError('blob recorder is not initialized')
+		return self.__blob_recorder
+
+	def __get_pack_writer(self) -> PackWriter:
+		if self.__pack_writer is None:
+			raise RuntimeError('pack writer is not initialized')
+		return self.__pack_writer
 
 	def __create_blob_file(self, file_reader: IO[bytes], sah: SizeAndHash) -> Tuple[int, CompressMethod]:
 		blob_path = blob_utils.get_blob_path(sah.hash)
-		self.__blob_recorder.add_remove_file_rollbacker(blob_path)
+		self.__get_blob_recorder().add_remove_file_rollbacker(blob_path)
 
 		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(sah.size)
 		compressor = Compressor.create(compress_method)
@@ -74,7 +88,7 @@ class ImportBackupAction(Action[BackupInfo]):
 
 	def __create_blob_direct(self, session: DbSession, file_reader: IO[bytes], sah: SizeAndHash) -> schema.Blob:
 		stored_size, compress_method = self.__create_blob_file(file_reader, sah)
-		return self.__blob_recorder.create_blob(
+		return self.__get_blob_recorder().create_blob(
 			session,
 			hash=sah.hash,
 			compress=compress_method.name,
@@ -83,26 +97,24 @@ class ImportBackupAction(Action[BackupInfo]):
 			storage_method=BlobStorageMethod.direct.value,
 		)
 
-	def __create_chunk_file(self, data: memoryview, sah: SizeAndHash) -> Tuple[int, CompressMethod]:
+	def __create_chunk_entry(self, data: memoryview, sah: SizeAndHash) -> Tuple[int, CompressMethod, PackEntryLocation]:
 		if len(data) != sah.size:
 			raise ValueError()
-		chunk_path = chunk_utils.get_chunk_path(sah.hash)
-		self.__blob_recorder.add_remove_file_rollbacker(chunk_path)
-
 		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(sah.size)
 		compressor = Compressor.create(compress_method)
-		with compressor.open_compressed_bypassed(chunk_path) as (writer, f):
-			f.write(data)
-
-		return writer.get_write_len(), compress_method
+		compressed = compressor.compress_bytes(bytes(data))
+		entry_location = self.__get_pack_writer().write_entry(compressed)
+		return len(compressed), compress_method, entry_location
 
 	def __create_chunk(self, session: DbSession, data: memoryview, sah: SizeAndHash) -> schema.Chunk:
-		stored_size, compress_method = self.__create_chunk_file(data, sah)
+		stored_size, compress_method, entry_location = self.__create_chunk_entry(data, sah)
 		chunk = session.create_chunk(
 			hash=sah.hash,
 			compress=compress_method.name,
 			raw_size=sah.size,
 			stored_size=stored_size,
+			pack_id=entry_location.pack_id,
+			pack_offset=entry_location.pack_offset,
 		)
 		self.__chunk_cache[sah.hash] = chunk
 		return chunk
@@ -119,9 +131,9 @@ class ImportBackupAction(Action[BackupInfo]):
 			offset += chunk.length
 
 		for new_db_chunk in new_db_chunks:
-			self.__blob_recorder.record_chunk(new_db_chunk)
+			self.__get_blob_recorder().record_new_chunk(ChunkInfo.of(new_db_chunk))
 			session.add(new_db_chunk)
-		blob = self.__blob_recorder.create_blob(
+		blob = self.__get_blob_recorder().create_blob(
 			session,
 			hash=pre_cal_result.hash,
 			compress=CompressMethod.plain.name,
@@ -152,7 +164,7 @@ class ImportBackupAction(Action[BackupInfo]):
 			self, session: DbSession,
 			member: PackedBackupFileMember,
 			pre_cal_result: Optional[BlobPrecalculateResult],
-	):
+	) -> schema.File:
 		blob: Optional[schema.Blob] = None
 		content: Optional[bytes] = None
 
@@ -253,7 +265,7 @@ class ImportBackupAction(Action[BackupInfo]):
 
 		files: List[schema.File] = []
 		blob_utils.prepare_blob_directories()
-		chunk_utils.prepare_chunk_directories()
+		pack_utils.prepare_pack_directories()
 		for i, member in enumerate(members):
 			try:
 				file = self.__import_member(session, member, pre_cal_dict.get(i))
@@ -275,6 +287,8 @@ class ImportBackupAction(Action[BackupInfo]):
 
 		try:
 			with DbAccess.open_session() as session:
+				self.__pack_writer = PackWriter(session)
+				self.__blob_recorder = BlobRecorder(self.__pack_writer)
 				handler: PackedBackupFileReader
 				if tar_format is not None:
 					handler = TarBackupReader(tar_format)
@@ -283,14 +297,19 @@ class ImportBackupAction(Action[BackupInfo]):
 
 				with handler.open_file(self.file_path) as file_holder:
 					backup = self.__import_packed_backup_file(session, file_holder)
+				self.__get_pack_writer().close()
 				info = BackupInfo.of(backup)
 
-			bds = self.__blob_recorder.get_blob_storage_delta()
-			self.logger.info('Import backup #{} done, added {} blobs and {} chunks (size {} / {})'.format(
-				info.id, bds.blob_count, bds.chunk_count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
+			bds = self.__get_blob_recorder().get_blob_storage_delta()
+			self.logger.info('Import backup #{} done, added {} blobs and {} chunks (size {} / {}, disk +{})'.format(
+				info.id, bds.blob_count, bds.chunk_count,
+				ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(), ByteCount(bds.created_disk_size).auto_str(),
 			))
 			return info
 
 		except Exception:
-			self.__blob_recorder.apply_file_rollback()
+			if self.__blob_recorder is not None:
+				self.__blob_recorder.apply_file_rollback()
+			elif self.__pack_writer is not None:
+				self.__pack_writer.close()
 			raise

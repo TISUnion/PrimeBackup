@@ -5,11 +5,13 @@ from typing import List, Dict, Optional, Collection
 from typing_extensions import override
 
 from prime_backup.action import Action
+from prime_backup.action.compact_packs_action import CollectPacksForCompactStep, CompactPacksStep
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.exceptions import ChunkIdNotFound, ChunkHashNotFound
 from prime_backup.types.chunk_info import ChunkInfo, ChunkListSummary
+from prime_backup.types.pack_info import PackChangeSummary
 from prime_backup.utils import collection_utils
 
 
@@ -26,12 +28,7 @@ class _ChunkTrashBin:
 		return ChunkListSummary.of(self.trash_chunks)
 
 	def erase_all(self):
-		for trash in self.trash_chunks:
-			try:
-				trash.chunk_file_path.unlink(missing_ok=True)
-			except Exception as e:
-				self.logger.error('Error erasing chunk {} at {!r}'.format(trash.hash, trash.chunk_file_path))
-				self.errors.append(e)
+		pass
 
 
 class DeleteChunksAction(Action[ChunkListSummary]):
@@ -40,6 +37,7 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 		self.chunk_ids = collection_utils.deduplicated_list(ids)
 		self.chunk_hashes = collection_utils.deduplicated_list(hashes)
 		self.raise_if_not_found = raise_if_not_found
+		self.pack_change_summary = PackChangeSummary.zero()
 
 	@override
 	def run(self, *, session: Optional[DbSession] = None) -> ChunkListSummary:
@@ -57,17 +55,42 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 			for chunk in all_to_delete_chunks.values():
 				trash_bin.add(chunk)
 
+			affected_pack_ids = collection_utils.deduplicated_list(chunk.pack_entry.pack_id for chunk in all_to_delete_chunks.values() if chunk.pack_entry.pack_id > 0)
+			pack_live_size_decrement: Dict[int, int] = {}
+			pack_live_count_decrement: Dict[int, int] = {}
+			for chunk in all_to_delete_chunks.values():
+				if chunk.pack_entry.pack_id > 0:
+					pack_live_size_decrement[chunk.pack_entry.pack_id] = pack_live_size_decrement.get(chunk.pack_entry.pack_id, 0) + chunk.stored_size
+					pack_live_count_decrement[chunk.pack_entry.pack_id] = pack_live_count_decrement.get(chunk.pack_entry.pack_id, 0) + 1
 			session.delete_chunks_by_ids([chunk.id for chunk in all_to_delete_chunks.values()])
-			session.commit()
+			for pack_id, pack in session.get_packs_by_ids(affected_pack_ids).items():
+				if pack is None:
+					continue
+				pack.live_size -= pack_live_size_decrement.get(pack_id, 0)
+				pack.live_count -= pack_live_count_decrement.get(pack_id, 0)
+
+			pack_ids_to_compact = CollectPacksForCompactStep(
+				session,
+				pack_ids=affected_pack_ids,
+				threshold=self.config.backup.pack_compact_threshold,
+				raise_if_not_found=False,
+			).run().pack_ids
+			if len(pack_ids_to_compact) > 0:
+				self.pack_change_summary = CompactPacksStep(session, pack_ids_to_compact).run()
+			else:
+				session.commit()
 
 		s = trash_bin.make_summary()
 		trash_bin.erase_all()
 		self.logger.debug('Deleted {} chunks: {}'.format(len(all_to_delete_chunks), s))
+		if self.pack_change_summary.touched_pack_count > 0:
+			self.logger.debug('Compacted packs after chunk deletion: {}'.format(self.pack_change_summary))
 
 		if len(errors := trash_bin.errors) > 0:
 			self.logger.error('Found {} chunk erasing failures in total'.format(len(errors)))
 			raise errors[0]
 
+		s.packs += self.pack_change_summary
 		return s
 
 	def __collect_chunks_to_delete(self, session: DbSession) -> Dict[int, ChunkInfo]:

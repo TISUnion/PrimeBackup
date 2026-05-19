@@ -31,6 +31,7 @@ from prime_backup.mcdr.task.backup.transform_backup_id_task import TransformBack
 from prime_backup.mcdr.task.crontab.list_crontab_task import ListCrontabJobTask
 from prime_backup.mcdr.task.crontab.operate_crontab_task import OperateCrontabJobTask
 from prime_backup.mcdr.task.crontab.show_crontab_task import ShowCrontabJobTask
+from prime_backup.mcdr.task.db.compact_packs_task import CompactPacksTask
 from prime_backup.mcdr.task.db.delete_backup_file_task import DeleteBackupFileTask
 from prime_backup.mcdr.task.db.inspect_object_tasks import InspectBackupTask, InspectBackupFileTask, InspectBlobTask, InspectFilesetTask, InspectFilesetFileTask, InspectChunkTask, InspectChunkGroupTask, InspectPackTask
 from prime_backup.mcdr.task.db.migrate_compress_method_task import MigrateCompressMethodTask
@@ -148,6 +149,9 @@ class CommandManager:
 
 	def cmd_db_prune(self, source: CommandSource, _: CommandContext):
 		self.task_manager.add_task(PruneDatabaseTask(source))
+
+	def cmd_db_compact_packs(self, source: CommandSource, _: CommandContext):
+		self.task_manager.add_task(CompactPacksTask(source))
 
 	def cmd_db_reassign_backup_id(self, source: CommandSource, context: CommandContext):
 		order = context.get('reassign_backup_order', BackupSortOrder.id)
@@ -445,6 +449,7 @@ class CommandManager:
 		builder.command('database validate backups', functools.partial(self.cmd_db_validate, parts=ValidatePart.backups))
 		builder.command('database vacuum', self.cmd_db_vacuum)
 		builder.command('database prune', self.cmd_db_prune)
+		builder.command('database compact_packs', self.cmd_db_compact_packs)
 		builder.command('database migrate_compress_method <compress_method>', self.cmd_db_migrate_compress_method)
 		builder.command('database migrate_hash_method <hash_method>', self.cmd_db_migrate_hash_method)
 		builder.command('database reassign_backup_id', self.cmd_db_reassign_backup_id)

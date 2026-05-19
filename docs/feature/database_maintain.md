@@ -147,6 +147,22 @@ Stuffs to be pruned
 
     In most cases, you do not need to manually execute this command; Prime Backup ensures the database remains in a clean state during daily operations
 
+### Manual Pack Compaction
+
+Compact all pack files with a 100% live-size threshold
+
+```
+!!pb database compact_packs
+```
+
+This rewrites pack files that contain dead space and removes fully dead pack files
+
+It does not rewrite pack files whose entries are all still live
+
+!!! note
+
+    This command is intended for manual maintenance and debugging; normal cleanup still uses `!!pb database prune`
+
 ### SQLite Vacuum
 
 Compact the SQLite database file to reduce disk usage

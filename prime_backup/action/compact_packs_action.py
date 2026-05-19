@@ -169,5 +169,9 @@ class CompactAllPacksAction(Action[PackChangeSummary]):
 		with DbAccess.open_session() as session:
 			pack_ids = CollectPacksForCompactStep(session, pack_ids=None, threshold=self.threshold).run().pack_ids
 			if len(pack_ids) == 0:
+				self.logger.info('No pack to compact, threshold {:.2f}'.format(self.threshold))
 				return PackChangeSummary.zero()
-			return CompactPacksAction(pack_ids).run(session=session)
+			result = CompactPacksAction(pack_ids).run(session=session)
+
+		self.logger.info('Compacted {} packs with threshold {:.2f}'.format(result.compacted_pack_count, self.threshold))
+		return result

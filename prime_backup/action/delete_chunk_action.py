@@ -72,7 +72,7 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 			pack_ids_to_compact = CollectPacksForCompactStep(
 				session,
 				pack_ids=affected_pack_ids,
-				threshold=self.config.backup.pack_compact_threshold,
+				threshold=self.config.backup.pack_auto_compact_threshold,
 				raise_if_not_found=False,
 			).run().pack_ids
 			pack_ids_to_compact_set = set(pack_ids_to_compact)

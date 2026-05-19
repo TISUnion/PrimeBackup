@@ -291,7 +291,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 				pack_ids_to_compact = CollectPacksForCompactStep(
 					session,
 					pack_ids=self.__old_pack_ids,
-					threshold=self.config.backup.pack_compact_threshold,
+					threshold=self.config.backup.pack_auto_compact_threshold,
 					raise_if_not_found=False,
 				).run().pack_ids
 				if len(pack_ids_to_compact) > 0:

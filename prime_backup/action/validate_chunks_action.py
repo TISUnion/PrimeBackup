@@ -73,8 +73,8 @@ class ValidateChunksAction(Action[ValidateChunksResult]):
 				result.add_bad(chunk, BadChunkItemType.missing_file, f'pack file {pack_path} does not exist')
 				return
 			pack_size = pack_path.stat().st_size
-			if chunk.pack_entry.pack_offset < 0 or chunk.stored_size < 0 or chunk.pack_entry.pack_offset + chunk.stored_size > pack_size:
-				result.add_bad(chunk, BadChunkItemType.bad_pack_entry, f'bad pack entry range, offset {chunk.pack_entry.pack_offset}, size {chunk.stored_size}, pack size {pack_size}')
+			if chunk.pack_entry.offset < 0 or chunk.stored_size < 0 or chunk.pack_entry.offset + chunk.stored_size > pack_size:
+				result.add_bad(chunk, BadChunkItemType.bad_pack_entry, f'bad pack entry range, offset {chunk.pack_entry.offset}, size {chunk.stored_size}, pack size {pack_size}')
 				return
 
 			try:

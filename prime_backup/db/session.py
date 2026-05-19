@@ -15,7 +15,7 @@ from prime_backup.db import schema, db_constants
 from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, FileIdentifier
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound, PackIdNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
-from prime_backup.types.pack_info import PackEntryInfo, PackEntryLocation
+from prime_backup.types.pack_info import PackEntryInfo
 from prime_backup.utils import collection_utils, db_utils, validation_utils
 
 _T = TypeVar('_T')
@@ -169,9 +169,9 @@ class DbSession:
 
 	class CreatePackKwargs(TypedDict):
 		size: int
-		count: int
+		entry_count: int
 		live_size: int
-		live_count: int
+		live_entry_count: int
 
 	def create_and_add_pack(self, **kwargs: Unpack[CreatePackKwargs]) -> schema.Pack:
 		pack = schema.Pack(**kwargs)
@@ -220,28 +220,28 @@ class DbSession:
 
 	@dataclasses.dataclass(frozen=True)
 	class PackOverviewStats:
-		count: int
+		pack_count: int
 		size_sum: int
 		live_size_sum: int
-		live_count_sum: int
+		live_entry_count_sum: int
 
 	def get_pack_overview_stats(self) -> PackOverviewStats:
-		count, size_sum, live_size_sum, live_count_sum = self.session.execute(select(
+		pack_count, size_sum, live_size_sum, live_entry_count_sum = self.session.execute(select(
 			func.count(schema.Pack.id),
 			func.sum(schema.Pack.size),
 			func.sum(schema.Pack.live_size),
-			func.sum(schema.Pack.live_count),
+			func.sum(schema.Pack.live_entry_count),
 		)).one()
 		return self.PackOverviewStats(
-			count=_int_or_0(count),
+			pack_count=_int_or_0(pack_count),
 			size_sum=_int_or_0(size_sum),
 			live_size_sum=_int_or_0(live_size_sum),
-			live_count_sum=_int_or_0(live_count_sum),
+			live_entry_count_sum=_int_or_0(live_entry_count_sum),
 		)
 
 	def get_live_entries_by_pack_id(self, pack_id: int) -> List[PackEntryInfo]:
 		return [
-			PackEntryInfo(id=chunk.id, pack_id=chunk.pack_id, offset=chunk.pack_offset, size=chunk.stored_size)
+			PackEntryInfo(pack_id=chunk.pack_id, offset=chunk.pack_offset, size=chunk.stored_size, chunk_id=chunk.id)
 			for chunk in self.session.execute(
 				select(schema.Chunk).
 				where(schema.Chunk.pack_id == pack_id).
@@ -255,11 +255,6 @@ class DbSession:
 			where(schema.Chunk.pack_id == pack_id).
 			order_by(schema.Chunk.pack_offset)
 		).scalars().all())
-
-	def move_pack_entry(self, entry: PackEntryInfo, location: PackEntryLocation):
-		chunk = self.get_chunk_by_id(entry.id)
-		chunk.pack_id = location.pack_id
-		chunk.pack_offset = location.pack_offset
 
 	def delete_pack(self, pack: schema.Pack):
 		self.session.delete(pack)

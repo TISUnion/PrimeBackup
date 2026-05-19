@@ -105,14 +105,7 @@ tables:
     	file_raw_size_sum BIGINT NOT NULL, 
     	file_stored_size_sum BIGINT NOT NULL
     )
-  pack: |-
-    CREATE TABLE pack (
-    	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-    	size BIGINT NOT NULL, 
-    	count INTEGER NOT NULL, 
-    	live_size BIGINT NOT NULL, 
-    	live_count INTEGER NOT NULL
-    )
+  pack: "CREATE TABLE pack (\n\tid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \n\tsize BIGINT NOT NULL, \n\tentry_count INTEGER NOT NULL, \n\tlive_size BIGINT NOT NULL, \n\tlive_entry_count INTEGER NOT NULL\n)"
 indexes:
   ix_blob_chunk_group_binding_chunk_group_id: |-
     CREATE INDEX ix_blob_chunk_group_binding_chunk_group_id ON blob_chunk_group_binding (chunk_group_id)

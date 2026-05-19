@@ -23,9 +23,9 @@ class _V4:
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
 		Column('size', BigInteger, nullable=False),
-		Column('count', Integer, nullable=False),
+		Column('entry_count', Integer, nullable=False),
 		Column('live_size', BigInteger, nullable=False),
-		Column('live_count', Integer, nullable=False),
+		Column('live_entry_count', Integer, nullable=False),
 		sqlite_autoincrement=True,
 	)
 	Blob = Table(

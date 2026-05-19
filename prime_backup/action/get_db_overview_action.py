@@ -37,7 +37,7 @@ class DbOverviewResult:
 	pack_count: int
 	pack_size_sum: int
 	pack_live_size_sum: int
-	pack_live_count_sum: int
+	pack_live_entry_count_sum: int
 
 	file_raw_size_sum: int         # total raw size of all file references across all backups, shared files won't be deduplicated
 
@@ -77,10 +77,10 @@ class GetDbOverviewAction(Action[DbOverviewResult]):
 				chunked_blob_chunk_count=session.get_chunked_blob_chunk_count(),
 				chunk_raw_size_sum=chunk_stats.raw_size_sum,
 				chunk_stored_size_sum=chunk_stats.stored_size_sum,
-				pack_count=pack_stats.count,
+				pack_count=pack_stats.pack_count,
 				pack_size_sum=pack_stats.size_sum,
 				pack_live_size_sum=pack_stats.live_size_sum,
-				pack_live_count_sum=pack_stats.live_count_sum,
+				pack_live_entry_count_sum=pack_stats.live_entry_count_sum,
 				file_raw_size_sum=session.get_file_total_raw_size_sum(),
 
 				db_file_size=db_file_size,

@@ -77,4 +77,4 @@ class ShowDbOverviewTask(LightTask[None]):
 		self.reply_tr('pack_count', TextComponents.number(result.pack_count))
 		self.reply_tr('pack_size', make_size(result.pack_size_sum))
 		self.reply_tr('pack_live_size', make_size(result.pack_live_size_sum), make_pack_live_size_ratio(result.pack_live_size_sum, result.pack_size_sum))
-		self.reply_tr('pack_live_count', TextComponents.number(result.pack_live_count_sum))
+		self.reply_tr('pack_live_entry_count', TextComponents.number(result.pack_live_entry_count_sum))

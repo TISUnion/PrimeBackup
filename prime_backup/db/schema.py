@@ -40,9 +40,9 @@ class Pack(Base):
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
 	size: Mapped[int] = mapped_column(BigInteger)  # file size
-	count: Mapped[int] = mapped_column(Integer)  # entry count
+	entry_count: Mapped[int] = mapped_column(Integer)
 	live_size: Mapped[int] = mapped_column(BigInteger)  # live entries size sum
-	live_count: Mapped[int] = mapped_column(Integer)  # live entry count
+	live_entry_count: Mapped[int] = mapped_column(Integer)
 
 	__fields_end__: bool
 

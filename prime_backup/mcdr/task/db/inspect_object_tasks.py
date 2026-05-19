@@ -309,7 +309,7 @@ class InspectChunkTask(_InspectObjectTaskBase):
 		self.reply_tr('raw_size', RText(chunk.raw_size, TextColors.byte_count), TextComponents.file_size(chunk.raw_size))
 		self.reply_tr('stored_size', RText(chunk.stored_size, TextColors.byte_count), TextComponents.file_size(chunk.stored_size))
 		pack_file_name = pack_utils.get_pack_file_name(chunk.pack_entry.pack_id)
-		self.reply_tr('pack', self._gt_pack_file_name(chunk.pack_entry.pack_id, pack_file_name, shorten=True), TextComponents.number(chunk.pack_entry.pack_id), TextComponents.number(chunk.pack_entry.pack_offset))
+		self.reply_tr('pack', self._gt_pack_file_name(chunk.pack_entry.pack_id, pack_file_name, shorten=True), TextComponents.number(chunk.pack_entry.pack_id), TextComponents.number(chunk.pack_entry.offset))
 
 
 class InspectChunkGroupTask(_InspectObjectTaskBase):
@@ -371,6 +371,6 @@ class InspectPackTask(_InspectObjectTaskBase):
 		self.reply_tr('id', TextComponents.number(pack.id))
 		self.reply_tr('pack_file_name', self._gt_pack_file_name(pack.id, pack.file_name))
 		self.reply_tr('size', RText(pack.size, TextColors.byte_count), TextComponents.file_size(pack.size))
-		self.reply_tr('count', TextComponents.number(pack.count))
+		self.reply_tr('entry_count', TextComponents.number(pack.entry_count))
 		self.reply_tr('live_size', RText(pack.live_size, TextColors.byte_count), TextComponents.file_size(pack.live_size), TextComponents.percent(pack.live_size, pack.size, ndigits=2))
-		self.reply_tr('live_count', TextComponents.number(pack.live_count), TextComponents.percent(pack.live_count, pack.count, ndigits=2))
+		self.reply_tr('live_entry_count', TextComponents.number(pack.live_entry_count), TextComponents.percent(pack.live_entry_count, pack.entry_count, ndigits=2))

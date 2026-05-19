@@ -240,9 +240,9 @@ prime_backup:
       id: 'ID: {}'
       pack_file_name: '文件名: {}'
       size: '文件大小: {} ({})'
-      count: '条目数量: {}'
+      entry_count: '条目数量: {}'
       live_size: '存活大小: {} ({}, {})'
-      live_count: '存活条目数量: {} ({})'
+      live_entry_count: '存活条目数量: {} ({})'
     db_inspect_chunk_group:
       name: 审查数据块组
       title: '数据块组{}'
@@ -349,7 +349,7 @@ prime_backup:
       pack_size: '打包文件总大小: {}'
       pack_live_size: '打包文件存活数据大小: {} ({})'
       pack_live_size_ratio: 存活数据 / 打包文件大小
-      pack_live_count: '打包文件存活条目数量: {}'
+      pack_live_entry_count: '打包文件存活条目数量: {}'
     db_prune:
       name: 清理数据库
       start: 正在清理数据库, 删除其中的无效数据, 请稍等...

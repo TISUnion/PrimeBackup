@@ -525,10 +525,10 @@ class BlobAllocator:
 				while len(compressed_chunk_futures) > 0 and (force or len(compressed_chunk_futures) >= max_pending_compressed_chunks or pending_compressed_chunk_bytes >= max_pending_compressed_chunk_bytes):
 					compressed_chunk = compressed_chunk_futures.pop(0).result()
 					pending_compressed_chunk_bytes -= compressed_chunk.chunk.raw_size
-					entry_location = self.__pack_writer.write_pack_entry(compressed_chunk.data)
+					entry_location = self.__pack_writer.write_entry(compressed_chunk.data)
 					compressed_chunk.chunk.stored_size = len(compressed_chunk.data)
 					compressed_chunk.chunk.pack_id = entry_location.pack_id
-					compressed_chunk.chunk.pack_offset = entry_location.pack_offset
+					compressed_chunk.chunk.pack_offset = entry_location.offset
 
 			with open(actual_path_to_read, 'rb') as src_file, FailFastBlockingThreadPool('chunk_compress') as pool:
 				offset = 0

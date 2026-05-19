@@ -57,17 +57,17 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 
 			affected_pack_ids = collection_utils.deduplicated_list(chunk.pack_entry.pack_id for chunk in all_to_delete_chunks.values() if chunk.pack_entry.pack_id > 0)
 			pack_live_size_decrement: Dict[int, int] = {}
-			pack_live_count_decrement: Dict[int, int] = {}
+			pack_live_entry_count_decrement: Dict[int, int] = {}
 			for chunk in all_to_delete_chunks.values():
 				if chunk.pack_entry.pack_id > 0:
 					pack_live_size_decrement[chunk.pack_entry.pack_id] = pack_live_size_decrement.get(chunk.pack_entry.pack_id, 0) + chunk.stored_size
-					pack_live_count_decrement[chunk.pack_entry.pack_id] = pack_live_count_decrement.get(chunk.pack_entry.pack_id, 0) + 1
+					pack_live_entry_count_decrement[chunk.pack_entry.pack_id] = pack_live_entry_count_decrement.get(chunk.pack_entry.pack_id, 0) + 1
 			session.delete_chunks_by_ids([chunk.id for chunk in all_to_delete_chunks.values()])
 			for pack_id, pack in session.get_packs_by_ids(affected_pack_ids).items():
 				if pack is None:
 					continue
 				pack.live_size -= pack_live_size_decrement.get(pack_id, 0)
-				pack.live_count -= pack_live_count_decrement.get(pack_id, 0)
+				pack.live_entry_count -= pack_live_entry_count_decrement.get(pack_id, 0)
 
 			pack_ids_to_compact = CollectPacksForCompactStep(
 				session,

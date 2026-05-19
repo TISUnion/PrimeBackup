@@ -68,8 +68,8 @@ class ValidatePacksAction(Action[ValidatePacksResult]):
 			if pack.live_size > pack.size:
 				result.add_bad(pack, BadPackItemType.mismatched, f'live_size {pack.live_size} is larger than size {pack.size}')
 				continue
-			if pack.live_count > pack.count:
-				result.add_bad(pack, BadPackItemType.mismatched, f'live_count {pack.live_count} is larger than count {pack.count}')
+			if pack.live_entry_count > pack.entry_count:
+				result.add_bad(pack, BadPackItemType.mismatched, f'live_entry_count {pack.live_entry_count} is larger than entry_count {pack.entry_count}')
 				continue
 
 			result.ok += 1

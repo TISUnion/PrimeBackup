@@ -240,9 +240,9 @@ prime_backup:
       id: 'ID: {}'
       pack_file_name: 'File name: {}'
       size: 'File size: {} ({})'
-      count: 'Entry count: {}'
+      entry_count: 'Entry count: {}'
       live_size: 'Live size: {} ({}, {})'
-      live_count: 'Live entry count: {} ({})'
+      live_entry_count: 'Live entry count: {} ({})'
     db_inspect_chunk_group:
       name: inspect chunk group
       title: 'Chunk group {}'
@@ -349,7 +349,7 @@ prime_backup:
       pack_size: 'Pack file size sum: {}'
       pack_live_size: 'Pack live size sum: {} ({})'
       pack_live_size_ratio: live size / pack file size
-      pack_live_count: 'Pack live entry count: {}'
+      pack_live_entry_count: 'Pack live entry count: {}'
     db_prune:
       name: prune database
       start: Pruning database, deleting useless objects inside, please wait...

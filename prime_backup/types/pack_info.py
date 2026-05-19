@@ -12,18 +12,18 @@ from prime_backup.utils import misc_utils
 class PackInfo:
 	id: int
 	size: int
-	count: int
+	entry_count: int
 	live_size: int
-	live_count: int
+	live_entry_count: int
 
 	@classmethod
 	def of(cls, pack: schema.Pack) -> 'PackInfo':
 		return PackInfo(
 			id=pack.id,
 			size=pack.size,
-			count=pack.count,
+			entry_count=pack.entry_count,
 			live_size=pack.live_size,
-			live_count=pack.live_count,
+			live_entry_count=pack.live_entry_count,
 		)
 
 	@property
@@ -44,15 +44,17 @@ class PackInfo:
 @dataclasses.dataclass(frozen=True)
 class PackEntryLocation:
 	pack_id: int
-	pack_offset: int
+	offset: int
 
 
 @dataclasses.dataclass(frozen=True)
 class PackEntryInfo:
-	id: int
 	pack_id: int
 	offset: int
 	size: int
+
+	# entry information
+	chunk_id: int
 
 
 @dataclasses.dataclass
@@ -83,10 +85,6 @@ class PackChangeSummary:
 	@classmethod
 	def zero(cls) -> Self:
 		return cls()
-
-	@property
-	def count(self) -> int:
-		return self.changed_pack_count
 
 	@classmethod
 	def of_created_packs(cls, packs: Iterable[PackInfo]) -> 'PackChangeSummary':

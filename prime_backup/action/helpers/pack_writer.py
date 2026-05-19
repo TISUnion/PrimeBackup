@@ -31,9 +31,9 @@ class _ActivePack:
 		self.file.flush()
 
 		self.pack.size += size
-		self.pack.count += 1
+		self.pack.entry_count += 1
 		self.pack.live_size += size
-		self.pack.live_count += 1
+		self.pack.live_entry_count += 1
 
 		return PackEntryLocation(self.pack.id, offset)
 
@@ -43,9 +43,9 @@ class _ActivePack:
 
 		offset = self.pack.size
 		self.pack.size += len(data)
-		self.pack.count += 1
+		self.pack.entry_count += 1
 		self.pack.live_size += len(data)
-		self.pack.live_count += 1
+		self.pack.live_entry_count += 1
 
 		return PackEntryLocation(self.pack.id, offset)
 
@@ -89,9 +89,6 @@ class PackWriter:
 		if self.__should_write_dedicated(len(data)):
 			return self.__write_dedicated(data)
 		return self.__write_active(data)
-
-	def write_pack_entry(self, data: bytes) -> PackEntryLocation:
-		return self.write_entry(data)
 
 	def write_entry_from_reader(self, reader: SupportsReadBytes, size: int) -> PackEntryLocation:
 		if size < 0:
@@ -146,7 +143,7 @@ class PackWriter:
 		assert self.__active is not None
 		return (
 			self.__active.pack.size >= pack_constants.PACK_MAX_SIZE or
-			self.__active.pack.count >= pack_constants.PACK_MAX_COUNT
+			self.__active.pack.entry_count >= pack_constants.PACK_MAX_COUNT
 		)
 
 	def close(self):
@@ -162,9 +159,9 @@ class PackWriter:
 		pack_utils.prepare_pack_store()
 		new_pack = self.session.create_and_add_pack(
 			size=0,
-			count=0,
+			entry_count=0,
 			live_size=0,
-			live_count=0,
+			live_entry_count=0,
 		)
 		self.session.flush()  # creates pack.id
 

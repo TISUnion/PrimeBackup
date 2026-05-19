@@ -151,9 +151,9 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 					temp_path.unlink(missing_ok=True)
 
 				chunk.pack_id = entry_location.pack_id
-				chunk.pack_offset = entry_location.pack_offset
+				chunk.pack_offset = entry_location.offset
 				pack.live_size -= old_stored_size
-				pack.live_count -= 1
+				pack.live_entry_count -= 1
 
 			self.__old_pack_ids.add(pack.id)
 		except Exception:

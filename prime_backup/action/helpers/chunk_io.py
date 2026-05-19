@@ -19,7 +19,7 @@ class ChunkIO:
 
 	@contextlib.contextmanager
 	def open_raw(self) -> Generator[SupportsReadBytes, None, None]:
-		with PackReader.open_entry(self.__get_pack_id(), self.chunk.pack_entry.pack_offset, self.chunk.stored_size) as reader:
+		with PackReader.open_entry(self.__get_pack_id(), self.chunk.pack_entry.offset, self.chunk.stored_size) as reader:
 			yield reader
 
 	@contextlib.contextmanager

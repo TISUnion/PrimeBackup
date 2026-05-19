@@ -224,7 +224,7 @@ class BlobExporter:
 						peek_reader = _PeekReader(f_in, 32 * 1024)
 						peek_reader.peek()
 					except Exception as e:
-						self.logger.error(f'Failed to peek-read chunk {oc.chunk.hash} in pack entry {oc.chunk.pack_entry.pack_id}@{oc.chunk.pack_entry.pack_offset} for {oc}: {e}')
+						self.logger.error(f'Failed to peek-read chunk {oc.chunk.hash} in pack entry {oc.chunk.pack_entry.pack_id}@{oc.chunk.pack_entry.offset} for {oc}: {e}')
 						raise
 
 					if self.verify_blob:

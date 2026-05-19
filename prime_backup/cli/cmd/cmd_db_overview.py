@@ -90,7 +90,7 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 		self.logger.info('Pack count: %s', result.pack_count)
 		self.logger.info('Pack file size sum: %s', self.__size_str(result.pack_size_sum))
 		self.logger.info('Pack live size sum: %s (%s)', self.__size_str(result.pack_live_size_sum), self.__live_size_ratio_str(result.pack_live_size_sum, result.pack_size_sum))
-		self.logger.info('Pack live entry count: %s', result.pack_live_count_sum)
+		self.logger.info('Pack live entry count: %s', result.pack_live_entry_count_sum)
 
 
 class DbOverviewCommandAdapter(CliCommandAdapterBase):

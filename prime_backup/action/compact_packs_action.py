@@ -53,7 +53,7 @@ class CollectPacksForCompactStep(Step[CollectPacksForCompactResult]):
 
 		for pack in packs:
 			if pack.size <= 0:
-				if pack.live_count <= 0:
+				if pack.live_entry_count <= 0:
 					result.append(pack.id)
 				continue
 			if pack.live_size < pack.size and pack.live_size / pack.size < self.threshold:
@@ -93,7 +93,7 @@ class CompactPacksAction(Action[PackChangeSummary]):
 						self.logger.warning('Pack id {} does not exist, skipped compact'.format(pack_id))
 						continue
 
-					if pack.live_size == pack.size and pack.live_count == pack.count:
+					if pack.live_size == pack.size and pack.live_entry_count == pack.entry_count:
 						continue
 
 					old_pack_info = PackInfo.of(pack)
@@ -110,12 +110,14 @@ class CompactPacksAction(Action[PackChangeSummary]):
 						pack_writer = PackWriter(session)
 
 					self.logger.debug('Compacting pack id={} file_name={} live={}/{} entries={}/{}'.format(
-						pack.id, old_pack_info.file_name, pack.live_size, pack.size, pack.live_count, pack.count,
+						pack.id, old_pack_info.file_name, pack.live_size, pack.size, pack.live_entry_count, pack.entry_count,
 					))
 					for entry in live_entries:
 						with PackReader.open_entry(entry.pack_id, entry.offset, entry.size) as reader:
 							entry_location = pack_writer.write_entry_from_reader(reader, entry.size)
-						session.move_pack_entry(entry, entry_location)
+						chunk = session.get_chunk_by_id(entry.chunk_id)
+						chunk.pack_id = entry_location.pack_id
+						chunk.pack_offset = entry_location.offset
 					session.flush()
 
 					session.delete_pack(pack)

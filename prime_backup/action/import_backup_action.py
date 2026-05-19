@@ -114,7 +114,7 @@ class ImportBackupAction(Action[BackupInfo]):
 			raw_size=sah.size,
 			stored_size=stored_size,
 			pack_id=entry_location.pack_id,
-			pack_offset=entry_location.pack_offset,
+			pack_offset=entry_location.offset,
 		)
 		self.__chunk_cache[sah.hash] = chunk
 		return chunk

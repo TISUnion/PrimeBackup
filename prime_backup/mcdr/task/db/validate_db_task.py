@@ -147,7 +147,7 @@ class ValidateDbTask(HeavyTask[None]):
 		self.reply(self.tr('validate_packs.found_bad_packs', TextComponents.number(result.bad), TextComponents.number(result.validated)).set_color(RColor.red))
 		for bad_type, bad_items in result.group_bad_by_type().items():
 			def item_formatter(item: BadPackItem) -> str:
-				return f'id={item.pack.id} name={item.pack.name}: {item.desc}'
+				return f'id={item.pack.id} file_name={item.pack.file_name}: {item.desc}'
 			vlogger.info('bad pack with category {!r} (len={})'.format(bad_type.name, len(bad_items)))
 			self.reply_tr(f'validate_packs.bad_type.{bad_type.name}', TextComponents.number(len(bad_items)))
 			self.__show_bad_objects(vlogger, bad_items, item_formatter)

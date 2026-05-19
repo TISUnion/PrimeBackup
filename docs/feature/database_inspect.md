@@ -6,7 +6,7 @@ View and inspect object information in the database
 
 ## Overview
 
-Prime Backup's database inspection functionality allows you to deeply examine various components of the backup system, including backups, filesets, files, and blobs
+Prime Backup's database inspection functionality allows you to deeply examine various components of the backup system, including backups, filesets, files, packs, blobs, chunks, and chunk groups
 
 ## Backup Inspection
 
@@ -159,3 +159,37 @@ If the provided hash is too short and cannot uniquely identify a blob, it will o
 [MCDR] [02:00:06] [PB@f133-worker-light/INFO]: [PB] The given hash 8a cannot uniquely identify a blob
 [MCDR] [02:00:06] [PB@f133-worker-light/INFO]: [PB] Found at least 3 candidates: 8a92569c48895c60bf2977f1be9591f4, 8abd332ba5b579ca00d0d54e50b8bedd, 8ad9bfd69fa3e84b15e2aa803cac0e4c
 ```
+
+## Pack Inspection
+
+### View Pack Details
+
+View complete information for a specific pack file:
+
+```
+!!pb database inspect pack <id_or_file_name>
+```
+
+The parameter can be a pack ID or a prefix of the derived pack file name, as long as it uniquely identifies the pack file
+
+Example:
+
+```
+!!pb database inspect pack 12
+!!pb database inspect pack 962ca655
+```
+
+Example output:
+
+```
+> !!pb database inspect pack 12
+[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] ======== Pack 962ca655f458e150 ========
+[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] ID: 12
+[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Pack file name: 962ca655f458e15037faf8e628c092c975ab2e897dfca8e9cf0b94d512e5eebc
+[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Size: 192352 (187.84KiB)
+[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Entry count: 48
+[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Live size: 102464 (100.06KiB, 53.27%)
+[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Live entry count: 26 (54.17%)
+```
+
+Pack file names are derived from pack IDs and are not stored as independent database fields

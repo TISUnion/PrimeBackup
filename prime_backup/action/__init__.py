@@ -10,8 +10,21 @@ _T = TypeVar('_T')
 _S = TypeVar('_S')
 
 
-class Action(Generic[_T], ABC):
+class Step(Generic[_T], ABC):
 	def __init__(self):
+		from prime_backup import logger
+		from prime_backup.config.config import Config
+		self.logger: logging.Logger = logger.get()
+		self.config: Config = Config.get()
+
+	@abstractmethod
+	def run(self) -> _T:
+		...
+
+
+class Action(Step[_T], ABC):
+	def __init__(self):
+		super().__init__()
 		self.is_interrupted = threading.Event()
 
 		from prime_backup import logger
@@ -20,10 +33,6 @@ class Action(Generic[_T], ABC):
 		self.config: Config = Config.get()
 
 		self.__running_action: Optional[Action] = None
-
-	@abstractmethod
-	def run(self) -> _T:
-		...
 
 	def is_interruptable(self) -> bool:
 		return False

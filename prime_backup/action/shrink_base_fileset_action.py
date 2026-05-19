@@ -126,8 +126,8 @@ class ShrinkBaseFilesetAction(Action[FileListSummary]):
 			fls.blob_summary = bds
 
 		if bds.blob_count > 0:
-			self.logger.info('Shrink base fileset {} done, removed {} blobs and {} chunks (freed disk {} / raw {})'.format(
-				self.base_fileset_id, bds.blob_count, bds.chunk_count, ByteCount(bds.freed_disk_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
+			self.logger.info('Shrink base fileset {} done, removed {} blobs, {} chunks and changed {} packs (freed disk {} / raw {})'.format(
+				self.base_fileset_id, bds.blob_count, bds.chunk_count, bds.packs.changed_pack_count, ByteCount(bds.freed_disk_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
 			))
 		else:
 			self.logger.info('Shrink base fileset {} done, nothing to shrink'.format(self.base_fileset_id))

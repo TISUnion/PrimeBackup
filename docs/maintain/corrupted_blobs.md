@@ -4,16 +4,16 @@ title: 'Handling Corrupted Data Files'
 
 # Handling Corrupted Data Files
 
-This document describes how to identify problems, temporarily bypass restoration failures, and repair corruption when data object files (blobs) or data chunk files (chunks) in the Prime Backup storage pool become corrupted
+This document describes how to identify problems, temporarily bypass restoration failures, and repair corruption when direct blob files or pack files in the Prime Backup storage pool become corrupted
 
 ## Background
 
-Prime Backup persists backup data to the file system in the form of data objects (Blobs). There are two storage methods:
+Prime Backup persists backup data to the file system through direct blob files and pack files; blob records have two storage methods:
 
 - Direct (`direct`): each blob corresponds to an independent file, stored at `pb_files/blobs/{first 2 chars of hash}/{full hash}`,
   e.g.: `pb_files/blobs/8b/8b36d71e250e25527f59b8fd9e0f2dce`
-- Chunked (`chunked`): large files are split into multiple data chunks (chunks) via the CDC algorithm, each chunk stored independently at `pb_files/blobs/_chunks/{first 2 chars of hash}/{full hash}`,
-  e.g.: `pb_files/blobs/_chunks/3a/3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5`
+- Chunked (`chunked`): large files are split into multiple data chunks via the CDC algorithm, and new chunk payloads are stored as pack entries inside pack files under `pb_files/packs/{first 2 chars of pack file name}/{pack file name}`,
+  e.g.: `pb_files/packs/96/962ca655f458e15037faf8e628c092c975ab2e897dfca8e9cf0b94d512e5eebc`
 
 When these files are corrupted or lost due to disk failures, file system errors, unexpected power loss, or accidental operations, PB will be unable to restore the corresponding files during a restoration (or export), causing the operation to fail
 
@@ -23,7 +23,7 @@ When these files are corrupted or lost due to disk failures, file system errors,
 
 ### Restoration Failure
 
-By default, PB performs a hash verification on each restored file during restoration (`verify_blob=True`). If a blob or chunk file is missing, corrupted, or its hash/size does not match the database record, the restoration aborts with an error and rolls back all written files
+By default, PB performs a hash verification on each restored file during restoration (`verify_blob=True`); if a direct blob file or a pack file is missing or corrupted, or restored content does not match the database record, the restoration aborts with an error and rolls back all written files
 
 Scenario 1: Direct blob file corrupted (hash mismatch)
 
@@ -35,7 +35,7 @@ Scenario 1: Direct blob file corrupted (hash mismatch)
 [MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: You can try to fix the issue and perform another restoration, or just start the server manually via MCDR command
 ```
 
-Scenario 2: A chunk file of a chunked blob corrupted (hash mismatch)
+Scenario 2: A pack entry used by a chunked blob is corrupted (hash mismatch)
 
 ```
 [MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file 'world/region/r.0.0.mca' to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (chunk 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5), expected 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5, actual written ff92dcb10e3a7b5c2d4f8e1a9c6b0d3f
@@ -62,11 +62,15 @@ Use the following command to validate all components in the database at once:
 !!pb database validate all
 ```
 
-This command validates in sequence: blobs, chunk-related objects (chunks), files, filesets, and backups
+This command validates in sequence: packs, blobs, chunk-related objects, files, filesets, and backups
 
 Example output (all healthy):
 
 ```
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO]: [PB] Start validating packs, please wait...
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO] [prime_backup]: Pack validation start
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO] [prime_backup]: Pack validation done: total 16, validated 16, ok 16, bad 0
+[MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO]: [PB] All 16 packs are healthy
 [MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO]: [PB] Start validating blobs, please wait...
 [MCDR] [23:15:38] [PB@xxx-worker-heavy/INFO] [prime_backup]: Blob validation start
 [MCDR] [23:15:51] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 4325 / 4325 blobs
@@ -77,12 +81,12 @@ Example output (all healthy):
 [MCDR] [23:15:57] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 8765, validated 8765, ok 8765, bad 0
 [MCDR] [23:15:57] [PB@xxx-worker-heavy/INFO]: [PB] All 8765 chunks, ... chunk groups, ... + ... bindings are healthy
 [MCDR] [23:15:57] [PB@xxx-worker-heavy/INFO]: [PB] ...(files/filesets/backups validation omitted)...
-[MCDR] [23:16:12] [PB@xxx-worker-heavy/INFO]: [PB] Validation done, cost 34.21s. blobs: good, chunks: good, files: good, filesets: good, backups: good
+[MCDR] [23:16:12] [PB@xxx-worker-heavy/INFO]: [PB] Validation done, cost 34.21s. packs: good, blobs: good, chunks: good, files: good, filesets: good, backups: good
 ```
 
 !!! note
 
-    This document only covers blob/chunk file-level corruption handling (corresponding to the `blobs` and `chunks` validation results)
+    This document only covers direct blob file and pack file corruption handling (corresponding to the `packs`, `blobs`, and `chunks` validation results)
     For anomalies in `files`, `filesets`, `backups` and other components, these are database structure-level issues and are outside the scope of this document
 
 ### Scanning Direct Blob Files
@@ -153,9 +157,9 @@ Affected backup / total backups: 16 / 21
 Affected backup IDs (bad blobs): [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33]
 ```
 
-### Scanning Chunk Files of Chunked Blobs
+### Scanning Chunks of Chunked Blobs
 
-Use the following command to scan all chunks and their associated objects (chunk groups, binding relationships):
+Use the following command to scan all chunks and their associated objects (chunk groups, binding relationships, and pack entries):
 
 ```
 !!pb database validate chunks
@@ -169,15 +173,15 @@ Example output when chunk corruption is found:
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO] [prime_backup]: Validating 8765 / 8765 chunks
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 8765, validated 8765, ok 8763, bad 2
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Found 2 / 8765 bad chunks in total
-[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Corrupted chunk file: 2
-[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 1. id=1234 hash=3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5: cannot read and decompress chunk file: (<class 'zlib.error'> Error -5 while decompressing data: incomplete or truncated stream
-[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 2. id=5678 hash=9b4c3d7e2f1a0b6c8e7d5c3a2b1f9e0d: cannot read and decompress chunk file: (<class 'zlib.error'> Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Corrupted chunk data: 2
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 1. id=1234 hash=3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5: cannot read and decompress chunk from pack entry: (<class 'zlib.error'> Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 2. id=5678 hash=9b4c3d7e2f1a0b6c8e7d5c3a2b1f9e0d: cannot read and decompress chunk from pack entry: (<class 'zlib.error'> Error -5 while decompressing data: incomplete or truncated stream
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Affected range: 3 / 9147 file objects, 1 / 26 filesets, 8 / 21 backups
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] See log file pb_files/logs/validate.log for details and affected stuffs of these bad blobs
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Validation done, cost 4.56s. chunks: bad
 ```
 
-Chunk corruption types are similar to blobs: `missing_file` (file missing), `corrupted` (decompression failed), `mismatched` (hash/size mismatch)
+Chunk corruption types are similar to blobs: `missing_pack` or `missing_file` (pack relationship or pack file missing), `bad_pack_entry` (pack entry range is invalid), `corrupted` (decompression failed), `mismatched` (hash/size mismatch)
 
 Since a chunk can be shared by multiple chunked blobs, a single corrupted chunk may affect multiple files across multiple backups
 
@@ -222,7 +226,7 @@ Inspect a specific backup:
 
 !!! warning
 
-    The following measures are for temporary emergency use only and do not fix the underlying corruption. The backup content restored using these options will be incomplete, and the relevant game files (e.g., world saves) may be corrupted. Use with caution after fully understanding the risks
+    The following measures are for temporary emergency use only and do not fix the underlying corruption; the backup content restored using these options will be incomplete, and the relevant game files (e.g., world saves) may be corrupted, so use them with caution after fully understanding the risks
 
 ### Skip Failed Files (`--fail-soft`)
 
@@ -232,7 +236,7 @@ Add the `--fail-soft` flag to the restoration command, and PB will catch and log
 !!pb back 78 --fail-soft
 ```
 
-`--fail-soft` applies to all types of export failures (including missing files, decompression failures, and hash mismatches). After restoration completes, PB logs all skipped files:
+`--fail-soft` applies to all types of export failures (including missing files, decompression failures, and hash mismatches); after restoration completes, PB logs all skipped files:
 
 ```
 [MCDR] [22:10:12] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file 'world/region/r.0.0.mca' to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e..., actual written 9f4c7b3e...
@@ -248,11 +252,11 @@ Add the `--fail-soft` flag to the restoration command, and PB will catch and log
 
     When using `--fail-soft`, the final state of skipped files in the restoration directory depends on the error type:
 
-    - Missing file (`missing`/`missing_file`): blob/chunk file does not exist and cannot be written; the file will be absent at the destination path
+    - Missing file (`missing`/`missing_file`): direct blob file or pack file does not exist and cannot be read; the restored file will be absent at the destination path
     - Corrupted file (`corrupted`): an exception occurs during decompression; the destination file may exist in a truncated/partially written state
     - Hash mismatch (`mismatched`): the file is fully written but the content comes from corrupted data, so the content is incorrect
 
-    Additionally, since PB clears the restoration target directory at the start, the pre-restoration content of any failed file has already been deleted and cannot be automatically recovered. Manual restoration to a pre-restoration backup is required if one was created
+    Additionally, since PB clears the restoration target directory at the start, the pre-restoration content of any failed file has already been deleted and cannot be automatically recovered; manual restoration to a pre-restoration backup is required if one was created
 
 ### Skip Hash Verification (`--no-verify`)
 
@@ -262,7 +266,7 @@ Add the `--no-verify` flag to the restoration command, and PB will skip hash/siz
 !!pb back 78 --no-verify
 ```
 
-`--no-verify` applies to cases where the blob/chunk file content can be read and decompressed normally, but the hash or size does not match the database record (i.e., `mismatched` type)
+`--no-verify` applies to cases where direct blob data or chunk data from a pack entry can be read and decompressed normally, but the hash or size does not match the database record (i.e., `mismatched` type)
 For missing files or files that cannot be decompressed, `--no-verify` has no effect and must be used together with `--fail-soft`
 
 The two flags can be combined:
@@ -277,29 +281,29 @@ The two flags can be combined:
 
 !!! danger
 
-    **Do not directly delete blob or chunk files**
+    Do not directly delete blob or pack files
 
-    Directly deleting files under `pb_files/blobs/` or `pb_files/blobs/_chunks/` in the file system will cause the database records to become inconsistent with the file system
+    Directly deleting files under `pb_files/blobs/` or `pb_files/packs/` in the file system will cause the database records to become inconsistent with the file system
     PB has no knowledge of the deletion; subsequent restoration, export, and other operations will still attempt to read the non-existent files, leading to various hard-to-diagnose errors
 
 !!! danger
 
-    **Do not directly modify the SQLite database**
+    Do not directly modify the SQLite database
 
     The PrimeBackup database (`pb_files/prime_backup.db`) has a complex relational structure (multiple layers of associations including blob, chunk, chunk_group, binding, etc.)
     Manual modification can easily break referential integrity, putting the database into a corrupted state that is difficult to recover from
 
-### Method 1: Restore blob/chunk Files from an External Backup
+### Method 1: Restore blob or pack files from an External Backup
 
-Applicable scenario: You have an external backup of the `pb_files` directory (e.g., an OS-level file backup) that contains intact blob or chunk files
+Applicable scenario: You have an external backup of the `pb_files` directory (e.g., an OS-level file backup) that contains intact blob or pack files
 
 Steps:
 
 1. Identify the file paths to restore (obtain hashes from validate output):
    - Direct blob: `pb_files/blobs/{first 2 chars of hash}/{full hash}`  
      e.g.: `pb_files/blobs/8b/8b36d71e250e25527f59b8fd9e0f2dce`
-   - Chunk file: `pb_files/blobs/_chunks/{first 2 chars of hash}/{full hash}`  
-     e.g.: `pb_files/blobs/_chunks/3a/3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5`
+   - Pack file: `pb_files/packs/{first 2 chars of pack file name}/{pack file name}`
+     e.g.: `pb_files/packs/96/962ca655f458e15037faf8e628c092c975ab2e897dfca8e9cf0b94d512e5eebc`
 
 2. Copy the corresponding file from the external backup to its original path, overwriting the corrupted file (or placing it there if the file is missing)
 
@@ -311,7 +315,7 @@ Steps:
 
 ### Method 2: Delete the Affected Backups
 
-Applicable scenario: The backups corresponding to the corrupted blob/chunk are no longer needed, or you prefer to discard these backups rather than keep incomplete data
+Applicable scenario: The backups corresponding to the corrupted blob or chunk are no longer needed, or you prefer to discard these backups rather than keep incomplete data
 
 Steps:
 
@@ -335,7 +339,7 @@ Steps:
     !!pb delete_range 3-7
     ```
 
-3. After deleting backups, PB will automatically clean up orphan blobs and chunks no longer referenced by any backup (including deleting their physical files). If any remain, you can manually run:
+3. After deleting backups, PB will automatically clean up orphan blobs and chunks no longer referenced by any backup, and prune can compact affected pack files; if any remain, you can manually run:
 
     ```
     !!pb database prune
@@ -343,26 +347,26 @@ Steps:
 
 !!! note
 
-    When deleting backups, if a blob/chunk is still referenced by other non-deleted backups, it will not be automatically deleted; the corrupted data still exists in the storage pool, just no longer affecting the deleted backups
+    When deleting backups, if a blob or chunk is still referenced by other non-deleted backups, it will not be automatically deleted; the corrupted data still exists in the storage pool, just no longer affecting the deleted backups
     To completely remove corrupted data, you need to delete all backups that reference it
 
 !!! tip
 
     Affected backup IDs can be clicked directly from the in-game validate output, or retrieved in full from the `validate.log` log file
 
-### Method 3: (Not Yet Implemented) Provide Files with Intact Data to Rebuild blob/chunk
+### Method 3: (Not Yet Implemented) Provide Files with Intact Data to Rebuild blob or chunk data
 
 !!! info
 
     This feature has not yet been implemented
 
-In theory, if you have one or more files with the same content as the damaged blob/chunk, a dedicated repair command could allow PB to re-ingest those files and fix the corrupted storage entries
+In theory, if you have one or more files with the same content as the damaged blob or chunk, a dedicated repair command could allow PB to re-ingest those files and fix the corrupted storage entries
 
 The planned usage would be: provide one or more file paths (or an archive containing those files), PB computes the hash of each input file,
-and searches the database for blob or chunk entries with a matching hash in a corrupted state (`missing`, `corrupted`, `mismatched`). If found, it re-writes the file to the corresponding storage path, completing the repair
+and searches the database for blob or chunk entries with a matching hash in a corrupted state (`missing`, `corrupted`, `mismatched`); if found, it re-writes the corresponding blob file or pack entry, completing the repair
 
 The current version of PrimeBackup does not support this: the `!!pb import` command, when processing files, will not re-write the physical file if a blob record with the same hash already exists in the database,
-so even importing a backup with the same content will not replace the corrupted blob file
+so even importing a backup with the same content will not replace corrupted storage data
 
 Watch future versions for updates on this feature
 
@@ -370,8 +374,8 @@ Watch future versions for updates on this feature
 
 | Issue Type                                                 | Recommended Action                                                                                          |
 |------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| blob/chunk file missing (`missing`/`missing_file`)         | Restore the file from an external backup, or delete the affected backups                                    |
-| blob/chunk file corrupted, cannot decompress (`corrupted`) | Restore the file from an external backup, or delete the affected backups                                    |
-| Hash/size mismatch (`mismatched`)                          | Restore from external backup, or delete affected backups; temporarily use `--no-verify` to bypass           |
-| Temporarily need to restore a corrupted backup             | `!!pb back <ID> --fail-soft` (skip corrupted files) or `--no-verify` (skip hash check)                      |
-| Want to determine the scope of corruption                  | `!!pb database validate blobs` / `validate chunks` / `validate all`, and check `pb_files/logs/validate.log` |
+| blob or pack file missing (`missing`/`missing_file`)       | Restore the file from an external backup, or delete the affected backups                                                   |
+| blob or pack entry corrupted, cannot decompress (`corrupted`) | Restore the file from an external backup, or delete the affected backups                                                   |
+| Hash/size mismatch (`mismatched`)                          | Restore from external backup, or delete affected backups; temporarily use `--no-verify` to bypass                          |
+| Temporarily need to restore a corrupted backup             | `!!pb back <ID> --fail-soft` (skip corrupted files) or `--no-verify` (skip hash check)                                     |
+| Want to determine the scope of corruption                  | `!!pb database validate packs` / `validate blobs` / `validate chunks` / `validate all`, and check `pb_files/logs/validate.log` |

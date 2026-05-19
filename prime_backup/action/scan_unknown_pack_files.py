@@ -12,7 +12,7 @@ from prime_backup.db.access import DbAccess
 @dataclasses.dataclass(frozen=True)
 class UnknownPackFile:
 	path: Path
-	pack_name: str
+	pack_file_name: str
 	file_size: int
 
 
@@ -40,13 +40,13 @@ class ScanUnknownPackFilesAction(Action[ScanUnknownPackFilesResult]):
 		self.logger.info('Scanning pack store to check if there are any unknown pack files')
 		unknown_pack_file_samples: List[str] = []
 		with DbAccess.open_session() as session:
-			db_pack_names = set(session.get_all_pack_names())
+			db_pack_file_names = {pack_utils.get_pack_file_name(pack_id) for pack_id in session.get_all_pack_ids()}
 			for pack_dir in pack_utils.iterate_pack_directories():
 				if not pack_dir.is_dir():
 					continue
 				for name in os.listdir(pack_dir):
 					pack_file = pack_dir / name
-					if not pack_file.is_file() or name in db_pack_names:
+					if not pack_file.is_file() or name in db_pack_file_names:
 						continue
 
 					count += 1

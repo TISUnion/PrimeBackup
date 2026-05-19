@@ -12,14 +12,14 @@ class ChunkIO:
 	def __init__(self, chunk: ChunkInfo):
 		self.chunk = chunk
 
-	def __get_pack_name(self) -> str:
-		if len(self.chunk.pack_entry.pack_name) == 0:
-			raise ValueError('chunk {} has no pack name'.format(self.chunk.id))
-		return self.chunk.pack_entry.pack_name
+	def __get_pack_id(self) -> int:
+		if self.chunk.pack_entry.pack_id <= 0:
+			raise ValueError('chunk {} has no pack id'.format(self.chunk.id))
+		return self.chunk.pack_entry.pack_id
 
 	@contextlib.contextmanager
 	def open_raw(self) -> Generator[SupportsReadBytes, None, None]:
-		with PackReader.open_entry(self.__get_pack_name(), self.chunk.pack_entry.pack_offset, self.chunk.stored_size) as reader:
+		with PackReader.open_entry(self.__get_pack_id(), self.chunk.pack_entry.pack_offset, self.chunk.stored_size) as reader:
 			yield reader
 
 	@contextlib.contextmanager

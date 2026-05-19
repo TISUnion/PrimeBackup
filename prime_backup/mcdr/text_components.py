@@ -168,13 +168,13 @@ class TextComponents:
 			cls.tr('blob_delta_summary.direct_blobs', cls.number(bds.direct_blobs.count), cls.file_size(bds.direct_blobs.raw_size), cls.file_size(bds.direct_blobs.stored_size)),
 			cls.tr('blob_delta_summary.chunks', cls.number(bds.chunks.count), cls.file_size(bds.chunks.raw_size), cls.file_size(bds.chunks.stored_size)),
 		]
-		if bds.packs.touched_pack_count > 0:
+		if bds.packs.reclaimed_pack_count > 0:
 			lines.append(cls.tr(
 				'blob_delta_summary.pack_gc',
-				cls.number(bds.packs.touched_pack_count),
+				cls.number(bds.packs.reclaimed_pack_count),
 				cls.file_size(bds.packs.old_size),
 				cls.file_size(bds.packs.new_size),
-				cls.file_size(bds.packs.freed_size_clamped),
+				cls.file_size(bds.packs.freed_size),
 			))
 		return cls.file_size(disk_size).h(RTextBase.join('\n', lines))
 

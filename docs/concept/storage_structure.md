@@ -38,9 +38,9 @@ graph TB
 
 ## Backup
 
-A backup represents a complete snapshot of the backup target at a specific point in time. Each backup has a unique ID as its identifier
+A backup represents a complete snapshot of the backup target at a specific point in time; each backup has a unique ID as its identifier
 
-Each backup contains information related to the backup such as creator information, backup notes, backup time, etc.
+Each backup contains information related to the backup such as creator information, backup notes, and backup time
 
 Each backup is associated with a base fileset and a delta fileset, which together describe the list of files contained in this backup
 
@@ -65,7 +65,7 @@ Delta Fileset:
 File represents a file item in a backup, containing file metadata and data hash
 
 - Contains the Unix-style path of the file relative to [source_root](config.md#source_root)
-- Contains file metadata such as permissions, owner, timestamps, etc.
+- Contains file metadata such as permissions, owner, and timestamps
 - For regular files, only stores the hash value of their file content
 - For symbolic link files, directly stores the path they point to
 - Uses the role field to identify its role in the fileset:
@@ -73,6 +73,15 @@ File represents a file item in a backup, containing file metadata and data hash
   - Override file: File in the delta fileset that replaces the base file
   - Added file: Newly added file in the delta fileset
   - Delete marker: File that has been deleted in the delta fileset
+
+## Pack
+
+Pack is a generic binary storage object used to store packed entries
+
+- A pack file is identified by its pack ID, and its file name is derived from that ID
+- A pack entry is a byte range inside a pack file, described by pack ID, offset, and size
+- Pack files are not specific to chunks, although chunk payloads are currently stored as pack entries
+- Pack records track total size/count and live size/count, allowing validation and compaction
 
 ## Blob
 
@@ -82,8 +91,8 @@ Blob is the actual storage object for file content
 - Only stores file content data and its compression method, does not store actual file metadata
 - Has two storage methods: `direct` and `chunked`
   - A direct blob is stored independently as a file in the `blobs` folder under [storage_root](config.md#storage_root)
-  - A chunked blob is cut into serval chunks, and the chunks are stored as files in `blobs/_chunks`
-- One blob can be referenced by multiple file objects. When the reference count drops to 0, PrimeBackup will delete this blob
+  - A chunked blob is reconstructed from chunk groups and chunks, and new chunk payloads are stored as pack entries
+- One blob can be referenced by multiple file objects; when the reference count drops to 0, PrimeBackup will delete this blob
 
 ## Chunk and Chunk Group
 
@@ -91,7 +100,7 @@ Chunk is the deduplication unit used by CDC chunking for large files
 
 - A chunk stores a piece of file content, its hash, its compression method, and its size information
 - Chunks are content-defined, so inserting or modifying data in the middle of a large file can still keep many neighboring chunks reusable
-- Chunk files are stored independently and deduplicated globally, just like direct blobs
+- Chunk payloads are stored in pack entries and deduplicated globally
 
 Chunk group is an ordered list of chunks used to reduce metadata fan-out for a chunked blob
 
@@ -109,12 +118,14 @@ graph LR
     DB --> backup[Backup Objects]
     DB --> fileset[Fileset Objects]
     DB --> file[File Objects]
+    DB --> pack[Pack Objects]
     DB --> blob[Blob Objects]
     DB --> chunk_group[Chunk Group Objects]
     DB --> chunk[Chunk Objects]
 
     blob_pool --> blob_storage[Direct Blob Files]
-    blob_pool --> chunk_storage[Chunk Files]
+    blob_pool --> pack_storage[Pack Files]
+    pack_storage --> pack_entry[Pack Entries]
 
     style A fill:#e1f5fe
     style DB fill:#f3e5f5
@@ -122,9 +133,11 @@ graph LR
     style backup fill:#e8f5e8
     style fileset fill:#e8f5e8
     style file fill:#e8f5e8
+    style pack fill:#e8f5e8
     style blob fill:#e8f5e8
     style chunk_group fill:#e8f5e8
     style chunk fill:#e8f5e8
     style blob_storage fill:#fff3e0
-    style chunk_storage fill:#fff3e0
+    style pack_storage fill:#fff3e0
+    style pack_entry fill:#fff3e0
 ```

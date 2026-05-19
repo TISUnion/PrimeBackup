@@ -62,7 +62,8 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 			except FilesetNotFound as e:
 				self.logger.warning('Base fileset {} not found during shrink (concurrent deletion?), skipped: {}'.format(backup_info.fileset_id_base, e))
 
-		self.logger.info('Deleted backup #{} done, removed {} blobs and {} chunks (freed disk {} / raw {})'.format(
-			backup_info.id, bds.blob_count, bds.chunk_count, ByteCount(bds.freed_disk_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
+		self.logger.info('Deleted backup #{} done, removed {} blobs, {} chunks and changed {} packs (freed disk {} / raw {})'.format(
+			backup_info.id, bds.blob_count, bds.chunk_count,
+			bds.packs.changed_pack_count, ByteCount(bds.freed_disk_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
 		))
 		return DeleteBackupResult(backup_info, bds)

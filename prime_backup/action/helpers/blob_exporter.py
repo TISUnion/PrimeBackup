@@ -37,7 +37,7 @@ class ThreadSafeBlobChunksGetter(BlobChunksGetter):
 	@override
 	def get(self, blob_id: int) -> List[OffsetChunkInfo]:
 		with self.lock:
-			return [OffsetChunkInfo.of(oc) for oc in self.session.get_blob_chunks(blob_id, with_pack_name=True)]
+			return [OffsetChunkInfo.of(oc) for oc in self.session.get_blob_chunks(blob_id)]
 
 
 class _PeekReader:
@@ -224,7 +224,7 @@ class BlobExporter:
 						peek_reader = _PeekReader(f_in, 32 * 1024)
 						peek_reader.peek()
 					except Exception as e:
-						self.logger.error(f'Failed to peek-read chunk {oc.chunk.hash} in pack entry {oc.chunk.pack_entry.pack_name}@{oc.chunk.pack_entry.pack_offset} for {oc}: {e}')
+						self.logger.error(f'Failed to peek-read chunk {oc.chunk.hash} in pack entry {oc.chunk.pack_entry.pack_id}@{oc.chunk.pack_entry.pack_offset} for {oc}: {e}')
 						raise
 
 					if self.verify_blob:
@@ -244,7 +244,7 @@ class BlobExporter:
 		try:
 			reader_csm(_CombinedChunksReader(chunk_gen))
 		finally:
-			# ensure possible opened chunk file is closed
+			# ensure possible opened chunk reader is closed
 			exit_flag = True
 			with contextlib.suppress(StopIteration):
 				next(chunk_gen)

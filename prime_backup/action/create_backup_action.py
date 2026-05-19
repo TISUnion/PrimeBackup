@@ -431,8 +431,8 @@ class CreateBackupAction(Action[BackupInfo]):
 			raise e
 
 		bds = blob_recorder.get_blob_storage_delta()
-		self.logger.info('Create backup #{} done, added {} blobs and {} chunks (size {} / {}, disk +{})'.format(
-			info.id, bds.blobs.count, bds.chunks.count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(), ByteCount(bds.created_disk_size).auto_str(),
+		self.logger.info('Create backup #{} done, added {} blobs, {} chunks and {} packs (size {} / {})'.format(
+			info.id, bds.blobs.count, bds.chunks.count, bds.packs.created_pack_count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
 		))
 		self.__log_costs(time.time() - action_start_ts)
 

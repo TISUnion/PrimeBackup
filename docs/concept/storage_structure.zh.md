@@ -38,7 +38,7 @@ graph TB
 
 ## 备份（Backup）
 
-一个备份代表在特定时间点对备份目标的完整快照。每个备份都有唯一的 ID 作为其标识符
+一个备份代表在特定时间点对备份目标的完整快照；每个备份都有唯一的 ID 作为其标识符
 
 每个备份包含创建者信息、备份注释、备份时间等与备份相关的信息
 
@@ -74,6 +74,15 @@ graph TB
   - 新增文件：增量文件集中新增的文件
   - 删除标记：增量文件集中被删除的文件
 
+## 打包文件（Pack）
+
+打包文件是通用的二进制存储对象，用于存储打包条目
+
+- 打包文件由打包文件 ID 标识，磁盘文件名由该 ID 派生
+- 打包条目是打包文件内的一段字节范围，由打包文件 ID、偏移量和大小描述
+- 打包文件并非数据块专属存储，虽然当前数据块载荷会存储为打包条目
+- 打包文件记录会维护总大小/总条目数和存活大小/存活条目数，用于校验和整理
+
 ## 数据对象（Blob）
 
 数据对象（Blob）是实际存储文件内容的对象
@@ -82,8 +91,8 @@ graph TB
 - 仅存储文件的内容数据及其压缩方式，不存储实际文件的元信息
 - 具有两种存储方式：`direct` 和 `chunked`
   - `direct`（直存）数据对象会以独立文件的形式存储在 [storage_root](config.zh.md#storage_root) 下的 `blobs` 目录中
-  - `chunked`（分块）数据对象不直接对应一个独立的 blob 文件，而是由多个数据块组和数据块按顺序重建出来；数据块文件则独立存放在 `blobs/_chunks` 目录中
-- 一个数据对象可被多个文件对象引用。当引用数降为 0 时，PrimeBackup 会删除该数据对象
+  - `chunked`（分块）数据对象由多个数据块组和数据块按顺序重建出来，新的数据块载荷会存储为打包条目
+- 一个数据对象可被多个文件对象引用；当引用数降为 0 时，PrimeBackup 会删除该数据对象
 
 ## 数据块与数据块组（Chunk and Chunk Group）
 
@@ -91,7 +100,7 @@ graph TB
 
 - 一个数据块保存一段文件内容，以及它的哈希值、压缩方式和大小信息
 - 数据块按内容定义的边界切分，因此即使大文件在中间插入或修改了数据，周围未变化的部分仍有机会落在相同的数据块中被复用
-- 数据块文件会像直存数据对象（direct blob）一样独立存储，并在全局范围内去重
+- 数据块载荷会存储在打包条目中，并在全局范围内去重
 
 数据块组（Chunk Group）是一组按顺序组织的数据块，用于降低 chunked blob 的元数据展开规模
 
@@ -109,12 +118,14 @@ graph LR
     DB --> backup[备份对象]
     DB --> fileset[文件集对象]
     DB --> file[文件对象]
+    DB --> pack[打包文件对象]
     DB --> blob[数据对象]
     DB --> chunk_group[数据块组对象]
     DB --> chunk[数据块对象]
 
     blob_pool --> blob_storage[直存 Blob 文件]
-    blob_pool --> chunk_storage[数据块文件]
+    blob_pool --> pack_storage[打包文件]
+    pack_storage --> pack_entry[打包条目]
 
     style A fill:#e1f5fe
     style DB fill:#f3e5f5
@@ -122,9 +133,11 @@ graph LR
     style backup fill:#e8f5e8
     style fileset fill:#e8f5e8
     style file fill:#e8f5e8
+    style pack fill:#e8f5e8
     style blob fill:#e8f5e8
     style chunk_group fill:#e8f5e8
     style chunk fill:#e8f5e8
     style blob_storage fill:#fff3e0
-    style chunk_storage fill:#fff3e0
+    style pack_storage fill:#fff3e0
+    style pack_entry fill:#fff3e0
 ```

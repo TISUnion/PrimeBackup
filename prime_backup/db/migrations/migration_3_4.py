@@ -22,7 +22,6 @@ class _V4:
 		'pack',
 		Base.metadata,
 		Column('id', Integer, primary_key=True, autoincrement=True),
-		Column('name', String, unique=True, nullable=False),
 		Column('size', BigInteger, nullable=False),
 		Column('count', Integer, nullable=False),
 		Column('live_size', BigInteger, nullable=False),

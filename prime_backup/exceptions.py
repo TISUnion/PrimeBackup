@@ -126,16 +126,16 @@ class PackIdNotFound(PackNotFound):
 		self.pack_id = pack_id
 
 
-class PackNameNotFound(PackNotFound):
-	def __init__(self, pack_name: str):
+class PackFileNameNotFound(PackNotFound):
+	def __init__(self, pack_file_name: str):
 		super().__init__()
-		self.pack_name = pack_name
+		self.pack_file_name = pack_file_name
 
 
-class PackNameNotUnique(PrimeBackupError):
-	def __init__(self, pack_name_prefix: str, candidates: List['PackInfo']):
+class PackFileNameNotUnique(PrimeBackupError):
+	def __init__(self, pack_file_name_prefix: str, candidates: List['PackInfo']):
 		super().__init__()
-		self.pack_name_prefix = pack_name_prefix
+		self.pack_file_name_prefix = pack_file_name_prefix
 		self.candidates = candidates
 
 

@@ -18,7 +18,6 @@ class BlobStorageMethod(enum.IntEnum):
 class OffsetChunk:
 	offset: int
 	chunk: 'schema.Chunk'
-	pack_name: str
 
 	def __lt__(self, other: 'OffsetChunk'):
 		return self.offset < other.offset

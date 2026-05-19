@@ -1,13 +1,12 @@
 import contextlib
 import dataclasses
 import enum
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 
 from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.action.helpers.chunk_io import ChunkIO
-from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.types.chunk_info import ChunkInfo
@@ -58,17 +57,14 @@ class ValidateChunksAction(Action[ValidateChunksResult]):
 	def is_interruptable(self) -> bool:
 		return True
 
-	def __to_chunk_info(self, chunk: schema.Chunk, pack_name_by_id: Dict[int, str]) -> ChunkInfo:
-		return ChunkInfo.of(chunk, pack_name=pack_name_by_id.get(chunk.pack_id, ''))
-
-	def __validate(self, session: DbSession, result: ValidateChunksResult, chunks: List[ChunkInfo]):
+	def __validate(self, session: DbSession, result: ValidateChunksResult, chunks: List[ChunkInfo], existing_pack_ids: Set[int]):
 		id_to_good_chunks: Dict[int, ChunkInfo] = {}
 
 		def validate_one_chunk(chunk: ChunkInfo):
 			if not chunk.id:
 				result.add_bad(chunk, BadChunkItemType.invalid, f'invalid id {chunk.id!r}')
 				return
-			if chunk.pack_entry.pack_id <= 0 or len(chunk.pack_entry.pack_name) == 0:
+			if chunk.pack_entry.pack_id <= 0 or chunk.pack_entry.pack_id not in existing_pack_ids:
 				result.add_bad(chunk, BadChunkItemType.missing_pack, f'missing pack for pack_id {chunk.pack_entry.pack_id}')
 				return
 
@@ -136,12 +132,12 @@ class ValidateChunksAction(Action[ValidateChunksResult]):
 				cnt += len(chunks)
 				self.logger.info('Validating {} / {} chunks'.format(cnt, result.total))
 				pack_ids = collection_utils.deduplicated_list(chunk.pack_id for chunk in chunks if chunk.pack_id > 0)
-				pack_name_by_id = {
-					pack_id: pack.name
+				existing_pack_ids = {
+					pack_id
 					for pack_id, pack in session.get_packs_by_ids(pack_ids).items()
 					if pack is not None
 				}
-				self.__validate(session, result, [self.__to_chunk_info(chunk, pack_name_by_id) for chunk in chunks])
+				self.__validate(session, result, [ChunkInfo.of(chunk) for chunk in chunks], existing_pack_ids)
 
 		self.logger.info('Chunk validation done: total {}, validated {}, ok {}, bad {}'.format(
 			result.total, result.validated, result.ok, len(result.bad_chunks),

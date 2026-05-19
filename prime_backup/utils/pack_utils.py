@@ -1,4 +1,5 @@
-import uuid
+import functools
+import hashlib
 from pathlib import Path
 from typing import Iterator
 
@@ -8,8 +9,14 @@ def get_pack_store() -> Path:
 	return Config.get().packs_path
 
 
-def get_pack_path(pack_name: str) -> Path:
-	return get_pack_store() / pack_name[:2] / pack_name
+@functools.lru_cache(maxsize=256)
+def get_pack_file_name(pack_id: int) -> str:
+	return hashlib.sha256(f'PBPK_{pack_id}'.encode('utf8')).hexdigest()
+
+
+def get_pack_path(pack_id: int) -> Path:
+	pack_file_name = get_pack_file_name(pack_id)
+	return get_pack_store() / pack_file_name[:2] / pack_file_name
 
 
 def iterate_pack_directories() -> Iterator[Path]:
@@ -28,5 +35,3 @@ def prepare_pack_directories():
 		p.mkdir(parents=True, exist_ok=True)
 
 
-def generate_pack_name() -> str:
-	return uuid.uuid4().hex

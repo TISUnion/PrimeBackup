@@ -35,7 +35,7 @@ class _ActivePack:
 		self.pack.live_size += size
 		self.pack.live_count += 1
 
-		return PackEntryLocation(self.pack.id, self.pack.name, offset)
+		return PackEntryLocation(self.pack.id, offset)
 
 	def append_bytes(self, data: bytes) -> PackEntryLocation:
 		self.file.write(data)
@@ -47,7 +47,7 @@ class _ActivePack:
 		self.pack.live_size += len(data)
 		self.pack.live_count += 1
 
-		return PackEntryLocation(self.pack.id, self.pack.name, offset)
+		return PackEntryLocation(self.pack.id, offset)
 
 	def close(self):
 		self.file.close()
@@ -76,20 +76,17 @@ class PackWriter:
 
 		self.__lock = threading.Lock()
 		self.__active: Optional[_ActivePack] = None
-		self.__new_pack_names: List[str] = []
+		self.__new_pack_paths: List[Path] = []
 		self.__created_pack_size = 0
 
 	def get_rollback_paths(self) -> List[Path]:
-		return [pack_utils.get_pack_path(name) for name in self.__new_pack_names]
-
-	def get_new_pack_names(self) -> List[str]:
-		return list(self.__new_pack_names)
+		return list(self.__new_pack_paths)
 
 	def get_created_pack_summary(self) -> PackChangeSummary:
-		return PackChangeSummary(new_size=self.__created_pack_size)
+		return PackChangeSummary(created_pack_count=len(self.__new_pack_paths), new_size=self.__created_pack_size)
 
 	def write_entry(self, data: bytes) -> PackEntryLocation:
-		if len(data) > pack_constants.PACK_MAX_SIZE:
+		if self.__should_write_dedicated(len(data)):
 			return self.__write_dedicated(data)
 		return self.__write_active(data)
 
@@ -99,25 +96,25 @@ class PackWriter:
 	def write_entry_from_reader(self, reader: SupportsReadBytes, size: int) -> PackEntryLocation:
 		if size < 0:
 			raise ValueError('negative entry size {}'.format(size))
-		if size > pack_constants.PACK_MAX_SIZE:
+		if self.__should_write_dedicated(size):
 			return self.__write_dedicated_reader(reader, size)
 		return self.__write_active_reader(reader, size)
 
+	@staticmethod
+	def __should_write_dedicated(size: int) -> bool:
+		return size >= pack_constants.PACK_DEDICATED_ENTRY_MIN_SIZE
+
 	def __write_active(self, data: bytes) -> PackEntryLocation:
 		with self.__lock:
-			if self.__active is None or self.__should_rotate_no_lock(len(data)):
-				self.__rotate_no_lock()
-			assert self.__active is not None
-			result = self.__active.append_bytes(data)
+			active = self.__get_active_for_write_no_lock()
+			result = active.append_bytes(data)
 			self.__created_pack_size += len(data)
 			return result
 
 	def __write_active_reader(self, reader: SupportsReadBytes, size: int) -> PackEntryLocation:
 		with self.__lock:
-			if self.__active is None or self.__should_rotate_no_lock(size):
-				self.__rotate_no_lock()
-			assert self.__active is not None
-			result = self.__active.append_reader(reader, size)
+			active = self.__get_active_for_write_no_lock()
+			result = active.append_reader(reader, size)
 			self.__created_pack_size += size
 			return result
 
@@ -127,7 +124,7 @@ class PackWriter:
 			result = dedicated_pack.append_bytes(data)
 			self.__created_pack_size += len(data)
 			dedicated_pack.close()
-		self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} name={dedicated_pack.pack.name} size={len(data)}')
+		self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} file_name={pack_utils.get_pack_file_name(dedicated_pack.pack.id)} size={len(data)}')
 		return result
 
 	def __write_dedicated_reader(self, reader: SupportsReadBytes, size: int) -> PackEntryLocation:
@@ -136,14 +133,21 @@ class PackWriter:
 			result = dedicated_pack.append_reader(reader, size)
 			self.__created_pack_size += size
 			dedicated_pack.close()
-		self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} name={dedicated_pack.pack.name} size={size}')
+		self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} file_name={pack_utils.get_pack_file_name(dedicated_pack.pack.id)} size={size}')
 		return result
 
-	def __should_rotate_no_lock(self, next_entry_size: int) -> bool:
+	def __get_active_for_write_no_lock(self) -> _ActivePack:
+		if self.__active is None or self.__should_rotate_active_no_lock():
+			self.__open_new_active_no_lock()
 		assert self.__active is not None
-		if self.__active.pack.count >= pack_constants.PACK_MAX_COUNT:
-			return True
-		return self.__active.pack.size > 0 and self.__active.pack.size + next_entry_size > pack_constants.PACK_MAX_SIZE
+		return self.__active
+
+	def __should_rotate_active_no_lock(self) -> bool:
+		assert self.__active is not None
+		return (
+			self.__active.pack.size >= pack_constants.PACK_MAX_SIZE or
+			self.__active.pack.count >= pack_constants.PACK_MAX_COUNT
+		)
 
 	def close(self):
 		with self.__lock:
@@ -156,17 +160,7 @@ class PackWriter:
 
 	def __create_new_pack_no_lock(self) -> _ActivePack:
 		pack_utils.prepare_pack_store()
-		for _ in range(100):
-			new_pack_name = pack_utils.generate_pack_name()
-			if self.session.get_pack_by_name_opt(new_pack_name) is not None:  # Extremely unlikely
-				self.logger.warning(f'Generated pack UUID {new_pack_name} already exists in DB')
-				continue
-			break
-		else:
-			raise RuntimeError('Failed to generate a unique pack UUID')
-
 		new_pack = self.session.create_and_add_pack(
-			name=new_pack_name,
 			size=0,
 			count=0,
 			live_size=0,
@@ -174,15 +168,15 @@ class PackWriter:
 		)
 		self.session.flush()  # creates pack.id
 
-		pack_path = pack_utils.get_pack_path(new_pack_name)
+		pack_path = pack_utils.get_pack_path(new_pack.id)
 		pack_path.parent.mkdir(parents=True, exist_ok=True)
 		fh = open(pack_path, 'wb')
-		self.__new_pack_names.append(new_pack_name)
+		self.__new_pack_paths.append(pack_path)
 		return _ActivePack(new_pack, fh)
 
-	def __rotate_no_lock(self):
+	def __open_new_active_no_lock(self):
 		self.__close_no_lock()
 
 		new_pack = self.__create_new_pack_no_lock()
 		self.__active = new_pack
-		self.logger.debug(f'Opened new active pack id={new_pack.pack.id} name={new_pack.pack.name}')
+		self.logger.debug(f'Opened new active pack id={new_pack.pack.id} file_name={pack_utils.get_pack_file_name(new_pack.pack.id)}')

@@ -121,8 +121,8 @@ class CommandManager:
 		self.task_manager.add_task(InspectChunkGroupTask(source, chunk_group_id_or_hash))
 
 	def cmd_db_inspect_pack(self, source: CommandSource, context: CommandContext):
-		pack_id_or_name: str = context['id_or_hash']
-		self.task_manager.add_task(InspectPackTask(source, pack_id_or_name))
+		pack_id_or_file_name_prefix: str = context['id_or_file_name']
+		self.task_manager.add_task(InspectPackTask(source, pack_id_or_file_name_prefix))
 
 	def cmd_db_delete_file(self, source: CommandSource, context: CommandContext):
 		def backup_id_consumer(backup_id: int):
@@ -435,7 +435,7 @@ class CommandManager:
 		builder.command('database inspect blob <id_or_hash>', self.cmd_db_inspect_blob)
 		builder.command('database inspect chunk <id_or_hash>', self.cmd_db_inspect_chunk)
 		builder.command('database inspect chunk_group <id_or_hash>', self.cmd_db_inspect_chunk_group)
-		builder.command('database inspect pack <id_or_hash>', self.cmd_db_inspect_pack)
+		builder.command('database inspect pack <id_or_file_name>', self.cmd_db_inspect_pack)
 		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))
 		builder.command('database validate packs', functools.partial(self.cmd_db_validate, parts=ValidatePart.packs))
 		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidatePart.blobs))
@@ -455,6 +455,7 @@ class CommandManager:
 		builder.arg('backup_file_path', create_backup_file_path)  # not that necessary to provide suggestion here
 		builder.arg('fileset_file_path', create_fileset_file_path)  # not that necessary to provide suggestion here
 		builder.arg('id_or_hash', HexStringNode)  # a numeric id is also a hex string
+		builder.arg('id_or_file_name', HexStringNode)  # a numeric id is also a valid pack file name prefix
 		builder.arg('compress_method', lambda n: Enumeration(n, CompressMethod))
 		builder.arg('hash_method', lambda n: Enumeration(n, HashMethod))
 		builder.arg('reassign_backup_order', lambda n: Enumeration(n, BackupSortOrder))

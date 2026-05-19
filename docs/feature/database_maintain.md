@@ -8,11 +8,12 @@ Consistency check and database organization
 
 | Command                           | Description                                                                                        |
 |-----------------------------------|----------------------------------------------------------------------------------------------------|
-| `!!pb database validate blobs`    | Validate the correctness of blobs, e.g. data size, hash value                                      |
+| `!!pb database validate packs`    | Validate the correctness of pack files, including file existence, size, and live statistics        |
+| `!!pb database validate blobs`    | Validate the correctness of blobs, including data size and hash value                              |
 | `!!pb database validate chunks`   | Validate the correctness of chunks, chunk groups and their relation bindings                       |
-| `!!pb database validate files`    | Validate the correctness of file objects, e.g. the association between files and blobs             |
-| `!!pb database validate filesets` | Validate the correctness of fileset objects, e.g. the association between filesets and their files |
-| `!!pb database validate backups`  | Validate the correctness of backup objects, e.g. the association between backups and filesets      |
+| `!!pb database validate files`    | Validate the correctness of file objects, including the association between files and blobs        |
+| `!!pb database validate filesets` | Validate the correctness of fileset objects, including the association between filesets and files  |
+| `!!pb database validate backups`  | Validate the correctness of backup objects, including the association between backups and filesets |
 | `!!pb database validate all`      | Validate all of the above                                                                          |
 
 Example:
@@ -25,6 +26,11 @@ Example output:
 
 ```
 > !!pb database validate all
+[MCDR] [23:16:17] [PB@fc91-worker-heavy/INFO]: [PB] Start validating packs, please wait...
+[MCDR] [23:16:17] [PB@fc91-worker-heavy/INFO] [prime_backup]: Pack validation start
+[MCDR] [23:16:17] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 16 / 16 packs
+[MCDR] [23:16:17] [PB@fc91-worker-heavy/INFO] [prime_backup]: Pack validation done: total 16, validated 16, ok 16, bad 0
+[MCDR] [23:16:17] [PB@fc91-worker-heavy/INFO]: [PB] All 16 packs are healthy
 [MCDR] [23:16:17] [PB@fc91-worker-heavy/INFO]: [PB] Start validating blobs, please wait...
 [MCDR] [23:16:17] [PB@fc91-worker-heavy/INFO] [prime_backup]: Blob validation start
 [MCDR] [23:16:17] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 3000 / 4325 blobs
@@ -55,10 +61,16 @@ Example output:
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO] [prime_backup]: Backup validation done: total 21, validated 21, ok 21, bad 0
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Validated 21 / 21 backups
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] All 21 backups are healthy
-[MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Validation done, cost 3.39s. blobs: good, chunks: good, files: good, filesets: good, backups: good
+[MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Validation done, cost 3.39s. packs: good, blobs: good, chunks: good, files: good, filesets: good, backups: good
 ```
 
 ### Validation Content
+
+Packs:
+
+- File Existence: Check if the pack files exist in storage
+- Size Matching: Check if the pack file sizes match the database records
+- Live Stats: Check if live size/count do not exceed total size/count
 
 Blobs:
 
@@ -69,8 +81,8 @@ Blobs:
 
 Chunks:
 
-- File Existence: Check if the chunk files exist in storage
-- Integrity: Verify the hash values of the chunk files
+- Pack Relationship: Check if each chunk refers to an existing pack entry
+- Integrity: Verify chunk data read from pack entries
 - Size Matching: Check if the stored size matches the record
 - Orphan Detection: Check for chunks and chunk groups not referenced by any blob
 - Binding Consistency: Verify the correctness of chunk group chunk bindings and blob chunk group bindings
@@ -127,11 +139,13 @@ Stuffs to be pruned
 - Orphaned Filesets: Filesets no longer referenced by any backups
 - Base Fileset Compression: Optimize the storage structure of base filesets
 - Unknown Blob Files: Blob files that exist in file system but have no records in the database
-- Unknown Chunk Files: Chunk files that exist in file system but have no records in the database
+- Legacy Unknown Chunk Files: leftover chunk files in the legacy chunk file store with no records in the database
+- Pack Compaction: Rewrite live pack entries and delete pack files with too much dead space
+- Unknown Pack Files: Pack files that exist in file system but have no records in the database
 
 !!! note
 
-    In most cases, you do not need to manually execute this command. Prime Backup ensures the database remains in a clean state during daily operations
+    In most cases, you do not need to manually execute this command; Prime Backup ensures the database remains in a clean state during daily operations
 
 ### SQLite Vacuum
 

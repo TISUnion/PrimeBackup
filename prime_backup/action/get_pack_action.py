@@ -6,8 +6,9 @@ from prime_backup.action import Action
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.exceptions import PackNameNotFound, PackNameNotUnique
+from prime_backup.exceptions import PackFileNameNotFound, PackFileNameNotUnique
 from prime_backup.types.pack_info import PackInfo
+from prime_backup.utils import pack_utils
 
 
 class _GetPackActionBase(Action[PackInfo], ABC):
@@ -32,26 +33,22 @@ class GetPackByIdAction(_GetPackActionBase):
 		return session.get_pack_by_id(self.pack_id)
 
 
-class GetPackByNameAction(_GetPackActionBase):
-	def __init__(self, pack_name: str):
+class GetPackByFileNamePrefixAction(_GetPackActionBase):
+	def __init__(self, pack_file_name_prefix: str):
 		super().__init__()
-		self.pack_name = pack_name
+		self.pack_file_name_prefix = pack_file_name_prefix
 
 	@override
 	def _do_get_pack(self, session: DbSession) -> schema.Pack:
-		return session.get_pack_by_name(self.pack_name)
-
-
-class GetPackByNamePrefixAction(_GetPackActionBase):
-	def __init__(self, pack_name_prefix: str):
-		super().__init__()
-		self.pack_name_prefix = pack_name_prefix
-
-	@override
-	def _do_get_pack(self, session: DbSession) -> schema.Pack:
-		matches = session.list_packs_by_name_prefix(self.pack_name_prefix)
-		if len(matches) == 0:
-			raise PackNameNotFound(self.pack_name_prefix)
-		if len(matches) > 1:
-			raise PackNameNotUnique(self.pack_name_prefix, sorted(map(PackInfo.of, matches), key=lambda p: p.name))
-		return matches[0]
+		matched_pack_ids = [
+			pack_id
+			for pack_id in session.get_all_pack_ids()
+			if pack_utils.get_pack_file_name(pack_id).startswith(self.pack_file_name_prefix)
+		]
+		if len(matched_pack_ids) == 0:
+			raise PackFileNameNotFound(self.pack_file_name_prefix)
+		if len(matched_pack_ids) > 1:
+			packs = session.get_packs_by_ids(matched_pack_ids).values()
+			candidates = sorted((PackInfo.of(pack) for pack in packs if pack is not None), key=lambda pack: pack.file_name)
+			raise PackFileNameNotUnique(self.pack_file_name_prefix, candidates)
+		return session.get_pack_by_id(matched_pack_ids[0])

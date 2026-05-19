@@ -5,7 +5,7 @@ from typing import List, Dict, Optional, Collection
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.action.compact_packs_action import CollectPacksForCompactStep, CompactPacksStep
+from prime_backup.action.compact_packs_action import CollectPacksForCompactStep, CompactPacksAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
@@ -75,16 +75,19 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 				threshold=self.config.backup.pack_compact_threshold,
 				raise_if_not_found=False,
 			).run().pack_ids
+			pack_ids_to_compact_set = set(pack_ids_to_compact)
+			updated_only_pack_ids = [pack_id for pack_id in affected_pack_ids if pack_id not in pack_ids_to_compact_set]
 			if len(pack_ids_to_compact) > 0:
-				self.pack_change_summary = CompactPacksStep(session, pack_ids_to_compact).run()
+				self.pack_change_summary = CompactPacksAction(pack_ids_to_compact).run(session=session)
 			else:
 				session.commit()
+			self.pack_change_summary.updated_pack_count += len(updated_only_pack_ids)
 
 		s = trash_bin.make_summary()
 		trash_bin.erase_all()
 		self.logger.debug('Deleted {} chunks: {}'.format(len(all_to_delete_chunks), s))
-		if self.pack_change_summary.touched_pack_count > 0:
-			self.logger.debug('Compacted packs after chunk deletion: {}'.format(self.pack_change_summary))
+		if self.pack_change_summary.changed_pack_count > 0:
+			self.logger.debug('Changed packs after chunk deletion: {}'.format(self.pack_change_summary))
 
 		if len(errors := trash_bin.errors) > 0:
 			self.logger.error('Found {} chunk erasing failures in total'.format(len(errors)))

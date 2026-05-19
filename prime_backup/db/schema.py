@@ -38,7 +38,6 @@ class Pack(Base):
 	__table_args__ = {'sqlite_autoincrement': True}
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-	name: Mapped[str] = mapped_column(String, unique=True)  # unique uuid hex, without dashes
 
 	size: Mapped[int] = mapped_column(BigInteger)  # file size
 	count: Mapped[int] = mapped_column(Integer)  # entry count

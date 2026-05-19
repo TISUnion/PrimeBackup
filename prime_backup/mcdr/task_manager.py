@@ -11,7 +11,7 @@ from sqlalchemy.exc import OperationalError
 from typing_extensions import Protocol
 
 from prime_backup import logger
-from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound, BlobIdNotFound, ChunkIdNotFound, ChunkHashNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound, ChunkHashNotUnique, ChunkGroupHashNotUnique, PackIdNotFound, PackNameNotFound, PackNameNotUnique
+from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, BlobHashNotUnique, FilesetNotFound, FilesetFileNotFound, OffsetBackupNotFound, BlobIdNotFound, ChunkIdNotFound, ChunkHashNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound, ChunkHashNotUnique, ChunkGroupHashNotUnique, PackIdNotFound, PackFileNameNotFound, PackFileNameNotUnique
 from prime_backup.mcdr.task import TaskEvent, Task
 from prime_backup.mcdr.task.basic_task import HeavyTask, LightTask, ImmediateTask
 from prime_backup.mcdr.task_queue import TaskQueue, TaskHolder, TaskCallback, TooManyOngoingTask
@@ -100,10 +100,10 @@ class _TaskWorker:
 			lines = format_hash_prefix_not_unique('chunk_group_hash_not_unique', e.chunk_group_hash_prefix, e.candidates)
 		elif isinstance(e, PackIdNotFound):
 			lines = [tr('error.pack_id_not_found', e.pack_id)]
-		elif isinstance(e, PackNameNotFound):
-			lines = [tr('error.pack_name_not_found', e.pack_name)]
-		elif isinstance(e, PackNameNotUnique):
-			lines = [tr('error.pack_name_not_unique', e.pack_name_prefix, ', '.join(c.name for c in e.candidates))]
+		elif isinstance(e, PackFileNameNotFound):
+			lines = [tr('error.pack_file_name_not_found', e.pack_file_name)]
+		elif isinstance(e, PackFileNameNotUnique):
+			lines = [tr('error.pack_file_name_not_unique', e.pack_file_name_prefix, ', '.join(c.file_name for c in e.candidates))]
 		else:
 			return False
 

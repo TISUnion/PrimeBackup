@@ -150,7 +150,7 @@ class BlobDeltaSummary:
 
 	@property
 	def freed_disk_size(self) -> int:
-		return self.direct_blobs.stored_size + self.packs.freed_size_clamped
+		return self.direct_blobs.stored_size + self.packs.freed_size
 
 	def __add__(self, other: 'BlobDeltaSummary') -> 'BlobDeltaSummary':
 		misc_utils.ensure_type(other, type(self))

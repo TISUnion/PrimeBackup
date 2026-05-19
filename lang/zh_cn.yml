@@ -233,17 +233,16 @@ prime_backup:
       compress: '压缩方法: {}'
       raw_size: '原始大小: {} ({})'
       stored_size: '储存大小: {} ({})'
-      pack: '打包文件: {}, ID {}, 偏移 {}'
+      pack: '打包条目: {}, ID {}, 偏移 {}'
     db_inspect_pack:
       name: 审查打包文件
       title: '打包文件 {}'
       id: 'ID: {}'
-      pack_name: '名称: {}'
+      pack_file_name: '文件名: {}'
       size: '文件大小: {} ({})'
-      count: 'Entry数量: {}'
+      count: '条目数量: {}'
       live_size: '存活大小: {} ({}, {})'
-      live_count: '存活Entry数量: {} ({})'
-      file_path: '文件路径: {}'
+      live_count: '存活条目数量: {} ({})'
     db_inspect_chunk_group:
       name: 审查数据块组
       title: '数据块组{}'
@@ -290,7 +289,7 @@ prime_backup:
         blob_hash: 点击以审查数据对象{}
         chunk_hash: 点击以审查数据块{}
         chunk_group_hash: 点击以审查数据块组{}
-        pack_name: 点击以审查打包文件 {}
+        pack_file_name: 点击以审查打包文件 {}
     db_migrate_compress_method:
       name: 压缩方法迁移
       missing_library:
@@ -354,7 +353,7 @@ prime_backup:
     db_prune:
       name: 清理数据库
       start: 正在清理数据库, 删除其中的无效数据, 请稍等...
-      done: 清理完成, 共删除{}个孤儿对象 (含{}个数据对象、{}个文件对象、{}个文件集)、{}个未使用的文件集文件、{}个未知的数据对象文件、{}个未知的数据块文件，整理{}个打包文件并释放{}字节，删除{}个未知打包文件
+      done: 清理完成, 共删除{}个孤儿对象 (含{}个数据对象、{}个文件对象、{}个文件集)、{}个未使用的文件集文件、{}个未知的数据对象文件、{}个旧版未知数据块文件，回收{}个打包文件并释放{}字节，删除{}个未知打包文件
       done_clean: 清理完成, 没有任何需删除的对象, 数据库是干净的
     db_vacuum:
       name: 整理数据库文件
@@ -394,8 +393,8 @@ prime_backup:
             orphan: '孤儿数据块: {}个'
             missing_pack: '打包文件关系缺失的数据块: {}个'
             missing_file: '打包文件缺失的数据块: {}个'
-            bad_pack_entry: '异常打包文件条目: {}个'
-            corrupted: '文件损坏的数据块: {}个'
+            bad_pack_entry: '异常打包条目: {}个'
+            corrupted: '损坏的数据块内容: {}个'
             mismatched: '统计信息异常的数据块: {}个'
         chunk_group:
           found_bad_chunk_groups: 发现了{}/{}个异常的数据块组
@@ -521,7 +520,7 @@ prime_backup:
           §7{prefix} database inspect blob §d<ID或哈希>§r: 审查给定数据对象的原始信息
           §7{prefix} database inspect chunk §d<ID或哈希>§r: 审查给定数据块的原始信息
           §7{prefix} database inspect chunk_group §d<ID或哈希>§r: 审查给定数据块组的原始信息
-          §7{prefix} database inspect pack §d<ID或名称>§r: 审查给定打包文件的原始信息
+          §7{prefix} database inspect pack §d<ID或文件名前缀>§r: 审查给定打包文件的原始信息；支持打包文件ID或打包文件名的前缀
           §7{prefix} database delete file §6<备份ID> §3<文件路径> §7[--recursive]§r: 删除给定备份中的某个文件。若带有§7--recursive§r且目标为文件夹，则递归删除其内部的所有内容
           §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
           §7{prefix} database vacuum§r: 手动执行SQLite数据库的文件整理操作，减少数据库文件的体积
@@ -532,7 +531,8 @@ prime_backup:
           {scheduled_compact_notes}
           §d【参数帮助】§r
           §3<文件路径>§r: 要审查的文件的路径，相对备份根目录
-          §d<ID或哈希>§r: 要审查的对象的ID或哈希值。也可谓哈希串的前缀，只要确保唯一即可
+          §d<ID或哈希>§r: 要审查的对象的ID或哈希值。也可以是哈希串的前缀，只要确保唯一即可
+          §d<ID或文件名前缀>§r: 打包文件ID，或派生打包文件名的前缀；前缀需能唯一匹配
           §d<压缩方法>§r: 可用选项: {compress_methods}
           §d<哈希算法>§r: 可用选项: {hash_methods}
           §3<重排排序方式>§r: ID重排的排序方式。可用选项: id, id_r, time, time_r
@@ -660,8 +660,8 @@ prime_backup:
     chunk_group_hash_not_unique: '给定的哈希值{}无法唯一确定一个数据块组'
     chunk_group_hash_not_unique.candidates: '找到了至少{}个可能的数据块组: {}'
     pack_id_not_found: ID为{}的打包文件不存在
-    pack_name_not_found: 名称为{}的打包文件不存在
-    pack_name_not_unique: '给定名称{}无法唯一确定一个打包文件。候选项: {}'
+    pack_file_name_not_found: 前缀为{}的打包文件不存在
+    pack_file_name_not_unique: '给定的文件名前缀{}无法唯一确定一个打包文件。候选项: {}'
     db_locked: 任务{}执行失败, 数据库已被锁定。请稍候再试
     initializing: 插件初始化中
     disabled: 插件已禁用
@@ -705,7 +705,7 @@ prime_backup:
       total_blobs: '数据对象: {} ({} / {}, 涉及磁盘 {})'
       direct_blobs: '直存数据对象: {} ({} / {})'
       chunks: '数据块: {} ({} / {})'
-      pack_gc: '打包文件 GC: {}个打包文件, {} -> {}, 释放{}'
+      pack_gc: '打包文件回收: {}个打包文件, {} -> {}, 释放{}'
     blob_storage_method:
       unknown: 未知
       direct: 直存

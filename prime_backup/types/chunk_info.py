@@ -24,20 +24,20 @@ class ChunkInfo:
 	pack_entry: PackEntryLocation
 
 	@classmethod
-	def of(cls, chunk: schema.Chunk, *, pack_name: str = '') -> 'ChunkInfo':
+	def of(cls, chunk: schema.Chunk) -> 'ChunkInfo':
 		return ChunkInfo(
 			id=chunk.id,
 			hash=chunk.hash,
 			compress=CompressMethod[chunk.compress],
 			raw_size=chunk.raw_size,
 			stored_size=chunk.stored_size,
-			pack_entry=PackEntryLocation(chunk.pack_id, pack_name, chunk.pack_offset),
+			pack_entry=PackEntryLocation(chunk.pack_id, chunk.pack_offset),
 		)
 
 	@property
 	def pack_file_path(self) -> Path:
 		from prime_backup.utils import pack_utils
-		return pack_utils.get_pack_path(self.pack_entry.pack_name)
+		return pack_utils.get_pack_path(self.pack_entry.pack_id)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -51,7 +51,7 @@ class OffsetChunkInfo:
 
 	@classmethod
 	def of(cls, offset_chunk: OffsetChunk) -> 'OffsetChunkInfo':
-		return cls(offset_chunk.offset, ChunkInfo.of(offset_chunk.chunk, pack_name=offset_chunk.pack_name))
+		return cls(offset_chunk.offset, ChunkInfo.of(offset_chunk.chunk))
 
 	def __lt__(self, other: 'OffsetChunkInfo') -> bool:
 		return self.offset < other.offset

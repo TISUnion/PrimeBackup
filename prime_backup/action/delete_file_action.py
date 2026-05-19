@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Set
 
 from typing_extensions import override
 
-from prime_backup.action import Action
+from prime_backup.action import Action, Step
 from prime_backup.action.delete_blob_action import DeleteOrphanBlobsAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
@@ -13,7 +13,7 @@ from prime_backup.exceptions import FilesetFileNotFound
 from prime_backup.types.file_info import FileListSummary
 
 
-class DeleteFilesStep(Action[FileListSummary]):
+class DeleteFilesStep(Step[FileListSummary]):
 	def __init__(self, session: DbSession, files: List[schema.File]):
 		super().__init__()
 		self.session = session

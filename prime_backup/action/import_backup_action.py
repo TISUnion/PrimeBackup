@@ -301,9 +301,9 @@ class ImportBackupAction(Action[BackupInfo]):
 				info = BackupInfo.of(backup)
 
 			bds = self.__get_blob_recorder().get_blob_storage_delta()
-			self.logger.info('Import backup #{} done, added {} blobs and {} chunks (size {} / {}, disk +{})'.format(
+			self.logger.info('Import backup #{} done, added {} blobs, {} chunks and {} packs (size {} / {})'.format(
 				info.id, bds.blob_count, bds.chunk_count,
-				ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(), ByteCount(bds.created_disk_size).auto_str(),
+				bds.packs.created_pack_count, ByteCount(bds.stored_size).auto_str(), ByteCount(bds.raw_size).auto_str(),
 			))
 			return info
 

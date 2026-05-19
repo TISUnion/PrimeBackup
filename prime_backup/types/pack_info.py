@@ -11,7 +11,6 @@ from prime_backup.utils import misc_utils
 @dataclasses.dataclass(frozen=True)
 class PackInfo:
 	id: int
-	name: str
 	size: int
 	count: int
 	live_size: int
@@ -21,7 +20,6 @@ class PackInfo:
 	def of(cls, pack: schema.Pack) -> 'PackInfo':
 		return PackInfo(
 			id=pack.id,
-			name=pack.name,
 			size=pack.size,
 			count=pack.count,
 			live_size=pack.live_size,
@@ -31,7 +29,12 @@ class PackInfo:
 	@property
 	def file_path(self) -> Path:
 		from prime_backup.utils import pack_utils
-		return pack_utils.get_pack_path(self.name)
+		return pack_utils.get_pack_path(self.id)
+
+	@property
+	def file_name(self) -> str:
+		from prime_backup.utils import pack_utils
+		return pack_utils.get_pack_file_name(self.id)
 
 	@property
 	def dead_size(self) -> int:
@@ -41,7 +44,6 @@ class PackInfo:
 @dataclasses.dataclass(frozen=True)
 class PackEntryLocation:
 	pack_id: int
-	pack_name: str
 	pack_offset: int
 
 
@@ -55,34 +57,28 @@ class PackEntryInfo:
 
 @dataclasses.dataclass
 class PackChangeSummary:
+	created_pack_count: int = 0
+	updated_pack_count: int = 0
 	compacted_pack_count: int = 0
 	removed_pack_count: int = 0
 	old_size: int = 0
 	new_size: int = 0
 
 	@property
-	def touched_pack_count(self) -> int:
+	def reclaimed_pack_count(self) -> int:
 		return self.compacted_pack_count + self.removed_pack_count
 
 	@property
+	def changed_pack_count(self) -> int:
+		return self.created_pack_count + self.updated_pack_count + self.reclaimed_pack_count
+
+	@property
 	def freed_size(self) -> int:
-		return self.old_size - self.new_size
+		return max(0, self.old_size - self.new_size)
 
 	@property
 	def created_size(self) -> int:
 		return max(0, self.new_size - self.old_size)
-
-	@property
-	def freed_size_clamped(self) -> int:
-		return max(0, self.freed_size)
-
-	@property
-	def raw_size(self) -> int:
-		return self.freed_size
-
-	@property
-	def stored_size(self) -> int:
-		return self.freed_size
 
 	@classmethod
 	def zero(cls) -> Self:
@@ -90,18 +86,21 @@ class PackChangeSummary:
 
 	@property
 	def count(self) -> int:
-		return self.touched_pack_count
+		return self.changed_pack_count
 
 	@classmethod
 	def of_created_packs(cls, packs: Iterable[PackInfo]) -> 'PackChangeSummary':
 		summary = cls()
 		for pack in packs:
+			summary.created_pack_count += 1
 			summary.new_size += pack.size
 		return summary
 
 	def __add__(self, other: Self) -> 'PackChangeSummary':
 		misc_utils.ensure_type(other, type(self))
 		return PackChangeSummary(
+			created_pack_count=self.created_pack_count + other.created_pack_count,
+			updated_pack_count=self.updated_pack_count + other.updated_pack_count,
 			compacted_pack_count=self.compacted_pack_count + other.compacted_pack_count,
 			removed_pack_count=self.removed_pack_count + other.removed_pack_count,
 			old_size=self.old_size + other.old_size,
@@ -110,6 +109,8 @@ class PackChangeSummary:
 
 	def __iadd__(self, other: Self) -> 'PackChangeSummary':
 		misc_utils.ensure_type(other, type(self))
+		self.created_pack_count += other.created_pack_count
+		self.updated_pack_count += other.updated_pack_count
 		self.compacted_pack_count += other.compacted_pack_count
 		self.removed_pack_count += other.removed_pack_count
 		self.old_size += other.old_size

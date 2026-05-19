@@ -7,7 +7,7 @@ from typing import List, Tuple, Set, Dict
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.action.compact_packs_action import CollectPacksForCompactStep, CompactPacksStep
+from prime_backup.action.compact_packs_action import CollectPacksForCompactStep, CompactPacksAction
 from prime_backup.action.helpers.pack_reader import PackReader
 from prime_backup.action.helpers.pack_writer import PackWriter
 from prime_backup.compressors import CompressMethod, Compressor
@@ -101,10 +101,10 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 
 		self.__update_files_for_blob_change(session, changed_blobs_by_hash)
 
-	def __compress_pack_entry_to_temp(self, pack_name: str, chunk: schema.Chunk, temp_path: Path, new_compress_method: CompressMethod) -> int:
+	def __compress_pack_entry_to_temp(self, pack_id: int, chunk: schema.Chunk, temp_path: Path, new_compress_method: CompressMethod) -> int:
 		decompressor = Compressor.create(chunk.compress)
 		compressor = Compressor.create(new_compress_method)
-		with PackReader.open_entry(pack_name, chunk.pack_offset, chunk.stored_size) as entry_reader:
+		with PackReader.open_entry(pack_id, chunk.pack_offset, chunk.stored_size) as entry_reader:
 			with decompressor.decompress_stream(entry_reader) as f_src:
 				return self.__compress_to_temp(f_src, temp_path, compressor, estimate_read_size=chunk.raw_size)
 
@@ -132,13 +132,13 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 				old_stored_size = chunk.stored_size
 				new_compress_method = new_compress_methods[chunk.id]
 				if chunk.compress == new_compress_method.name:
-					with PackReader.open_entry(pack.name, chunk.pack_offset, chunk.stored_size) as entry_reader:
+					with PackReader.open_entry(pack.id, chunk.pack_offset, chunk.stored_size) as entry_reader:
 						entry_location = pack_writer.write_entry_from_reader(entry_reader, chunk.stored_size)
 				else:
 					temp_path = temp_dir / '{}.tmp'.format(chunk.id)
 					temp_paths.append(temp_path)
 					try:
-						new_stored_size = self.__compress_pack_entry_to_temp(pack.name, chunk, temp_path, new_compress_method)
+						new_stored_size = self.__compress_pack_entry_to_temp(pack.id, chunk, temp_path, new_compress_method)
 					except Exception as e:
 						self.logger.error('Migrate pack entry for chunk {} failed: {}'.format(chunk, e))
 						raise
@@ -295,7 +295,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 					raise_if_not_found=False,
 				).run().pack_ids
 				if len(pack_ids_to_compact) > 0:
-					CompactPacksStep(session, pack_ids_to_compact, raise_if_not_found=False).run()
+					CompactPacksAction(pack_ids_to_compact, raise_if_not_found=False).run(session=session)
 				else:
 					session.commit()
 			db_committed = True

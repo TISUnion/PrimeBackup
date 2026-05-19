@@ -6,14 +6,15 @@ title: '数据库维护'
 
 ## 数据库验证
 
-| 命令                                | 说明                      |
-|-----------------------------------|-------------------------|
-| `!!pb database validate blobs`    | 验证数据对象的正确性，如数据大小、哈希值    |
-| `!!pb database validate chunks`   | 验证数据块、数据块组及其关系绑定的正确性    |
-| `!!pb database validate files`    | 验证文件对象的正确性，如文件与数据的关联    |
-| `!!pb database validate filesets` | 验证文件集对象的正确性，如文件集与其文件的关联 |
-| `!!pb database validate backups`  | 验证备份对象的正确性，如备份与文件集的关联   |
-| `!!pb database validate all`      | 验证上述全部                  |
+| 命令                                | 说明                         |
+|-----------------------------------|----------------------------|
+| `!!pb database validate packs`    | 验证打包文件的正确性，如文件存在性、大小和存活统计 |
+| `!!pb database validate blobs`    | 验证数据对象的正确性，如数据大小、哈希值       |
+| `!!pb database validate chunks`   | 验证数据块、数据块组及其关系绑定的正确性       |
+| `!!pb database validate files`    | 验证文件对象的正确性，如文件与数据的关联       |
+| `!!pb database validate filesets` | 验证文件集对象的正确性，如文件集与其文件的关联    |
+| `!!pb database validate backups`  | 验证备份对象的正确性，如备份与文件集的关联      |
+| `!!pb database validate all`      | 验证上述全部                     |
 
 示例：
 
@@ -25,6 +26,11 @@ title: '数据库维护'
 
 ```
 > !!pb database validate all
+[MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO]: [PB] 正在验证所有打包文件, 请稍等...
+[MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO] [prime_backup]: Pack validation start
+[MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 16 / 16 packs
+[MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO] [prime_backup]: Pack validation done: total 16, validated 16, ok 16, bad 0
+[MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO]: [PB] 全部16个打包文件都是健康的
 [MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO]: [PB] 正在验证所有数据对象, 请稍等...
 [MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO] [prime_backup]: Blob validation start
 [MCDR] [23:15:38] [PB@fc91-worker-heavy/INFO] [prime_backup]: Validating 3000 / 4325 blobs
@@ -55,10 +61,16 @@ title: '数据库维护'
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO] [prime_backup]: Backup validation done: total 21, validated 21, ok 21, bad 0
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 已验证21/21个备份
 [MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 全部21个备份都是健康的
-[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 验证完成, 耗时15.32s。数据对象: 健康, 数据块相关对象: 健康, 文件对象: 健康, 文件集: 健康, 备份: 健康
+[MCDR] [23:15:53] [PB@fc91-worker-heavy/INFO]: [PB] 验证完成, 耗时15.32s。打包文件: 健康, 数据对象: 健康, 数据块相关对象: 健康, 文件对象: 健康, 文件集: 健康, 备份: 健康
 ```
 
 ### 验证内容
+
+打包文件：
+
+- 文件存在性: 检查打包文件是否存在于存储中
+- 大小匹配: 检查打包文件大小与数据库记录是否一致
+- 存活统计: 检查存活大小/条目数是否未超过总大小/条目数
 
 数据对象：
 
@@ -69,8 +81,8 @@ title: '数据库维护'
 
 数据块：
 
-- 文件存在性: 检查数据块文件是否存在于存储中
-- 完整性: 验证数据块文件的哈希值
+- 打包条目关系: 检查每个数据块是否引用存在的打包条目
+- 完整性: 验证从打包条目读取的数据块内容
 - 大小匹配: 检查存储大小与记录是否一致
 - 孤儿检测: 检查未被任何数据对象引用的数据块和数据块组
 - 绑定一致性: 验证数据块组-数据块绑定与数据对象-数据块组绑定的正确性
@@ -127,11 +139,13 @@ title: '数据库维护'
 - 孤立文件集: 不再被任何备份引用的文件集
 - 基础文件集压缩: 优化基础文件集的存储结构
 - 未知数据对象文件: 文件系统中存在但数据库中无记录的数据对象文件
-- 未知数据块文件: 文件系统中存在但数据库中无记录的数据块文件
+- 旧版未知数据块文件: 旧版数据块文件存储中存在但数据库中无记录的残留文件
+- 打包文件整理: 重写存活打包条目，并删除死空间过多的打包文件
+- 未知打包文件: 文件系统中存在但数据库中无记录的打包文件
 
 !!! note
 
-    绝大部分情况下，你都无需手动执行此命令。Prime Backup 在日常操作中是会确保数据库处于干净状态
+    绝大部分情况下，你都无需手动执行此命令；Prime Backup 在日常操作中是会确保数据库处于干净状态
 
 ### SQLite 整理
 

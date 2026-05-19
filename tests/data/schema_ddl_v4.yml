@@ -108,12 +108,10 @@ tables:
   pack: |-
     CREATE TABLE pack (
     	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-    	name VARCHAR NOT NULL, 
     	size BIGINT NOT NULL, 
     	count INTEGER NOT NULL, 
     	live_size BIGINT NOT NULL, 
-    	live_count INTEGER NOT NULL, 
-    	UNIQUE (name)
+    	live_count INTEGER NOT NULL
     )
 indexes:
   ix_blob_chunk_group_binding_chunk_group_id: |-

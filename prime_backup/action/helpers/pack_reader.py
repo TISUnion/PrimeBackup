@@ -77,12 +77,12 @@ class PackEntryReader(io.RawIOBase):
 
 class PackReader:
 	@staticmethod
-	def get_pack_path(pack_name: str) -> Path:
-		return pack_utils.get_pack_path(pack_name)
+	def get_pack_path(pack_id: int) -> Path:
+		return pack_utils.get_pack_path(pack_id)
 
 	@classmethod
 	@contextlib.contextmanager
-	def open_entry(cls, pack_name: str, offset: int, length: int) -> Generator[PackEntryReader, None, None]:
-		pack_path = cls.get_pack_path(pack_name)
+	def open_entry(cls, pack_id: int, offset: int, length: int) -> Generator[PackEntryReader, None, None]:
+		pack_path = cls.get_pack_path(pack_id)
 		with open(pack_path, 'rb') as fh:
 			yield PackEntryReader(fh, offset, length)

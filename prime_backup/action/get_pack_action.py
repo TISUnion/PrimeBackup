@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List
 
 from typing_extensions import override
 
@@ -40,11 +41,12 @@ class GetPackByFileNamePrefixAction(_GetPackActionBase):
 
 	@override
 	def _do_get_pack(self, session: DbSession) -> schema.Pack:
-		matched_pack_ids = [
-			pack_id
-			for pack_id in session.get_all_pack_ids()
-			if pack_utils.get_pack_file_name(pack_id).startswith(self.pack_file_name_prefix)
-		]
+		matched_pack_ids: List[int] = []
+		for pack_id in session.get_all_pack_ids():
+			if pack_utils.get_pack_file_name(pack_id).startswith(self.pack_file_name_prefix):
+				matched_pack_ids.append(pack_id)
+				if len(matched_pack_ids) >= 3:
+					break
 		if len(matched_pack_ids) == 0:
 			raise PackFileNameNotFound(self.pack_file_name_prefix)
 		if len(matched_pack_ids) > 1:

@@ -6,6 +6,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 from prime_backup import logger
 from prime_backup.mcdr.crontab_job import CrontabJob, CrontabJobId, CrontabJobEvent
+from prime_backup.mcdr.crontab_job.compact_pack_job import CompactPackJob
 from prime_backup.mcdr.crontab_job.create_db_backup_job import CreateDbBackupJob
 from prime_backup.mcdr.crontab_job.prune_backup_job import PruneBackupJob
 from prime_backup.mcdr.crontab_job.scheduled_backup_job import ScheduledBackupJob
@@ -32,6 +33,7 @@ class CrontabManager:
 			PruneBackupJob,
 			ScheduledBackupJob,
 			VacuumSqliteJob,
+			CompactPackJob,
 		]
 		jobs: List[CrontabJob] = [clazz(self.scheduler, self.task_manager) for clazz in job_classes]
 		self.jobs: Dict[CrontabJobId, CrontabJob] = {job.id: job for job in jobs}

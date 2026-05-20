@@ -357,7 +357,7 @@ prime_backup:
       done_clean: 清理完成, 没有任何需删除的对象, 数据库是干净的
     db_compact_packs:
       name: 整理打包文件
-      start: 正在以100%阈值整理全部打包文件, 请稍等...
+      start: 正在以{}阈值整理全部打包文件, 请稍等...
       done: 打包文件整理完成, 回收{}个打包文件并释放{}
       done_clean: 打包文件整理完成, 没有需要整理的打包文件
     db_vacuum:
@@ -535,6 +535,7 @@ prime_backup:
           §7{prefix} database migrate_hash_method <哈希算法>§r: 将当前使用的哈希算法迁移至另一种算法。这将影响所有数据，耗时可能较长
           §7{prefix} database reassign_backup_id §3[<重排排序方式>]§r: 按给定排序方式顺序重排所有备份的ID。默认排序: id
           {scheduled_compact_notes}
+          {scheduled_compact_pack_notes}
           §d【参数帮助】§r
           §3<文件路径>§r: 要审查的文件的路径，相对备份根目录
           §d<ID或哈希>§r: 要审查的对象的ID或哈希值。也可以是哈希串的前缀，只要确保唯一即可
@@ -551,6 +552,8 @@ prime_backup:
           - §aall§r: 验证上述全部
         database.scheduled_compact.on: '注意: 在当前配置下，{name}会定期执行数据库整理操作。详见{cmd}'
         database.scheduled_compact.off: '注意: 在当前配置下，定时数据库整理操作已被禁用'
+        database.scheduled_compact_pack.on: '注意: 在当前配置下，{name}会定期执行打包文件整理操作。详见{cmd}'
+        database.scheduled_compact_pack.off: '注意: 在当前配置下，定时打包文件整理操作已被禁用'
         export: |-
           §d【export指令帮助】§r
           以给定格式导出给定备份到§3export§r文件夹
@@ -646,6 +649,9 @@ prime_backup:
     vacuum_sqlite:
       name: 整理数据库
       name_titled: 整理数据库
+    compact_pack:
+      name: 整理打包文件
+      name_titled: 整理打包文件
 
   error:
     backup_not_found: ID为{}的备份不存在
@@ -711,7 +717,7 @@ prime_backup:
       total_blobs: '数据对象: {} ({} / {}, 涉及磁盘 {})'
       direct_blobs: '直存数据对象: {} ({} / {})'
       chunks: '数据块: {} ({} / {})'
-      pack_gc: '打包文件回收: {}个打包文件, {} -> {}, 释放{}'
+      pack_compaction: '打包文件整理: {}个打包文件, {} -> {}, 释放{}'
     blob_storage_method:
       unknown: 未知
       direct: 直存

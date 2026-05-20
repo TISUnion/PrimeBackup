@@ -170,7 +170,7 @@ class TextComponents:
 		]
 		if bds.packs.reclaimed_pack_count > 0:
 			lines.append(cls.tr(
-				'blob_delta_summary.pack_gc',
+				'blob_delta_summary.pack_compaction',
 				cls.number(bds.packs.reclaimed_pack_count),
 				cls.file_size(bds.packs.old_size),
 				cls.file_size(bds.packs.new_size),

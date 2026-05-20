@@ -71,7 +71,7 @@ class BackupConfig(Serializable):
 	# Advanced
 	fileset_allocate_lookback_count: int = 2
 	pack_auto_compact_threshold: float = 0.5
-	pack_prune_compact_threshold: float = 0.8
+	pack_maintenance_compact_threshold: float = 0.8
 
 	def get_compress_method_from_size(self, file_size: int, *, compress_method_override: Optional[CompressMethod] = None) -> CompressMethod:
 		if file_size < self.compress_threshold:

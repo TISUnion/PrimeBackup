@@ -1,3 +1,4 @@
+from mcdreforged.api.all import CommandSource
 from typing_extensions import override
 
 from prime_backup.action.compact_packs_action import CompactAllPacksAction
@@ -6,6 +7,10 @@ from prime_backup.mcdr.text_components import TextComponents
 
 
 class CompactPacksTask(HeavyTask[None]):
+	def __init__(self, source: CommandSource, *, threshold: float):
+		super().__init__(source)
+		self.threshold = threshold
+
 	@property
 	@override
 	def id(self) -> str:
@@ -13,8 +18,8 @@ class CompactPacksTask(HeavyTask[None]):
 
 	@override
 	def run(self) -> None:
-		self.reply_tr('start')
-		result = self.run_action(CompactAllPacksAction(threshold=1.0))
+		self.reply_tr('start', TextComponents.percent(self.threshold, 1, ndigits=0))
+		result = self.run_action(CompactAllPacksAction(threshold=self.threshold))
 
 		if result.reclaimed_pack_count == 0:
 			self.reply_tr('done_clean')

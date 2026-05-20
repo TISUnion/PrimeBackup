@@ -18,6 +18,19 @@ class BackUpDatabaseConfig(CrontabJobSetting):
 	jitter = Duration('1m')
 
 
+class CompactPackDatabaseConfig(CrontabJobSetting):
+	enabled = True
+	interval = None
+	crontab = '0 5 * * 0'
+	jitter = Duration('1m')
+
+	@property
+	def compact_threshold(self) -> float:
+		from prime_backup.config.config import Config
+		return Config.get().backup.pack_maintenance_compact_threshold
+
+
 class DatabaseConfig(Serializable):
 	compact: CompactDatabaseConfig = CompactDatabaseConfig()
 	backup: BackUpDatabaseConfig = BackUpDatabaseConfig()
+	compact_pack: CompactPackDatabaseConfig = CompactPackDatabaseConfig()

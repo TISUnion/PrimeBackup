@@ -24,14 +24,14 @@ class PruneDatabaseTask(HeavyTask[None]):
 		saf_result = ShrinkAllBaseFilesetsAction().run()
 		ubf_result = ScanUnknownBlobFilesAction(delete=True).run()
 		ucf_result = ScanUnknownChunkFilesAction(delete=True).run()
-		pack_compact_result = CompactAllPacksAction(threshold=self.config.backup.pack_prune_compact_threshold).run()
+		pack_compaction_result = CompactAllPacksAction(threshold=self.config.backup.pack_maintenance_compact_threshold).run()
 		upf_result = ScanUnknownPackFilesAction(delete=True).run()
 
-		if doo_result.total_orphan_count + saf_result.count + ubf_result.count + ucf_result.count + pack_compact_result.reclaimed_pack_count + upf_result.count == 0:
+		if doo_result.total_orphan_count + saf_result.count + ubf_result.count + ucf_result.count + pack_compaction_result.reclaimed_pack_count + upf_result.count == 0:
 			self.reply_tr('done_clean')
 		else:
 			self.reply_tr(
 				'done',
 				doo_result.total_orphan_count, doo_result.orphan_blob_count, doo_result.orphan_file_count, doo_result.orphan_fileset_count,
-				saf_result.count, ubf_result.count, ucf_result.count, pack_compact_result.reclaimed_pack_count, TextComponents.file_size(pack_compact_result.freed_size), upf_result.count,
+				saf_result.count, ubf_result.count, ucf_result.count, pack_compaction_result.reclaimed_pack_count, TextComponents.file_size(pack_compaction_result.freed_size), upf_result.count,
 			)

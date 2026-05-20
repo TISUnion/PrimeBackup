@@ -151,7 +151,7 @@ class CommandManager:
 		self.task_manager.add_task(PruneDatabaseTask(source))
 
 	def cmd_db_compact_packs(self, source: CommandSource, _: CommandContext):
-		self.task_manager.add_task(CompactPacksTask(source))
+		self.task_manager.add_task(CompactPacksTask(source, threshold=1.0))
 
 	def cmd_db_reassign_backup_id(self, source: CommandSource, context: CommandContext):
 		order = context.get('reassign_backup_order', BackupSortOrder.id)

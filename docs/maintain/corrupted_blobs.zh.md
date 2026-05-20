@@ -339,7 +339,7 @@ chunk 的损坏类型与 blob 类似，包括：`missing_pack` 或 `missing_file
     !!pb delete_range 3-7
     ```
 
-3. 删除备份后，PB 会自动清理不再被任何备份引用的孤儿 blob 和 chunk，并且 prune 可以整理受影响的打包文件；如果仍有残留，可手动执行：
+3. 删除备份后，PB 会自动清理不再被任何备份引用的孤儿 blob 和 chunk，并且数据库维护可以整理受影响的打包文件；如果仍有残留，可手动执行：
 
     ```
     !!pb database prune

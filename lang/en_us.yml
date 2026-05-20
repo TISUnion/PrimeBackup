@@ -357,7 +357,7 @@ prime_backup:
       done_clean: Pruning done, deleted 0 object, the database is already clean
     db_compact_packs:
       name: compact pack files
-      start: Compacting all pack files with a 100% threshold, please wait...
+      start: Compacting all pack files with a {} threshold, please wait...
       done: Pack compaction complete, reclaimed {} pack files and freed {}
       done_clean: Pack compaction complete, no pack file needs compaction
     db_vacuum:
@@ -535,6 +535,7 @@ prime_backup:
           §7{prefix} database migrate_hash_method <hash_method>§r: Migrate the currently used hash method to another. Affects all data, might take a long time
           §7{prefix} database reassign_backup_id §3[<reassign_backup_order>]§r: Reassign all backup IDs sequentially based on the given sort order. Default order: id
           {scheduled_compact_notes}
+          {scheduled_compact_pack_notes}
           §d[Arguments]§r
           §3<file_path>§r: Path of the file related to the backup source root
           §d<id_or_hash>§r: The ID of the object, or the hash of the object. It can be a prefix of the hash string as long as it's unique
@@ -549,8 +550,10 @@ prime_backup:
           - §afilesets§r: Validate the correctness of fileset objects, e.g. the association between filesets and their files
           - §abackups§r: Validate the correctness of backup objects, e.g. the association between backups and filesets
           - §aall§r: Validate all of the above
-        database.scheduled_compact.on: 'Notes: With the current config, {name} will automatically prune the database. See {cmd}'
-        database.scheduled_compact.off: 'Notes: With the current config, scheduled database prune is disabled'
+        database.scheduled_compact.on: 'Notes: With the current config, {name} will automatically compact the SQLite database file. See {cmd}'
+        database.scheduled_compact.off: 'Notes: With the current config, scheduled SQLite database compaction is disabled'
+        database.scheduled_compact_pack.on: 'Notes: With the current config, {name} will automatically compact pack files. See {cmd}'
+        database.scheduled_compact_pack.off: 'Notes: With the current config, scheduled pack file compaction is disabled'
         export: |-
           §d[export Command Usage]§r
           Export the given backup to the §3export§r folder
@@ -646,6 +649,9 @@ prime_backup:
     vacuum_sqlite:
       name: compact database
       name_titled: Compact database
+    compact_pack:
+      name: compact pack files
+      name_titled: Compact pack files
 
   error:
     backup_not_found: Backup with ID {} does not exist
@@ -711,7 +717,7 @@ prime_backup:
       total_blobs: 'Total blobs: {} ({} / {}, disk touched {})'
       direct_blobs: 'Direct blobs: {} ({} / {})'
       chunks: 'Chunks: {} ({} / {})'
-      pack_gc: 'Pack reclaim: {} packs, {} -> {}, freed {}'
+      pack_compaction: 'Pack compaction: {} packs, {} -> {}, freed {}'
     blob_storage_method:
       unknown: unknown
       direct: direct

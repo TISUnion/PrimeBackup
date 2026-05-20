@@ -5,7 +5,7 @@ from typing import List, Dict, Optional, Collection
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.action.compact_packs_action import CollectPacksForCompactStep, CompactPacksAction
+from prime_backup.action.compact_packs_action import CollectCompactablePacksStep, CompactPacksAction
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
@@ -69,7 +69,7 @@ class DeleteChunksAction(Action[ChunkListSummary]):
 				pack.live_size -= pack_live_size_decrement.get(pack_id, 0)
 				pack.live_entry_count -= pack_live_entry_count_decrement.get(pack_id, 0)
 
-			pack_ids_to_compact = CollectPacksForCompactStep(
+			pack_ids_to_compact = CollectCompactablePacksStep(
 				session,
 				pack_ids=affected_pack_ids,
 				threshold=self.config.backup.pack_auto_compact_threshold,

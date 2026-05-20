@@ -107,6 +107,14 @@ class ShowHelpTask(ImmediateTask[None]):
 						)
 					else:
 						kwargs['scheduled_compact_notes'] = self.tr(f'node_help.{self.what}.scheduled_compact.off')
+					if self.config.database.compact_pack.enabled:
+						kwargs['scheduled_compact_pack_notes'] = self.tr(
+							f'node_help.{self.what}.scheduled_compact_pack.on',
+							name=name,
+							cmd=f"§7{mkcmd(f'crontab {CrontabJobId.compact_pack.name}')}§r",
+						)
+					else:
+						kwargs['scheduled_compact_pack_notes'] = self.tr(f'node_help.{self.what}.scheduled_compact_pack.off')
 				elif self.what == 'export':
 					kwargs['export_formats'] = get_standalone_formats()
 					kwargs['backup_meta_file_name'] = f'§3{constants.BACKUP_META_FILE_NAME}§r'

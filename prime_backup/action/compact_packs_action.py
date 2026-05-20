@@ -17,7 +17,7 @@ from prime_backup.utils import collection_utils
 
 
 @dataclasses.dataclass(frozen=True)
-class CollectPacksForCompactResult:
+class CollectCompactablePacksResult:
 	pack_ids: List[int]
 
 	@property
@@ -25,7 +25,7 @@ class CollectPacksForCompactResult:
 		return len(self.pack_ids)
 
 
-class CollectPacksForCompactStep(Step[CollectPacksForCompactResult]):
+class CollectCompactablePacksStep(Step[CollectCompactablePacksResult]):
 	def __init__(self, session: DbSession, *, pack_ids: Optional[Collection[int]] = None, threshold: float, raise_if_not_found: bool = True):
 		super().__init__()
 		self.session = session
@@ -34,9 +34,9 @@ class CollectPacksForCompactStep(Step[CollectPacksForCompactResult]):
 		self.raise_if_not_found = raise_if_not_found
 
 	@override
-	def run(self) -> CollectPacksForCompactResult:
+	def run(self) -> CollectCompactablePacksResult:
 		if self.threshold < 0:
-			raise ValueError('negative pack compact threshold {}'.format(self.threshold))
+			raise ValueError('negative pack compaction threshold {}'.format(self.threshold))
 
 		result: List[int] = []
 		if self.pack_ids is None:
@@ -47,7 +47,7 @@ class CollectPacksForCompactStep(Step[CollectPacksForCompactResult]):
 				if pack is None:
 					if self.raise_if_not_found:
 						raise PackIdNotFound(pack_id)
-					self.logger.warning('Pack id {} does not exist, skipped compact collection'.format(pack_id))
+					self.logger.warning('Pack id {} does not exist, skipped compaction candidate collection'.format(pack_id))
 					continue
 				packs.append(pack)
 
@@ -59,7 +59,7 @@ class CollectPacksForCompactStep(Step[CollectPacksForCompactResult]):
 			if pack.live_size < pack.size and pack.live_size / pack.size < self.threshold:
 				result.append(pack.id)
 
-		return CollectPacksForCompactResult(result)
+		return CollectCompactablePacksResult(result)
 
 
 class CompactPacksAction(Action[PackChangeSummary]):
@@ -90,7 +90,7 @@ class CompactPacksAction(Action[PackChangeSummary]):
 					if pack is None:
 						if self.raise_if_not_found:
 							raise PackIdNotFound(pack_id)
-						self.logger.warning('Pack id {} does not exist, skipped compact'.format(pack_id))
+						self.logger.warning('Pack id {} does not exist, skipped compaction'.format(pack_id))
 						continue
 
 					if pack.live_size == pack.size and pack.live_entry_count == pack.entry_count:
@@ -148,10 +148,10 @@ class CompactPacksAction(Action[PackChangeSummary]):
 			try:
 				old_pack_path.unlink(missing_ok=True)
 			except OSError as e:
-				self.logger.warning('Failed to delete compacted old pack file {!r}; it can be removed by database prune later: {}'.format(old_pack_path, e))
+				self.logger.warning('Failed to delete old pack file {!r} after compaction; it can be removed by a later pack file scan: {}'.format(old_pack_path, e))
 
 		if summary.reclaimed_pack_count > 0:
-			self.logger.info('Pack compact done, reclaimed {} packs, old_size={}, new_size={}, freed={} (-{:.1f}%)'.format(
+			self.logger.info('Pack compaction done, reclaimed {} packs, old_size={}, new_size={}, freed={} (-{:.1f}%)'.format(
 				summary.reclaimed_pack_count,
 				ByteCount(summary.old_size).auto_str(), ByteCount(summary.new_size).auto_str(),
 				ByteCount(summary.freed_size).auto_str(), 100 * summary.freed_size / summary.old_size if summary.old_size > 0 else 0,
@@ -167,9 +167,9 @@ class CompactAllPacksAction(Action[PackChangeSummary]):
 	@override
 	def run(self) -> PackChangeSummary:
 		with DbAccess.open_session() as session:
-			pack_ids = CollectPacksForCompactStep(session, pack_ids=None, threshold=self.threshold).run().pack_ids
+			pack_ids = CollectCompactablePacksStep(session, pack_ids=None, threshold=self.threshold).run().pack_ids
 			if len(pack_ids) == 0:
-				self.logger.info('No pack to compact, threshold {:.2f}'.format(self.threshold))
+				self.logger.info('No pack needs compaction, threshold {:.2f}'.format(self.threshold))
 				return PackChangeSummary.zero()
 			result = CompactPacksAction(pack_ids).run(session=session)
 

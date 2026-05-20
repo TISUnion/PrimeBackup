@@ -7,7 +7,7 @@ from typing import List, Tuple, Set, Dict
 from typing_extensions import override
 
 from prime_backup.action import Action
-from prime_backup.action.compact_packs_action import CollectPacksForCompactStep, CompactPacksAction
+from prime_backup.action.compact_packs_action import CollectCompactablePacksStep, CompactPacksAction
 from prime_backup.action.helpers.pack_reader import PackReader
 from prime_backup.action.helpers.pack_writer import PackWriter
 from prime_backup.compressors import CompressMethod, Compressor
@@ -288,7 +288,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 				# 3. migrate affected fileset and backup data
 				self.__update_chunk_group_and_blobs_for_chunk_changes(session)
 				self.__update_fileset_and_backups(session)
-				pack_ids_to_compact = CollectPacksForCompactStep(
+				pack_ids_to_compact = CollectCompactablePacksStep(
 					session,
 					pack_ids=self.__old_pack_ids,
 					threshold=self.config.backup.pack_auto_compact_threshold,

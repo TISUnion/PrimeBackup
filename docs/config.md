@@ -248,7 +248,9 @@ Configs on how the backup is made
     "compress_method": "zstd",
     "compress_threshold": 64,
 
-	"fileset_allocate_lookback_count": 2
+    "fileset_allocate_lookback_count": 2,
+    "pack_auto_compact_threshold": 0.5,
+    "pack_maintenance_compact_threshold": 0.8
 }
 ```
 
@@ -570,6 +572,29 @@ For files with a size less than the `compress_threshold`, no compression will be
 - Type: int
 - Default: `64`
 
+#### fileset_allocate_lookback_count
+
+The number of recent base filesets to check when choosing the base fileset for a new backup
+
+- Type: `int`
+- Default: `2`
+
+#### pack_auto_compact_threshold
+
+The live-size threshold for automatic pack file compaction after chunk deletion
+
+When a changed pack file has live data below this ratio, Prime Backup rewrites its live pack entries into new pack files and removes the old pack file
+
+- Type: `float`
+- Default: `0.5`
+
+#### pack_maintenance_compact_threshold
+
+The live-size threshold for pack file compaction during database maintenance tasks
+
+- Type: `float`
+- Default: `0.8`
+
 ---
 
 ### Scheduled backup config
@@ -815,11 +840,17 @@ Configurations for the SQLite database, used by Prime Backup
         "interval": null,
         "crontab": "0 6 * * 0",
         "jitter": "1m"
+    },
+    "compact_pack": {
+        "enabled": true,
+        "interval": null,
+        "crontab": "0 5 * * 0",
+        "jitter": "1m"
     }
 }
 ```
 
-Subconfig `compact` and `backup` describe the crontab jobs on the database
+Subconfig `compact`, `backup` and `compact_pack` describe the crontab jobs on the database and pack files
 
 #### compact
 
@@ -835,6 +866,12 @@ By default, Prime Backup creates backups for the database in the `db_backup` dir
 within the [storage root](#storage_root) periodically, just in case something wrong happens
 
 Database backups are stored with the `.tar.xz` format, and won't take up much space
+
+#### compact_pack
+
+The pack file compaction job
+
+It compacts pack files using [`backup.pack_maintenance_compact_threshold`](#pack_maintenance_compact_threshold) as the live-size threshold
 
 #### enabled, interval, crontab, jitter
 

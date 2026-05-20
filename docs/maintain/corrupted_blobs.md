@@ -339,7 +339,7 @@ Steps:
     !!pb delete_range 3-7
     ```
 
-3. After deleting backups, PB will automatically clean up orphan blobs and chunks no longer referenced by any backup, and prune can compact affected pack files; if any remain, you can manually run:
+3. After deleting backups, PB will automatically clean up orphan blobs and chunks no longer referenced by any backup, and database maintenance can compact affected pack files; if any remain, you can manually run:
 
     ```
     !!pb database prune

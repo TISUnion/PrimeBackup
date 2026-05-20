@@ -400,8 +400,8 @@ class CreateBackupAction(Action[BackupInfo]):
 
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_finalize):
 			BackupFinalizer(session).finalize_files_and_backup(backup, files)
-		pack_writer.close()
-		info = BackupInfo.of(backup)
+			pack_writer.close()
+			info = BackupInfo.of(backup)
 
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_flush_db, CreateBackupTimeCostKey.kind_db):
 			session_context.__exit__(None, None, None)

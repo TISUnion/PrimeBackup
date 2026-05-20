@@ -84,16 +84,21 @@ title: '固定大小分块'
 
 !!! warning "Alpha"
 
-    `fixed_auto` 处于 alpha 阶段，不建议在生产环境中使用
+    `fixed_auto` 处于 alpha 阶段，性能相对其他分块算法较低
 
-`fixed_auto` 会按 128 KiB 窗口遍历文件。
-对于每个完整窗口，它会检查上一次备份中同路径文件在相同 offset 的分块布局：
+`fixed_auto` 会按 128 KiB 窗口遍历文件。 对于每个完整窗口，它会检查上一次备份中同路径文件在相同 offset 的分块布局：
 
 - 如果上一版窗口是 1 个 128 KiB chunk，且当前内容未变化，则继续使用 1 个 128 KiB chunk
 - 如果上一版窗口是 1 个 128 KiB chunk，但当前内容已变化，则将当前窗口切成 32 个 4 KiB chunk
 - 如果上一版窗口是 32 个 4 KiB chunk，则先比较 4 KiB hash；当变化数量为 0 时，存成 1 个 128 KiB chunk，否则继续使用 32 个 4 KiB chunk
 
-上一版数据缺失、上一版是 direct blob、上一版布局不规则，或当前窗口是不完整尾块时，该窗口会作为单个 chunk 存储。
+上一版数据缺失、上一版是 direct blob、上一版布局不规则，或当前窗口是不完整尾块时，该窗口会作为单个 chunk 存储
+
+借此，`fixed_auto` 可达成这样的效果：对于文件持续变化的部分，以 4KiB 为粒度进行分块去重；
+对于其他部分则以 128KiB 的粒度进行分块去重
+
+由于 Minecraft 存档中的的 region 文件（.mca）是以 4KiB 为粒度进行修改的，
+`fixed_auto` 预期可在不产生过多元数据开销的前提下，达到接近 `fixed_4k` 的去重效果
 
 ## 不适用场景
 

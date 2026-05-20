@@ -83,16 +83,21 @@ For most use cases, `fixed_128k` or CDC variants are preferred. Consider `fixed_
 
 !!! warning "Alpha"
 
-    `fixed_auto` is in alpha status and is not recommended for production use
+    `fixed_auto` is in alpha status and is not well optimized for performance
 
-`fixed_auto` walks the file in 128 KiB windows.
-For each full window, it checks the previous backup's same-path chunk layout at the same offset:
+`fixed_auto` walks the file in 128 KiB windows. For each full window, it checks the previous backup's same-path chunk layout at the same offset:
 
 - if the previous window was one 128 KiB chunk and the current content is unchanged, it keeps one 128 KiB chunk
 - if the previous window was one 128 KiB chunk and the current content changed, it stores the current window as thirty-two 4 KiB chunks
 - if the previous window was thirty-two 4 KiB chunks, it compares the 4 KiB hashes first; when none changed, it stores one 128 KiB chunk, otherwise it keeps thirty-two 4 KiB chunks
 
-Missing previous data, direct blobs, irregular previous layouts, and incomplete tail windows are stored as one chunk for that window.
+Missing previous data, direct blobs, irregular previous layouts, and incomplete tail windows are stored as one chunk for that window
+
+With this, `fixed_auto` can achieve the following effect: for parts of a file that keep changing, it performs chunk-level deduplication at 4 KiB granularity;
+for other parts, it performs chunk-level deduplication at 128 KiB granularity
+
+Since region files (`.mca`) in Minecraft saves are modified at 4 KiB granularity,
+`fixed_auto` is expected to achieve deduplication close to `fixed_4k` without introducing excessive metadata overhead
 
 ## Poor Candidates
 
@@ -106,4 +111,3 @@ Fixed-size chunking is a poor choice for:
 
 Fixed-size chunking has no additional Python dependency requirements.
 It is available as long as Prime Backup is installed
-

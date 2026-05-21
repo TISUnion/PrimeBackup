@@ -5,7 +5,7 @@ from prime_backup.action.helpers.pack_reader import PackReader
 from prime_backup.compressors import Compressor
 from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.utils.bypass_io import BypassReader
-from prime_backup.utils.io_types import SupportsReadBytes
+from prime_backup.utils.io_types import SupportsReadBytes, SupportsReadAndSeek
 
 
 class ChunkIO:
@@ -18,7 +18,7 @@ class ChunkIO:
 		return self.chunk.pack_entry.pack_id
 
 	@contextlib.contextmanager
-	def open_raw(self) -> Generator[SupportsReadBytes, None, None]:
+	def open_raw(self) -> Generator[SupportsReadAndSeek, None, None]:
 		with PackReader.open_entry(self.__get_pack_id(), self.chunk.pack_entry.offset, self.chunk.stored_size) as reader:
 			yield reader
 

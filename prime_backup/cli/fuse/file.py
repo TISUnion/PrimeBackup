@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
 from io import BytesIO
 from pathlib import Path
-from typing import IO, cast, List
+from typing import List, cast
 
 from typing_extensions import Optional, override
 
@@ -17,6 +17,7 @@ from prime_backup.db.values import BlobStorageMethod
 from prime_backup.types.blob_info import BlobInfo
 from prime_backup.types.chunk_info import OffsetChunkInfo, ChunkInfo
 from prime_backup.utils import blob_utils
+from prime_backup.utils.io_types import SupportsReadBytes, SupportsReadAndSeek
 
 
 class _FileReader(ABC):
@@ -33,17 +34,17 @@ class _FileReader(ABC):
 
 
 class _SingleFileReader(_FileReader):
-	def __init__(self, file_ctx: AbstractContextManager[IO[bytes]]):
+	def __init__(self, file_ctx: AbstractContextManager[SupportsReadBytes]):
 		self.file_ctx = file_ctx
 		self.file_obj = file_ctx.__enter__()
-		self.file_seekable = self.file_obj.seekable()
+		self.file_seekable = hasattr(self.file_obj, 'seekable') and hasattr(self.file_obj, 'seek') and self.file_obj.seekable()
 		self.offset = 0
 
 	@override
 	def read(self, size: int, offset: int) -> bytes:
 		if offset != self.offset:
 			if self.file_seekable:
-				self.file_obj.seek(offset)
+				cast(SupportsReadAndSeek, self.file_obj).seek(offset)
 				self.offset = offset
 			else:
 				raise self.NoSequenceRead()
@@ -62,7 +63,7 @@ class _SingleFileReader(_FileReader):
 			return _SingleFileReader(open(file_path, 'rb'))
 		else:
 			decompressed_stream = Compressor.create(compress_method).open_decompressed(file_path)
-			return _SingleFileReader(cast(AbstractContextManager[IO[bytes]], decompressed_stream))
+			return _SingleFileReader(decompressed_stream)
 
 	@classmethod
 	def create_from_blob(cls, blob: BlobInfo) -> '_SingleFileReader':
@@ -70,7 +71,7 @@ class _SingleFileReader(_FileReader):
 
 	@classmethod
 	def create_from_chunk(cls, chunk: ChunkInfo) -> '_SingleFileReader':
-		return _SingleFileReader(cast(AbstractContextManager[IO[bytes]], ChunkIO(chunk).open_decompressed()))
+		return _SingleFileReader(ChunkIO(chunk).open_decompressed())
 
 
 class _MultiFileReader(_FileReader):

@@ -6,6 +6,14 @@ class SupportsReadBytes(Protocol):
 		...
 
 
+class SupportsReadAndSeek(SupportsReadBytes, Protocol):
+	def seekable(self) -> bool:
+		...
+
+	def seek(self, offset: int, whence: int = 0):
+		...
+
+
 class SupportsWriteBytes(Protocol):
 	def write(self, s: bytes) -> int:
 		...

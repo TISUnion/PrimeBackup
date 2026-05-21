@@ -7,22 +7,6 @@
 - [x] Show diff between 2 backups
 - [ ] Record and show restore logs
 
-CDC chunking
-
-- [x] FastCDC 2020 lib
-- [x] Backup create
-- [x] Backup export
-- [x] DB migration
-- [x] Blob size display texts updates
-- [x] DB Validation tasks
-- [x] DB Prune tasks
-- [ ] Performance optimization
-- [ ] Fuse support
-- [ ] TODO cleanup
-- [x] Compress migration
-- [x] Database inspection (blob, chunk, chunk group)
-- [ ] Document
-
 ## QOL
 
 - [x] More restrictive `!!pb confirm` and `!!pb abort`

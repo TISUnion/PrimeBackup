@@ -1,6 +1,5 @@
 import dataclasses
 from pathlib import Path
-from typing import Iterable
 
 from typing_extensions import Self
 
@@ -35,10 +34,6 @@ class PackInfo:
 	def file_name(self) -> str:
 		from prime_backup.utils import pack_utils
 		return pack_utils.get_pack_file_name(self.id)
-
-	@property
-	def dead_size(self) -> int:
-		return max(0, self.size - self.live_size)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -85,14 +80,6 @@ class PackChangeSummary:
 	@classmethod
 	def zero(cls) -> Self:
 		return cls()
-
-	@classmethod
-	def of_created_packs(cls, packs: Iterable[PackInfo]) -> 'PackChangeSummary':
-		summary = cls()
-		for pack in packs:
-			summary.created_pack_count += 1
-			summary.new_size += pack.size
-		return summary
 
 	def __add__(self, other: Self) -> 'PackChangeSummary':
 		misc_utils.ensure_type(other, type(self))

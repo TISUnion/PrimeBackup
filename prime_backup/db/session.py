@@ -259,10 +259,6 @@ class DbSession:
 	def delete_pack(self, pack: schema.Pack):
 		self.session.delete(pack)
 
-	def delete_packs_by_ids(self, pack_ids: List[int]):
-		for view in collection_utils.slicing_iterate(pack_ids, self.__safe_var_limit):
-			self.session.execute(delete(schema.Pack).where(schema.Pack.id.in_(view)))
-
 	# ==================================== DbMeta ====================================
 
 	def get_db_meta(self) -> schema.DbMeta:
@@ -795,19 +791,6 @@ class DbSession:
 				self.session.execute(
 					select(schema.ChunkGroupChunkBinding.chunk_group_id).
 					where(schema.ChunkGroupChunkBinding.chunk_id.in_(v_chunk_ids)).
-					distinct()
-				).scalars().all()
-			)
-		return list(sorted(chunk_group_ids))
-
-	def get_chunk_group_ids_by_pack_ids(self, pack_ids: List[int]) -> List[int]:
-		chunk_group_ids: Set[int] = set()
-		for v_pack_ids in collection_utils.slicing_iterate(pack_ids, self.__safe_var_limit):
-			chunk_group_ids.update(
-				self.session.execute(
-					select(schema.ChunkGroupChunkBinding.chunk_group_id).
-					join(schema.Chunk, schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id).
-					where(schema.Chunk.pack_id.in_(v_pack_ids)).
 					distinct()
 				).scalars().all()
 			)

@@ -20,10 +20,6 @@ from prime_backup.utils import collection_utils
 class CollectCompactablePacksResult:
 	pack_ids: List[int]
 
-	@property
-	def count(self) -> int:
-		return len(self.pack_ids)
-
 
 class CollectCompactablePacksStep(Step[CollectCompactablePacksResult]):
 	def __init__(self, session: DbSession, *, pack_ids: Optional[Collection[int]] = None, threshold: float, raise_if_not_found: bool = True):

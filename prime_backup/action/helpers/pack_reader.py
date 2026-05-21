@@ -1,5 +1,4 @@
 import contextlib
-from pathlib import Path
 from typing import BinaryIO, Generator
 
 from prime_backup.utils import pack_utils
@@ -26,13 +25,9 @@ class PackEntryReader:
 
 
 class PackReader:
-	@staticmethod
-	def get_pack_path(pack_id: int) -> Path:
-		return pack_utils.get_pack_path(pack_id)
-
 	@classmethod
 	@contextlib.contextmanager
 	def open_entry(cls, pack_id: int, offset: int, length: int) -> Generator[SupportsReadBytes, None, None]:
-		pack_path = cls.get_pack_path(pack_id)
+		pack_path = pack_utils.get_pack_path(pack_id)
 		with open(pack_path, 'rb') as fh:
 			yield PackEntryReader(fh, offset, length)

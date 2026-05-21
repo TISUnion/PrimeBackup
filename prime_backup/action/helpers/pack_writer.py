@@ -16,9 +16,6 @@ class _ActivePack:
 	pack: schema.Pack
 	file: BinaryIO
 
-	def append(self, data: bytes) -> PackEntryLocation:
-		return self.append_reader(_BytesReader(data), len(data))
-
 	def append_reader(self, reader: SupportsReadBytes, size: int) -> PackEntryLocation:
 		offset = self.pack.size
 		remaining = size
@@ -51,21 +48,6 @@ class _ActivePack:
 
 	def close(self):
 		self.file.close()
-
-
-class _BytesReader:
-	def __init__(self, data: bytes):
-		self.__data = data
-		self.__offset = 0
-
-	def read(self, size: int = -1) -> bytes:
-		if self.__offset >= len(self.__data):
-			return b''
-		if size is None or size < 0:
-			size = len(self.__data) - self.__offset
-		data = self.__data[self.__offset:self.__offset + size]
-		self.__offset += len(data)
-		return data
 
 
 class PackWriter:

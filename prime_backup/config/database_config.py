@@ -16,6 +16,7 @@ class BackUpDatabaseConfig(CrontabJobSetting):
 	interval = None
 	crontab = '0 6 * * 0'
 	jitter = Duration('1m')
+	max_amount: int = 100
 
 
 class CompactPackDatabaseConfig(CrontabJobSetting):

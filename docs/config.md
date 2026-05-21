@@ -839,7 +839,8 @@ Configurations for the SQLite database, used by Prime Backup
         "enabled": true,
         "interval": null,
         "crontab": "0 6 * * 0",
-        "jitter": "1m"
+        "jitter": "1m",
+        "max_amount": 100
     },
     "compact_pack": {
         "enabled": true,
@@ -866,6 +867,17 @@ By default, Prime Backup creates backups for the database in the `db_backup` dir
 within the [storage root](#storage_root) periodically, just in case something wrong happens
 
 Database backups are stored with the `.tar.xz` format, and won't take up much space
+
+#### backup.max_amount
+
+The maximum number of database backup files to keep
+
+The backup job will delete old database backup files whose names match `db_backup_YYYYMMDD_HHMMSS.tar.xz`.
+It keeps the latest `max_amount` files by the timestamp parsed from the file name.
+Set `max_amount` to `0` or a negative value to keep all database backup files
+
+- Type: `int`
+- Default: `100`
 
 #### compact_pack
 

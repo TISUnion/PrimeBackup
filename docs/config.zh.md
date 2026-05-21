@@ -841,7 +841,8 @@ Prime Backup 所使用的 SQLite 数据库的相关配置
         "enabled": true,
         "interval": null,
         "crontab": "0 6 * * 0",
-        "jitter": "1m"
+        "jitter": "1m",
+        "max_amount": 100
     },
     "compact_pack": {
         "enabled": true,
@@ -868,6 +869,17 @@ Prime Backup 所使用的 SQLite 数据库的相关配置
 `db_backup` 目录中创建数据库备份，以防数据库文件损坏而导致无法访问备份
 
 数据库备份将以 `.tar.xz` 格式存储，不会占用太多空间
+
+#### backup.max_amount
+
+要保留的数据库备份文件数量上限
+
+数据库备份作业会清理文件名匹配 `db_backup_YYYYMMDD_HHMMSS.tar.xz` 的旧数据库备份文件。
+它会根据文件名中解析出的时间保留最新的 `max_amount` 个文件。
+将 `max_amount` 设置为 `0` 或负数表示保留全部数据库备份文件
+
+- 类型：`int`
+- 默认值：`100`
 
 #### compact_pack
 

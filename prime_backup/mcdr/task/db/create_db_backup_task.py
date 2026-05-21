@@ -1,9 +1,12 @@
 import contextlib
+import dataclasses
+import datetime
+import re
 import tarfile
 import threading
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from typing_extensions import override
 
@@ -15,8 +18,15 @@ from prime_backup.utils import misc_utils
 from prime_backup.utils.run_once import RunOnceFunc
 
 
+@dataclasses.dataclass(frozen=True)
+class DbBackupFile:
+	path: Path
+	date: datetime.datetime
+
+
 class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 	__task_sem = threading.Semaphore(1)
+	_db_backup_file_regex = re.compile(r'^db_backup_(?P<date>\d{8})_(?P<time>\d{6})\.tar\.xz$')
 
 	@property
 	@override
@@ -56,6 +66,11 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 					))
 				except Exception:
 					self.logger.exception('db backup: Compress database backup to {} failed'.format(db_backup_file))
+				else:
+					try:
+						self._delete_old_db_backup_files(db_backup_root)
+					except Exception:
+						self.logger.exception('db backup: Delete old database backups failed')
 				finally:
 					sem_releaser()
 					temp_db_path.unlink(missing_ok=True)
@@ -77,3 +92,44 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 		except Exception:
 			sem_releaser()
 			raise
+
+	@classmethod
+	def __parse_db_backup_file(cls, path: Path) -> Optional[DbBackupFile]:
+		if not path.is_file():
+			return None
+		if (match := cls._db_backup_file_regex.fullmatch(path.name)) is None:
+			return None
+
+		try:
+			date = datetime.datetime.strptime(match['date'] + match['time'], '%Y%m%d%H%M%S')
+		except ValueError:
+			return None
+		return DbBackupFile(path=path, date=date)
+
+	@classmethod
+	def _get_db_backup_files(cls, db_backup_root: Path) -> List[DbBackupFile]:
+		files: List[DbBackupFile] = []
+		for path in db_backup_root.iterdir():
+			if (backup_file := cls.__parse_db_backup_file(path)) is not None:
+				files.append(backup_file)
+		files.sort(key=lambda f: (f.date, f.path.name), reverse=True)
+		return files
+
+	def _delete_old_db_backup_files(self, db_backup_root: Path):
+		max_amount = self.config.database.backup.max_amount
+		if max_amount <= 0:
+			return
+
+		db_backup_files = self._get_db_backup_files(db_backup_root)
+		files_to_delete = db_backup_files[max_amount:]
+		if not files_to_delete:
+			return
+
+		self.logger.info('db backup: Deleting {} old database backup(s), keeping latest {}'.format(len(files_to_delete), max_amount))
+		for backup_file in files_to_delete:
+			try:
+				backup_file.path.unlink()
+			except Exception:
+				self.logger.exception('db backup: Failed to delete old database backup {}'.format(backup_file.path.as_posix()))
+			else:
+				self.logger.info('db backup: Deleted old database backup {}'.format(backup_file.path.as_posix()))

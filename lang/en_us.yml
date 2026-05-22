@@ -353,7 +353,7 @@ prime_backup:
     db_prune:
       name: prune database
       start: Pruning database, deleting useless objects inside, please wait...
-      done: Pruning done, deleted {} orphan objects (including {} blobs, {} files and {} filesets), {} unused fileset files, {} unknown blob files, {} legacy unknown chunk files, reclaimed {} packs and freed {} bytes, deleted {} unknown pack files
+      done: Pruning done, deleted {} orphan objects (including {} blobs, {} files and {} filesets), {} unused fileset files, {} unknown blob files, reclaimed {} packs and freed {} bytes, deleted {} unknown pack files
       done_clean: Pruning done, deleted 0 object, the database is already clean
     db_compact_packs:
       name: compact pack files

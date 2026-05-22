@@ -139,7 +139,6 @@ Stuffs to be pruned
 - Orphaned Filesets: Filesets no longer referenced by any backups
 - Base Fileset Compression: Optimize the storage structure of base filesets
 - Unknown Blob Files: Blob files that exist in file system but have no records in the database
-- Legacy Unknown Chunk Files: leftover chunk files in the legacy chunk file store with no records in the database
 - Pack Compaction: Rewrite live pack entries and delete pack files with too much dead space
 - Unknown Pack Files: Pack files that exist in file system but have no records in the database
 

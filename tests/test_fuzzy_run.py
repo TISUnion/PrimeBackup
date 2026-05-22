@@ -25,7 +25,6 @@ from prime_backup.action.export_backup_action_directory import ExportBackupToDir
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction
 from prime_backup.action.scan_unknown_blob_files import ScanUnknownBlobFilesAction
-from prime_backup.action.scan_unknown_chunk_files import ScanUnknownChunkFilesAction
 from prime_backup.action.scan_unknown_pack_files import ScanUnknownPackFilesAction
 from prime_backup.action.vacuum_sqlite_action import VacuumSqliteAction
 from prime_backup.action.validate_backups_action import ValidateBackupsAction
@@ -588,10 +587,6 @@ class FuzzyRunTestCase(unittest.TestCase):
 				for ub in r_ub.samples:
 					self.logger.info(str(ub))
 				self.assertEqual(0, r_ub.count, 'ScanUnknownBlobFilesAction found {} unknown blob files'.format(r_ub.count))
-				r_uc = ScanUnknownChunkFilesAction(delete=False, result_sample_limit=100).run()
-				for uc in r_uc.samples:
-					self.logger.info(str(uc))
-				self.assertEqual(0, r_uc.count, 'ScanUnknownChunkFilesAction found {} unknown chunk files'.format(r_uc.count))
 				r_up = ScanUnknownPackFilesAction(delete=False, result_sample_limit=100).run()
 				for up in r_up.samples:
 					self.logger.info(str(up))

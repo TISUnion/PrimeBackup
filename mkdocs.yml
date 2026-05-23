@@ -120,4 +120,5 @@ nav:
     - concept/backup_tag.md
     - concept/storage_structure.md
   - Maintenance:
+    - maintain/prune_compact.md
     - maintain/corrupted_blobs.md

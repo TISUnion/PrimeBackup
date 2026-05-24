@@ -49,7 +49,8 @@ class ValidatePacksAction(Action[ValidatePacksResult]):
 	def is_interruptable(self) -> bool:
 		return True
 
-	def __validate(self, result: ValidatePacksResult, packs: List[PackInfo]):
+	def __validate(self, session: DbSession, result: ValidatePacksResult, packs: List[PackInfo]):
+		pack_live_stats = session.get_pack_live_stats_by_ids([pack.id for pack in packs])
 		for pack in packs:
 			if self.is_interrupted.is_set():
 				break
@@ -72,6 +73,14 @@ class ValidatePacksAction(Action[ValidatePacksResult]):
 				result.add_bad(pack, BadPackItemType.mismatched, f'live_entry_count {pack.live_entry_count} is larger than entry_count {pack.entry_count}')
 				continue
 
+			live_stats = pack_live_stats[pack.id]
+			if pack.live_size != live_stats.live_size:
+				result.add_bad(pack, BadPackItemType.mismatched, f'live_size mismatch, expect {live_stats.live_size}, found {pack.live_size}')
+				continue
+			if pack.live_entry_count != live_stats.live_entry_count:
+				result.add_bad(pack, BadPackItemType.mismatched, f'live_entry_count mismatch, expect {live_stats.live_entry_count}, found {pack.live_entry_count}')
+				continue
+
 			result.ok += 1
 
 	@override
@@ -90,7 +99,7 @@ class ValidatePacksAction(Action[ValidatePacksResult]):
 					break
 				cnt += len(packs)
 				self.logger.info('Validating {} / {} packs'.format(cnt, result.total))
-				self.__validate(result, list(map(PackInfo.of, packs)))
+				self.__validate(session, result, list(map(PackInfo.of, packs)))
 
 		self.logger.info('Pack validation done: total {}, validated {}, ok {}, bad {}'.format(
 			result.total, result.validated, result.ok, len(result.bad_packs),

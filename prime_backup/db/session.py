@@ -239,6 +239,33 @@ class DbSession:
 			live_entry_count_sum=_int_or_0(live_entry_count_sum),
 		)
 
+	@dataclasses.dataclass(frozen=True)
+	class PackLiveStats:
+		live_size: int
+		live_entry_count: int
+
+	def get_pack_live_stats_by_ids(self, pack_ids: List[int]) -> Dict[int, 'DbSession.PackLiveStats']:
+		result = {
+			pack_id: self.PackLiveStats(live_size=0, live_entry_count=0)
+			for pack_id in pack_ids
+		}
+		for view in collection_utils.slicing_iterate(pack_ids, self.__safe_var_limit):
+			rows = self.session.execute(
+				select(
+					schema.Chunk.pack_id,
+					func.sum(schema.Chunk.stored_size),
+					func.count(schema.Chunk.id),
+				).
+				where(schema.Chunk.pack_id.in_(view)).
+				group_by(schema.Chunk.pack_id)
+			).all()
+			for pack_id, live_size, live_entry_count in rows:
+				result[pack_id] = self.PackLiveStats(
+					live_size=_int_or_0(live_size),
+					live_entry_count=_int_or_0(live_entry_count),
+				)
+		return result
+
 	def get_live_entries_by_pack_id(self, pack_id: int) -> List[PackEntryInfo]:
 		return [
 			PackEntryInfo(pack_id=chunk.pack_id, offset=chunk.pack_offset, size=chunk.stored_size, chunk_id=chunk.id)

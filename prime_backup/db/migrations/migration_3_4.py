@@ -213,8 +213,6 @@ class MigrationImpl3To4(MigrationImplBase):
 			'storage_method': str(BlobStorageMethod.direct.value),
 			**{name: name for name in ['hash', 'compress', 'raw_size', 'stored_size']},
 		}))
-		self.logger.info('(blob table) Converting hash to binary')
-		self.__convert_hex_column_to_binary('blob', 'hash')
 
 		# rebuild files
 		self.logger.info('(file table) Migrating data from old table')
@@ -245,8 +243,6 @@ class MigrationImpl3To4(MigrationImplBase):
 		self.logger.info('(file table) Updating mtime columns')  # old mtime was stored in us
 		self.session.execute(text('''UPDATE file SET mtime_ns_part = mtime % 1000000 * 1000'''))
 		self.session.execute(text('''UPDATE file SET mtime = mtime / 1000000'''))
-		self.logger.info('(file table) Converting blob_hash to binary')
-		self.__convert_hex_column_to_binary('file', 'blob_hash')
 
 		# rebuild backups
 		self.logger.info('(backup table) Migrating data from old table')
@@ -261,6 +257,11 @@ class MigrationImpl3To4(MigrationImplBase):
 		self.logger.info('(backup table) Updating timestamp columns')  # old timestamp was stored in us
 		self.session.execute(text('''UPDATE backup SET timestamp_ns_part = timestamp % 1000000 * 1000'''))
 		self.session.execute(text('''UPDATE backup SET timestamp = timestamp / 1000000'''))
+
+		self.logger.info('(blob table) Converting hash to binary')
+		self.__convert_hex_column_to_binary('blob', 'hash')
+		self.logger.info('(file table) Converting blob_hash to binary')
+		self.__convert_hex_column_to_binary('file', 'blob_hash')
 
 	def __step_cleanup_and_report(self):
 		self.logger.info('Migration 3to4 done, cost {}s (prepare {}s, rebuild {}s)'.format(

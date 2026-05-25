@@ -52,12 +52,15 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 
 			def tar_thread():
 				db_backup_file = db_backup_root / time.strftime('db_backup_%Y%m%d_%H%M%S.tar.xz')
+				db_backup_file_tmp = db_backup_file.with_name(db_backup_file.name + '.tmp')
 				try:
 					t = time.time()
 
 					self.logger.info('db backup: Compressing database backup {}'.format(db_backup_file.name))
-					with tarfile.open(db_backup_file, 'w:xz') as tar:
+					db_backup_file_tmp.unlink(missing_ok=True)
+					with tarfile.open(db_backup_file_tmp, 'w:xz') as tar:
 						tar.add(temp_db_path, db_constants.DB_FILE_NAME)
+					db_backup_file_tmp.replace(db_backup_file)
 
 					backup_size = db_backup_file.stat().st_size
 					cost = time.time() - t
@@ -65,10 +68,12 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 						db_backup_file.as_posix(), cost, ByteCount(backup_size).auto_str(), f'{100 * backup_size / db_size:.2f}%',
 					))
 				except Exception:
+					with contextlib.suppress(OSError):
+						db_backup_file_tmp.unlink(missing_ok=True)
 					self.logger.exception('db backup: Compress database backup to {} failed'.format(db_backup_file))
 				else:
 					try:
-						self._delete_old_db_backup_files(db_backup_root)
+						self.__delete_old_db_backup_files(db_backup_root, db_backup_file)
 					except Exception:
 						self.logger.exception('db backup: Delete old database backups failed')
 				finally:
@@ -112,20 +117,25 @@ class CreateDbBackupTask(HeavyTask[Optional[threading.Thread]]):
 		for path in db_backup_root.iterdir():
 			if (backup_file := cls.__parse_db_backup_file(path)) is not None:
 				files.append(backup_file)
-		files.sort(key=lambda f: (f.date, f.path.name), reverse=True)
+
+		def get_sort_key(f: DbBackupFile) -> tuple:
+			return f.date, f.path.name
+
+		files.sort(key=get_sort_key, reverse=True)  # new first
 		return files
 
-	def _delete_old_db_backup_files(self, db_backup_root: Path):
+	def __delete_old_db_backup_files(self, db_backup_root: Path, current_backup_file: Path):
 		max_amount = self.config.database.backup.max_amount
 		if max_amount <= 0:
 			return
 
-		db_backup_files = self._get_db_backup_files(db_backup_root)
-		files_to_delete = db_backup_files[max_amount:]
+		db_backup_files = self._get_db_backup_files(db_backup_root)  # [new, ..., old)
+		old_db_backup_files = [backup_file for backup_file in db_backup_files if backup_file.path != current_backup_file]
+		files_to_delete = old_db_backup_files[max_amount - 1:]
 		if not files_to_delete:
 			return
 
-		self.logger.info('db backup: Deleting {} old database backup(s), keeping latest {}'.format(len(files_to_delete), max_amount))
+		self.logger.info('db backup: Deleting {} old database backup(s), keeping {}'.format(len(files_to_delete), max_amount))
 		for backup_file in files_to_delete:
 			try:
 				backup_file.path.unlink()

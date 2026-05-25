@@ -113,6 +113,7 @@ nav:
     - feature/database_operation.md
   - Chunking:
     - chunking/index.md
+    - chunking/recommendation.md
     - chunking/cdc.md
     - chunking/fixed_size.md
   - Concepts:

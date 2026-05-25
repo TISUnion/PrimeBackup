@@ -43,15 +43,21 @@ title: '文件分块'
             "algorithm": "fastcdc_32k",
             "file_size_threshold": 20971520,
             "patterns": [
-                "**/*.db",
-                "**/*.log"
+                "*.db"
+            ]
+        },
+        {
+            "algorithm": "fixed_128k",
+            "file_size_threshold": 10485760,
+            "patterns": [
+                "*.log"
             ]
         },
         {
             "algorithm": "fixed_auto",
             "file_size_threshold": 262144,
             "patterns": [
-                "**/*.mca"
+                "*.mca"
             ]
         }
     ]

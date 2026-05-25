@@ -214,7 +214,7 @@ Configs on how the backup is made
 
     "ignored_files": [],
     "ignore_patterns": [
-       "**/session.lock"
+       "session.lock"
     ],
     "retain_patterns": [],
     "follow_target_symlink": false,
@@ -231,15 +231,21 @@ Configs on how the backup is made
             "algorithm": "fastcdc_32k",
             "file_size_threshold": 20971520,
             "patterns": [
-                "**/*.db",
-                "**/*.log"
+                "*.db"
+            ]
+        },
+        {
+            "algorithm": "fixed_128k",
+            "file_size_threshold": 10485760,
+            "patterns": [
+                "*.log"
             ]
         },
         {
             "algorithm": "fixed_auto",
             "file_size_threshold": 262144,
             "patterns": [
-                "**/*.mca"
+                "*.mca"
             ]
         }
     ],
@@ -338,7 +344,7 @@ Files or directories matching these patterns will be ignored during backup creat
 The root path for pattern matching is [source_root](#source_root).
 For example, if `source_root` is `server`, then the pattern `world/trash*.obj` will match `server/world/trash1.obj`
 
-It contains a `**/session.lock` pattern by default, which matches files named `session.lock` in any location.
+It contains a `session.lock` pattern by default, which matches files named `session.lock` in any location.
 It's used to solve the backup failure problem caused by `session.lock` being occupied by the server in Windows OS
 
 - Type: `List[str]`
@@ -513,7 +519,12 @@ Each rule contains the following fields:
 - `patterns`: A list of [gitignore flavor](http://git-scm.com/docs/gitignore) pattern strings,
   matched against file paths relative to [source_root](#source_root)
 
-The default value contains two rules: `fastcdc_32k` CDC chunking for `.db` and `.log` files larger than 20 MiB, and `fixed_auto` chunking for `.mca` files larger than 256 KiB.
+The default value contains three rules:
+
+- `fastcdc_32k` CDC chunking for `.db` files larger than 20 MiB
+- `fixed_128k` fixed-size chunking for `.log` files larger than 10 MiB
+- `fixed_auto` chunking for `.mca` files larger than 256 KiB
+
 It is recommended to keep the rules narrow and only cover large files that are often modified locally and really need to be backed up
 
 Changing this option only affects files newly stored in future backups.

@@ -32,7 +32,7 @@ class BackupConfig(Serializable):
 	# Strategy
 	ignored_files: List[str] = []  # deprecated
 	ignore_patterns: List[str] = [
-		'**/session.lock',
+		'session.lock',
 	]
 	retain_patterns: List[str] = []
 	follow_target_symlink: bool = False
@@ -50,15 +50,21 @@ class BackupConfig(Serializable):
 			algorithm=ChunkMethod.fastcdc_32k,
 			file_size_threshold=20 * 1048576,
 			patterns=[
-				'**/*.db',
-				'**/*.log',
+				'*.db',
+			],
+		),
+		ChunkingRule(
+			algorithm=ChunkMethod.fixed_128k,
+			file_size_threshold=10 * 1048576,
+			patterns=[
+				'*.log',
 			],
 		),
 		ChunkingRule(
 			algorithm=ChunkMethod.fixed_auto,
 			file_size_threshold=256 * 1024,
 			patterns=[
-				'**/*.mca'
+				'*.mca'
 			],
 		),
 	]

@@ -110,7 +110,7 @@ class BlobDeltaSummary:
 		)
 
 	@classmethod
-	def of(cls, new_blobs: Sequence[BlobInfo], new_chunks: Union[Sequence['ChunkInfo'], 'ChunkListSummary'], *, packs: Optional['PackChangeSummary'] = None) -> 'BlobDeltaSummary':
+	def of(cls, new_blobs: Sequence[BlobInfo], new_chunks: Union[Sequence['ChunkInfo'], 'ChunkListSummary'], packs: Optional['PackChangeSummary'] = None) -> 'BlobDeltaSummary':
 		from prime_backup.types.chunk_info import ChunkListSummary
 		from prime_backup.types.pack_info import PackChangeSummary
 		return BlobDeltaSummary(

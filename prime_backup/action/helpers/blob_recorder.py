@@ -53,4 +53,8 @@ class BlobRecorder:
 		self.__new_chunks.append(new_chunk)
 
 	def get_blob_storage_delta(self) -> BlobDeltaSummary:
-		return BlobDeltaSummary.of(self.__new_blobs, self.__new_chunks, packs=self.__pack_writer.get_created_pack_summary())
+		return BlobDeltaSummary.of(
+			new_blobs=self.__new_blobs,
+			new_chunks=self.__new_chunks,
+			packs=self.__pack_writer.get_created_pack_summary(),
+		)

@@ -94,7 +94,11 @@ class DeleteBlobsAction(Action[BlobDeltaSummary]):
 			self.logger.error('Found {} blob erasing failures in total'.format(len(errors)))
 			raise errors[0]
 
-		return BlobDeltaSummary.of(list(all_to_delete_blobs.values()), chunk_group_summary.chunk_summary, packs=chunk_group_summary.chunk_summary.packs)
+		return BlobDeltaSummary.of(
+			new_blobs=list(all_to_delete_blobs.values()),
+			new_chunks=chunk_group_summary.chunk_summary,
+			packs=chunk_group_summary.chunk_summary.packs,
+		)
 
 	def __collect_blobs_to_delete(self, session: DbSession) -> Dict[int, BlobInfo]:
 		self_blob_ids_set = set(self.blob_ids)

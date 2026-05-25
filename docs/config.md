@@ -228,13 +228,6 @@ Configs on how the backup is made
     "chunking_enabled": false,
     "chunking_rules": [
         {
-            "algorithm": "fastcdc_32k",
-            "file_size_threshold": 20971520,
-            "patterns": [
-                "*.db"
-            ]
-        },
-        {
             "algorithm": "fixed_128k",
             "file_size_threshold": 10485760,
             "patterns": [
@@ -519,11 +512,12 @@ Each rule contains the following fields:
 - `patterns`: A list of [gitignore flavor](http://git-scm.com/docs/gitignore) pattern strings,
   matched against file paths relative to [source_root](#source_root)
 
-The default value contains three rules:
+The default value contains two rules:
 
-- `fastcdc_32k` CDC chunking for `.db` files larger than 20 MiB
 - `fixed_128k` fixed-size chunking for `.log` files larger than 10 MiB
 - `fixed_auto` chunking for `.mca` files larger than 256 KiB
+
+These default rules do not require optional dependencies
 
 It is recommended to keep the rules narrow and only cover large files that are often modified locally and really need to be backed up
 

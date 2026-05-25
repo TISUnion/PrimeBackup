@@ -40,13 +40,6 @@ The default configuration is:
     "chunking_enabled": false,
     "chunking_rules": [
         {
-            "algorithm": "fastcdc_32k",
-            "file_size_threshold": 20971520,
-            "patterns": [
-                "*.db"
-            ]
-        },
-        {
             "algorithm": "fixed_128k",
             "file_size_threshold": 10485760,
             "patterns": [
@@ -66,6 +59,7 @@ The default configuration is:
 
 Changing these options only affects files newly stored in future backups
 Existing direct blobs or chunked blobs will not be converted automatically
+The default rules only use fixed-size algorithms and do not require optional dependencies
 
 ## How It Is Stored
 
@@ -130,6 +124,7 @@ The benefit becomes apparent on subsequent backups where many chunks can be reus
 
 See the detailed pages for each approach:
 
+- [Chunking Recommendations](recommendation.md): recommended rules for common Minecraft save, database, and text files
 - [CDC Chunking](chunking_cdc.md): content-aware chunk boundaries; works well for any kind of local modification
 - [Fixed-Size Chunking](chunking_fixed.md): fixed byte-offset boundaries; simpler but less adaptive; `fixed_auto` is alpha
 

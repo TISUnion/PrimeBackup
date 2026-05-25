@@ -40,13 +40,6 @@ title: '文件分块'
     "chunking_enabled": false,
     "chunking_rules": [
         {
-            "algorithm": "fastcdc_32k",
-            "file_size_threshold": 20971520,
-            "patterns": [
-                "*.db"
-            ]
-        },
-        {
             "algorithm": "fixed_128k",
             "file_size_threshold": 10485760,
             "patterns": [
@@ -66,6 +59,7 @@ title: '文件分块'
 
 修改上述配置只会影响后续备份中新写入的文件
 已存储的直存数据对象或分块数据对象不会被自动转换
+默认规则只使用固定大小算法，不需要任何可选依赖
 
 ## 它是怎么存储的
 
@@ -130,6 +124,7 @@ Prime Backup 仍会为整个文件创建一条数据对象（blob）记录，但
 
 各方式的详细说明见独立文档：
 
+- [分块规则推荐](recommendation.zh.md)：常见 Minecraft 存档、数据库和文本文件的推荐规则
 - [CDC 分块](chunking_cdc.zh.md)：内容感知的切块边界；对任意类型的局部修改均有效
 - [固定大小分块](chunking_fixed.zh.md)：基于字节偏移的切块边界；实现更简单，但适应性较弱；`fixed_auto` 处于 alpha 阶段
 

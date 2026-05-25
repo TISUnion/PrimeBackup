@@ -1,5 +1,4 @@
-from mcdreforged import RTextBase
-from mcdreforged.api.all import RTextList, RColor
+from mcdreforged.api.all import RTextBase, RTextList, RColor
 from typing_extensions import override
 
 from prime_backup.action.get_db_overview_action import GetDbOverviewAction

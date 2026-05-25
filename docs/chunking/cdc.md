@@ -41,9 +41,9 @@ that delivers near-native chunking throughput
 
 | Algorithm      | Avg Chunk Size | Min Chunk Size | Max Chunk Size |
 |----------------|----------------|----------------|----------------|
-| `fastcdc_32k`  | 32 KiB         | 8 KiB          | 256 KiB        |
-| `fastcdc_128k` | 128 KiB        | 64 KiB         | 1 MiB          |
-| `fastcdc_1m`   | 1 MiB          | 512 KiB        | 8 MiB          |
+| `fastcdc_32k`  | 32 KiB         | 8 KiB (/4)     | 256 KiB (*8)   |
+| `fastcdc_128k` | 128 KiB        | 64 KiB (/2)    | 1 MiB (*8)     |
+| `fastcdc_1m`   | 1 MiB          | 512 KiB (/2)   | 8 MiB (*8)     |
 
 - `fastcdc_32k` is the finest-grained CDC preset and works well for most CDC use cases
 - `fastcdc_128k` uses a coarser granularity and is better suited for very large files (10 GiB or more) where the per-chunk metadata overhead of `fastcdc_32k` becomes noticeable

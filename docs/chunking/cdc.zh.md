@@ -39,11 +39,11 @@ Prime Backup 使用 [`pyfastcdc`](https://github.com/Fallen-Breath/pyfastcdc)，
 
 ## 可用算法
 
-| 算法             | 平均块大小   | 最小块大小   | 最大块大小   |
-|----------------|---------|---------|---------|
-| `fastcdc_32k`  | 32 KiB  | 8 KiB   | 256 KiB |
-| `fastcdc_128k` | 128 KiB | 64 KiB  | 1 MiB   |
-| `fastcdc_1m`   | 1 MiB   | 512 KiB | 8 MiB   |
+| 算法             | 平均块大小   | 最小块大小        | 最大块大小        |
+|----------------|---------|--------------|--------------|
+| `fastcdc_32k`  | 32 KiB  | 8 KiB (/4)   | 256 KiB (*8) |
+| `fastcdc_128k` | 128 KiB | 64 KiB (/2)  | 1 MiB (*8)   |
+| `fastcdc_1m`   | 1 MiB   | 512 KiB (/2) | 8 MiB (*8)   |
 
 - `fastcdc_32k` 是粒度最细的 CDC 预设，适合大多数需要 CDC 的场景
 - `fastcdc_128k` 采用更粗的粒度，更适合超大型文件（10 GiB 以上），可减少 `fastcdc_32k` 粒度下每条数据块记录带来的相对元数据开销

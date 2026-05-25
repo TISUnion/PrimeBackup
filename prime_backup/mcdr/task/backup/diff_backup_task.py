@@ -135,13 +135,18 @@ class DiffBackupTask(LightTask[None]):
 			'found_diff',
 			TextComponents.number(result.diff_count),
 			t_bid_old, t_bid_new,
-			RTextBase.join(' ', [
-				RText(f'+{len(result.added)}', RColor.green),
-				RText(f'-{len(result.deleted)}', RColor.red),
-				RText(f'*{len(result.changed)}', RColor.yellow),
-				_signed_file_size('-', old_diff_size, RColor.red),
-				_signed_file_size('+', new_diff_size, RColor.green),
-			])
+			RTextList(
+				RTextBase.join(' ', [
+					RText(f'+{len(result.added)}', RColor.green),
+					RText(f'-{len(result.deleted)}', RColor.red),
+					RText(f'*{len(result.changed)}', RColor.yellow),
+				]),
+				', ',
+				RTextBase.join(' ', [
+					_signed_file_size('-', old_diff_size, RColor.red),
+					_signed_file_size('+', new_diff_size, RColor.green),
+				])
+			),
 		)
 
 		def reply_single(f: FileInfo, head: RTextBase):

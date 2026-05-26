@@ -29,16 +29,18 @@ class PrettyChunkWithData(PrettyChunk):
 # ======================== Abstract Chunker ========================
 
 class _RawChunk:
-	__slots__ = ('offset', 'length', 'data')
+	__slots__ = ('offset', 'length', 'data', 'hash')
 
 	offset: int
 	length: int
 	data: memoryview
+	hash: Optional[str]
 
-	def __init__(self, offset: int, length: int, data: memoryview):
+	def __init__(self, *, offset: int, length: int, data: memoryview, hash: Optional[str] = None):
 		self.offset = offset
 		self.length = length
 		self.data = data
+		self.hash = hash
 
 
 class Chunker(ABC):
@@ -60,12 +62,15 @@ class Chunker(ABC):
 			if self.need_entire_file_hash:
 				self.__entire_file_hasher.update(raw_chunk.data)
 
-			hasher = chunk_utils.create_hasher()
-			hasher.update(raw_chunk.data)
+			chunk_hash = raw_chunk.hash
+			if chunk_hash is None:
+				hasher = chunk_utils.create_hasher()
+				hasher.update(raw_chunk.data)
+				chunk_hash = hasher.hexdigest()
 			yield PrettyChunkWithData(
 				offset=raw_chunk.offset,
 				length=raw_chunk.length,
-				hash=hasher.hexdigest(),
+				hash=chunk_hash,
 				data=raw_chunk.data,
 			)
 
@@ -212,12 +217,17 @@ class FixedAutoFileChunker(Chunker):
 			chunks.append(chunk)
 		return chunks
 
-	def __iter_small_chunks(self, offset: int, data: memoryview) -> Generator[_RawChunk, None, None]:
+	def __iter_small_chunks(self, offset: int, data: memoryview, chunk_hashes: Optional[List[str]]) -> Generator[_RawChunk, None, None]:
 		for idx in range(self.SMALL_CHUNK_COUNT):
 			small_offset = offset + idx * self.SMALL_CHUNK_SIZE
 			start = idx * self.SMALL_CHUNK_SIZE
 			end = start + self.SMALL_CHUNK_SIZE
-			yield _RawChunk(offset=small_offset, length=self.SMALL_CHUNK_SIZE, data=data[start:end])
+			yield _RawChunk(
+				offset=small_offset,
+				length=self.SMALL_CHUNK_SIZE,
+				data=data[start:end],
+				hash=chunk_hashes[idx] if chunk_hashes is not None else None,
+			)
 
 	@override
 	def _iter_raw_chunks(self) -> Iterable[_RawChunk]:
@@ -249,14 +259,15 @@ class FixedAutoFileChunker(Chunker):
 					continue
 
 				if (previous_big_chunk := self.__get_previous_big_chunk(offset)) is not None:
-					if self.__calc_chunk_hash(data) == previous_big_chunk.hash:
+					current_big_hash = self.__calc_chunk_hash(data)
+					if current_big_hash == previous_big_chunk.hash:
 						previous_big_reused_count += 1
 						emitted_big_count += 1
-						yield _RawChunk(offset=offset, length=self.BIG_CHUNK_SIZE, data=data)
+						yield _RawChunk(offset=offset, length=self.BIG_CHUNK_SIZE, data=data, hash=current_big_hash)
 					else:
 						previous_big_split_count += 1
 						emitted_small_count += self.SMALL_CHUNK_COUNT
-						yield from self.__iter_small_chunks(offset, data)
+						yield from self.__iter_small_chunks(offset, data, None)
 				elif (previous_small_chunks := self.__get_previous_small_chunks(offset)) is not None:
 					current_small_hashes = [
 						self.__calc_chunk_hash(data[idx * self.SMALL_CHUNK_SIZE:(idx + 1) * self.SMALL_CHUNK_SIZE])
@@ -274,7 +285,7 @@ class FixedAutoFileChunker(Chunker):
 					else:
 						previous_small_kept_count += 1
 						emitted_small_count += self.SMALL_CHUNK_COUNT
-						yield from self.__iter_small_chunks(offset, data)
+						yield from self.__iter_small_chunks(offset, data, current_small_hashes)
 				else:
 					fallback_big_count += 1
 					emitted_big_count += 1

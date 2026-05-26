@@ -15,6 +15,7 @@ from typing_extensions import override
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.config.config import Config
 from prime_backup.types.tar_format import TarFormat
+from prime_backup.utils import conversion_utils
 
 
 class PackedBackupFileMember(ABC):
@@ -134,7 +135,7 @@ class TarBackupReader(PackedBackupFileReader):
 		@property
 		@override
 		def mtime_ns(self) -> int:
-			return int(self.member.mtime * (10 ** 9))
+			return conversion_utils.seconds_to_timestamp_ns(self.member.mtime)
 
 		@override
 		def is_file(self) -> bool:
@@ -243,7 +244,7 @@ class ZipBackupReader(PackedBackupFileReader):
 		@property
 		@override
 		def mtime_ns(self) -> int:
-			return int(time.mktime(self.member.date_time + (0, 0, -1)) * 1e9)
+			return int(time.mktime(self.member.date_time + (0, 0, -1))) * (10 ** 9)
 
 		@override
 		def is_file(self) -> bool:

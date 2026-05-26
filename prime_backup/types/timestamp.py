@@ -1,5 +1,9 @@
+import calendar
 import datetime
 import time
+from typing import Union
+
+from prime_backup.utils import conversion_utils
 
 
 class Timestamp:
@@ -38,8 +42,16 @@ class Timestamp:
 		return cls(time.time_ns())
 
 	@classmethod
-	def from_second(cls, timestamp_seconds: float):
-		return cls(int(timestamp_seconds * (10 ** 9)))
+	def from_second(cls, timestamp_seconds: Union[int, float]):
+		return cls(conversion_utils.seconds_to_timestamp_ns(timestamp_seconds))
+
+	@classmethod
+	def from_datetime(cls, dt: datetime.datetime):
+		if dt.tzinfo is None:
+			timestamp_sec = int(time.mktime(dt.timetuple()))
+		else:
+			timestamp_sec = calendar.timegm(dt.utctimetuple())
+		return cls(timestamp_sec * (10 ** 9) + dt.microsecond * 1000)
 
 	@classmethod
 	def from_second_and_nano(cls, timestamp_seconds: int, nanosecond_part: int):

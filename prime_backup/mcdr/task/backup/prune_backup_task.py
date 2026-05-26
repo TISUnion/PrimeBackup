@@ -21,7 +21,7 @@ from prime_backup.types.blob_info import BlobDeltaSummary
 from prime_backup.types.operator import PrimeBackupOperatorNames
 from prime_backup.types.timestamp import Timestamp
 from prime_backup.types.units import ByteCount
-from prime_backup.utils import misc_utils, log_utils
+from prime_backup.utils import misc_utils, log_utils, conversion_utils
 
 
 class _PruneVerbose:
@@ -170,7 +170,7 @@ class PruneBackupTask(HeavyTask[PruneBackupResult]):
 
 		plan_list = PrunePlan()
 		now_ns = time.time_ns()
-		max_lifetime_ns = settings.max_lifetime.value * 1e9
+		max_lifetime_ns = conversion_utils.seconds_to_timestamp_ns(settings.max_lifetime.value)
 		regular_keep_count = 0
 		all_marks = collections.ChainMap(marks, fallback_marks)
 		default_mark = PruneMark.create_remove('unmarked')
@@ -341,7 +341,7 @@ def __main():
 		from prime_backup.types.backup_tags import BackupTags
 		from prime_backup.types.operator import Operator
 		backups.append(BackupInfo(
-			id=id_counter, timestamp=Timestamp.from_second(dt.timestamp()),
+			id=id_counter, timestamp=Timestamp.from_datetime(dt),
 			creator=Operator.pb(PrimeBackupOperatorNames.test), comment='', targets=[], tags=BackupTags(),
 			fileset_id_base=0, fileset_id_delta=0, file_count=0, raw_size=0, stored_size=0,
 			files=[],

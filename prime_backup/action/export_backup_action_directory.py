@@ -193,12 +193,12 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			os.chmod(file_path, file.mode)
 
 		if file.mtime is not None:
-			times = (time.time(), file.mtime_unix_sec)  # (atime, mtime)
+			times_ns = (time.time_ns(), file.mtime_unix_ns)  # (atime, mtime)
 			if is_link:
 				if os.utime in os.supports_follow_symlinks:
-					os.utime(file_path, times, follow_symlinks=False)
+					os.utime(file_path, ns=times_ns, follow_symlinks=False)
 			else:
-				os.utime(file_path, times)
+				os.utime(file_path, ns=times_ns)
 
 	def __prepare_for_export(self, item: _ExportItem, trash_bin: _TrashBin):
 		file_path = self.output_path / item.path

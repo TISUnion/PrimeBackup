@@ -174,7 +174,7 @@ class _InspectFileTaskBase(_InspectObjectTaskBase, ABC):
 				self.reply_tr('gid.simple', TextComponents.number(file.gid))
 
 		if file.mtime is not None:
-			self.reply_tr('mtime', TextComponents.number(file.mtime), TextComponents.date_local(file.mtime, decimal=True))
+			self.reply_tr('mtime', TextComponents.number(file.mtime.unix_ns), TextComponents.date_local(file.mtime, decimal=True))
 
 		self.reply_tr('used_by', TextComponents.number(file.backup_count), TextComponents.backup_id_list(file.backup_samples, with_brackets=False))
 

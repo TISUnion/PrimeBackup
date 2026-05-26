@@ -9,16 +9,25 @@ import sys
 import tarfile
 import time
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 args: argparse.Namespace
 
 
-def make_pb_meta(creator: str, timestamp: float, comment: str, targets: List[str]) -> str:
+def seconds_to_timestamp_ns(timestamp: Union[int, float]) -> int:
+	if isinstance(timestamp, int):
+		return timestamp * (10 ** 9)
+	if isinstance(timestamp, float):
+		import decimal
+		return int(decimal.Decimal(str(timestamp)) * (10 ** 9))
+	raise TypeError(type(timestamp))
+
+
+def make_pb_meta(creator: str, timestamp: Union[int, float], comment: str, targets: List[str]) -> str:
 	return json.dumps({
 		'creator': f'player:{creator}',
 		'comment': comment,
-		'timestamp_ns': int(timestamp * 1e9),
+		'timestamp_ns': seconds_to_timestamp_ns(timestamp),
 		'targets': list(targets),
 		'tags': {},
 	}, ensure_ascii=False)
@@ -105,7 +114,7 @@ def import_slot(slot_path: Path) -> bool:
 	try:
 		timestamp = info.get('time_stamp', None)
 		if timestamp is None:
-			timestamp = time.mktime(time.strptime('%Y-%m-%d %H:%M:%S', info.get('time', '')))
+			timestamp = time.mktime(time.strptime(info.get('time', ''), '%Y-%m-%d %H:%M:%S'))
 		comment: str = info.get('comment', '')
 		backup_format: str = info.get('backup_format', '')
 	except Exception:

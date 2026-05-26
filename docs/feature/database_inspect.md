@@ -30,7 +30,7 @@ Example output:
 > !!pb database inspect backup 45
 [MCDR] [01:58:56] [PB@f133-worker-light/INFO]: [PB] ======== Backup #45 ========
 [MCDR] [01:58:56] [PB@f133-worker-light/INFO]: [PB] ID: 45
-[MCDR] [01:58:56] [PB@f133-worker-light/INFO]: [PB] Timestamp (microsecond): 1756050607173147 (date: 2025-08-24 23:50:07)
+[MCDR] [01:58:56] [PB@f133-worker-light/INFO]: [PB] Timestamp (nanosecond): 1756050607173147000 (date: 2025-08-24 23:50:07)
 [MCDR] [01:58:56] [PB@f133-worker-light/INFO]: [PB] Creator: "console:" (Console)
 [MCDR] [01:58:56] [PB@f133-worker-light/INFO]: [PB] Comment: "2"
 [MCDR] [01:58:56] [PB@f133-worker-light/INFO]: [PB] Backup targets: world, world15, world21
@@ -75,7 +75,7 @@ Example output:
 [MCDR] [01:41:24] [PB@f133-worker-light/INFO]: [PB] Blob stored size: 1537 (1.50KiB)
 [MCDR] [01:41:24] [PB@f133-worker-light/INFO]: [PB] Uid: 0
 [MCDR] [01:41:24] [PB@f133-worker-light/INFO]: [PB] Gid: 0
-[MCDR] [01:41:24] [PB@f133-worker-light/INFO]: [PB] Modify time: 1731254748636839 (2024-11-11 00:05:48.636839)
+[MCDR] [01:41:24] [PB@f133-worker-light/INFO]: [PB] Modify time: 1731254748636839000 (2024-11-11 00:05:48.636839)
 [MCDR] [01:41:24] [PB@f133-worker-light/INFO]: [PB] Backup containing this file: 3 (samples: #45, #43, #42)
 ```
 

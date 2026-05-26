@@ -198,7 +198,7 @@ prime_backup:
       name: inspect backup
       title: 'Backup {}'
       id: 'ID: {}'
-      timestamp: 'Timestamp (microsecond): {} (date: {})'
+      timestamp: 'Timestamp (nanosecond): {} (date: {})'
       creator: 'Creator: {} ({})'
       comment.regular: 'Comment: {}'
       comment.translated: 'Comment: {} ({})'

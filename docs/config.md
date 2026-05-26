@@ -390,7 +390,7 @@ Prime Backup will check the following file attributes. Files with the exact same
 - File size
 - File mode bits
 - File owner's UID and GID
-- File modification time (precision: microseconds)
+- File modification time (precision: nanoseconds)
 
 If you want the maximum possible backup creation speed, you can try enabling this option.
 However, this also introduces the potential risk of incomplete backups

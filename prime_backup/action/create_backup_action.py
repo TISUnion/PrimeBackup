@@ -5,13 +5,14 @@ import os
 import stat
 import time
 from pathlib import Path
-from typing import List, Optional, Any, Dict, Generator, Set, ContextManager
+from typing import List, Optional, Dict, Generator, Set, ContextManager
 
 from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
-from prime_backup.action.helpers.blob_allocator import BlobAllocator, GetOrCreateBlobResult
+from prime_backup.action.helpers.blob_allocator import BlobAllocator
+from prime_backup.action.helpers.blob_creator_common import BqmReq
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
@@ -280,7 +281,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		p.mkdir(parents=True, exist_ok=True)
 		return p
 
-	def __create_file(self, session: DbSession, blob_allocator: BlobAllocator, path: Path) -> Generator[Any, Any, schema.File]:
+	def __create_file(self, session: DbSession, blob_allocator: BlobAllocator, path: Path) -> Generator[BqmReq, None, schema.File]:
 		if (reused_file := self.__pre_calc_result.reused_files.get(path)) is not None:
 			# make a copy
 			return session.create_file(
@@ -307,17 +308,10 @@ class CreateBackupAction(Action[BackupInfo]):
 		blob: Optional[schema.Blob] = None
 		content: Optional[bytes] = None
 		if stat.S_ISREG(st.st_mode):
-			gen = blob_allocator.get_or_create_blob(path, st)
-			try:
-				query = gen.send(None)
-				while True:
-					result = yield query
-					query = gen.send(result)
-			except StopIteration as e:
-				goc_result: GetOrCreateBlobResult = e.value
-				blob = goc_result.blob
-				st = goc_result.st
-				# notes: st.st_size might be incorrect, use blob.raw_size instead if needed
+			goc_result = yield from blob_allocator.get_or_create_blob(path, st)
+			blob = goc_result.blob
+			st = goc_result.st
+			# notes: st.st_size might be incorrect, use blob.raw_size instead if needed
 		elif stat.S_ISDIR(st.st_mode):
 			pass
 		elif stat.S_ISLNK(st.st_mode):

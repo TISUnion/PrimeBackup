@@ -39,22 +39,11 @@ class FetchBlobBySizeReq:
 
 
 @dataclasses.dataclass(frozen=True)
-class FetchBlobBySizeRsp:
-	exists: bool
-
-
-@dataclasses.dataclass(frozen=True)
 class FetchBlobByHashReq:
 	hash: str
 
 
-@dataclasses.dataclass(frozen=True)
-class FetchBlobByHashRsp:
-	blob: Optional[schema.Blob]
-
-
 BqmReq = Union[FetchBlobBySizeReq, FetchBlobByHashReq]
-BqmRsp = Union[FetchBlobBySizeRsp, FetchBlobByHashRsp]
 
 
 class _FailureFileDeleter(ContextManager['_FailureFileDeleter']):
@@ -122,13 +111,13 @@ class BlobCreatorBase(ABC):
 		(self.logger.warning if last_chance else self.logger.debug)(msg)
 		raise BlobFileChanged(msg)
 
-	def query_cached_blob(self, blob_hash: str) -> Generator[BqmReq, Optional[BqmRsp], Optional[schema.Blob]]:
+	def query_cached_blob(self, blob_hash: str) -> Generator[BqmReq, None, Optional[schema.Blob]]:
 		if (cache := self.ctx.get_cached_blob(blob_hash)) is not None:
 			return cache
 		yield FetchBlobByHashReq(blob_hash)
 		return self.ctx.get_cached_blob(blob_hash)
 
-	def query_blob_size_exists(self, blob_size: int) -> Generator[BqmReq, Optional[BqmRsp], bool]:
+	def query_blob_size_exists(self, blob_size: int) -> Generator[BqmReq, None, bool]:
 		if (exist := self.ctx.blob_by_size_cache.get(blob_size)) is not None:
 			return exist
 		yield FetchBlobBySizeReq(blob_size)

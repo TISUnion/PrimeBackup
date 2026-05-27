@@ -6,12 +6,12 @@ import os
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Callable, Any, Dict, Generator, Set, overload, Deque, TYPE_CHECKING, Union
+from typing import List, Optional, Callable, Dict, Generator, Set, Deque, TYPE_CHECKING, Union
 
 from typing_extensions import override
 
 from prime_backup.action.helpers.blob_creator_chunked import ChunkedBlobCreator
-from prime_backup.action.helpers.blob_creator_common import BlobCreateContext, BlobFileChanged, VolatileBlobFile, FetchBlobBySizeReq, FetchBlobBySizeRsp, FetchBlobByHashReq, FetchBlobByHashRsp, BqmReq, BqmRsp
+from prime_backup.action.helpers.blob_creator_common import BlobCreateContext, BlobFileChanged, VolatileBlobFile, FetchBlobBySizeReq, FetchBlobByHashReq, BqmReq
 from prime_backup.action.helpers.blob_creator_direct import DirectBlobCreator
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
@@ -61,58 +61,48 @@ class BatchFetcherBase(ABC):
 
 
 class BlobBySizeFetcher(BatchFetcherBase):
-	@dataclasses.dataclass(frozen=True)
-	class Task:
-		size: int
-		callback: Callable[[FetchBlobBySizeRsp], None]
-
-	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[int, bool], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
+	def __init__(self, session: DbSession, max_batch_size: int, result_store: Dict[int, bool], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		super().__init__(session, max_batch_size, time_costs)
-		self.__tasks: List[BlobBySizeFetcher.Task] = []
+		self.__callbacks: List[Callable[[], None]] = []
 		self.__sizes: Set[int] = set()
-		self.__result_cache = result_cache
+		self.__result_store = result_store
 
-	def query(self, query: FetchBlobBySizeReq, callback: Callable[[FetchBlobBySizeRsp], None]):
-		self.__tasks.append(self.Task(query.size, callback))
+	def query(self, query: FetchBlobBySizeReq, callback: Callable[[], None]):
+		self.__callbacks.append(callback)
 		self.__sizes.add(query.size)
 		self._post_query()
 
 	@override
 	def _task_count(self) -> int:
-		return len(self.__tasks)
+		return len(self.__callbacks)
 
 	@override
 	def _batch_run(self):
 		with self.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 			existence = self.session.has_blob_with_size_batched(list(self.__sizes))
-		self.__result_cache.update(existence)
+		self.__result_store.update(existence)
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
-		for task in reversed(self.__tasks):
-			task.callback(FetchBlobBySizeRsp(existence[task.size]))
-		self.__tasks.clear()
+		for callback in reversed(self.__callbacks):
+			callback()
+		self.__callbacks.clear()
 		self.__sizes.clear()
 
 
 class BlobByHashFetcher(BatchFetcherBase):
-	@dataclasses.dataclass(frozen=True)
-	class Task:
-		hash: str
-		callback: Callable[[FetchBlobByHashRsp], None]
-
-	def __init__(self, session: DbSession, max_batch_size: int, result_cache: Dict[str, schema.Blob], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
+	def __init__(self, session: DbSession, max_batch_size: int, result_store: Dict[str, schema.Blob], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		super().__init__(session, max_batch_size, time_costs)
-		self.__tasks: List[BlobByHashFetcher.Task] = []
+		self.__callbacks: List[Callable[[], None]] = []
 		self.__hashes: Set[str] = set()
-		self.__result_cache = result_cache
+		self.__result_store = result_store
 
-	def query(self, query: FetchBlobByHashReq, callback: Callable[[FetchBlobByHashRsp], None]):
-		self.__tasks.append(self.Task(query.hash, callback))
+	def query(self, query: FetchBlobByHashReq, callback: Callable[[], None]):
+		self.__callbacks.append(callback)
 		self.__hashes.add(query.hash)
 		self._post_query()
 
 	@override
 	def _task_count(self) -> int:
-		return len(self.__tasks)
+		return len(self.__callbacks)
 
 	@override
 	def _batch_run(self):
@@ -120,25 +110,20 @@ class BlobByHashFetcher(BatchFetcherBase):
 			blobs = self.session.get_blobs_by_hashes_opt(list(self.__hashes))
 		for blob_hash, blob in blobs.items():
 			if blob is not None:
-				self.__result_cache[blob_hash] = blob
+				self.__result_store[blob_hash] = blob
 		# reverse since we want to keep the file order, and collections.deque.appendleft is FILO
-		for task in reversed(self.__tasks):
-			task.callback(FetchBlobByHashRsp(blobs[task.hash]))
-		self.__tasks.clear()
+		for callback in reversed(self.__callbacks):
+			callback()
+		self.__callbacks.clear()
 		self.__hashes.clear()
 
 
 class BatchQueryManager:
-	def __init__(self, session: DbSession, size_result_cache: Dict[int, bool], hash_result_cache: Dict[str, schema.Blob], time_costs: TimeCostStats[CreateBackupTimeCostKey], *, max_batch_size: int = 100):
-		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size, size_result_cache, time_costs)
-		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size, hash_result_cache, time_costs)
+	def __init__(self, session: DbSession, size_result_store: Dict[int, bool], hash_result_store: Dict[str, schema.Blob], time_costs: TimeCostStats[CreateBackupTimeCostKey], *, max_batch_size: int = 100):
+		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size, size_result_store, time_costs)
+		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size, hash_result_store, time_costs)
 
-	@overload
-	def query(self, query: FetchBlobBySizeReq, callback: Callable[[FetchBlobBySizeRsp], None]): ...
-	@overload
-	def query(self, query: FetchBlobByHashReq, callback: Callable[[FetchBlobByHashRsp], None]): ...
-
-	def query(self, query: BqmReq, callback: Callable[[Any], None]):
+	def query(self, query: BqmReq, callback: Callable[[], None]):
 		if isinstance(query, FetchBlobBySizeReq):
 			self.fetcher_size.query(query, callback)
 		elif isinstance(query, FetchBlobByHashReq):
@@ -161,10 +146,7 @@ class GetOrCreateBlobResult:
 	st: os.stat_result
 
 
-@dataclasses.dataclass(frozen=True)
-class _ScheduledGenerator:
-	gen: Generator[BqmReq, Optional[BqmRsp], schema.File]
-	value: Optional[BqmRsp] = None
+_ScheduledGenerator = Generator[BqmReq, None, schema.File]
 
 
 class BlobAllocator:
@@ -232,7 +214,7 @@ class BlobAllocator:
 		else:
 			return self.config.backup.mutating_file_patterns_spec.match_file(rel_path)
 
-	def __try_get_or_create_blob_once(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool, is_mutating_file: bool) -> Generator[BqmReq, Optional[BqmRsp], schema.Blob]:
+	def __try_get_or_create_blob_once(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool, is_mutating_file: bool) -> Generator[BqmReq, None, schema.Blob]:
 		chunk_method = self.__get_chunk_method(src_path, st.st_size)
 		creator: Union[ChunkedBlobCreator, DirectBlobCreator]
 		if chunk_method is not None:
@@ -255,7 +237,7 @@ class BlobAllocator:
 
 		return (yield from creator.get_or_create())
 
-	def get_or_create_blob(self, src_path: Path, st: os.stat_result) -> Generator[BqmReq, Optional[BqmRsp], GetOrCreateBlobResult]:
+	def get_or_create_blob(self, src_path: Path, st: os.stat_result) -> Generator[BqmReq, None, GetOrCreateBlobResult]:
 		src_path_str = repr(src_path.as_posix())
 		src_path_md5 = hashlib.md5(src_path_str.encode('utf8')).hexdigest()
 		is_mutating_file = self.__is_mutating_file(src_path)
@@ -290,12 +272,12 @@ class BlobAllocator:
 			self.__ctx.blob_store_st = bs_path.stat()
 			self.__ctx.blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
 
-	def schedule_loop(self, gen_list: List[Generator[BqmReq, Optional[BqmRsp], schema.File]]) -> List[schema.File]:
+	def schedule_loop(self, gen_list: List[Generator[BqmReq, None, schema.File]]) -> List[schema.File]:
 		files: List[schema.File] = []
 
 		schedule_queue: Deque[_ScheduledGenerator] = collections.deque()
 		for gen in gen_list:
-			schedule_queue.append(_ScheduledGenerator(gen))
+			schedule_queue.append(gen)
 		gen_count = len(schedule_queue)
 		done_count = 0
 
@@ -305,10 +287,10 @@ class BlobAllocator:
 		while len(schedule_queue) > 0:
 			scheduled = schedule_queue.popleft()
 			try:
-				def callback(query_rsp: BqmRsp, g: Generator[BqmReq, Optional[BqmRsp], schema.File] = scheduled.gen):
-					schedule_queue.appendleft(_ScheduledGenerator(g, query_rsp))
+				def callback(g: _ScheduledGenerator = scheduled):
+					schedule_queue.appendleft(g)
 
-				query_req = scheduled.gen.send(scheduled.value)
+				query_req = scheduled.send(None)
 				self.__batch_query_manager.query(query_req, callback)
 			except StopIteration as e:
 				files.append(misc_utils.ensure_type(e.value, schema.File))

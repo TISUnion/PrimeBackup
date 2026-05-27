@@ -9,7 +9,7 @@ from concurrent.futures import Future
 from pathlib import Path
 from typing import BinaryIO, Dict, Generator, List, Optional
 
-from prime_backup.action.helpers.blob_creator_common import BqmReq, BqmRsp, BlobCreateContext, BlobCreatorBase
+from prime_backup.action.helpers.blob_creator_common import BqmReq, BlobCreateContext, BlobCreatorBase
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
@@ -84,7 +84,7 @@ class ChunkedBlobCreator(BlobCreatorBase):
 		super().__init__(context)
 		self.args = args
 
-	def get_or_create(self) -> Generator[BqmReq, Optional[BqmRsp], schema.Blob]:
+	def get_or_create(self) -> Generator[BqmReq, None, schema.Blob]:
 		src_path_str = repr(self.args.src_path.as_posix())
 		plan = self.__select_plan()
 

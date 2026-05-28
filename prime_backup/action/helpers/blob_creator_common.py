@@ -5,7 +5,7 @@ import os
 import threading
 from abc import ABC
 from pathlib import Path
-from typing import Callable, ContextManager, Dict, Generator, List, Optional, TYPE_CHECKING, Union
+from typing import Callable, ContextManager, Dict, Generator, List, Optional, TYPE_CHECKING, TypeVar, Union
 
 from typing_extensions import NoReturn, override
 
@@ -24,6 +24,8 @@ from prime_backup.utils.time_cost_stats import TimeCostStats
 if TYPE_CHECKING:
 	from prime_backup.action.helpers.pack_writer import PackWriter
 
+_T = TypeVar('_T')
+
 
 class VolatileBlobFile(PrimeBackupError):
 	pass
@@ -34,16 +36,17 @@ class BlobFileChanged(PrimeBackupError):
 
 
 @dataclasses.dataclass(frozen=True)
-class FetchBlobBySizeReq:
+class LookupBlobBySizeRequest:
 	size: int
 
 
 @dataclasses.dataclass(frozen=True)
-class FetchBlobByHashReq:
+class LookupBlobByHashRequest:
 	hash: str
 
 
-BqmReq = Union[FetchBlobBySizeReq, FetchBlobByHashReq]
+BlobLookupRequest = Union[LookupBlobBySizeRequest, LookupBlobByHashRequest]
+BlobLookupRoutine = Generator[BlobLookupRequest, None, _T]
 
 
 class _FailureFileDeleter(ContextManager['_FailureFileDeleter']):
@@ -111,14 +114,14 @@ class BlobCreatorBase(ABC):
 		(self.logger.warning if last_chance else self.logger.debug)(msg)
 		raise BlobFileChanged(msg)
 
-	def query_cached_blob(self, blob_hash: str) -> Generator[BqmReq, None, Optional[schema.Blob]]:
+	def query_cached_blob(self, blob_hash: str) -> BlobLookupRoutine[Optional[schema.Blob]]:
 		if (cache := self.ctx.get_cached_blob(blob_hash)) is not None:
 			return cache
-		yield FetchBlobByHashReq(blob_hash)
+		yield LookupBlobByHashRequest(blob_hash)
 		return self.ctx.get_cached_blob(blob_hash)
 
-	def query_blob_size_exists(self, blob_size: int) -> Generator[BqmReq, None, bool]:
+	def query_blob_size_exists(self, blob_size: int) -> BlobLookupRoutine[bool]:
 		if (exist := self.ctx.blob_by_size_cache.get(blob_size)) is not None:
 			return exist
-		yield FetchBlobBySizeReq(blob_size)
+		yield LookupBlobBySizeRequest(blob_size)
 		return misc_utils.ensure_type(self.ctx.blob_by_size_cache[blob_size], bool)

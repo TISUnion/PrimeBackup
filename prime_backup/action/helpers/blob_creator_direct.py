@@ -2,9 +2,9 @@ import dataclasses
 import enum
 import os
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Optional
 
-from prime_backup.action.helpers.blob_creator_common import BqmReq, BlobCreateContext, BlobCreatorBase, _FailureFileDeleter
+from prime_backup.action.helpers.blob_creator_common import BlobLookupRoutine, BlobCreateContext, BlobCreatorBase, _FailureFileDeleter
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
 from prime_backup.compressors import Compressor, CompressMethod
@@ -71,7 +71,7 @@ class DirectBlobCreator(BlobCreatorBase):
 		super().__init__(context)
 		self.args = args
 
-	def get_or_create(self) -> Generator[BqmReq, None, schema.Blob]:
+	def get_or_create(self) -> BlobLookupRoutine[schema.Blob]:
 		plan = yield from self.__select_plan()
 
 		if plan.blob_hash is not None:
@@ -95,7 +95,7 @@ class DirectBlobCreator(BlobCreatorBase):
 			stored_size=artifact.stored_size,
 		)
 
-	def __select_plan(self) -> Generator[BqmReq, None, _DirectBlobPlan]:
+	def __select_plan(self) -> BlobLookupRoutine[_DirectBlobPlan]:
 		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(self.args.st.st_size)
 		can_copy_on_write = self.__can_copy_on_write(self.args.st, compress_method)
 
@@ -160,7 +160,7 @@ class DirectBlobCreator(BlobCreatorBase):
 			self.log_and_raise_blob_file_changed('Read too many bytes for read_all policy, stat: {}, read: {}'.format(self.args.st.st_size, len(blob_content)), self.args.last_chance)
 		return blob_content
 
-	def __create_blob_artifact(self, plan: _DirectBlobPlan) -> Generator[BqmReq, None, _DirectBlobCreateResult]:
+	def __create_blob_artifact(self, plan: _DirectBlobPlan) -> BlobLookupRoutine[_DirectBlobCreateResult]:
 		compressor = Compressor.create(plan.compress_method)
 		if plan.policy == _DirectBlobCreatePolicy.copy_hash:
 			return (yield from self.__create_by_copy_hash(compressor))
@@ -170,7 +170,7 @@ class DirectBlobCreator(BlobCreatorBase):
 			return self.__create_by_prehashed_content(compressor, plan)
 		raise AssertionError('bad policy {!r}'.format(plan.policy))
 
-	def __create_by_copy_hash(self, compressor: Compressor) -> Generator[BqmReq, None, _DirectBlobCreateResult]:
+	def __create_by_copy_hash(self, compressor: Compressor) -> BlobLookupRoutine[_DirectBlobCreateResult]:
 		# copy to temp file, calc hash, then compress to blob store
 		with self.ctx.make_temp_file(self.args.src_path_md5) as temp_file_path, _FailureFileDeleter() as file_deleter:
 			with self.ctx.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_copy), SourceFileNotFoundWrapper.wrap(self.args.src_path):

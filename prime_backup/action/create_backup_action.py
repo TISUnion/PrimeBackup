@@ -5,14 +5,14 @@ import os
 import stat
 import time
 from pathlib import Path
-from typing import List, Optional, Dict, Generator, Set, ContextManager
+from typing import List, Optional, Dict, Set, ContextManager
 
 from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
 from prime_backup.action.helpers.blob_allocator import BlobAllocator
-from prime_backup.action.helpers.blob_creator_common import BqmReq
+from prime_backup.action.helpers.blob_creator_common import BlobLookupRoutine
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
@@ -281,7 +281,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		p.mkdir(parents=True, exist_ok=True)
 		return p
 
-	def __create_file(self, session: DbSession, blob_allocator: BlobAllocator, path: Path) -> Generator[BqmReq, None, schema.File]:
+	def __create_file(self, session: DbSession, blob_allocator: BlobAllocator, path: Path) -> BlobLookupRoutine[schema.File]:
 		if (reused_file := self.__pre_calc_result.reused_files.get(path)) is not None:
 			# make a copy
 			return session.create_file(

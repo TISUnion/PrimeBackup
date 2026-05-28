@@ -6,12 +6,12 @@ import os
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Callable, Dict, Generator, Set, Deque, TYPE_CHECKING, Union
+from typing import List, Optional, Callable, Dict, Set, Deque, TYPE_CHECKING, Union
 
 from typing_extensions import override
 
 from prime_backup.action.helpers.blob_creator_chunked import ChunkedBlobCreator
-from prime_backup.action.helpers.blob_creator_common import BlobCreateContext, BlobFileChanged, VolatileBlobFile, FetchBlobBySizeReq, FetchBlobByHashReq, BqmReq
+from prime_backup.action.helpers.blob_creator_common import BlobCreateContext, BlobFileChanged, VolatileBlobFile, LookupBlobBySizeRequest, LookupBlobByHashRequest, BlobLookupRequest, BlobLookupRoutine
 from prime_backup.action.helpers.blob_creator_direct import DirectBlobCreator
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
+_FetchCallback = Callable[[], None]
 
 
 class BatchFetcherBase(ABC):
@@ -63,11 +64,11 @@ class BatchFetcherBase(ABC):
 class BlobBySizeFetcher(BatchFetcherBase):
 	def __init__(self, session: DbSession, max_batch_size: int, result_store: Dict[int, bool], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		super().__init__(session, max_batch_size, time_costs)
-		self.__callbacks: List[Callable[[], None]] = []
+		self.__callbacks: List[_FetchCallback] = []
 		self.__sizes: Set[int] = set()
 		self.__result_store = result_store
 
-	def query(self, query: FetchBlobBySizeReq, callback: Callable[[], None]):
+	def query(self, query: LookupBlobBySizeRequest, callback: _FetchCallback):
 		self.__callbacks.append(callback)
 		self.__sizes.add(query.size)
 		self._post_query()
@@ -91,11 +92,11 @@ class BlobBySizeFetcher(BatchFetcherBase):
 class BlobByHashFetcher(BatchFetcherBase):
 	def __init__(self, session: DbSession, max_batch_size: int, result_store: Dict[str, schema.Blob], time_costs: TimeCostStats[CreateBackupTimeCostKey]):
 		super().__init__(session, max_batch_size, time_costs)
-		self.__callbacks: List[Callable[[], None]] = []
+		self.__callbacks: List[_FetchCallback] = []
 		self.__hashes: Set[str] = set()
 		self.__result_store = result_store
 
-	def query(self, query: FetchBlobByHashReq, callback: Callable[[], None]):
+	def query(self, query: LookupBlobByHashRequest, callback: _FetchCallback):
 		self.__callbacks.append(callback)
 		self.__hashes.add(query.hash)
 		self._post_query()
@@ -118,15 +119,15 @@ class BlobByHashFetcher(BatchFetcherBase):
 		self.__hashes.clear()
 
 
-class BatchQueryManager:
+class BatchLookupManager:
 	def __init__(self, session: DbSession, size_result_store: Dict[int, bool], hash_result_store: Dict[str, schema.Blob], time_costs: TimeCostStats[CreateBackupTimeCostKey], *, max_batch_size: int = 100):
 		self.fetcher_size = BlobBySizeFetcher(session, max_batch_size, size_result_store, time_costs)
 		self.fetcher_hash = BlobByHashFetcher(session, max_batch_size, hash_result_store, time_costs)
 
-	def query(self, query: BqmReq, callback: Callable[[], None]):
-		if isinstance(query, FetchBlobBySizeReq):
+	def query(self, query: BlobLookupRequest, callback: _FetchCallback):
+		if isinstance(query, LookupBlobBySizeRequest):
 			self.fetcher_size.query(query, callback)
-		elif isinstance(query, FetchBlobByHashReq):
+		elif isinstance(query, LookupBlobByHashRequest):
 			self.fetcher_hash.query(query, callback)
 		else:
 			raise TypeError('unexpected query: {!r} {!r}'.format(type(query), query))
@@ -144,9 +145,6 @@ class BatchQueryManager:
 class GetOrCreateBlobResult:
 	blob: schema.Blob
 	st: os.stat_result
-
-
-_ScheduledGenerator = Generator[BqmReq, None, schema.File]
 
 
 class BlobAllocator:
@@ -171,7 +169,7 @@ class BlobAllocator:
 		self.__source_path = source_path
 		self.__blob_by_size_cache: Dict[int, bool] = {}
 		self.__blob_by_hash_cache: Dict[str, schema.Blob] = {}
-		self.__batch_query_manager = BatchQueryManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache, time_costs)
+		self.__batch_lookup_manager = BatchLookupManager(session, self.__blob_by_size_cache, self.__blob_by_hash_cache, time_costs)
 
 		self.__ctx = BlobCreateContext(
 			session=session,
@@ -214,7 +212,7 @@ class BlobAllocator:
 		else:
 			return self.config.backup.mutating_file_patterns_spec.match_file(rel_path)
 
-	def __try_get_or_create_blob_once(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool, is_mutating_file: bool) -> Generator[BqmReq, None, schema.Blob]:
+	def __try_get_or_create_blob_once(self, src_path: Path, src_path_md5: str, st: os.stat_result, last_chance: bool, is_mutating_file: bool) -> BlobLookupRoutine[schema.Blob]:
 		chunk_method = self.__get_chunk_method(src_path, st.st_size)
 		creator: Union[ChunkedBlobCreator, DirectBlobCreator]
 		if chunk_method is not None:
@@ -237,7 +235,7 @@ class BlobAllocator:
 
 		return (yield from creator.get_or_create())
 
-	def get_or_create_blob(self, src_path: Path, st: os.stat_result) -> Generator[BqmReq, None, GetOrCreateBlobResult]:
+	def get_or_create_blob(self, src_path: Path, st: os.stat_result) -> BlobLookupRoutine[GetOrCreateBlobResult]:
 		src_path_str = repr(src_path.as_posix())
 		src_path_md5 = hashlib.md5(src_path_str.encode('utf8')).hexdigest()
 		is_mutating_file = self.__is_mutating_file(src_path)
@@ -272,10 +270,10 @@ class BlobAllocator:
 			self.__ctx.blob_store_st = bs_path.stat()
 			self.__ctx.blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
 
-	def schedule_loop(self, gen_list: List[Generator[BqmReq, None, schema.File]]) -> List[schema.File]:
+	def schedule_loop(self, gen_list: List[BlobLookupRoutine[schema.File]]) -> List[schema.File]:
 		files: List[schema.File] = []
 
-		schedule_queue: Deque[_ScheduledGenerator] = collections.deque()
+		schedule_queue: Deque[BlobLookupRoutine[schema.File]] = collections.deque()
 		for gen in gen_list:
 			schedule_queue.append(gen)
 		gen_count = len(schedule_queue)
@@ -287,11 +285,11 @@ class BlobAllocator:
 		while len(schedule_queue) > 0:
 			scheduled = schedule_queue.popleft()
 			try:
-				def callback(g: _ScheduledGenerator = scheduled):
+				def callback(g: BlobLookupRoutine[schema.File] = scheduled):
 					schedule_queue.appendleft(g)
 
 				query_req = scheduled.send(None)
-				self.__batch_query_manager.query(query_req, callback)
+				self.__batch_lookup_manager.query(query_req, callback)
 			except StopIteration as e:
 				files.append(misc_utils.ensure_type(e.value, schema.File))
 				done_count += 1
@@ -304,9 +302,9 @@ class BlobAllocator:
 				else:
 					raise
 
-			self.__batch_query_manager.flush_if_needed()
+			self.__batch_lookup_manager.flush_if_needed()
 			if len(schedule_queue) == 0:
-				self.__batch_query_manager.flush()
+				self.__batch_lookup_manager.flush()
 
 		return files
 

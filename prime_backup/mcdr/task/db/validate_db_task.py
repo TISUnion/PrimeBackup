@@ -3,7 +3,7 @@ import logging
 import time
 from typing import List, Optional, TypeVar, Tuple, Callable, Dict, Union
 
-from mcdreforged.api.all import CommandSource, RTextBase, RTextList, RColor, RAction
+from mcdreforged.api.all import CommandSource, RTextBase, RTextList, RColor, RAction, RStyle
 from typing_extensions import override, Protocol
 
 from prime_backup.action import Action
@@ -72,6 +72,33 @@ class ValidateDbTask(HeavyTask[None]):
 			text = RTextBase.format('{}. {}', i + 1, item_formatter(item))
 			vlogger.info(text.to_plain_text())
 			self.reply(text)
+
+	def __show_validate_summary(self, validate_result: Dict[ValidatePart, bool]):
+		part_count = len(validate_result)
+		if part_count <= 1:
+			return
+
+		def colored_result_word(key: str, color: RColor) -> RTextBase:
+			return self.tr(f'summary.{key}').set_color(color)
+
+		failed_parts = [part for part, ok in validate_result.items() if not ok]
+		failed_count = len(failed_parts)
+		success_count = part_count - failed_count
+		if failed_count == 0:
+			self.reply(self.tr('summary.all_success', part_count).set_color(RColor.green).set_styles(RStyle.bold))
+		elif success_count == 0:
+			self.reply(self.tr(
+				'summary.all_failed',
+				colored_result_word('failure', RColor.red).set_styles(RStyle.bold),
+				colored_result_word('failure', RColor.red), failed_count,
+			).set_color(RColor.red))
+		else:
+			self.reply(self.tr(
+				'summary.partial_success',
+				colored_result_word('success', RColor.gold),
+				colored_result_word('success', RColor.green), success_count,
+				colored_result_word('failure', RColor.red), failed_count,
+			).set_color(RColor.red))
 
 	def __show_affected_file_and_backup(self, result: _ResultWithFileAndBackupSamples, counts: ObjectCounts, vlogger: log_utils.FileLogger):
 		vlogger.info('Affected file objects / total file objects: {} / {}'.format(result.affected_file_count, counts.file_object_count))
@@ -303,11 +330,19 @@ class ValidateDbTask(HeavyTask[None]):
 				ValidatePart.filesets: self.__validate_filesets,
 				ValidatePart.backups: self.__validate_backups,
 			}
+			selected_parts = [part for part in validators.keys() if part in self.parts]
+			if len(selected_parts) > 1:
+				self.reply_tr(
+					'start_multi',
+					TextComponents.number(len(selected_parts)),
+					RTextBase.join(', ', [self.tr(f'part.{part.name}').h(part.name) for part in selected_parts])
+				)
+
 			validate_result: Dict[ValidatePart, bool] = {}
-			for part, func in validators.items():
-				if part in self.parts and not self.aborted_event.is_set():
+			for part in selected_parts:
+				if not self.aborted_event.is_set():
 					self.reply_tr(f'validate_{part.name}')
-					validate_result[part] = func(validate_logger)
+					validate_result[part] = validators[part](validate_logger)
 
 		t_cost = TextComponents.number(f'{time.time() - t:.2f}s')
 		t_summary = RTextBase.join(', ', [
@@ -315,3 +350,4 @@ class ValidateDbTask(HeavyTask[None]):
 			for part, res in validate_result.items()
 		])
 		self.reply_tr('done', t_cost, t_summary)
+		self.__show_validate_summary(validate_result)

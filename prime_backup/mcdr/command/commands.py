@@ -11,7 +11,7 @@ from typing_extensions import overload
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config
-from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, HexStringNode, JsonObjectNode, BackupIdNode, MultiBackupIdNode
+from prime_backup.mcdr.command.nodes import DateNode, IdRangeNode, HexStringNode, JsonObjectNode, BackupIdNode, MultiBackupIdNode, ValidatePartNode
 from prime_backup.mcdr.command.value_suggester import ValueSuggesters
 from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_manager import CrontabManager
@@ -133,7 +133,10 @@ class CommandManager:
 			self.task_manager.add_task(DeleteBackupFileTask(source, backup_id, file_path, needs_confirm=needs_confirm, recursive=recursive))
 		self.transform_backup_id(source, context['backup_id'], backup_id_consumer)
 
-	def cmd_db_validate(self, source: CommandSource, _: CommandContext, parts: ValidatePart):
+	def cmd_db_validate(self, source: CommandSource, context: CommandContext):
+		parts = ValidatePart(0)
+		for part in context['parts']:
+			parts |= part
 		self.task_manager.add_task(ValidateDbTask(source, parts))
 
 	def cmd_db_vacuum(self, source: CommandSource, _: CommandContext):
@@ -440,13 +443,7 @@ class CommandManager:
 		builder.command('database inspect chunk <id_or_hash>', self.cmd_db_inspect_chunk)
 		builder.command('database inspect chunk_group <id_or_hash>', self.cmd_db_inspect_chunk_group)
 		builder.command('database inspect pack <id_or_file_name>', self.cmd_db_inspect_pack)
-		builder.command('database validate all', functools.partial(self.cmd_db_validate, parts=ValidatePart.all()))
-		builder.command('database validate packs', functools.partial(self.cmd_db_validate, parts=ValidatePart.packs))
-		builder.command('database validate blobs', functools.partial(self.cmd_db_validate, parts=ValidatePart.blobs))
-		builder.command('database validate chunks', functools.partial(self.cmd_db_validate, parts=ValidatePart.chunks))
-		builder.command('database validate files', functools.partial(self.cmd_db_validate, parts=ValidatePart.files))
-		builder.command('database validate filesets', functools.partial(self.cmd_db_validate, parts=ValidatePart.filesets))
-		builder.command('database validate backups', functools.partial(self.cmd_db_validate, parts=ValidatePart.backups))
+		# `database validate <part> [<part> ...]` is handled by `make_db_validate_cmd()` below
 		builder.command('database vacuum', self.cmd_db_vacuum)
 		builder.command('database prune', self.cmd_db_prune)
 		builder.command('database compact_packs', self.cmd_db_compact_packs)
@@ -587,6 +584,17 @@ class CommandManager:
 				node.then(children[0])
 			return create_subcommand('tag').then(node)
 
+		def make_db_validate_cmd():
+			node_validate = Literal('validate')
+			node_part = (
+				ValidatePartNode('parts').
+				suggests(ValidatePartNode.get_command_suggestions).
+				runs(self.cmd_db_validate).
+				redirects(node_validate)
+			)
+			node_validate.then(node_part)
+			__locate_node(['database']).then(node_validate)
+
 		def make_db_delete_file_cmd():
 			__locate_node(['database']).then(Literal('delete').then(node_subcommand := Literal('file')))
 			node_bid = create_backup_id()
@@ -604,6 +612,7 @@ class CommandManager:
 		root.then(make_import_cmd())
 		root.then(make_list_cmd())
 		root.then(make_tag_cmd())
+		make_db_validate_cmd()
 		make_db_delete_file_cmd()
 
 		# --------------- done ---------------

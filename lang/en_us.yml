@@ -367,6 +367,7 @@ prime_backup:
     db_validate:
       name: validate database
       nothing_to_validate: Nothing is requested to be validated
+      start_multi: 'Starting validation for {} components: {}'
       part:
         packs: packs
         blobs: blobs
@@ -456,6 +457,12 @@ prime_backup:
       result:
         good: good
         bad: bad
+      summary:
+        success: success
+        failure: failure
+        all_success: 'All validations for {} parts checks succeeded!'
+        partial_success: 'Partial {}! {} {}, {} {}'
+        all_failed: 'All {}! {} {}'
     help:
       name: show help
       commands:
@@ -527,7 +534,7 @@ prime_backup:
           §7{prefix} database inspect chunk_group §d<id_or_hash>§r: Inspect the internal data of the given chunk group
           §7{prefix} database inspect pack §d<id_or_file_name>§r: Inspect the internal data of the given pack; accepts pack ID or pack file name prefix
           §7{prefix} database delete file §6<backup_id> §3<file_path> §7[--recursive]§r: Delete given file in the given backup. If §7[--recursive]§r and it's a directory, delete everything inside it
-          §7{prefix} database validate §a<part>§r: Validate the correctness of contents in the database. Might take a long time
+          §7{prefix} database validate §a<part> [<part> ...]§r: Validate the correctness of contents in the database. Might take a long time
           §7{prefix} database vacuum§r: Compact the SQLite database manually, to reduce the size of the database file
           §7{prefix} database prune§r: Prune useless objects in the database. Normally this command does not need to be performed manually
           §7{prefix} database compact_packs§r: Compact all pack files with a 100% threshold to free up their unused space completely 

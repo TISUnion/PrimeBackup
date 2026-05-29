@@ -3,9 +3,10 @@ import json
 import re
 from typing import Optional, List
 
-from mcdreforged.api.all import ArgumentNode, Text, ParseResult, QuotableText, IllegalArgument, CommandContext
+from mcdreforged.api.all import ArgumentNode, Text, ParseResult, QuotableText, IllegalArgument, CommandContext, InvalidEnumeration
 from typing_extensions import override
 
+from prime_backup.mcdr.task.db.validate_db_task import ValidatePart
 from prime_backup.utils import conversion_utils
 from prime_backup.utils.backup_id_parser import BackupIdParser, BackupIdAlternatives
 from prime_backup.utils.mcdr_utils import tr
@@ -147,3 +148,27 @@ class JsonObjectNode(ArgumentNode):
 							return ParseResult(data, n)
 
 		raise InvalidJson(tr('error.node.invalid_json.suffix'), len(text))
+
+
+class ValidatePartNode(Text):
+	__ALL_PARTS = 'all'
+
+	@classmethod
+	def get_command_suggestions(cls) -> List[str]:
+		return [cls.__ALL_PARTS] + [str(part.name) for part in ValidatePart]
+
+	def parse(self, text: str) -> ParseResult:
+		result = super().parse(text)
+		value = str(result.value)
+		if value == self.__ALL_PARTS:
+			part = ValidatePart.all()
+		else:
+			try:
+				part = ValidatePart[value]
+			except KeyError:
+				raise InvalidEnumeration(result.char_read) from None
+		return ParseResult(part, result.char_read)
+
+	def _on_visited(self, context: CommandContext, parsed_result: ParseResult):
+		key = self.get_name()
+		context[key] = context.get(key, []) + [parsed_result.value]

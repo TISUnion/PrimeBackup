@@ -367,6 +367,7 @@ prime_backup:
     db_validate:
       name: 验证数据库
       nothing_to_validate: 没有要验证的内容
+      start_multi: '开始校验{}个组件: {}'
       part:
         packs: 打包文件
         blobs: 数据对象
@@ -456,6 +457,12 @@ prime_backup:
       result:
         good: 健康
         bad: 异常
+      summary:
+        success: 成功
+        failure: 失败
+        all_success: '全部{}个组件的校验均成功！'
+        partial_success: '部分{}！{}{}个，{}{}个'
+        all_failed: '全部{}！{}{}个'
     help:
       name: 展示帮助
       commands:
@@ -527,7 +534,7 @@ prime_backup:
           §7{prefix} database inspect chunk_group §d<ID或哈希>§r: 审查给定数据块组的原始信息
           §7{prefix} database inspect pack §d<ID或文件名前缀>§r: 审查给定打包文件的原始信息；支持打包文件ID或打包文件名的前缀
           §7{prefix} database delete file §6<备份ID> §3<文件路径> §7[--recursive]§r: 删除给定备份中的某个文件。若带有§7--recursive§r且目标为文件夹，则递归删除其内部的所有内容
-          §7{prefix} database validate §a<组件>§r: 验证数据库内容的正确性。耗时可能较长
+          §7{prefix} database validate §a<组件> [<组件> ...]§r: 验证数据库内容的正确性。耗时可能较长
           §7{prefix} database vacuum§r: 手动执行SQLite数据库的文件整理操作，减少数据库文件的体积
           §7{prefix} database prune§r: 清理数据库中的无效数据。正常情况下该操作无需手动执行
           §7{prefix} database compact_packs§r: 以100%阈值整理所有打包文件，从而完全清理其中的无效数据

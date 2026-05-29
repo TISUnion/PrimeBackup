@@ -73,9 +73,15 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 		self.logger.info('File object dedup stats: %s', self.__one_dedupe_str(self.__ratio_str(result.file_total_count - result.file_object_count, result.file_total_count), result.file_total_count - result.file_object_count, result.file_total_count))
 
 		self.logger.info('[Blob]')
-		self.logger.info('Blob count: %s', result.blob_count)
-		self.logger.info('Blob stored size sum: %s (%s)', self.__size_str(result.blob_stored_size_sum), self.__ratio_str(result.blob_stored_size_sum, result.blob_raw_size_sum))
-		self.logger.info('Blob raw size sum: %s', self.__size_str(result.blob_raw_size_sum))
+		self.logger.info('Blob count: %s (direct: %s, chunked: %s)', result.blob_count, result.direct_blob_count, result.chunked_blob_count)
+		self.logger.info(
+			'Blob stored size sum: %s (%s; direct: %s, chunked: %s)',
+			self.__size_str(result.blob_stored_size_sum),
+			self.__ratio_str(result.blob_stored_size_sum, result.blob_raw_size_sum),
+			self.__ratio_str(result.direct_blob_stored_size_sum, result.direct_blob_raw_size_sum),
+			self.__ratio_str(result.chunked_blob_stored_size_sum, result.chunked_blob_raw_size_sum),
+		)
+		self.logger.info('Blob raw size sum: %s (direct: %s, chunked: %s)', self.__size_str(result.blob_raw_size_sum), self.__size_str(result.direct_blob_raw_size_sum), self.__size_str(result.chunked_blob_raw_size_sum))
 		blob_count_str, blob_size_str = self.__dedup_stat_str(result.blob_count, result.file_object_count, result.blob_raw_size_sum, result.file_raw_size_sum)
 		self.logger.info('Blob dedup stats: count %s, size %s', blob_count_str, blob_size_str)
 

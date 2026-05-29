@@ -61,9 +61,15 @@ class ShowDbOverviewTask(LightTask[None]):
 		)
 
 		self.reply(make_section('section_blob'))
-		self.reply_tr('blob_count', TextComponents.number(result.blob_count))
-		self.reply_tr('blob_stored_size', make_size(result.blob_stored_size_sum), make_compression_ratio(result.blob_stored_size_sum, result.blob_raw_size_sum))
-		self.reply_tr('blob_raw_size', make_size(result.blob_raw_size_sum))
+		self.reply_tr('blob_count', TextComponents.number(result.blob_count), TextComponents.number(result.direct_blob_count), TextComponents.number(result.chunked_blob_count))
+		self.reply_tr(
+			'blob_stored_size',
+			make_size(result.blob_stored_size_sum),
+			make_compression_ratio(result.blob_stored_size_sum, result.blob_raw_size_sum),
+			make_compression_ratio(result.direct_blob_stored_size_sum, result.direct_blob_raw_size_sum),
+			make_compression_ratio(result.chunked_blob_stored_size_sum, result.chunked_blob_raw_size_sum),
+		)
+		self.reply_tr('blob_raw_size', make_size(result.blob_raw_size_sum), make_size(result.direct_blob_raw_size_sum), make_size(result.chunked_blob_raw_size_sum))
 		reply_tr_dedup_stats('blob_dedup_stats', result.blob_count, result.file_object_count, result.blob_raw_size_sum, result.file_raw_size_sum)
 
 		self.reply(make_section('section_chunk'))

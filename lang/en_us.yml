@@ -335,9 +335,9 @@ prime_backup:
       file_count: 'File count: {} ({} objects)'
       file_dedup_stats: 'File object dedup stats: count {}'
       section_blob: Blob
-      blob_count: 'Blob count: {}'
-      blob_stored_size: 'Blob stored size sum: {} ({})'
-      blob_raw_size: 'Blob raw size sum: {}'
+      blob_count: 'Blob count: {} (direct: {}, chunked: {})'
+      blob_stored_size: 'Blob stored size sum: {} ({}; direct: {}, chunked: {})'
+      blob_raw_size: 'Blob raw size sum: {} (direct: {}, chunked: {})'
       blob_dedup_stats: 'Blob dedup stats: count {}, size {}'
       section_chunk: Chunk
       chunk_count: 'Chunk count: {}'

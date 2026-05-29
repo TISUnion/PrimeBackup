@@ -335,9 +335,9 @@ prime_backup:
       file_count: '文件数: {} ({} 个对象)'
       file_dedup_stats: '文件对象去重统计: 数量 {}'
       section_blob: 数据对象
-      blob_count: '数据对象数: {}'
-      blob_stored_size: '数据对象总储存大小: {} ({})'
-      blob_raw_size: '数据对象总原始大小: {}'
+      blob_count: '数据对象数: {}（直存: {}，分块: {}）'
+      blob_stored_size: '数据对象总储存大小: {}（{}；直存: {}，分块: {}）'
+      blob_raw_size: '数据对象总原始大小: {}（直存: {}，分块: {}）'
       blob_dedup_stats: '数据对象去重统计: 数量 {}, 大小 {}'
       section_chunk: 数据块
       chunk_count: '数据块数: {}'

@@ -437,26 +437,29 @@ class DbSession:
 		).scalar_one())
 
 	@dataclasses.dataclass(frozen=True)
-	class RawAndStoredSizes:
+	class BlobStorageMethodStats:
+		count: int
 		raw_size: int
 		stored_size: int
 
-	def get_blob_size_sums_by_storage_method(self) -> Dict[BlobStorageMethod, RawAndStoredSizes]:
-		rows: Sequence[Row[Tuple[int, int, int]]] = self.session.execute(
+	def get_blob_stats_by_storage_method(self) -> Dict[BlobStorageMethod, BlobStorageMethodStats]:
+		rows: Sequence[Row[Tuple[int, int, int, int]]] = self.session.execute(
 			select(
 				schema.Blob.storage_method,
+				func.count(schema.Blob.id),
 				func.sum(schema.Blob.raw_size),
 				func.sum(schema.Blob.stored_size),
 			).group_by(schema.Blob.storage_method)
 		).all()
 
-		result = {bsm: self.RawAndStoredSizes(0, 0) for bsm in BlobStorageMethod}
-		for storage_method, raw_size_sum, stored_size_sum in rows:
+		result = {bsm: self.BlobStorageMethodStats(0, 0, 0) for bsm in BlobStorageMethod}
+		for storage_method, count, raw_size_sum, stored_size_sum in rows:
 			try:
 				bsm = BlobStorageMethod(storage_method)
 			except (KeyError, ValueError):
 				bsm = BlobStorageMethod.unknown
-			result[bsm] = self.RawAndStoredSizes(
+			result[bsm] = self.BlobStorageMethodStats(
+				count=result[bsm].count + _int_or_0(count),
 				raw_size=result[bsm].raw_size + _int_or_0(raw_size_sum),
 				stored_size=result[bsm].stored_size + _int_or_0(stored_size_sum),
 			)

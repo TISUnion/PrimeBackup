@@ -1,7 +1,8 @@
 import dataclasses
 import enum
+import functools
 import importlib
-from typing import Protocol, Union, TYPE_CHECKING
+from typing import Protocol, Union, TYPE_CHECKING, Any
 
 
 class Hasher(Protocol):
@@ -17,11 +18,14 @@ class _HashMethodItem:
 	hasher_func: str
 	hex_length: int
 
-	def create_hasher(self) -> Hasher:
+	@functools.cached_property
+	def __get_hasher_func(self) -> Any:
 		mod_name, func_name = self.hasher_func.split('.')
 		mod = importlib.import_module(mod_name)
-		func = getattr(mod, func_name)
-		return func()
+		return getattr(mod, func_name)
+
+	def create_hasher(self) -> Hasher:
+		return self.__get_hasher_func()
 
 
 class HashMethod(enum.Enum):

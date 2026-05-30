@@ -48,7 +48,7 @@ class Chunker(ABC):
 
 	def __init__(self, need_entire_file_hash: bool):
 		self.need_entire_file_hash = need_entire_file_hash
-		self.__entire_file_hasher = hash_utils.create_hasher()  # for the entire file hash, use config's hash method
+		self.__entire_file_hasher = hash_utils.create_hasher() if need_entire_file_hash else None
 		self.__file_size_sum = 0
 
 	@abstractmethod
@@ -60,6 +60,7 @@ class Chunker(ABC):
 			self.__file_size_sum += raw_chunk.length
 
 			if self.need_entire_file_hash:
+				assert self.__entire_file_hasher is not None
 				self.__entire_file_hasher.update(raw_chunk.data)
 
 			chunk_hash = raw_chunk.hash
@@ -81,6 +82,8 @@ class Chunker(ABC):
 		]
 
 	def get_entire_file_hash(self) -> str:
+		if self.__entire_file_hasher is None:
+			raise RuntimeError('entire file hash is not calculated')
 		return self.__entire_file_hasher.hexdigest()
 
 	def get_read_file_size(self) -> int:

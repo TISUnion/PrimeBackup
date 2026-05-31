@@ -11,7 +11,7 @@ from typing import List, Optional, Callable, Dict, Set, Deque, TYPE_CHECKING, Un
 from typing_extensions import override
 
 from prime_backup.action.helpers.blob_creator_chunked import ChunkedBlobCreator
-from prime_backup.action.helpers.blob_creator_common import BlobCreateContext, BlobFileChanged, VolatileBlobFile, LookupBlobBySizeRequest, LookupBlobByHashRequest, BlobLookupRequest, BlobLookupRoutine
+from prime_backup.action.helpers.blob_creator_common import BlobCreateContext, BlobFileChanged, VolatileBlobFile, LookupBlobBySizeRequest, LookupBlobByHashRequest, BlobLookupRequest, BlobLookupRoutine, _BLOB_ALLOC_PERF_MODE
 from prime_backup.action.helpers.blob_creator_direct import DirectBlobCreator
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
@@ -271,6 +271,9 @@ class BlobAllocator:
 			self.__ctx.blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
 
 	def schedule_loop(self, gen_list: List[BlobLookupRoutine[schema.File]]) -> List[schema.File]:
+		if _BLOB_ALLOC_PERF_MODE:
+			return self.__schedule_loop_simple(gen_list)
+
 		files: List[schema.File] = []
 
 		schedule_queue: Deque[BlobLookupRoutine[schema.File]] = collections.deque()
@@ -307,6 +310,20 @@ class BlobAllocator:
 				self.__batch_lookup_manager.flush()
 
 		return files
+
+	def __schedule_loop_simple(self, gen_list: List[BlobLookupRoutine[schema.File]]) -> List[schema.File]:
+		files: List[schema.File] = []
+
+		def gen_wrapper(g: BlobLookupRoutine[schema.File]):
+			f = yield from g
+			files.append(f)
+
+		for gen in gen_list:
+			for query_req in gen_wrapper(gen):
+				self.__batch_lookup_manager.query(query_req, lambda: None)
+				self.__batch_lookup_manager.flush()
+		return files
+
 
 	def add_existing_sizes(self, existing_sizes: Dict[int, bool]):
 		self.__blob_by_size_cache.update(existing_sizes)

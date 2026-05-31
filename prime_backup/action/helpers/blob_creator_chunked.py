@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import contextlib
 import dataclasses
 import enum
@@ -9,7 +7,7 @@ from concurrent.futures import Future
 from pathlib import Path
 from typing import BinaryIO, Dict, List, Optional
 
-from prime_backup.action.helpers.blob_creator_common import BlobLookupRoutine, BlobCreateContext, BlobCreatorBase
+from prime_backup.action.helpers.blob_creator_common import BlobLookupRoutine, BlobCreateContext, BlobCreatorBase, _BLOB_ALLOC_PERF_MODE
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
@@ -251,7 +249,12 @@ class ChunkedBlobCreator(BlobCreatorBase):
 				compressed = compressor_.compress_bytes(chunk_buf_)
 				return _CompressedChunk(db_chunk_, compressed)
 
-			write_state.futures.append(pool.submit(write_task))
+			if _BLOB_ALLOC_PERF_MODE:
+				fut: Future[_CompressedChunk] = Future()
+				fut.set_result(write_task())
+				write_state.futures.append(fut)
+			else:
+				write_state.futures.append(pool.submit(write_task))
 			write_state.pending_bytes += db_chunk.raw_size
 
 			self.__flush_compressed_chunk_futures(write_state, force=False)

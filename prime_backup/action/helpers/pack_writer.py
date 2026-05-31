@@ -25,7 +25,6 @@ class _ActivePack:
 				raise EOFError('reader exhausted with {} bytes remaining'.format(remaining))
 			self.file.write(buf)
 			remaining -= len(buf)
-		self.file.flush()
 
 		self.pack.size += size
 		self.pack.entry_count += 1
@@ -36,7 +35,6 @@ class _ActivePack:
 
 	def append_bytes(self, data: bytes) -> PackEntryLocation:
 		self.file.write(data)
-		self.file.flush()
 
 		offset = self.pack.size
 		self.pack.size += len(data)
@@ -47,6 +45,7 @@ class _ActivePack:
 		return PackEntryLocation(self.pack.id, offset)
 
 	def close(self):
+		self.file.flush()
 		self.file.close()
 
 

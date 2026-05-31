@@ -4,7 +4,7 @@ import functools
 import sqlite3
 import string
 from pathlib import Path
-from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple, Any
+from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple, Any, Type, TYPE_CHECKING
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row, update, inspect, ColumnElement
@@ -17,6 +17,10 @@ from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHash
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.types.pack_info import PackEntryInfo
 from prime_backup.utils import collection_utils, db_utils, validation_utils
+
+if TYPE_CHECKING:
+	from sqlalchemy.sql.type_api import TypeEngine
+
 
 _T = TypeVar('_T')
 _TP = TypeVar('_TP', bound=Tuple[Any, ...])
@@ -87,20 +91,26 @@ class DbSession:
 		return cls.__check_support(db_utils.check_sqlite_row_number, 'SQLite backend does not support ROW_NUMBER() statement, ID reassignment is not available')
 
 	@classmethod
+	@functools.lru_cache(None)
+	def __get_schema_column_fields(cls, typ: Type[schema.Base]) -> List[Tuple[str, 'TypeEngine']]:
+		mapper: Mapper = inspect(typ)
+		return [
+			(col_attr.key, col_attr.columns[0].type)
+			for col_attr in mapper.column_attrs
+		]
+
+	@classmethod
 	def __validate_int_fields_range(cls, obj: schema.Base):
 		from sqlalchemy import Integer, BigInteger
-		mapper: Mapper = inspect(type(obj))
-
-		for col_attr in mapper.column_attrs:
+		for col_name, col_type in cls.__get_schema_column_fields(type(obj)):
 			def bad_msg() -> str:
-				return f'bad field {col_attr.key} for {obj!r}'
-			col = col_attr.columns[0]
-			value = getattr(obj, col_attr.key, None)
+				return f'bad field {col_name} for {obj!r}'
+			value = getattr(obj, col_name, None)
 			if not isinstance(value, int):
 				continue
-			if isinstance(col.type, BigInteger):
+			if isinstance(col_type, BigInteger):
 				validation_utils.validate_int64(value, bad_msg)
-			elif isinstance(col.type, Integer):
+			elif isinstance(col_type, Integer):
 				validation_utils.validate_int32(value, bad_msg)
 
 	@classmethod

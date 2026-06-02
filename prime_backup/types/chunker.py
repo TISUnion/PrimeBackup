@@ -2,7 +2,7 @@ import dataclasses
 import logging
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable, Dict
+from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable, Dict, Iterator
 
 from typing_extensions import override
 
@@ -24,6 +24,79 @@ class PrettyChunk:
 @dataclasses.dataclass(frozen=True)
 class PrettyChunkWithData(PrettyChunk):
 	data: memoryview
+
+
+class PrettyChunkSequence(ABC):
+	@abstractmethod
+	def __len__(self) -> int:
+		...
+
+	@abstractmethod
+	def __iter__(self) -> Iterator[PrettyChunk]:
+		...
+
+	@abstractmethod
+	def iter_hashes(self) -> Iterator[str]:
+		...
+
+
+@dataclasses.dataclass(frozen=True)
+class SimplePrettyChunkSequence(PrettyChunkSequence):
+	chunks: List[PrettyChunk]
+
+	@override
+	def __len__(self) -> int:
+		return len(self.chunks)
+
+	@override
+	def __iter__(self) -> Iterator[PrettyChunk]:
+		return iter(self.chunks)
+
+	@override
+	def iter_hashes(self) -> Iterator[str]:
+		return (chunk.hash for chunk in self.chunks)
+
+
+@dataclasses.dataclass(frozen=True)
+class FixedPrettyChunkSequence(PrettyChunkSequence):
+	file_size: int
+	chunk_size: int
+	one_hash_hex_len: int
+	hash_hex_buf: str
+
+	def __post_init__(self):
+		if self.file_size < 0:
+			raise ValueError('negative file size {}'.format(self.file_size))
+		if self.chunk_size <= 0:
+			raise ValueError('bad chunk size {}'.format(self.chunk_size))
+		if self.one_hash_hex_len <= 0:
+			raise ValueError('bad hash hex length {}'.format(self.one_hash_hex_len))
+		if len(self.hash_hex_buf) != (expected_hash_len := len(self) * self.one_hash_hex_len):
+			raise ValueError('bad fixed chunk hash hexes length {}, expected {}'.format(len(self.hash_hex_buf), expected_hash_len))
+
+	@override
+	def __len__(self) -> int:
+		return (self.file_size + self.chunk_size - 1) // self.chunk_size
+
+	def __hash_at(self, index: int) -> str:
+		start = index * self.one_hash_hex_len
+		end = start + self.one_hash_hex_len
+		return self.hash_hex_buf[start:end]
+
+	@override
+	def __iter__(self) -> Iterator[PrettyChunk]:
+		for index in range(len(self)):
+			offset = index * self.chunk_size
+			yield PrettyChunk(
+				offset=offset,
+				length=min(self.chunk_size, self.file_size - offset),
+				hash=self.__hash_at(index),
+			)
+
+	@override
+	def iter_hashes(self) -> Iterator[str]:
+		for index in range(len(self)):
+			yield self.__hash_at(index)
 
 
 # ======================== Abstract Chunker ========================
@@ -80,6 +153,9 @@ class Chunker(ABC):
 			PrettyChunk(offset=c.offset, length=c.length, hash=c.hash)
 			for c in self.cut()
 		]
+
+	def cut_all_compact(self) -> PrettyChunkSequence:
+		return SimplePrettyChunkSequence(self.cut_all())
 
 	def get_entire_file_hash(self) -> str:
 		if self.__entire_file_hasher is None:
@@ -155,6 +231,21 @@ class _FixedSizeChunker(Chunker, ABC):
 				break
 			yield _RawChunk(offset=offset, length=len(buf), data=memoryview(buf))
 			offset += len(buf)
+
+	@override
+	def cut_all_compact(self) -> PrettyChunkSequence:
+		hash_hex_list: List[str] = []
+		hash_hex_len = chunk_utils.get_hash_method().value.hex_length
+		for chunk in self.cut():
+			if hash_hex_len != len(chunk.hash):
+				raise ValueError('inconsistent chunk hash length: {} != {}'.format(len(chunk.hash), hash_hex_len))
+			hash_hex_list.append(chunk.hash)
+		return FixedPrettyChunkSequence(
+			file_size=self.get_read_file_size(),
+			chunk_size=self.chunk_size,
+			one_hash_hex_len=hash_hex_len,
+			hash_hex_buf=''.join(hash_hex_list),
+		)
 
 
 class FixedSizeFileChunker(_FixedSizeChunker):

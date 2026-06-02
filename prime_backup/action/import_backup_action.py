@@ -20,7 +20,6 @@ from prime_backup.db.values import FileRole, BlobStorageMethod
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.backup_info import BackupInfo
 from prime_backup.types.backup_meta import BackupMeta
-from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.types.pack_info import PackEntryLocation
@@ -131,7 +130,7 @@ class ImportBackupAction(Action[BackupInfo]):
 			offset += chunk.length
 
 		for new_db_chunk in new_db_chunks:
-			self.__get_blob_recorder().record_new_chunk(ChunkInfo.of(new_db_chunk))
+			self.__get_blob_recorder().record_new_chunk_size(new_db_chunk.raw_size, new_db_chunk.stored_size)
 			session.add(new_db_chunk)
 		blob = self.__get_blob_recorder().create_blob(
 			session,
@@ -257,8 +256,12 @@ class ImportBackupAction(Action[BackupInfo]):
 			if blob is not None:
 				self.__blob_cache[h] = blob
 
+
 		for h, chunk in session.get_chunks_by_hashes_opt(collection_utils.deduplicated_list(
-			c.hash for res in pre_cal_dict.values() for c in res.chunks
+			chunk_hash
+			for res in pre_cal_dict.values()
+			if res.chunks is not None
+			for chunk_hash in res.chunks.iter_hashes()
 		)).items():
 			if chunk is not None:
 				self.__chunk_cache[h] = chunk

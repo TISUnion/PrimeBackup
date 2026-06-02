@@ -14,9 +14,8 @@ from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCost
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
 from prime_backup.db.values import BlobStorageMethod
-from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.chunk_method import ChunkMethod
-from prime_backup.types.chunker import PrettyChunk
+from prime_backup.types.chunker import PrettyChunk, PrettyChunkSequence, SimplePrettyChunkSequence
 from prime_backup.types.units import ByteCount
 from prime_backup.utils import chunk_utils, file_utils, hash_utils, misc_utils
 from prime_backup.utils.thread_pool import FailFastBlockingThreadPool
@@ -35,7 +34,7 @@ class _ChunkedBlobPlan:
 
 @dataclasses.dataclass(frozen=True)
 class _ChunkedBlobSnapshot:
-	chunks: List[PrettyChunk]
+	chunks: PrettyChunkSequence
 	blob_hash: str
 	blob_size: int
 
@@ -104,7 +103,7 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			# large files that need to be chunked already contain quite a few chunks,
 			# so it's efficient enough to directly query for chunks from DB here
 			with self.ctx.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
-				known_db_chunks = self.ctx.session.get_chunks_by_hashes_opt([chunk.hash for chunk in snapshot.chunks])
+				known_db_chunks = self.ctx.session.get_chunks_by_hashes_opt(list(snapshot.chunks.iter_hashes()))
 
 			write_result = self.__create_missing_chunks(actual_path_to_read, snapshot, known_db_chunks)
 
@@ -158,6 +157,8 @@ class ChunkedBlobCreator(BlobCreatorBase):
 	def __load_or_cut_chunks(self, actual_path_to_read: Path, pre_cal_result: Optional[BlobPrecalculateResult], src_path_str: str) -> _ChunkedBlobSnapshot:
 		if pre_cal_result is not None:
 			chunks = pre_cal_result.chunks
+			if chunks is None:
+				raise AssertionError('pre_cal_result.chunks is None')
 			blob_hash = pre_cal_result.hash
 			blob_size = pre_cal_result.size
 			self.logger.debug('Cut and hashed file {} with size {} into {} chunks using {} (precalc)'.format(
@@ -168,7 +169,7 @@ class ChunkedBlobCreator(BlobCreatorBase):
 		previous_chunks = self.ctx.file_lookup.get_previous_chunks(self.args.src_path) if self.args.chunk_method.needs_previous_chunks() else None
 		chunker = self.args.chunk_method.create_file_chunker(actual_path_to_read, need_entire_file_hash=True, previous_chunks=previous_chunks)
 		with self.ctx.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as chunking_cost:
-			chunks = chunker.cut_all()
+			chunks = SimplePrettyChunkSequence(chunker.cut_all())
 		blob_hash = chunker.get_entire_file_hash()
 		blob_size = chunker.get_read_file_size()
 		self.logger.debug('Cut and hashed file {} with size {} into {} chunks using {} in {:.2f}s ({}/s)'.format(

@@ -4,8 +4,10 @@ import logging
 import os
 import stat
 import time
+from concurrent.futures import Future
 from pathlib import Path
-from typing import List, Optional, Dict, Set, ContextManager
+from typing import List, Optional, Dict, Set, ContextManager, Iterable
+from typing import Tuple
 
 from typing_extensions import override
 
@@ -236,6 +238,16 @@ class CreateBackupAction(Action[BackupInfo]):
 					for offset_chunk in session.get_blob_chunks(previous_file.blob_id)
 				]
 
+	@classmethod
+	def _pre_calculate_hash_worker(cls, path: Path, rel_path: Path, path_size: int, previous_chunks: Optional[Iterable[PrettyChunk]]) -> Optional[BlobPrecalculateResult]:
+		try:
+			return BlobPrecalculateResult.from_file(
+				path, rel_path, path_size,
+				previous_chunks=previous_chunks,
+			)
+		except BlobPrecalculateResult.SizeMismatched:
+			return None  # the file keeps changing, so it's not good to create a pre-calc result for it
+
 	def __pre_calculate_hash_and_chunks(self, session: DbSession, blob_allocator: BlobAllocator, scan_result: _ScanResult):
 		hashes_and_chunks = self.__pre_calc_result.hashes_and_chunks
 		hashes_and_chunks.clear()
@@ -253,27 +265,27 @@ class CreateBackupAction(Action[BackupInfo]):
 		existing_sizes = session.has_blob_with_size_batched(list(all_sizes))
 		blob_allocator.add_existing_sizes(existing_sizes)
 
-		def hash_worker(pth: Path, pth_size: int):
-			rel_path = pth.relative_to(self.__source_path)
-			try:
-				result = BlobPrecalculateResult.from_file(
-					pth,
-					rel_path,
-					pth_size,
-					previous_chunks=self.__pre_calc_result.previous_file_chunks.get(pth),
-				)
-			except BlobPrecalculateResult.SizeMismatched:
-				return  # the file keeps changing, so it's not good to create a pre-calc result for it
-			hashes_and_chunks[pth] = result
-
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read):
+			futures: List[Tuple[Path, 'Future[Optional[BlobPrecalculateResult]]']] = []
 			with FailFastBlockingThreadPool(name='hasher') as pool:
 				for file_entry in file_entries_to_hash:
 					if existing_sizes[file_entry.stat.st_size]:
 						# we need to hash the file, sooner or later
-						pool.submit(hash_worker, file_entry.path, file_entry.stat.st_size)
+						path = file_entry.path
+						fut: 'Future[Optional[BlobPrecalculateResult]]' = pool.submit(
+							self._pre_calculate_hash_worker,
+							path=path,
+							rel_path=path.relative_to(self.__source_path),
+							path_size=file_entry.stat.st_size,
+							previous_chunks=self.__pre_calc_result.previous_file_chunks.get(path)
+						)
+						futures.append((path, fut))
 					else:
 						pass  # will use hash_once policy
+				for path, fut in futures:
+					result = fut.result()
+					if result is not None:
+						hashes_and_chunks[path] = result
 
 	@functools.cached_property
 	def __temp_path(self) -> Path:

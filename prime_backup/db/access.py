@@ -63,6 +63,10 @@ class DbAccess:
 		cls.__db_file_path = None
 
 	@classmethod
+	def _set_hash_method(cls, hash_method: HashMethod):
+		cls.__hash_method = hash_method
+
+	@classmethod
 	def sync_hash_method(cls):
 		with cls.open_session() as session:
 			hash_method_str = str(session.get_db_meta().hash_method)

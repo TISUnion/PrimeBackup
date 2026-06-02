@@ -9,7 +9,7 @@ from prime_backup.action.helpers import create_backup_utils
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.types.blob_info import BlobInfo, BlobDeltaSummary
-from prime_backup.types.chunk_info import ChunkInfo
+from prime_backup.types.chunk_info import ChunkListSummary
 
 if TYPE_CHECKING:
 	from prime_backup.action.helpers.pack_writer import PackWriter
@@ -22,7 +22,7 @@ class BlobRecorder:
 		self.__pack_writer = pack_writer
 
 		self.__new_blobs: List[BlobInfo] = []
-		self.__new_chunks: List[ChunkInfo] = []
+		self.__new_chunk_summary: ChunkListSummary = ChunkListSummary.zero()
 		self.__file_rollbackers: List[Path] = []  # direct blob files to delete on rollback
 
 	def add_remove_file_rollbacker(self, file_to_remove: Path):
@@ -49,12 +49,12 @@ class BlobRecorder:
 		self.__new_blobs.append(BlobInfo.of(blob))
 		return blob
 
-	def record_new_chunk(self, new_chunk: ChunkInfo):
-		self.__new_chunks.append(new_chunk)
+	def record_new_chunk_size(self, raw_size: int, stored_size: int):
+		self.__new_chunk_summary.add_chunk(raw_size, stored_size)
 
 	def get_blob_storage_delta(self) -> BlobDeltaSummary:
 		return BlobDeltaSummary.of(
 			new_blobs=self.__new_blobs,
-			new_chunks=self.__new_chunks,
+			new_chunks=self.__new_chunk_summary,
 			packs=self.__pack_writer.get_created_pack_summary(),
 		)

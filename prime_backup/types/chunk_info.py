@@ -69,6 +69,11 @@ class ChunkListSummary:
 		from prime_backup.types.pack_info import PackChangeSummary
 		return cls(0, 0, 0, PackChangeSummary.zero())
 
+	def add_chunk(self, raw_size: int, stored_size: int):
+		self.count += 1
+		self.raw_size += raw_size
+		self.stored_size += stored_size
+
 	@classmethod
 	def of(cls, chunks: Iterable[ChunkInfo]) -> 'ChunkListSummary':
 		cnt, raw_size_sum, stored_size_sum = 0, 0, 0

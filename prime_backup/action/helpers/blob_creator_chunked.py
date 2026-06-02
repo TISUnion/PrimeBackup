@@ -294,7 +294,7 @@ class ChunkedBlobCreator(BlobCreatorBase):
 	def __create_chunked_blob(self, snapshot: _ChunkedBlobSnapshot, write_result: _ChunkWriteResult) -> schema.Blob:
 		for new_db_chunk in write_result.new_db_chunks:
 			misc_utils.assert_true(new_db_chunk.stored_size >= 0, lambda: f'bad stored_size {new_db_chunk}')
-			self.ctx.blob_recorder.record_new_chunk(ChunkInfo.of(new_db_chunk))
+			self.ctx.blob_recorder.record_new_chunk_size(new_db_chunk.raw_size, new_db_chunk.stored_size)
 			self.ctx.session.add(new_db_chunk)
 		blob = self.ctx.blob_recorder.create_blob(
 			self.ctx.session,

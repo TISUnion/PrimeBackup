@@ -114,7 +114,10 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			len(write_result.offset_to_db_chunk), len(write_result.new_db_chunks),
 			100.0 * len(write_result.new_db_chunks) / max(1, len(write_result.offset_to_db_chunk)),
 		))
-		if len(write_result.new_db_chunks) >= max(5000, int(write_result.unique_chunk_count * 0.6)):
+		if (
+				len(write_result.new_db_chunks) >= max(5000, int(write_result.unique_chunk_count * 0.6)) and
+				self.ctx.previous_backup_chunked_file_exists_getter(self.args.src_path)
+		):
 			# 5000 chunks == 5000*32*1.2 == ~192MiB
 			self.logger.warning('Chunked a large file with lots of new chunks, please consider if it should really be in the chunking target patterns')
 			self.logger.warning('File path: {} size {}, chunk method {}, chunk count {} (unique {}, new {} {:.1f}%), new chunk size {}'.format(
@@ -123,7 +126,6 @@ class ChunkedBlobCreator(BlobCreatorBase):
 				len(write_result.new_db_chunks), 100.0 * len(write_result.new_db_chunks) / max(1, write_result.unique_chunk_count),
 				ByteCount(sum(db_chunk.raw_size for db_chunk in write_result.new_db_chunks)).auto_str(),
 			))
-			self.logger.warning('You can safely ignore this warning if this is the first backup containing the file')
 
 		return self.__create_chunked_blob(snapshot, write_result)
 

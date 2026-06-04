@@ -77,8 +77,9 @@ class BlobCreateContext:
 	blob_recorder: BlobRecorder
 	source_path: Path
 	temp_path: Path
-	pre_calc_result_getter: Callable[[Path], Optional[BlobPrecalculateResult]]
-	previous_chunks_getter: Callable[[Path], Optional[List[PrettyChunk]]]
+	pre_calc_result_getter: Callable[[Path], Optional[BlobPrecalculateResult]]  # real-world path
+	previous_chunks_getter: Callable[[Path], Optional[List[PrettyChunk]]]  # real-world path
+	previous_backup_chunked_file_exists_getter: Callable[[Path], bool]  # real-world path
 	pack_writer: 'PackWriter'
 	blob_by_size_cache: Dict[int, bool]
 	blob_by_hash_cache: Dict[str, schema.Blob]

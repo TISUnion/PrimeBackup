@@ -157,6 +157,7 @@ class BlobAllocator:
 			temp_path: Path,
 			pre_calc_result_getter: Callable[[Path], Optional[BlobPrecalculateResult]],
 			previous_chunks_getter: Callable[[Path], Optional[List[PrettyChunk]]],
+			previous_backup_chunked_file_exists_getter: Callable[[Path], bool],
 			pack_writer: 'PackWriter',
 	):
 		from prime_backup import logger
@@ -179,6 +180,7 @@ class BlobAllocator:
 			temp_path=temp_path,
 			pre_calc_result_getter=pre_calc_result_getter,
 			previous_chunks_getter=previous_chunks_getter,
+			previous_backup_chunked_file_exists_getter=previous_backup_chunked_file_exists_getter,
 			pack_writer=pack_writer,
 			blob_by_size_cache=self.__blob_by_size_cache,
 			blob_by_hash_cache=self.__blob_by_hash_cache,

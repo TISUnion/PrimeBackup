@@ -61,11 +61,11 @@ class _ScanResult:
 
 @dataclasses.dataclass(frozen=True)
 class _PreCalculationResult:
-	stats: Dict[Path, os.stat_result] = dataclasses.field(default_factory=dict)
-	hashes_and_chunks: Dict[Path, BlobPrecalculateResult] = dataclasses.field(default_factory=dict)
-	reused_files: Dict[Path, schema.File] = dataclasses.field(default_factory=dict)
-	previous_backup_files: Dict[str, schema.File] = dataclasses.field(default_factory=dict)
-	previous_file_chunks: Dict[Path, List[PrettyChunk]] = dataclasses.field(default_factory=dict)
+	stats: Dict[Path, os.stat_result] = dataclasses.field(default_factory=dict)  # real-world path
+	hashes_and_chunks: Dict[Path, BlobPrecalculateResult] = dataclasses.field(default_factory=dict)  # real-world path
+	reused_files: Dict[Path, schema.File] = dataclasses.field(default_factory=dict)  # real-world path
+	previous_backup_files: Dict[str, schema.File] = dataclasses.field(default_factory=dict)  # db path, relative to source_path
+	previous_file_chunks: Dict[Path, List[PrettyChunk]] = dataclasses.field(default_factory=dict)  # real-world path
 
 
 class CreateBackupAction(Action[BackupInfo]):
@@ -341,6 +341,15 @@ class CreateBackupAction(Action[BackupInfo]):
 		def previous_chunks_getter(src_path: Path) -> Optional[List[PrettyChunk]]:
 			return self.__pre_calc_result.previous_file_chunks.get(src_path)
 
+		def previous_backup_chunked_file_exists_getter(src_path: Path) -> bool:
+			previous_file = self.__pre_calc_result.previous_backup_files.get(self.__file_path_to_db_path(src_path))
+			return (
+				previous_file is not None and
+				stat.S_ISREG(previous_file.mode) and
+				previous_file.blob_id is not None and
+				previous_file.blob_storage_method == BlobStorageMethod.chunked.value
+			)
+
 		blob_allocator = BlobAllocator(
 			session=session,
 			time_costs=self.__time_costs,
@@ -349,6 +358,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			temp_path=self.__temp_path,
 			pre_calc_result_getter=pre_calc_result_getter,
 			previous_chunks_getter=previous_chunks_getter,
+			previous_backup_chunked_file_exists_getter=previous_backup_chunked_file_exists_getter,
 			pack_writer=pack_writer,
 		)
 

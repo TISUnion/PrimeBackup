@@ -6,7 +6,7 @@ from typing_extensions import override
 
 from prime_backup.action import Action
 from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
-from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
+from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult, CalcChunkPolicy
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
 from prime_backup.action.helpers.pack_writer import PackWriter
@@ -250,7 +250,7 @@ class ImportBackupAction(Action[BackupInfo]):
 		for i, member in enumerate(members):
 			if member.is_file():
 				with member.open() as f:
-					pre_cal_dict[i] = BlobPrecalculateResult.from_stream(f, Path(member.path), member.size)
+					pre_cal_dict[i] = BlobPrecalculateResult.from_stream(f, Path(member.path), member.size, calc_chunk_policy=CalcChunkPolicy.TRUE)
 
 		for h, blob in session.get_blobs_by_hashes_opt([res.hash for res in pre_cal_dict.values()]).items():
 			if blob is not None:

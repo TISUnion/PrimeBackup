@@ -52,3 +52,10 @@ class ChunkMethod(enum.Enum):
 
 	def needs_previous_chunks(self) -> bool:
 		return self.value.needs_previous_chunks()
+
+	def should_precalculate_chunks(self) -> bool:
+		"""
+		Return True if this method is coarse-grained enough for parallel precalculation.
+		Finer chunks can reduce throughput when multiple files are chunked concurrently.
+		"""
+		return self in (ChunkMethod.fastcdc_1m, ChunkMethod.fixed_1m)

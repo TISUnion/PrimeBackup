@@ -1,4 +1,5 @@
 import dataclasses
+import enum
 from pathlib import Path
 from typing import IO, Optional, Iterable
 
@@ -6,6 +7,21 @@ from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.chunker import PrettyChunk, PrettyChunkSequence
 from prime_backup.utils import misc_utils, hash_utils
 from prime_backup.utils.hash_utils import SizeAndHash
+
+
+class CalcChunkPolicy(enum.Enum):
+	AUTO = enum.auto()
+	FALSE = enum.auto()
+	TRUE = enum.auto()
+
+	def should_calculate_chunks(self, chunk_method: ChunkMethod) -> bool:
+		if self == CalcChunkPolicy.AUTO:
+			return chunk_method.should_precalculate_chunks()
+		if self == CalcChunkPolicy.FALSE:
+			return False
+		if self == CalcChunkPolicy.TRUE:
+			return True
+		raise ValueError('unknown calc chunk policy {!r}'.format(self))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -27,13 +43,16 @@ class BlobPrecalculateResult:
 		})
 
 	@classmethod
-	def from_stream(cls, stream: IO[bytes], rel_path: Path, size: int) -> 'BlobPrecalculateResult':
+	def from_stream(cls, stream: IO[bytes], rel_path: Path, size: int, *, calc_chunk_policy: CalcChunkPolicy = CalcChunkPolicy.AUTO) -> 'BlobPrecalculateResult':
 		chunk_method = ChunkMethod.get_for_file(rel_path, size)
 		chunks: Optional[PrettyChunkSequence] = None
 		if chunk_method is not None:
-			chunker = chunk_method.create_stream_chunker(stream, need_entire_file_hash=True)
-			chunks = chunker.cut_all_compact()
-			sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
+			if calc_chunk_policy.should_calculate_chunks(chunk_method):
+				chunker = chunk_method.create_stream_chunker(stream, need_entire_file_hash=True)
+				chunks = chunker.cut_all_compact()
+				sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
+			else:
+				sah = hash_utils.calc_reader_size_and_hash(stream)
 		else:
 			sah = hash_utils.calc_reader_size_and_hash(stream)
 		if sah.size != size:
@@ -47,13 +66,16 @@ class BlobPrecalculateResult:
 		)
 
 	@classmethod
-	def from_file(cls, path: Path, rel_path: Path, size: int, *, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> 'BlobPrecalculateResult':
+	def from_file(cls, path: Path, rel_path: Path, size: int, *, calc_chunk_policy: CalcChunkPolicy = CalcChunkPolicy.AUTO, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> 'BlobPrecalculateResult':
 		chunk_method = ChunkMethod.get_for_file(rel_path, size)
 		chunks: Optional[PrettyChunkSequence] = None
 		if chunk_method is not None:
-			chunker = chunk_method.create_file_chunker(path, need_entire_file_hash=True, previous_chunks=previous_chunks)
-			chunks = chunker.cut_all_compact()
-			sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
+			if calc_chunk_policy.should_calculate_chunks(chunk_method):
+				chunker = chunk_method.create_file_chunker(path, need_entire_file_hash=True, previous_chunks=previous_chunks)
+				chunks = chunker.cut_all_compact()
+				sah = SizeAndHash(chunker.get_read_file_size(), chunker.get_entire_file_hash())
+			else:
+				sah = hash_utils.calc_file_size_and_hash(path)
 		else:
 			sah = hash_utils.calc_file_size_and_hash(path)
 		if sah.size != size:

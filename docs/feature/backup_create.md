@@ -102,7 +102,7 @@ Below are some commonly used configuration items
 
 ## Detailed Backup Process
 
-Below will list the operation process during PB backup creation
+The following describes the operation process during PB backup creation
 
 1. Interact with MC server to construct an environment suitable for backup creation (all operations below can be configured)
     1. Use commands such as `save-off` to disable MC's automatic saving
@@ -113,7 +113,7 @@ Below will list the operation process during PB backup creation
     2. If available concurrency configuration > 1, use multi-threading to pre-calculate the hash value of each file to be backed up
     3. For each file to be backed up, process one by one:
         1. Calculate hash value. If previously calculated, reuse directly
-        2. Determine if data with this hash value has been backed up before, if not, copy a copy of the data to the backup path
+        2. Determine if data with this hash value has been backed up before, if not, copy the data to the backup path
         3. Store this file's metadata and hash value in the database
     4. Calculate the fileset for this backup, complete the backup
 3. Restore operations on MC server

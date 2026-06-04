@@ -126,7 +126,7 @@ When validation detects issues, detailed error information will be displayed:
 
 ### Invalid Data Cleanup
 
-Prune useless stuffs as orphaned objects in the database
+Prune useless objects such as orphaned objects in the database
 
 ```
 !!pb database prune

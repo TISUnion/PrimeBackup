@@ -77,7 +77,7 @@ options:
                         '.prime_backup.meta.json' in the exported file
 ```
 
-As a demonstration, here's an example usage that shows the overview of the database
+As a demonstration, here's an example that shows the overview of the database
 
 ```
 $ python3 PrimeBackup.pyz -d run/pb_files overview

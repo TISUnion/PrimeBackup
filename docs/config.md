@@ -124,7 +124,7 @@ When time exceeds, the command will be cancelled
 
 #### backup_on_restore
 
-If an automatically backup should be made before restoring the world to a given backup. These automatic pre-restore backups are temporary backups
+Whether an automatic backup should be made before restoring the world to a given backup. These automatic pre-restore backups are temporary backups
 
 This is a safeguard prepared for those idiot users
 
@@ -411,7 +411,7 @@ However, this also introduces the potential risk of incomplete backups
 
 #### creation_skip_missing_file
 
-In certain scenarios, server plugins / mods do not respect to the `/save off` command,
+In certain scenarios, server plugins / mods do not respect the `/save off` command,
 and may still delete files when PB is creating a backup.
 These missing files can cause the backup operation to fail due to file not found errors
 
@@ -532,7 +532,7 @@ The algorithm to hash the files. Available options: `"xxh128"`, `"sha256"`, `"bl
 
 | Hash Method                                       | Description                                                                                                                                                       | Speed | cryptographically secure |
 |---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|--------------------------|
-| [`xxh128`](https://github.com/Cyan4973/xxHash)    | A extremely fast, high-quality 128bit non-cryptographic hash algorithm. Recommend to use, unless you want theoretic extreme safety on hackers                     | ★★★★★ | :cross_mark:             |
+| [`xxh128`](https://github.com/Cyan4973/xxHash)    | An extremely fast, high-quality 128bit non-cryptographic hash algorithm. Recommend to use, unless you want theoretic extreme safety on hackers                     | ★★★★★ | :cross_mark:             |
 | [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | A cryptographically secure and widely used 256bit hash algorithm. It's slower than xxh128, but the speed could be acceptable using cpu with hardware acceleration | ★★    | :check_mark:             |
 | [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | A cryptographically secure and speedy 256bit hash algorithm. It's still slower than xxh128, but is much faster than sha256                                        | ★★★☆  | :check_mark:             |
 

@@ -16,10 +16,10 @@ The root `!!pb` command shows the welcome page
 
 ## Command list overview
 
-Use `!!pb help` to have a full view of all commands
+Use `!!pb help` to see a full list of all commands
 
 ![!!pb help](img/pb_help.png)
 
 ## TODO
 
-TODO: More command usages
+TODO: More command usage

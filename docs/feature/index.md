@@ -26,6 +26,6 @@ Prime Backup feature list
 ### Database Operations (Advanced)
 
 - [Database overview](database_overview.md)
-- [Database internal object inspect](database_inspect.md)
+- [Database internal object inspection](database_inspect.md)
 - [Database maintaining](database_maintain.md)
 - [Database operation](database_operation.md)

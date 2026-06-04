@@ -2,7 +2,7 @@
 title: '备份还原（回档）'
 ---
 
-还原一个备份，也回档操作
+还原一个备份，也即回档操作
 
 ## 回档步骤
 
@@ -106,7 +106,7 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
 
 命令行 `back` 命令不会停止或启动 Minecraft 服务端。请在运行前自行停止服务端。
 如果配置文件启用了 `command.backup_on_restore`，回档会创建一个临时备份。
-添加 `--no-pre-restore-backup` 可以跳过这个临时备份
+可通过 `--no-pre-restore-backup` 参数跳过此临时备份
 
 ## 相关配置
 
@@ -117,7 +117,7 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
 
 ## 回档流程详解
 
-下面将列出 PB 回档备份过程中的操作流程
+以下是 PB 回档备份过程中的操作流程
 
 1. 确认阶段
    1. 显示要回档的备份信息

@@ -2,7 +2,7 @@
 title: 'Database Overview'
 ---
 
-View database statistics overview, used to quickly understand the information status of Prime Backup database
+View database statistics overview, used to quickly understand the current status of the Prime Backup database
 
 ## Command
 

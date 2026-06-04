@@ -7,7 +7,7 @@ title: 'Quick Start'
 ### Prepare MCDR
 
 Prime Backup is a [MCDReforged](https://github.com/Fallen-Breath/MCDReforged) plugin,
-and it requires `mcdreforged>=2.12` to work 
+and it requires `mcdreforged>=2.12` to work
 
 To install / update MCDReforged, you can run:
 
@@ -36,9 +36,9 @@ pip3 install -r {{ config.site_url }}requirements.txt
 
 ### Optional requirements
 
-Some optional Prime Backup features requires python libraries that does not listed in the requirements.txt
+Some optional Prime Backup features require Python libraries that are not listed in the requirements.txt
 
-If you want to have full features of Prime Backup, you can use the following command in advanced:
+If you want to have full features of Prime Backup, you can use the following command in advance:
 
 ```bash
 pip3 install -r {{ config.site_url }}requirements.optional.txt
@@ -122,7 +122,7 @@ Here are a few important things in the config file:
     
     - [`hash_method`](config.md#hash_method): The algorithm to hash the files. Available options: "xxh128", "sha256", "blake3"
 
-        - [`"xxh128"`](https://github.com/Cyan4973/xxHash): A extremely fast, high-quality non-cryptographic hash algorithm. 
+        - [`"xxh128"`](https://github.com/Cyan4973/xxHash): An extremely fast, high-quality non-cryptographic hash algorithm. 
           Recommend to use for its extreme speed, unless you want theoretic extreme safety on hackers
         - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and widely used hash algorithm. Classics never go out of style
         - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): A cryptographically secure and speedy hash algorithm. Much faster than sha256, but still slower than xxh128

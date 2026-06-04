@@ -66,4 +66,4 @@ Notes:
 
 - Cannot delete the root directory of the backup
 - Deleting directories requires the `--recursive` parameter
-- Default requires user confirmation to prevent accidental operation
+- By default, requires user confirmation to prevent accidental operation

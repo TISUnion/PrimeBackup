@@ -9,12 +9,12 @@ Document: https://tisunion.github.io/PrimeBackup/
 ## Features
 
 - Hash-based, compressed file pool deduplication; only new or changed data is stored, with no hard limit on backup count
-- Optional blob chunking algorithm; supports CDC (content-defined chunking) for large, locally edited files to improve deduplication across backups
+- Optional file chunking algorithm; supports Fixed-Size Chunking, Content-Defined Chunking, and other algorithms, splitting files into chunks for hash-based deduplication to further improve storage efficiency
 - Pack files store compressed binary entries such as chunk payloads, reducing small file pressure while supporting validation and compaction
 - Safe restore workflow: confirmation + countdown, automatic pre-restore backup, recycle-bin rollback, and data verification
-- Comprehensive backup operations, including backup/restore, list/delete, import/export, comments/tags, and more
+- Comprehensive backup operations, including backup/restore, list/view, diff display, import/export, and more
 - Smooth in-game interaction, with most operations achievable through mouse clicks
-- Rich database toolkit: overview statistics, integrity validation, orphan cleanup, file deletion, and hash/compression method migration
+- Rich database toolkit: object query, database overview, data integrity validation, orphan cleanup, backup file deletion, and hash/compression method migration
 - Highly customizable backup pruning strategies, similar to the strategy used by [PBS](https://pbs.proxmox.com/docs/prune-simulator/)
 - Scheduled jobs for automatic backup creation and backup pruning, support fixed intervals and crontab expressions
 - Provides a command-line tool if you want to manage backups without MCDR, and supports mounting as a filesystem via FUSE
@@ -38,13 +38,14 @@ With that, Prime Backup can deduplicate files with the same content, and only st
 
 Prime Backup also supports compression on stored data to further reduce disk usage
 
-For large and locally edited files, Prime Backup can optionally use CDC (Content-Defined Chunking) for better deduplication
-The file is split into content-defined chunks; each chunk is hashed and reused across backups when unchanged, only new chunk payloads are written as pack entries
+For large and locally edited files, Prime Backup can optionally enable file chunking for better deduplication.
+The file is split into multiple chunks, and each chunk is hashed.
+If a chunk's content hasn't changed, it can be reused across different backups, with only new chunk payloads written as pack entries
 
 Prime Backup stores common file types, including regular files, directories, and symbolic links; for these 3 types:
 
 - Regular file: Prime Backup calculates hashes (and size)
-  If CDC is enabled, it stores the file as a chunked blob that references chunks; chunks are deduplicated individually, then new chunk payloads are compressed and stored as pack entries
+  If chunking is enabled, it stores the file as a chunked blob that references chunks; chunks are deduplicated individually, then new chunk payloads are compressed and stored as pack entries
   Otherwise, it stores a direct blob; the whole file is deduplicated and compressed as a single unit
   File metadata such as mode, uid, and mtime are stored in the database
 - Directory: Prime Backup stores its information in the database

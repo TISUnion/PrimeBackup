@@ -11,15 +11,13 @@ from typing import List, Optional, Callable, Dict, Set, Deque, TYPE_CHECKING, Un
 from typing_extensions import override
 
 from prime_backup.action.helpers.blob_creator_chunked import ChunkedBlobCreator
-from prime_backup.action.helpers.blob_creator_common import BlobCreateContext, BlobFileChanged, VolatileBlobFile, LookupBlobBySizeRequest, LookupBlobByHashRequest, BlobLookupRequest, BlobLookupRoutine, _BLOB_ALLOC_PERF_MODE
+from prime_backup.action.helpers.blob_creator_common import BlobCreateContext, BlobCreateFileLookup, BlobFileChanged, VolatileBlobFile, LookupBlobBySizeRequest, LookupBlobByHashRequest, BlobLookupRequest, BlobLookupRoutine, _BLOB_ALLOC_PERF_MODE
 from prime_backup.action.helpers.blob_creator_direct import DirectBlobCreator
-from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.types.chunk_method import ChunkMethod
-from prime_backup.types.chunker import PrettyChunk
 from prime_backup.utils import blob_utils, file_utils, misc_utils, pack_utils
 from prime_backup.utils.time_cost_stats import TimeCostStats
 
@@ -155,9 +153,7 @@ class BlobAllocator:
 			blob_recorder: BlobRecorder,
 			source_path: Path,
 			temp_path: Path,
-			pre_calc_result_getter: Callable[[Path], Optional[BlobPrecalculateResult]],
-			previous_chunks_getter: Callable[[Path], Optional[List[PrettyChunk]]],
-			previous_backup_chunked_file_exists_getter: Callable[[Path], bool],
+			file_lookup: BlobCreateFileLookup,
 			pack_writer: 'PackWriter',
 	):
 		from prime_backup import logger
@@ -176,11 +172,8 @@ class BlobAllocator:
 			session=session,
 			time_costs=time_costs,
 			blob_recorder=blob_recorder,
-			source_path=source_path,
 			temp_path=temp_path,
-			pre_calc_result_getter=pre_calc_result_getter,
-			previous_chunks_getter=previous_chunks_getter,
-			previous_backup_chunked_file_exists_getter=previous_backup_chunked_file_exists_getter,
+			file_lookup=file_lookup,
 			pack_writer=pack_writer,
 			blob_by_size_cache=self.__blob_by_size_cache,
 			blob_by_hash_cache=self.__blob_by_hash_cache,

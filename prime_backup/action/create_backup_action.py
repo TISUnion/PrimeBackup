@@ -12,7 +12,7 @@ from typing_extensions import override
 from prime_backup.action import Action
 from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
 from prime_backup.action.helpers.blob_allocator import BlobAllocator
-from prime_backup.action.helpers.blob_creator_common import BlobLookupRoutine
+from prime_backup.action.helpers.blob_creator_common import BlobCreateFileLookup, BlobLookupRoutine
 from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
@@ -335,20 +335,27 @@ class CreateBackupAction(Action[BackupInfo]):
 		)
 
 	def __create_backup(self, session_context: ContextManager[DbSession], session: DbSession, pack_writer: PackWriter, blob_recorder: BlobRecorder) -> BackupInfo:
-		def pre_calc_result_getter(src_path: Path) -> Optional[BlobPrecalculateResult]:
-			return self.__pre_calc_result.hashes_and_chunks.pop(src_path, None)  # one-time use
+		pre_calc_result = self.__pre_calc_result
+		file_path_to_db_path = self.__file_path_to_db_path
 
-		def previous_chunks_getter(src_path: Path) -> Optional[List[PrettyChunk]]:
-			return self.__pre_calc_result.previous_file_chunks.get(src_path)
+		class FileLookup(BlobCreateFileLookup):
+			@override
+			def pop_pre_calc_result(self, src_path: Path) -> Optional[BlobPrecalculateResult]:  # real-world path
+				return pre_calc_result.hashes_and_chunks.pop(src_path, None)  # one-time use
 
-		def previous_backup_chunked_file_exists_getter(src_path: Path) -> bool:
-			previous_file = self.__pre_calc_result.previous_backup_files.get(self.__file_path_to_db_path(src_path))
-			return (
-				previous_file is not None and
-				stat.S_ISREG(previous_file.mode) and
-				previous_file.blob_id is not None and
-				previous_file.blob_storage_method == BlobStorageMethod.chunked.value
-			)
+			@override
+			def get_previous_chunks(self, src_path: Path) -> Optional[List[PrettyChunk]]:  # real-world path
+				return pre_calc_result.previous_file_chunks.get(src_path)
+
+			@override
+			def previous_backup_has_chunked_file(self, src_path: Path) -> bool:  # real-world path
+				previous_file = pre_calc_result.previous_backup_files.get(file_path_to_db_path(src_path))
+				return (
+					previous_file is not None and
+					stat.S_ISREG(previous_file.mode) and
+					previous_file.blob_id is not None and
+					previous_file.blob_storage_method == BlobStorageMethod.chunked.value
+				)
 
 		blob_allocator = BlobAllocator(
 			session=session,
@@ -356,9 +363,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			blob_recorder=blob_recorder,
 			source_path=self.__source_path,
 			temp_path=self.__temp_path,
-			pre_calc_result_getter=pre_calc_result_getter,
-			previous_chunks_getter=previous_chunks_getter,
-			previous_backup_chunked_file_exists_getter=previous_backup_chunked_file_exists_getter,
+			file_lookup=FileLookup(),
 			pack_writer=pack_writer,
 		)
 

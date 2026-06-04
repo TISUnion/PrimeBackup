@@ -3,9 +3,9 @@ import dataclasses
 import logging
 import os
 import threading
-from abc import ABC
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, ContextManager, Dict, Generator, List, Optional, TYPE_CHECKING, TypeVar, Union
+from typing import ContextManager, Dict, Generator, List, Optional, TYPE_CHECKING, TypeVar, Union
 
 from typing_extensions import NoReturn, override
 
@@ -50,6 +50,22 @@ BlobLookupRequest = Union[LookupBlobBySizeRequest, LookupBlobByHashRequest]
 BlobLookupRoutine = Generator[BlobLookupRequest, None, _T]
 
 
+class BlobCreateFileLookup(ABC):
+	# all src_path params here are real-world path
+
+	@abstractmethod
+	def pop_pre_calc_result(self, src_path: Path) -> Optional[BlobPrecalculateResult]:
+		...
+
+	@abstractmethod
+	def get_previous_chunks(self, src_path: Path) -> Optional[List[PrettyChunk]]:
+		...
+
+	@abstractmethod
+	def previous_backup_has_chunked_file(self, src_path: Path) -> bool:
+		...
+
+
 class _FailureFileDeleter(ContextManager['_FailureFileDeleter']):
 	def __init__(self, what: str = 'failure_delete'):
 		self.file_paths: List[Path] = []
@@ -75,11 +91,8 @@ class BlobCreateContext:
 	session: DbSession
 	time_costs: TimeCostStats[CreateBackupTimeCostKey]
 	blob_recorder: BlobRecorder
-	source_path: Path
 	temp_path: Path
-	pre_calc_result_getter: Callable[[Path], Optional[BlobPrecalculateResult]]  # real-world path
-	previous_chunks_getter: Callable[[Path], Optional[List[PrettyChunk]]]  # real-world path
-	previous_backup_chunked_file_exists_getter: Callable[[Path], bool]  # real-world path
+	file_lookup: BlobCreateFileLookup
 	pack_writer: 'PackWriter'
 	blob_by_size_cache: Dict[int, bool]
 	blob_by_hash_cache: Dict[str, schema.Blob]

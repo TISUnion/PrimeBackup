@@ -116,7 +116,7 @@ class ChunkedBlobCreator(BlobCreatorBase):
 		))
 		if (
 				len(write_result.new_db_chunks) >= max(5000, int(write_result.unique_chunk_count * 0.6)) and
-				self.ctx.previous_backup_chunked_file_exists_getter(self.args.src_path)
+				self.ctx.file_lookup.previous_backup_has_chunked_file(self.args.src_path)
 		):
 			# 5000 chunks == 5000*32*1.2 == ~192MiB
 			self.logger.warning('Chunked a large file with lots of new chunks, please consider if it should really be in the chunking target patterns')
@@ -135,7 +135,7 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			policy = _ChunkedBlobCreatePolicy.copy_hash
 		else:
 			policy = _ChunkedBlobCreatePolicy.default
-			pre_cal_result = self.ctx.pre_calc_result_getter(self.args.src_path)
+			pre_cal_result = self.ctx.file_lookup.pop_pre_calc_result(self.args.src_path)
 		if pre_cal_result is not None and (self.args.st.st_size != pre_cal_result.size or pre_cal_result.should_be_chunked is False):
 			self.logger.debug('Drop pre cal result for path {} due to stat mismatched, st.st_size {}, pre_cal_result {}'.format(
 				self.args.src_path, self.args.st.st_size, pre_cal_result.simple_repr(),
@@ -165,7 +165,7 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			))
 			return _ChunkedBlobSnapshot(chunks, blob_hash, blob_size)
 
-		previous_chunks = self.ctx.previous_chunks_getter(self.args.src_path) if self.args.chunk_method.needs_previous_chunks() else None
+		previous_chunks = self.ctx.file_lookup.get_previous_chunks(self.args.src_path) if self.args.chunk_method.needs_previous_chunks() else None
 		chunker = self.args.chunk_method.create_file_chunker(actual_path_to_read, need_entire_file_hash=True, previous_chunks=previous_chunks)
 		with self.ctx.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_read) as chunking_cost:
 			chunks = chunker.cut_all()

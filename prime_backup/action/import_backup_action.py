@@ -101,7 +101,7 @@ class ImportBackupAction(Action[BackupInfo]):
 			raise ValueError()
 		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(sah.size)
 		compressor = Compressor.create(compress_method)
-		compressed = compressor.compress_bytes(bytes(data))
+		compressed = compressor.compress_bytes(data)
 		entry_location = self.__get_pack_writer().write_entry(compressed)
 		return len(compressed), compress_method, entry_location
 
@@ -122,7 +122,7 @@ class ImportBackupAction(Action[BackupInfo]):
 		new_db_chunks: List[schema.Chunk] = []
 		offset_to_db_chunk: Dict[int, schema.Chunk] = {}
 		offset = 0
-		for chunk in chunk_method.create_stream_chunker(file_reader, need_entire_file_hash=False).cut():
+		for chunk in chunk_method.create_stream_chunker(file_reader, need_entire_file_hash=False).cut_with_data():
 			if (db_chunk := self.__chunk_cache.get(chunk.hash)) is None:
 				db_chunk = self.__create_chunk(session, chunk.data, SizeAndHash(chunk.length, chunk.hash))
 				new_db_chunks.append(db_chunk)

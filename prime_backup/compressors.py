@@ -137,11 +137,11 @@ class Compressor(ABC):
 		...
 
 	@abstractmethod
-	def compress_bytes(self, data: bytes) -> bytes:
+	def compress_bytes(self, data: Union[bytes, memoryview]) -> bytes:
 		...
 
 	@abstractmethod
-	def decompress_bytes(self, data: bytes) -> bytes:
+	def decompress_bytes(self, data: Union[bytes, memoryview]) -> bytes:
 		...
 
 
@@ -162,22 +162,22 @@ class PlainCompressor(Compressor):
 		yield f_in
 
 	@override
-	def compress_bytes(self, data: bytes) -> bytes:
-		return data
+	def compress_bytes(self, data: Union[bytes, memoryview]) -> bytes:
+		return data if isinstance(data, bytes) else bytes(data)
 
 	@override
-	def decompress_bytes(self, data: bytes) -> bytes:
-		return data
+	def decompress_bytes(self, data: Union[bytes, memoryview]) -> bytes:
+		return data if isinstance(data, bytes) else bytes(data)
 
 
 class _GzipLikeLibrary(Protocol):
 	def open(self, file_obj: SupportsReadBytes, mode: str) -> BinaryIO:
 		...
 
-	def compress(self, data: bytes) -> bytes:
+	def compress(self, data: Union[bytes, memoryview]) -> bytes:
 		...
 
-	def decompress(self, data: bytes) -> bytes:
+	def decompress(self, data: Union[bytes, memoryview]) -> bytes:
 		...
 
 
@@ -205,11 +205,11 @@ class _GzipLikeCompressorBase(Compressor, ABC):
 			yield compressed_in
 
 	@override
-	def compress_bytes(self, data: bytes) -> bytes:
+	def compress_bytes(self, data: Union[bytes, memoryview]) -> bytes:
 		return self._lib().compress(data)
 
 	@override
-	def decompress_bytes(self, data: bytes) -> bytes:
+	def decompress_bytes(self, data: Union[bytes, memoryview]) -> bytes:
 		return self._lib().decompress(data)
 
 

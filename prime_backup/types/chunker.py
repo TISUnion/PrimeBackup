@@ -1,8 +1,10 @@
 import dataclasses
 import logging
+import mmap
+import os
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable, Dict, Iterator
+from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable, Dict, Iterator, Callable, Tuple
 
 from typing_extensions import override
 
@@ -128,19 +130,24 @@ class Chunker(ABC):
 	def _iter_raw_chunks(self) -> Iterable['_RawChunk']:
 		...
 
-	def cut(self) -> Generator[PrettyChunkWithData, None, None]:
-		for raw_chunk in self._iter_raw_chunks():
-			self.__file_size_sum += raw_chunk.length
+	def cut_all(self) -> List[PrettyChunk]:
+		return list(self.cut())
 
-			if self.need_entire_file_hash:
-				assert self.__entire_file_hasher is not None
-				self.__entire_file_hasher.update(raw_chunk.data)
+	def cut(self) -> Generator[PrettyChunk, None, None]:
+		for raw_chunk, chunk_hash in self.__do_cut():
+			yield PrettyChunk(
+				offset=raw_chunk.offset,
+				length=raw_chunk.length,
+				hash=chunk_hash,
+			)
 
-			chunk_hash = raw_chunk.hash
-			if chunk_hash is None:
-				hasher = chunk_utils.create_hasher()
-				hasher.update(raw_chunk.data)
-				chunk_hash = hasher.hexdigest()
+	def cut_with_data(self) -> Generator[PrettyChunkWithData, None, None]:
+		"""
+		The yielded PrettyChunkWithData.data is only guaranteed to be valid
+		during the iteration of the cut_with_data() call.
+		So consume it or copy it into a bytes object
+		"""
+		for raw_chunk, chunk_hash in self.__do_cut():
 			yield PrettyChunkWithData(
 				offset=raw_chunk.offset,
 				length=raw_chunk.length,
@@ -148,13 +155,25 @@ class Chunker(ABC):
 				data=raw_chunk.data,
 			)
 
-	def cut_all(self) -> List[PrettyChunk]:
-		return [
-			PrettyChunk(offset=c.offset, length=c.length, hash=c.hash)
-			for c in self.cut()
-		]
+	def __do_cut(self) -> Generator[Tuple[_RawChunk, str], None, None]:
+		for raw_chunk in self._iter_raw_chunks():
+			self.__file_size_sum += raw_chunk.length
+
+			if (chunk_hash := raw_chunk.hash) is None:
+				hasher = chunk_utils.create_hasher()
+				hasher.update(raw_chunk.data)
+				chunk_hash = hasher.hexdigest()
+
+			if self.need_entire_file_hash:
+				assert self.__entire_file_hasher is not None
+				self.__entire_file_hasher.update(raw_chunk.data)
+
+			yield raw_chunk, chunk_hash
 
 	def cut_all_compact(self) -> PrettyChunkSequence:
+		"""
+		Same as cut_all(), but returns an object with more memory-efficient storage layout if possible
+		"""
 		return SimplePrettyChunkSequence(self.cut_all())
 
 	def get_entire_file_hash(self) -> str:
@@ -248,7 +267,48 @@ class _FixedSizeChunker(Chunker, ABC):
 		)
 
 
+class _MmapFileIterator:
+	__data: memoryview
+	__closer: Callable[[], None]
+
+	def __init__(self, file_path: Path):
+		self.__file_size = os.path.getsize(file_path)
+		if self.__file_size == 0:
+			self.__data = memoryview(b'')
+			self.__closer = lambda: None
+		else:
+			file = open(file_path, 'rb')
+			self.__data = memoryview(mmap.mmap(file.fileno(), length=self.__file_size, access=mmap.ACCESS_READ))
+			self.__closer = file.close
+
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.__data = memoryview(b'')
+		self.__closer()
+
+	def iterate(self, chunk_size: int) -> Iterable[Tuple[int, memoryview]]:
+		offset = 0
+		while offset < self.__file_size:
+			buf = memoryview(self.__data[offset: offset + chunk_size])
+			yield offset, buf
+			offset += len(buf)
+
+
 class FixedSizeFileChunker(_FixedSizeChunker):
+	def __init__(self, chunk_size: int, file_path: Path, need_entire_file_hash: bool = False):
+		super().__init__(chunk_size, need_entire_file_hash)
+		self.file_path = file_path
+
+	@override
+	def _iter_raw_chunks(self) -> Iterable[_RawChunk]:
+		with _MmapFileIterator(self.file_path) as mmap_iter:
+			for offset, buf in mmap_iter.iterate(self.chunk_size):
+				yield _RawChunk(offset=offset, length=len(buf), data=buf)
+
+
+class LegacyFixedSizeFileChunker(_FixedSizeChunker):
 	def __init__(self, chunk_size: int, file_path: Path, need_entire_file_hash: bool = False):
 		super().__init__(chunk_size, need_entire_file_hash)
 		self.file_path = file_path
@@ -336,20 +396,13 @@ class FixedAutoFileChunker(Chunker):
 		previous_small_merged_count = 0
 		previous_small_kept_count = 0
 
-		with open(self.file_path, 'rb') as f:
-			offset = 0
-			while True:
-				buf = f.read(self.BIG_CHUNK_SIZE)
-				if not buf:
-					break
-
+		with _MmapFileIterator(self.file_path) as mmap_iter:
+			for offset, data in mmap_iter.iterate(self.BIG_CHUNK_SIZE):
 				window_count += 1
-				data = memoryview(buf)
-				if len(buf) != self.BIG_CHUNK_SIZE:
+				if len(data) != self.BIG_CHUNK_SIZE:
 					tail_window_count += 1
 					emitted_tail_count += 1
-					yield _RawChunk(offset=offset, length=len(buf), data=data)
-					offset += len(buf)
+					yield _RawChunk(offset=offset, length=len(data), data=data)
 					continue
 
 				if (previous_big_chunk := self.__get_previous_big_chunk(offset)) is not None:
@@ -384,8 +437,6 @@ class FixedAutoFileChunker(Chunker):
 					fallback_big_count += 1
 					emitted_big_count += 1
 					yield _RawChunk(offset=offset, length=self.BIG_CHUNK_SIZE, data=data)
-
-				offset += len(buf)
 
 		from prime_backup import logger
 		log = logger.get()

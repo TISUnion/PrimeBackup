@@ -121,7 +121,7 @@ class Chunker(ABC):
 
 	def __init__(self, need_entire_file_hash: bool):
 		self.need_entire_file_hash = need_entire_file_hash
-		self.__entire_file_hasher = hash_utils.create_hasher() if need_entire_file_hash else None
+		self.__entire_file_hasher = hash_utils.create_db_hasher() if need_entire_file_hash else None
 		self.__file_size_sum = 0
 
 	@abstractmethod

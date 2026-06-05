@@ -59,6 +59,7 @@ class ValidateChunksAction(Action[ValidateChunksResult]):
 
 	def __validate(self, session: DbSession, result: ValidateChunksResult, chunks: List[ChunkInfo], existing_pack_ids: Set[int]):
 		id_to_good_chunks: Dict[int, ChunkInfo] = {}
+		hash_method = chunk_utils.get_hash_method()
 
 		def validate_one_chunk(chunk: ChunkInfo):
 			if not chunk.id:
@@ -79,7 +80,7 @@ class ValidateChunksAction(Action[ValidateChunksResult]):
 
 			try:
 				with ChunkIO(chunk).open_decompressed_bypassed() as (reader, f_decompressed):
-					sah = hash_utils.calc_reader_size_and_hash(f_decompressed, hash_method=chunk_utils.get_hash_method())
+					sah = hash_utils.calc_reader_size_and_hash(f_decompressed, hash_method=hash_method)
 			except Exception as e:
 				result.add_bad(chunk, BadChunkItemType.corrupted, f'cannot read and decompress pack entry: ({type(e)} {e})')
 				return

@@ -12,7 +12,7 @@ def get_hash_method() -> HashMethod:
 
 
 def create_hasher() -> Hasher:
-	return hash_utils.create_hasher()
+	return hash_utils.create_db_hasher()
 
 
 def get_chunk_group_hash_method() -> HashMethod:

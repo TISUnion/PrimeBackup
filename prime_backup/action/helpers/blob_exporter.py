@@ -169,13 +169,14 @@ class BlobExporter:
 
 	def __export_to_fs_chunked(self, output_path: Path):
 		blob_chunks = self.blob_chunks_getter.get(self.blob.id)
+		hash_method = chunk_utils.get_hash_method()
 
 		with open(output_path, 'wb') as f_out:
 			for oc in blob_chunks:
 				bypass_reader: Optional[BypassReader] = None
 				with ChunkIO(oc.chunk).open_decompressed() as f_in:
 					if self.verify_blob:
-						bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=chunk_utils.get_hash_method())
+						bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=hash_method)
 						file_utils.copy_file_obj_fast(bypass_reader, f_out, estimate_read_size=oc.chunk.raw_size)
 					else:
 						file_utils.copy_file_obj_fast(f_in, f_out, estimate_read_size=oc.chunk.raw_size)
@@ -218,6 +219,7 @@ class BlobExporter:
 		exit_flag = False
 
 		def open_chunk_gen() -> Generator[_OpenedChunk, None, None]:
+			hash_method = chunk_utils.get_hash_method()
 			for oc in blob_chunks:
 				with ChunkIO(oc.chunk).open_decompressed() as f_in:
 					try:
@@ -231,7 +233,7 @@ class BlobExporter:
 						def verify_callback(ck: ChunkInfo, br: BypassReader):
 							self.__verify_exported_chunk(ck, br.get_read_len(), br.get_hash())
 
-						bypass_reader = BypassReader(peek_reader, calc_hash=True, hash_method=chunk_utils.get_hash_method())
+						bypass_reader = BypassReader(peek_reader, calc_hash=True, hash_method=hash_method)
 						yield _OpenedChunk(oc, bypass_reader, functools.partial(verify_callback, oc.chunk, bypass_reader))
 					else:
 						yield _OpenedChunk(oc, peek_reader, lambda: None)

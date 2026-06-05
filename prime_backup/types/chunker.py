@@ -4,11 +4,11 @@ import mmap
 import os
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable, Dict, Iterator, Callable, Tuple
+from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable, Dict, Iterator, Callable, Tuple, Type
 
 from typing_extensions import override
 
-from prime_backup.utils import misc_utils, hash_utils, chunk_utils
+from prime_backup.utils import misc_utils, hash_utils, chunk_utils, func_utils
 
 if TYPE_CHECKING:
 	import pyfastcdc
@@ -194,14 +194,19 @@ class FastCDCChunkerConfig:
 	max_size: int
 
 
+@func_utils.cached
+def _get_fastcdc_class() -> Type['pyfastcdc.FastCDC']:
+	from pyfastcdc import FastCDC
+	return FastCDC
+
+
 class _CDCChunker(Chunker, ABC):
 	def __init__(self, cfg: FastCDCChunkerConfig, need_entire_file_hash: bool):
 		super().__init__(need_entire_file_hash)
 		self.cfg = cfg
 
 	def _create_cdc_engine(self) -> 'pyfastcdc.FastCDC':
-		from pyfastcdc import FastCDC
-		return FastCDC(
+		return _get_fastcdc_class()(
 			avg_size=self.cfg.avg_size,
 			min_size=self.cfg.min_size,
 			max_size=self.cfg.max_size,

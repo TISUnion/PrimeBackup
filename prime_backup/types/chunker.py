@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable, Dict,
 
 from typing_extensions import override
 
+from prime_backup.types.hash_method import Hasher, DummyHasher
 from prime_backup.utils import misc_utils, hash_utils, chunk_utils, func_utils
 
 if TYPE_CHECKING:
@@ -103,19 +104,8 @@ class FixedPrettyChunkSequence(PrettyChunkSequence):
 
 # ======================== Abstract Chunker ========================
 
-class _RawChunk:
-	__slots__ = ('offset', 'length', 'data', 'hash')
-
-	offset: int
-	length: int
-	data: memoryview
-	hash: Optional[str]
-
-	def __init__(self, *, offset: int, length: int, data: memoryview, hash: Optional[str] = None):
-		self.offset = offset
-		self.length = length
-		self.data = data
-		self.hash = hash
+_RawChunk = Tuple[int, int, memoryview, str]  # offset, length, data, hash
+_dummy_hasher: Hasher = DummyHasher()
 
 
 class Chunker(ABC):
@@ -134,10 +124,10 @@ class Chunker(ABC):
 		return list(self.cut())
 
 	def cut(self) -> Generator[PrettyChunk, None, None]:
-		for raw_chunk, chunk_hash in self.__do_cut():
+		for offset, length, chunk_data, chunk_hash in self.__do_cut():
 			yield PrettyChunk(
-				offset=raw_chunk.offset,
-				length=raw_chunk.length,
+				offset=offset,
+				length=length,
 				hash=chunk_hash,
 			)
 
@@ -147,28 +137,25 @@ class Chunker(ABC):
 		during the iteration of the cut_with_data() call.
 		So consume it or copy it into a bytes object
 		"""
-		for raw_chunk, chunk_hash in self.__do_cut():
+		for offset, length, chunk_data, chunk_hash in self.__do_cut():
 			yield PrettyChunkWithData(
-				offset=raw_chunk.offset,
-				length=raw_chunk.length,
+				offset=offset,
+				length=length,
 				hash=chunk_hash,
-				data=raw_chunk.data,
+				data=chunk_data,
 			)
 
-	def __do_cut(self) -> Generator[Tuple[_RawChunk, str], None, None]:
-		for raw_chunk in self._iter_raw_chunks():
-			self.__file_size_sum += raw_chunk.length
+	def __do_cut(self) -> Generator[_RawChunk, None, None]:
+		entire_file_hasher: Hasher = _dummy_hasher
+		if self.need_entire_file_hash:
+			assert self.__entire_file_hasher is not None
+			entire_file_hasher = self.__entire_file_hasher
 
-			if (chunk_hash := raw_chunk.hash) is None:
-				hasher = chunk_utils.create_hasher()
-				hasher.update(raw_chunk.data)
-				chunk_hash = hasher.hexdigest()
-
+		for offset, length, chunk_data, chunk_hash in self._iter_raw_chunks():
+			self.__file_size_sum += length
 			if self.need_entire_file_hash:
-				assert self.__entire_file_hasher is not None
-				self.__entire_file_hasher.update(raw_chunk.data)
-
-			yield raw_chunk, chunk_hash
+				entire_file_hasher.update(chunk_data)
+			yield offset, length, chunk_data, chunk_hash
 
 	def cut_all_compact(self) -> PrettyChunkSequence:
 		"""
@@ -224,7 +211,7 @@ class FastCDCFileChunker(_CDCChunker):
 	def _iter_raw_chunks(self) -> Iterable[_RawChunk]:
 		for c in self._create_cdc_engine().cut_file(self.file_path):
 			misc_utils.assert_true(c.length <= self.cfg.max_size, f'cdc cut chunk size too large: {c.length}')
-			yield _RawChunk(offset=c.offset, length=c.length, data=c.data)
+			yield c.offset, c.length, c.data, chunk_utils.calc_bytes_hash(c.data)
 
 
 class FastCDCStreamChunker(_CDCChunker):
@@ -236,7 +223,7 @@ class FastCDCStreamChunker(_CDCChunker):
 	def _iter_raw_chunks(self) -> Iterable[_RawChunk]:
 		for c in self._create_cdc_engine().cut_stream(self.stream):
 			misc_utils.assert_true(c.length <= self.cfg.max_size, f'cdc cut chunk size too large: {c.length}')
-			yield _RawChunk(offset=c.offset, length=c.length, data=c.data)
+			yield c.offset, c.length, c.data, chunk_utils.calc_bytes_hash(c.data)
 
 
 # ======================== Fixed Size Chunker ========================
@@ -253,7 +240,7 @@ class _FixedSizeChunker(Chunker, ABC):
 			buf = stream.read(self.chunk_size)
 			if not buf:
 				break
-			yield _RawChunk(offset=offset, length=len(buf), data=memoryview(buf))
+			yield offset, len(buf), memoryview(buf), chunk_utils.calc_bytes_hash(buf)
 			offset += len(buf)
 
 	@override
@@ -310,7 +297,7 @@ class FixedSizeFileChunker(_FixedSizeChunker):
 	def _iter_raw_chunks(self) -> Iterable[_RawChunk]:
 		with _MmapFileIterator(self.file_path) as mmap_iter:
 			for offset, buf in mmap_iter.iterate(self.chunk_size):
-				yield _RawChunk(offset=offset, length=len(buf), data=buf)
+				yield offset, len(buf), buf, chunk_utils.calc_bytes_hash(buf)
 
 
 class LegacyFixedSizeFileChunker(_FixedSizeChunker):
@@ -381,12 +368,9 @@ class FixedAutoFileChunker(Chunker):
 			small_offset = offset + idx * self.SMALL_CHUNK_SIZE
 			start = idx * self.SMALL_CHUNK_SIZE
 			end = start + self.SMALL_CHUNK_SIZE
-			yield _RawChunk(
-				offset=small_offset,
-				length=self.SMALL_CHUNK_SIZE,
-				data=data[start:end],
-				hash=chunk_hashes[idx] if chunk_hashes is not None else None,
-			)
+			chunk_data = data[start:end]
+			chunk_hash = chunk_hashes[idx] if chunk_hashes is not None else chunk_utils.calc_bytes_hash(chunk_data)
+			yield small_offset, self.SMALL_CHUNK_SIZE, chunk_data, chunk_hash
 
 	@override
 	def _iter_raw_chunks(self) -> Iterable[_RawChunk]:
@@ -407,7 +391,7 @@ class FixedAutoFileChunker(Chunker):
 				if len(data) != self.BIG_CHUNK_SIZE:
 					tail_window_count += 1
 					emitted_tail_count += 1
-					yield _RawChunk(offset=offset, length=len(data), data=data)
+					yield offset, len(data), data, chunk_utils.calc_bytes_hash(data)
 					continue
 
 				if (previous_big_chunk := self.__get_previous_big_chunk(offset)) is not None:
@@ -415,7 +399,7 @@ class FixedAutoFileChunker(Chunker):
 					if current_big_hash == previous_big_chunk.hash:
 						previous_big_reused_count += 1
 						emitted_big_count += 1
-						yield _RawChunk(offset=offset, length=self.BIG_CHUNK_SIZE, data=data, hash=current_big_hash)
+						yield offset, self.BIG_CHUNK_SIZE, data, current_big_hash
 					else:
 						previous_big_split_count += 1
 						emitted_small_count += self.SMALL_CHUNK_COUNT
@@ -433,7 +417,7 @@ class FixedAutoFileChunker(Chunker):
 					if changed_count == 0:
 						previous_small_merged_count += 1
 						emitted_big_count += 1
-						yield _RawChunk(offset=offset, length=self.BIG_CHUNK_SIZE, data=data)
+						yield offset, self.BIG_CHUNK_SIZE, data, chunk_utils.calc_bytes_hash(data)
 					else:
 						previous_small_kept_count += 1
 						emitted_small_count += self.SMALL_CHUNK_COUNT
@@ -441,7 +425,7 @@ class FixedAutoFileChunker(Chunker):
 				else:
 					fallback_big_count += 1
 					emitted_big_count += 1
-					yield _RawChunk(offset=offset, length=self.BIG_CHUNK_SIZE, data=data)
+					yield offset, self.BIG_CHUNK_SIZE, data, chunk_utils.calc_bytes_hash(data)
 
 		from prime_backup import logger
 		log = logger.get()

@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from typing import Union
 
 from prime_backup.constants import chunk_constants
 from prime_backup.types.hash_method import HashMethod, Hasher
@@ -23,3 +24,10 @@ def create_chunk_group_hash(chunk_hashes: 'Iterable[str]') -> str:
 	hasher = _CHUNK_GROUP_HASH_METHOD.value.create_hasher()
 	hasher.update('\0'.join(chunk_hashes).encode('utf8'))
 	return hasher.hexdigest()
+
+
+def calc_bytes_hash(buf: Union[bytes, memoryview]) -> str:
+	hasher = create_hasher()
+	hasher.update(buf)
+	return hasher.hexdigest()
+

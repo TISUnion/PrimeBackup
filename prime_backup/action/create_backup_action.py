@@ -15,7 +15,7 @@ from prime_backup.action import Action
 from prime_backup.action.helpers.backup_finalizer import BackupFinalizer
 from prime_backup.action.helpers.blob_allocator import BlobAllocator
 from prime_backup.action.helpers.blob_creator_common import BlobCreateFileLookup, BlobLookupRoutine
-from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult
+from prime_backup.action.helpers.blob_pre_calc_result import BlobPrecalculateResult, CalcChunkPolicy
 from prime_backup.action.helpers.blob_recorder import BlobRecorder
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
 from prime_backup.action.helpers.pack_writer import PackWriter
@@ -65,6 +65,7 @@ class _ScanResult:
 class _PreCalculationResult:
 	stats: Dict[Path, os.stat_result] = dataclasses.field(default_factory=dict)  # real-world path
 	hashes_and_chunks: Dict[Path, BlobPrecalculateResult] = dataclasses.field(default_factory=dict)  # real-world path
+	stat_unchanged_files: Dict[Path, schema.File] = dataclasses.field(default_factory=dict)  # real-world path -> unchanged File in old backup
 	reused_files: Dict[Path, schema.File] = dataclasses.field(default_factory=dict)  # real-world path
 	previous_backup_files: Dict[str, schema.File] = dataclasses.field(default_factory=dict)  # db path, relative to source_path
 	previous_file_chunks: Dict[Path, List[PrettyChunk]] = dataclasses.field(default_factory=dict)  # real-world path
@@ -174,43 +175,48 @@ class CreateBackupAction(Action[BackupInfo]):
 			for file in session.get_backup_files(backup):
 				previous_backup_files[file.path] = file
 
-	def __reuse_unchanged_files(self, scan_result: _ScanResult):
-		@dataclasses.dataclass(frozen=True)
-		class StatKey:
-			path: str
-			size: Optional[int]  # it shouldn't be None, but just in case
-			mode: int
-			uid: int
-			gid: int
-			mtime_ns: int
-
-		stat_to_files: Dict[StatKey, schema.File] = {}
-		for file in self.__pre_calc_result.previous_backup_files.values():
-			if stat.S_ISREG(file.mode):
-				if file.uid is None or file.gid is None or file.mtime is None:
-					raise AssertionError('file {!r} with ISREG mode has missing fields'.format(file))
-				key = StatKey(
-					path=file.path,
-					size=file.blob_raw_size,
-					mode=file.mode,
-					uid=file.uid,
-					gid=file.gid,
-					mtime_ns=file.mtime_unix_ns,
-				)
-				stat_to_files[key] = file
-
+	def __collect_stat_unchanged_files(self, scan_result: _ScanResult):
+		stat_unchanged_files = self.__pre_calc_result.stat_unchanged_files
+		stat_unchanged_files.clear()
 		for file_entry in scan_result.all_files:
 			if file_entry.is_file():
-				key = StatKey(
-					path=self.__file_path_to_db_path(file_entry.path),
-					size=file_entry.stat.st_size,
-					mode=file_entry.stat.st_mode,
-					uid=file_entry.stat.st_uid,
-					gid=file_entry.stat.st_gid,
-					mtime_ns=file_entry.stat.st_mtime_ns
-				)
-				if (file_opt := stat_to_files.get(key)) is not None:
-					self.__pre_calc_result.reused_files[file_entry.path] = file_opt
+				db_path = self.__file_path_to_db_path(file_entry.path)
+				previous_file = self.__pre_calc_result.previous_backup_files.get(db_path)
+				if previous_file is None or not stat.S_ISREG(previous_file.mode):
+					continue
+				if previous_file.uid is None or previous_file.gid is None or previous_file.mtime is None:
+					raise AssertionError('file {!r} with ISREG mode has missing fields'.format(previous_file))
+				if (
+						previous_file.path == db_path and
+						previous_file.blob_raw_size == file_entry.stat.st_size and
+						previous_file.mode == file_entry.stat.st_mode and
+						previous_file.uid == file_entry.stat.st_uid and
+						previous_file.gid == file_entry.stat.st_gid and
+						previous_file.mtime_unix_ns == file_entry.stat.st_mtime_ns
+				):
+					stat_unchanged_files[file_entry.path] = previous_file
+
+	def __reuse_unchanged_files(self):
+		reused_files = self.__pre_calc_result.reused_files
+		reused_files.clear()
+		reused_files.update(self.__pre_calc_result.stat_unchanged_files)
+
+	def __should_collect_stat_unchanged_files(self, scan_result: _ScanResult) -> bool:
+		if len(self.__pre_calc_result.previous_backup_files) == 0:
+			return False
+		if self.config.backup.reuse_stat_unchanged_file:
+			return True
+		if not self.config.backup.chunking_enabled or len(self.config.backup.chunking_rules) == 0:
+			return False
+
+		mutating_patterns_spec = self.config.backup.mutating_file_patterns_spec
+		for file_entry in scan_result.all_files:
+			if not file_entry.is_file():
+				continue
+			rel_path = file_entry.path.relative_to(self.__source_path)
+			if not mutating_patterns_spec.match_file(rel_path) and ChunkMethod.get_for_file(rel_path, file_entry.stat.st_size) is not None:
+				return True
+		return False
 
 	def __cache_previous_chunks_for_fixed_auto(self, session: DbSession, scan_result: _ScanResult):
 		previous_file_chunks = self.__pre_calc_result.previous_file_chunks
@@ -239,11 +245,19 @@ class CreateBackupAction(Action[BackupInfo]):
 				]
 
 	@classmethod
-	def _pre_calculate_hash_worker(cls, path: Path, rel_path: Path, path_size: int, previous_chunks: Optional[Iterable[PrettyChunk]]) -> Optional[BlobPrecalculateResult]:
+	def _pre_calculate_hash_worker(
+			cls,
+			path: Path,
+			rel_path: Path,
+			path_size: int,
+			previous_chunks: Optional[Iterable[PrettyChunk]],
+			calc_chunk_policy: CalcChunkPolicy,
+	) -> Optional[BlobPrecalculateResult]:
 		try:
 			return BlobPrecalculateResult.from_file(
 				path, rel_path, path_size,
 				previous_chunks=previous_chunks,
+				calc_chunk_policy=calc_chunk_policy,
 			)
 		except BlobPrecalculateResult.SizeMismatched:
 			return None  # the file keeps changing, so it's not good to create a pre-calc result for it
@@ -277,7 +291,8 @@ class CreateBackupAction(Action[BackupInfo]):
 							path=path,
 							rel_path=path.relative_to(self.__source_path),
 							path_size=file_entry.stat.st_size,
-							previous_chunks=self.__pre_calc_result.previous_file_chunks.get(path)
+							previous_chunks=self.__pre_calc_result.previous_file_chunks.get(path),
+							calc_chunk_policy=CalcChunkPolicy.FALSE if path in self.__pre_calc_result.stat_unchanged_files else CalcChunkPolicy.AUTO,
 						)
 						futures.append((path, fut))
 					else:
@@ -369,6 +384,10 @@ class CreateBackupAction(Action[BackupInfo]):
 					previous_file.blob_storage_method == BlobStorageMethod.chunked.value
 				)
 
+			@override
+			def is_stat_unchanged_file(self, src_path: Path) -> bool:  # real-world path
+				return src_path in pre_calc_result.stat_unchanged_files
+
 		blob_allocator = BlobAllocator(
 			session=session,
 			time_costs=self.__time_costs,
@@ -401,10 +420,16 @@ class CreateBackupAction(Action[BackupInfo]):
 
 		self.__pre_calculate_stats(scan_result)
 		self.__load_previous_backup_files(session)
-		if self.config.backup.reuse_stat_unchanged_file:
+		if self.__should_collect_stat_unchanged_files(scan_result):
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_reuse_unchanged_files):
-				self.__reuse_unchanged_files(scan_result)
+				self.__collect_stat_unchanged_files(scan_result)
+		else:
+			self.__pre_calc_result.stat_unchanged_files.clear()
+		if self.config.backup.reuse_stat_unchanged_file:
+			self.__reuse_unchanged_files()
 			self.logger.info('Reused {} / {} stat unchanged files'.format(len(self.__pre_calc_result.reused_files), len(scan_result.all_files)))
+		else:
+			self.logger.debug('Found {} / {} stat unchanged files'.format(len(self.__pre_calc_result.stat_unchanged_files), len(scan_result.all_files)))
 		self.__cache_previous_chunks_for_fixed_auto(session, scan_result)
 		if self.config.get_effective_concurrency() > 1:
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_pre_calculate_hash):

@@ -65,6 +65,10 @@ class BlobCreateFileLookup(ABC):
 	def previous_backup_has_chunked_file(self, src_path: Path) -> bool:
 		...
 
+	@abstractmethod
+	def is_stat_unchanged_file(self, src_path: Path) -> bool:
+		...
+
 
 class _FailureFileDeleter(ContextManager['_FailureFileDeleter']):
 	def __init__(self, what: str = 'failure_delete'):

@@ -1,8 +1,7 @@
-from __future__ import annotations
-
 import contextlib
 import dataclasses
 import enum
+import logging
 import os
 import time
 from concurrent.futures import Future
@@ -109,12 +108,13 @@ class ChunkedBlobCreator(BlobCreatorBase):
 
 			write_result = self.__create_missing_chunks(actual_path_to_read, snapshot, known_db_chunks)
 
-		self.logger.debug('Chunked file {} in {:.2f}s, compressed size {}/{}, chunk count: {} (+{}, {:.1f}%)'.format(
-			src_path_str, time.time() - process_start_time,
-			write_result.stored_size_sum, write_result.raw_size_sum,
-			len(write_result.offset_to_db_chunk), len(write_result.new_db_chunks),
-			100.0 * len(write_result.new_db_chunks) / max(1, len(write_result.offset_to_db_chunk)),
-		))
+		if self.logger.isEnabledFor(logging.DEBUG):
+			self.logger.debug('Chunked file {} in {:.2f}s, compressed size {}/{}, chunk count: {} (+{}, {:.1f}%)'.format(
+				src_path_str, time.time() - process_start_time,
+				write_result.stored_size_sum, write_result.raw_size_sum,
+				len(write_result.offset_to_db_chunk), len(write_result.new_db_chunks),
+				100.0 * len(write_result.new_db_chunks) / max(1, len(write_result.offset_to_db_chunk)),
+			))
 		if (
 				len(write_result.new_db_chunks) >= max(5000, int(write_result.unique_chunk_count * 0.6)) and
 				self.ctx.file_lookup.previous_backup_has_chunked_file(self.args.src_path)
@@ -138,9 +138,10 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			policy = _ChunkedBlobCreatePolicy.default
 			pre_cal_result = self.ctx.file_lookup.pop_pre_calc_result(self.args.src_path)
 		if pre_cal_result is not None and (self.args.st.st_size != pre_cal_result.size or pre_cal_result.should_be_chunked is False):
-			self.logger.debug('Drop pre cal result for path {} due to stat mismatched, st.st_size {}, pre_cal_result {}'.format(
-				self.args.src_path, self.args.st.st_size, pre_cal_result.simple_repr(),
-			))
+			if self.logger.isEnabledFor(logging.DEBUG):
+				self.logger.debug('Drop pre cal result for path {} due to stat mismatched, st.st_size {}, pre_cal_result {}'.format(
+					self.args.src_path, self.args.st.st_size, pre_cal_result.simple_repr(),
+				))
 			pre_cal_result = None
 		return _ChunkedBlobPlan(policy, pre_cal_result)
 
@@ -163,17 +164,20 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			if pre_cal_result.chunks is not None:
 				chunks = pre_cal_result.chunks
 				blob_size = pre_cal_result.size
-				self.logger.debug('Cut and hashed file {} with size {} into {} chunks using {} (precalc)'.format(
-					src_path_str, ByteCount(blob_size).auto_str(), len(chunks), self.args.chunk_method.name,
-				))
+				if self.logger.isEnabledFor(logging.DEBUG):
+					self.logger.debug('Cut and hashed file {} with size {} into {} chunks using {} (precalc)'.format(
+						src_path_str, ByteCount(blob_size).auto_str(), len(chunks), self.args.chunk_method.name,
+					))
 				if (cache := (yield from self.query_cached_blob(pre_calc_blob_hash))) is not None:
-					self.logger.debug('Chunked file {} (hash {}) already exists in DB'.format(src_path_str, pre_calc_blob_hash))
+					if self.logger.isEnabledFor(logging.DEBUG):
+						self.logger.debug('Chunked file {} (hash {}) already exists in DB'.format(src_path_str, pre_calc_blob_hash))
 					return cache
 				return _ChunkedBlobSnapshot(chunks, pre_calc_blob_hash, blob_size)
 
 		if pre_calc_blob_hash is not None:
 			if (cache := (yield from self.query_cached_blob(pre_calc_blob_hash))) is not None:
-				self.logger.debug('Chunked file {} (hash {}) already exists in DB'.format(src_path_str, pre_calc_blob_hash))
+				if self.logger.isEnabledFor(logging.DEBUG):
+					self.logger.debug('Chunked file {} (hash {}) already exists in DB'.format(src_path_str, pre_calc_blob_hash))
 				return cache
 
 		if (
@@ -188,12 +192,14 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			if sah.size != self.args.st.st_size:
 				self.log_and_raise_blob_file_changed('Blob size mismatch, previous: {}, current: {}'.format(self.args.st.st_size, sah.size), self.args.last_chance)
 			pre_calc_blob_hash = sah.hash
-			self.logger.debug('Hashed stat unchanged chunked file {} with size {} in {:.2f}s ({}/s)'.format(
-				src_path_str, ByteCount(sah.size).auto_str(), hash_cost(),
-				ByteCount(sah.size / hash_cost() if hash_cost() > 0 else 0).auto_str(),
-			))
+			if self.logger.isEnabledFor(logging.DEBUG):
+				self.logger.debug('Hashed stat unchanged chunked file {} with size {} in {:.2f}s ({}/s)'.format(
+					src_path_str, ByteCount(sah.size).auto_str(), hash_cost(),
+					ByteCount(sah.size / hash_cost() if hash_cost() > 0 else 0).auto_str(),
+				))
 			if (cache := (yield from self.query_cached_blob(pre_calc_blob_hash))) is not None:
-				self.logger.debug('Chunked file {} (hash {}) already exists in DB'.format(src_path_str, pre_calc_blob_hash))
+				if self.logger.isEnabledFor(logging.DEBUG):
+					self.logger.debug('Chunked file {} (hash {}) already exists in DB'.format(src_path_str, pre_calc_blob_hash))
 				return cache
 
 		previous_chunks = self.ctx.file_lookup.get_previous_chunks(self.args.src_path) if self.args.chunk_method.needs_previous_chunks() else None
@@ -205,12 +211,14 @@ class ChunkedBlobCreator(BlobCreatorBase):
 		if pre_calc_blob_hash is not None and pre_calc_blob_hash != blob_hash:
 			self.log_and_raise_blob_file_changed('Blob hash mismatch, pre calc {}, chunked {}'.format(pre_calc_blob_hash, blob_hash), self.args.last_chance)
 
-		self.logger.debug('Cut and hashed file {} with size {} into {} chunks using {} in {:.2f}s ({}/s)'.format(
-			src_path_str, ByteCount(blob_size).auto_str(), len(chunks), self.args.chunk_method.name, chunking_cost(),
-			ByteCount(blob_size / chunking_cost() if chunking_cost() > 0 else 0).auto_str(),
-		))
+		if self.logger.isEnabledFor(logging.DEBUG):
+			self.logger.debug('Cut and hashed file {} with size {} into {} chunks using {} in {:.2f}s ({}/s)'.format(
+				src_path_str, ByteCount(blob_size).auto_str(), len(chunks), self.args.chunk_method.name, chunking_cost(),
+				ByteCount(blob_size / chunking_cost() if chunking_cost() > 0 else 0).auto_str(),
+			))
 		if pre_calc_blob_hash is None and (cache := (yield from self.query_cached_blob(blob_hash))) is not None:
-			self.logger.debug('Chunked file {} (hash {}) already exists in DB'.format(src_path_str, blob_hash))
+			if self.logger.isEnabledFor(logging.DEBUG):
+				self.logger.debug('Chunked file {} (hash {}) already exists in DB'.format(src_path_str, blob_hash))
 			return cache
 		return _ChunkedBlobSnapshot(chunks, blob_hash, blob_size)
 

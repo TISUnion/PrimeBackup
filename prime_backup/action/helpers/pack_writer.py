@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import threading
 from pathlib import Path
 from typing import BinaryIO, Optional, List
@@ -102,7 +103,8 @@ class PackWriter:
 			result = dedicated_pack.append_bytes(data)
 			self.__created_pack_size += len(data)
 			dedicated_pack.close()
-		self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} file_name={pack_utils.get_pack_file_name(dedicated_pack.pack.id)} size={len(data)}')
+		if self.logger.isEnabledFor(logging.DEBUG):
+			self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} file_name={pack_utils.get_pack_file_name(dedicated_pack.pack.id)} size={len(data)}')
 		return result
 
 	def __write_dedicated_reader(self, reader: SupportsReadBytes, size: int) -> PackEntryLocation:
@@ -111,7 +113,8 @@ class PackWriter:
 			result = dedicated_pack.append_reader(reader, size)
 			self.__created_pack_size += size
 			dedicated_pack.close()
-		self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} file_name={pack_utils.get_pack_file_name(dedicated_pack.pack.id)} size={size}')
+		if self.logger.isEnabledFor(logging.DEBUG):
+			self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} file_name={pack_utils.get_pack_file_name(dedicated_pack.pack.id)} size={size}')
 		return result
 
 	def __get_active_for_write_no_lock(self) -> _ActivePack:
@@ -157,4 +160,5 @@ class PackWriter:
 
 		new_pack = self.__create_new_pack_no_lock()
 		self.__active = new_pack
-		self.logger.debug(f'Opened new active pack id={new_pack.pack.id} file_name={pack_utils.get_pack_file_name(new_pack.pack.id)}')
+		if self.logger.isEnabledFor(logging.DEBUG):
+			self.logger.debug(f'Opened new active pack id={new_pack.pack.id} file_name={pack_utils.get_pack_file_name(new_pack.pack.id)}')

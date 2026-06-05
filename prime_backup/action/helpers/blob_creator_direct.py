@@ -1,5 +1,6 @@
 import dataclasses
 import enum
+import logging
 import os
 from pathlib import Path
 from typing import Optional
@@ -146,9 +147,10 @@ class DirectBlobCreator(BlobCreatorBase):
 	def __get_pre_calc_blob_hash(self) -> Optional[str]:
 		pre_cal_result: Optional[BlobPrecalculateResult] = self.ctx.file_lookup.pop_pre_calc_result(self.args.src_path)
 		if pre_cal_result is not None and (self.args.st.st_size != pre_cal_result.size or pre_cal_result.should_be_chunked is True):
-			self.logger.debug('Drop pre cal result for path {} due to stat mismatched, st.st_size {}, pre_cal_result {}'.format(
-				self.args.src_path, self.args.st.st_size, pre_cal_result.simple_repr(),
-			))
+			if self.logger.isEnabledFor(logging.DEBUG):
+				self.logger.debug('Drop pre cal result for path {} due to stat mismatched, st.st_size {}, pre_cal_result {}'.format(
+					self.args.src_path, self.args.st.st_size, pre_cal_result.simple_repr(),
+				))
 			pre_cal_result = None
 		return pre_cal_result.hash if pre_cal_result is not None else None
 

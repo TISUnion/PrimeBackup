@@ -238,16 +238,21 @@ class BlobAllocator:
 		for i in range(_BLOB_FILE_CHANGED_RETRY_COUNT):
 			retry_cnt = i + 1  # [1, n]
 			is_last_attempt = retry_cnt == _BLOB_FILE_CHANGED_RETRY_COUNT
-			if i > 0:
+			if i > 0 and self.logger.isEnabledFor(logging.DEBUG):
 				self.logger.debug('Try to create blob {} (attempt {} / {})'.format(src_path_str, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT))
 			try:
 				blob = yield from self.__try_get_or_create_blob_once(src_path, src_path_md5, st, last_chance=is_last_attempt, is_mutating_file=is_mutating_file)
 				self.__ctx.remember_blob(blob)
 				return GetOrCreateBlobResult(blob, st)
 			except BlobFileChanged:
-				(self.logger.warning if is_last_attempt else self.logger.debug)('Blob {} stat has changed, has someone modified it? {} (attempt {} / {})'.format(
-					src_path_str, 'No more retry' if is_last_attempt else 'Retrying', retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT
-				))
+				if is_last_attempt:
+					self.logger.warning('Blob {} stat has changed, has someone modified it? {} (attempt {} / {})'.format(
+						src_path_str, 'No more retry', retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT
+					))
+				elif self.logger.isEnabledFor(logging.DEBUG):
+					self.logger.debug('Blob {} stat has changed, has someone modified it? {} (attempt {} / {})'.format(
+						src_path_str, 'Retrying', retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT
+					))
 				st = src_path.lstat()
 			except Exception as e:
 				self.logger.error('Create blob for file {} failed (attempt {} / {}): {}'.format(src_path_str, retry_cnt, _BLOB_FILE_CHANGED_RETRY_COUNT, e))

@@ -24,7 +24,6 @@ from prime_backup.utils.time_cost_stats import TimeCostStats
 if TYPE_CHECKING:
 	from prime_backup.action.helpers.pack_writer import PackWriter
 
-_BLOB_ALLOC_PERF_MODE = False
 _T = TypeVar('_T')
 
 

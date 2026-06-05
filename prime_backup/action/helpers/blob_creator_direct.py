@@ -167,7 +167,7 @@ class DirectBlobCreator(BlobCreatorBase):
 		if plan.policy == _DirectBlobCreatePolicy.hash_once:
 			return self.__create_by_hash_once(compressor, plan)
 		if plan.policy in (_DirectBlobCreatePolicy.read_all, _DirectBlobCreatePolicy.default):
-			return self.__create_by_hashed_content(compressor, plan)
+			return self.__create_by_prehashed_content(compressor, plan)
 		raise AssertionError('bad policy {!r}'.format(plan.policy))
 
 	def __create_by_copy_hash(self, compressor: Compressor) -> BlobLookupRoutine[_DirectBlobCreateResult]:
@@ -212,7 +212,8 @@ class DirectBlobCreator(BlobCreatorBase):
 					file_utils.copy_file_fast(temp_file_path, blob_path)
 			return _DirectBlobCreateResult.created(blob_hash, cr.read_size, cr.write_size)
 
-	def __create_by_hashed_content(self, compressor: Compressor, plan: _DirectBlobPlan) -> _DirectBlobCreateResult:
+	def __create_by_prehashed_content(self, compressor: Compressor, plan: _DirectBlobPlan) -> _DirectBlobCreateResult:
+		misc_utils.assert_true(plan.blob_hash is not None, 'blob_hash is None')
 		blob_hash = misc_utils.ensure_type(plan.blob_hash, str)
 		blob_path = blob_utils.get_blob_path(blob_hash)
 

@@ -221,6 +221,11 @@ class CreateBackupAction(Action[BackupInfo]):
 	def __cache_previous_chunks_for_fixed_auto(self, session: DbSession, scan_result: _ScanResult):
 		previous_file_chunks = self.__pre_calc_result.previous_file_chunks
 		previous_file_chunks.clear()
+		if (
+				not self.config.backup.chunking_enabled or
+				not any(rule.algorithm == ChunkMethod.fixed_auto for rule in self.config.backup.chunking_rules)
+		):
+			return
 
 		for file_entry in scan_result.all_files:
 			if not file_entry.is_file() or file_entry.path in self.__pre_calc_result.reused_files:

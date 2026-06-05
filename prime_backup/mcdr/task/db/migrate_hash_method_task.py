@@ -22,7 +22,7 @@ class MigrateHashMethodTask(HeavyTask[None]):
 	@override
 	def run(self):
 		try:
-			self.new_hash_method.value.create_hasher()
+			self.new_hash_method.value.ensure_lib()
 		except ImportError as e:
 			self.logger.warning('Failed to create hasher of {} due to ImportError: {}'.format(self.new_hash_method, e))
 			self.reply_tr(

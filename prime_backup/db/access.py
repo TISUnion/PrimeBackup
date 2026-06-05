@@ -1,6 +1,6 @@
 import contextlib
 from pathlib import Path
-from typing import Optional, Generator, Callable, TYPE_CHECKING, TypeVar
+from typing import Optional, Generator, TYPE_CHECKING, TypeVar
 
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session
@@ -11,8 +11,7 @@ from prime_backup.db.migration import DbMigration
 from prime_backup.db.session import DbSession
 
 if TYPE_CHECKING:
-	from prime_backup.types.hash_method import HashMethod, Hasher
-
+	from prime_backup.types.hash_method import HashMethod, Hasher, HasherCreator, HashableBuffer
 
 _T = TypeVar('_T')
 
@@ -24,7 +23,7 @@ class _HashMethodCache:
 			raise TypeError('hash_method must be a HashMethod, got {!r}'.format(type(hash_method)))
 
 		self.hash_method: 'HashMethod' = hash_method
-		self.create_hasher_func: Callable[[], 'Hasher'] = hash_method.value.create_hasher  # cache this
+		self.create_hasher_func: 'HasherCreator' = hash_method.value.create_hasher  # cache this
 
 
 class DbAccess:
@@ -122,9 +121,9 @@ class DbAccess:
 		return cls.__hash_method_cache.hash_method
 
 	@classmethod
-	def _create_hasher_no_check(cls) -> 'Hasher':
+	def _create_hasher_no_check(cls, buf: 'HashableBuffer' = b'') -> 'Hasher':
 		assert cls.__hash_method_cache is not None
-		return cls.__hash_method_cache.create_hasher_func()
+		return cls.__hash_method_cache.create_hasher_func(buf)
 
 	@classmethod
 	@contextlib.contextmanager

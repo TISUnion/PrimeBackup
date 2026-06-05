@@ -34,7 +34,7 @@ def __check_config(server: PluginServerInterface):
 	cfg_hash_str = config.backup.hash_method.name
 	if cfg_hash_str != db_hash_str:
 		server.logger.warning('WARN: Hash method mismatched! config: {}, database: {}. Use the database one'.format(cfg_hash_str, db_hash_str))
-	db_hash_method.value.create_hasher()  # ensure lib exists
+	db_hash_method.value.ensure_lib()  # ensure lib exists
 
 	if (cm := config.backup.compress_method) == CompressMethod.lzma:
 		server.logger.warning('WARN: Using {} as the compress method might significantly increase the backup time'.format(cm.name))

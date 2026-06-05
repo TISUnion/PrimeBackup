@@ -6,18 +6,25 @@ from typing import Protocol, Union, TYPE_CHECKING, Any
 
 from typing_extensions import override
 
+HashableBuffer = Union[bytes, bytearray, memoryview]
+
 
 class Hasher(Protocol):
-	def update(self, b: Union[bytes, bytearray, memoryview]):
+	def update(self, buf: HashableBuffer):
 		...
 
 	def hexdigest(self) -> str:
 		...
 
 
+class HasherCreator(Protocol):
+	def __call__(self, buf: HashableBuffer = b'') -> Hasher:
+		...
+
+
 class DummyHasher(Hasher):
 	@override
-	def update(self, b: Union[bytes, bytearray, memoryview]):
+	def update(self, buf: HashableBuffer):
 		pass
 
 	@override
@@ -36,8 +43,11 @@ class _HashMethodItem:
 		mod = importlib.import_module(mod_name)
 		return getattr(mod, func_name)
 
-	def create_hasher(self) -> Hasher:
-		return self.__get_hasher_func()
+	def create_hasher(self, buf: HashableBuffer = b'') -> Hasher:
+		return self.__get_hasher_func(buf)
+
+	def ensure_lib(self):
+		_ = self.create_hasher()
 
 
 class HashMethod(enum.Enum):

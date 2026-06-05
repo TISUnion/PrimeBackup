@@ -307,7 +307,7 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			chunk_buf = src_file.read(chunk.length)
 		if len(chunk_buf) != chunk.length:
 			self.log_and_raise_blob_file_changed('Blob size mismatch, fail to read {} byte at offset {}, actual read {}'.format(chunk.length, offset, len(chunk_buf)), self.args.last_chance)
-		new_chunk_hash = hash_utils.calc_bytes_hash(chunk_buf, hasher=chunk_utils.create_hasher())
+		new_chunk_hash = chunk_utils.calc_bytes_hash(chunk_buf)
 		if new_chunk_hash != chunk.hash:
 			self.log_and_raise_blob_file_changed('Blob content mismatch, chunk at [{}, {}) has its hash changed, previous {}, current {}'.format(offset, offset + chunk.length, chunk.hash, new_chunk_hash), self.args.last_chance)
 		return chunk_buf

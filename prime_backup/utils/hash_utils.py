@@ -6,7 +6,7 @@ from prime_backup.utils import func_utils
 from prime_backup.utils.io_types import SupportsReadBytes
 
 if TYPE_CHECKING:
-	from prime_backup.types.hash_method import Hasher, HashMethod
+	from prime_backup.types.hash_method import Hasher, HashMethod, HasherCreator, HashableBuffer
 
 
 class _CachedDbAccess:
@@ -19,7 +19,7 @@ class _CachedDbAccess:
 
 	@staticmethod
 	@func_utils.cached
-	def create_hasher_func() -> Callable[[], 'Hasher']:
+	def create_hasher_func() -> 'HasherCreator':
 		from prime_backup.db.access import DbAccess
 		# noinspection PyProtectedMember
 		return DbAccess._create_hasher_no_check
@@ -29,14 +29,14 @@ def get_configured_hash_method() -> 'HashMethod':
 	return _CachedDbAccess.get_hash_method_func()()
 
 
-def create_db_hasher() -> 'Hasher':
-	return  _CachedDbAccess.create_hasher_func()()
+def create_db_hasher(buf: 'HashableBuffer' = b'') -> 'Hasher':
+	return  _CachedDbAccess.create_hasher_func()(buf)
 
 
-def create_hasher(*, hash_method: Optional['HashMethod'] = None) -> 'Hasher':
+def create_hasher(buf: 'HashableBuffer' = b'', *, hash_method: Optional['HashMethod'] = None) -> 'Hasher':
 	if hash_method is None:
-		return create_db_hasher()
-	return hash_method.value.create_hasher()
+		return create_db_hasher(buf)
+	return hash_method.value.create_hasher(buf)
 
 
 _READ_BUF_SIZE = 128 * 1024
@@ -73,8 +73,5 @@ def calc_file_hash(path: Path, **kwargs) -> str:
 	return calc_file_size_and_hash(path, **kwargs).hash
 
 
-def calc_bytes_hash(buf: bytes, hasher: Optional['Hasher'] = None) -> str:
-	if hasher is None:
-		hasher = create_db_hasher()
-	hasher.update(buf)
-	return hasher.hexdigest()
+def calc_bytes_hash(buf: 'HashableBuffer') -> str:
+	return create_db_hasher(buf).hexdigest()

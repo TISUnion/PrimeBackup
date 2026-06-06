@@ -4,8 +4,6 @@ import functools
 import importlib
 from typing import Protocol, Union, TYPE_CHECKING, Any
 
-from typing_extensions import override
-
 HashableBuffer = Union[bytes, bytearray, memoryview]
 
 
@@ -20,16 +18,6 @@ class Hasher(Protocol):
 class HasherCreator(Protocol):
 	def __call__(self, buf: HashableBuffer = b'') -> Hasher:
 		...
-
-
-class DummyHasher(Hasher):
-	@override
-	def update(self, buf: HashableBuffer):
-		pass
-
-	@override
-	def hexdigest(self) -> str:
-		return ''
 
 
 @dataclasses.dataclass(frozen=True)

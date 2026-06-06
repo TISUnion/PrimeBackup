@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, List, Generator, IO, Optional, Iterable, Dict,
 
 from typing_extensions import override
 
-from prime_backup.types.hash_method import Hasher, DummyHasher
 from prime_backup.utils import misc_utils, hash_utils, chunk_utils, func_utils
 
 if TYPE_CHECKING:
@@ -105,7 +104,6 @@ class FixedPrettyChunkSequence(PrettyChunkSequence):
 # ======================== Abstract Chunker ========================
 
 _RawChunk = Tuple[int, int, memoryview, str]  # offset, length, data, hash
-_dummy_hasher: Hasher = DummyHasher()
 
 
 class Chunker(ABC):
@@ -146,15 +144,14 @@ class Chunker(ABC):
 			)
 
 	def __do_cut(self) -> Generator[_RawChunk, None, None]:
-		entire_file_hasher: Hasher = _dummy_hasher
-		if self.need_entire_file_hash:
-			assert self.__entire_file_hasher is not None
-			entire_file_hasher = self.__entire_file_hasher
+		entire_file_hasher = self.__entire_file_hasher
+		if need_entire_file_hash := self.need_entire_file_hash:
+			assert entire_file_hasher is not None
 
 		for offset, length, chunk_data, chunk_hash in self._iter_raw_chunks():
 			self.__file_size_sum += length
-			if self.need_entire_file_hash:
-				entire_file_hasher.update(chunk_data)
+			if need_entire_file_hash:
+				entire_file_hasher.update(chunk_data)  # type: ignore[union-attr]
 			yield offset, length, chunk_data, chunk_hash
 
 	def cut_all_compact(self) -> PrettyChunkSequence:

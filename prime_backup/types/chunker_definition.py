@@ -5,10 +5,13 @@ from typing import IO, Optional, Iterable
 
 from typing_extensions import override
 
-from prime_backup.types.chunker import Chunker, FastCDCFileChunker, FastCDCStreamChunker, FixedSizeFileChunker, FixedSizeStreamChunker, FastCDCChunkerConfig, FixedAutoFileChunker, PrettyChunk
+from prime_backup.types.chunker import Chunker, FastCDCFileChunker, FastCDCStreamChunker, FixedSizeFileChunker, FixedSizeStreamChunker, FastCDCChunkerConfig, FixedAutoFileChunker, PrettyChunk, _get_fastcdc_class
 
 
 class ChunkerDefinition(ABC):
+	def ensure_lib(self):
+		pass
+
 	@abstractmethod
 	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool, *, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> Chunker:
 		...
@@ -30,6 +33,10 @@ class FastCDCChunkerDefinition(ChunkerDefinition):
 
 	def __post_init__(self):
 		object.__setattr__(self, '_config', FastCDCChunkerConfig(self.avg_size, self.min_size, self.max_size))
+
+	@override
+	def ensure_lib(self):
+		_get_fastcdc_class()
 
 	@override
 	def create_file_chunker(self, file_path: Path, need_entire_file_hash: bool, *, previous_chunks: Optional[Iterable[PrettyChunk]] = None) -> Chunker:

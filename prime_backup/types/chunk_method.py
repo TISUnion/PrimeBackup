@@ -24,6 +24,9 @@ class ChunkMethod(enum.Enum):
 	if TYPE_CHECKING:
 		value: ChunkerDefinition
 
+	def ensure_lib(self):
+		self.value.ensure_lib()
+
 	@classmethod
 	def get_for_file(cls, file_path: PathLike, file_size: int) -> Optional['ChunkMethod']:
 		"""

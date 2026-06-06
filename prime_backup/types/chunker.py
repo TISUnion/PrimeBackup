@@ -16,16 +16,23 @@ if TYPE_CHECKING:
 
 # ======================== Chunk Data Classes ========================
 
-@dataclasses.dataclass(frozen=True)
 class PrettyChunk:
-	offset: int
-	length: int
-	hash: str
+	__slots__ = ('offset', 'length', 'hash')
+
+	def __init__(self, offset: int, length: int, hash: str, /):
+		self.offset = offset
+		self.length = length
+		self.hash = hash
 
 
-@dataclasses.dataclass(frozen=True)
-class PrettyChunkWithData(PrettyChunk):
-	data: memoryview
+class PrettyChunkWithData:
+	__slots__ = ('offset', 'length', 'hash', 'data')
+
+	def __init__(self, offset: int, length: int, hash: str, data: memoryview, /):
+		self.offset = offset
+		self.length = length
+		self.hash = hash
+		self.data = data
 
 
 class PrettyChunkSequence(ABC):
@@ -89,11 +96,8 @@ class FixedPrettyChunkSequence(PrettyChunkSequence):
 	def __iter__(self) -> Iterator[PrettyChunk]:
 		for index in range(len(self)):
 			offset = index * self.chunk_size
-			yield PrettyChunk(
-				offset=offset,
-				length=min(self.chunk_size, self.file_size - offset),
-				hash=self.__hash_at(index),
-			)
+			length = min(self.chunk_size, self.file_size - offset)
+			yield PrettyChunk(offset, length, self.__hash_at(index))
 
 	@override
 	def iter_hashes(self) -> Iterator[str]:
@@ -119,15 +123,14 @@ class Chunker(ABC):
 		...
 
 	def cut_all(self) -> List[PrettyChunk]:
-		return list(self.cut())
+		return [
+			PrettyChunk(offset, length, chunk_hash)
+			for offset, length, chunk_data, chunk_hash in self.__do_cut()
+		]
 
 	def cut(self) -> Generator[PrettyChunk, None, None]:
 		for offset, length, chunk_data, chunk_hash in self.__do_cut():
-			yield PrettyChunk(
-				offset=offset,
-				length=length,
-				hash=chunk_hash,
-			)
+			yield PrettyChunk(offset, length, chunk_hash)
 
 	def cut_with_data(self) -> Generator[PrettyChunkWithData, None, None]:
 		"""
@@ -136,12 +139,7 @@ class Chunker(ABC):
 		So consume it or copy it into a bytes object
 		"""
 		for offset, length, chunk_data, chunk_hash in self.__do_cut():
-			yield PrettyChunkWithData(
-				offset=offset,
-				length=length,
-				hash=chunk_hash,
-				data=chunk_data,
-			)
+			yield PrettyChunkWithData(offset, length, chunk_hash, chunk_data)
 
 	def __do_cut(self) -> Generator[_RawChunk, None, None]:
 		entire_file_hasher = self.__entire_file_hasher

@@ -245,7 +245,7 @@ class CreateBackupAction(Action[BackupInfo]):
 
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 				previous_file_chunks[file_entry.path] = [
-					PrettyChunk(offset=offset_chunk.offset, length=offset_chunk.chunk.raw_size, hash=offset_chunk.chunk.hash)
+					PrettyChunk(offset_chunk.offset, offset_chunk.chunk.raw_size, offset_chunk.chunk.hash)
 					for offset_chunk in session.get_blob_chunks(previous_file.blob_id)
 				]
 

@@ -273,7 +273,7 @@ class MigrateHashMethodAction(Action[None]):
 			db_committed = True
 			try:
 				self.logger.info('Syncing config and variables')
-				DbAccess.sync_hash_method()
+				DbAccess.sync_meta_cache()
 				self.config.backup.hash_method = self.new_hash_method
 				self.__move_journal.clear()
 			except Exception:

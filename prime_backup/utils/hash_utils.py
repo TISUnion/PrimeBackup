@@ -1,36 +1,22 @@
 import dataclasses
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING, Callable
+from typing import Optional, TYPE_CHECKING
 
-from prime_backup.utils import func_utils
+from prime_backup.db.db_meta_cache import DbMetaCache
 from prime_backup.utils.io_types import SupportsReadBytes
 
 if TYPE_CHECKING:
-	from prime_backup.types.hash_method import Hasher, HashMethod, HasherCreator, HashableBuffer
-
-
-class _CachedDbAccess:
-	@staticmethod
-	@func_utils.cached
-	def get_hash_method_func() -> Callable[[], 'HashMethod']:
-		from prime_backup.db.access import DbAccess
-		# noinspection PyProtectedMember
-		return DbAccess._get_hash_method_no_check
-
-	@staticmethod
-	@func_utils.cached
-	def create_hasher_func() -> 'HasherCreator':
-		from prime_backup.db.access import DbAccess
-		# noinspection PyProtectedMember
-		return DbAccess._create_hasher_no_check
+	from prime_backup.types.hash_method import Hasher, HashMethod, HashableBuffer
 
 
 def get_configured_hash_method() -> 'HashMethod':
-	return _CachedDbAccess.get_hash_method_func()()
+		# noinspection PyProtectedMember
+	return DbMetaCache._get_hash_method_no_check()
 
 
 def create_db_hasher(buf: 'HashableBuffer' = b'') -> 'Hasher':
-	return  _CachedDbAccess.create_hasher_func()(buf)
+		# noinspection PyProtectedMember
+	return DbMetaCache._create_hasher_no_check(buf)
 
 
 def create_hasher(buf: 'HashableBuffer' = b'', *, hash_method: Optional['HashMethod'] = None) -> 'Hasher':

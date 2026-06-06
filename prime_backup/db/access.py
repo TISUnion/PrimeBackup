@@ -1,36 +1,22 @@
 import contextlib
 from pathlib import Path
-from typing import Optional, Generator, TYPE_CHECKING, TypeVar
+from typing import Optional, Generator, TypeVar
 
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session
 
 from prime_backup.config.config import Config
 from prime_backup.db import db_constants
+from prime_backup.db.db_meta_cache import DbMetaCache
 from prime_backup.db.migration import DbMigration
 from prime_backup.db.session import DbSession
 
-if TYPE_CHECKING:
-	from prime_backup.types.hash_method import HashMethod, Hasher, HasherCreator, HashableBuffer
-
 _T = TypeVar('_T')
-
-
-class _HashMethodCache:
-	def __init__(self, hash_method: 'HashMethod'):
-		from prime_backup.types.hash_method import HashMethod
-		if not isinstance(hash_method, HashMethod):
-			raise TypeError('hash_method must be a HashMethod, got {!r}'.format(type(hash_method)))
-
-		self.hash_method: 'HashMethod' = hash_method
-		self.create_hasher_func: 'HasherCreator' = hash_method.value.create_hasher  # cache this
 
 
 class DbAccess:
 	__engine: Optional[Engine] = None
 	__db_file_path: Optional[Path] = None
-
-	__hash_method_cache: Optional[_HashMethodCache] = None
 
 	@classmethod
 	def init(cls, create: bool, migrate: bool):
@@ -53,7 +39,7 @@ class DbAccess:
 			cls.__db_file_path = None
 			raise
 
-		cls.sync_hash_method()
+		cls.sync_meta_cache()
 
 	@classmethod
 	def init_memory_db(cls):
@@ -66,29 +52,21 @@ class DbAccess:
 			cls.__engine = None
 			raise
 
-		cls.sync_hash_method()
+		cls.sync_meta_cache()
 
 	@classmethod
 	def shutdown(cls):
 		if (engine := cls.__engine) is not None:
 			engine.dispose()
 			cls.__engine = None
-		cls.__hash_method_cache = None
+		DbMetaCache.reset()
 		cls.__db_file_path = None
 
 	@classmethod
-	def _set_hash_method(cls, hash_method: 'HashMethod'):
-		cls.__hash_method_cache = _HashMethodCache(hash_method)
-
-	@classmethod
-	def sync_hash_method(cls):
+	def sync_meta_cache(cls):
+		from prime_backup.types.db_meta_info import DbMetaInfo
 		with cls.open_session() as session:
-			hash_method_str = str(session.get_db_meta().hash_method)
-		from prime_backup.types.hash_method import HashMethod
-		try:
-			cls.__hash_method_cache = _HashMethodCache(HashMethod[hash_method_str])
-		except KeyError:
-			raise ValueError('invalid hash method {!r} in db meta'.format(hash_method_str)) from None
+			DbMetaCache.set(DbMetaInfo.of(session.get_db_meta()))
 
 	@classmethod
 	def __ensure_engine(cls) -> Engine:
@@ -109,21 +87,6 @@ class DbAccess:
 	@classmethod
 	def get_db_file_path(cls) -> Path:
 		return cls.__ensure_not_none(cls.__db_file_path)
-
-	@classmethod
-	def get_hash_method(cls) -> 'HashMethod':
-		return cls.__ensure_not_none(cls.__hash_method_cache).hash_method
-
-	@classmethod
-	def _get_hash_method_no_check(cls) -> 'HashMethod':
-		# faster than get_hash_method(), useful for hot paths
-		assert cls.__hash_method_cache is not None
-		return cls.__hash_method_cache.hash_method
-
-	@classmethod
-	def _create_hasher_no_check(cls, buf: 'HashableBuffer' = b'') -> 'Hasher':
-		assert cls.__hash_method_cache is not None
-		return cls.__hash_method_cache.create_hasher_func(buf)
 
 	@classmethod
 	@contextlib.contextmanager

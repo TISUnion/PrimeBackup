@@ -9,6 +9,7 @@ from mcdreforged.api.all import PluginServerInterface, Info
 from prime_backup.compressors import CompressMethod
 from prime_backup.config.config import Config, set_config_instance
 from prime_backup.db.access import DbAccess
+from prime_backup.db.db_meta_cache import DbMetaCache
 from prime_backup.mcdr import mcdr_globals
 from prime_backup.mcdr.command.commands import CommandManager
 from prime_backup.mcdr.command.disabled_command_helper import DisabledCommandHelper
@@ -29,7 +30,7 @@ init_thread: Optional[threading.Thread] = None
 
 def __check_config(server: PluginServerInterface):
 	assert config is not None
-	db_hash_method = DbAccess.get_hash_method()
+	db_hash_method = DbMetaCache.get_hash_method()
 	db_hash_str = db_hash_method.name
 	cfg_hash_str = config.backup.hash_method.name
 	if cfg_hash_str != db_hash_str:

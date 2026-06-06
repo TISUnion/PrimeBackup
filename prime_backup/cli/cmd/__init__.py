@@ -11,6 +11,7 @@ from prime_backup.cli.return_codes import ErrorReturnCodes
 from prime_backup.config.config import Config, set_config_instance
 from prime_backup.db import db_constants
 from prime_backup.db.access import DbAccess
+from prime_backup.db.db_meta_cache import DbMetaCache
 from prime_backup.db.migration import BadDbVersion
 from prime_backup.utils.backup_id_parser import BackupIdParser
 
@@ -84,7 +85,7 @@ class CliCommandHandlerBase(ABC):
 		except BadDbVersion as e:
 			self.logger.info('Load database failed, you need to ensure the database is accessible with MCDR plugin: {}'.format(e))
 			ErrorReturnCodes.action_failed.sys_exit()
-		config.backup.hash_method = DbAccess.get_hash_method()  # use the hash method from the db
+		config.backup.hash_method = DbMetaCache.get_hash_method()  # use the hash method from the db
 
 	@classmethod
 	def __load_config(cls, config_path: Path) -> Config:

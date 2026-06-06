@@ -10,7 +10,7 @@ from prime_backup.utils import misc_utils
 from prime_backup.utils.run_once import RunOnceFunc
 
 if TYPE_CHECKING:
-	from prime_backup.types.hash_method import HashMethod
+	from prime_backup.types.db_meta_info import DbMetaInfo
 	from multiprocessing.synchronize import Semaphore as MpSemaphore
 
 _T = TypeVar('_T')
@@ -121,16 +121,15 @@ class FailFastBlockingProcessPool(ProcessPoolExecutor):
 	"""
 
 	def __init__(self, max_workers: Optional[int] = None):
-		from prime_backup.db.access import DbAccess
+		from prime_backup.db.db_meta_cache import DbMetaCache
 		max_workers = _compute_max_workers(max_workers)
-		super().__init__(max_workers=max_workers, initializer=self._child_initializer, initargs=(DbAccess.get_hash_method(),))
+		super().__init__(max_workers=max_workers, initializer=self._child_initializer, initargs=(DbMetaCache.get(),))
 		self.__helper = _FailFastConcurrentPoolHelper(_BasePool(super().submit, super().__exit__), multiprocessing.Semaphore(max_workers))
 
 	@classmethod
-	def _child_initializer(cls, hash_method: 'HashMethod'):
-		from prime_backup.db.access import DbAccess
-		# noinspection PyProtectedMember
-		DbAccess._set_hash_method(hash_method)
+	def _child_initializer(cls, meta: Optional['DbMetaInfo']):
+		from prime_backup.db.db_meta_cache import DbMetaCache
+		DbMetaCache.set(meta)
 
 	@override
 	def submit(self, fn: Callable[_P, _T], /, *args: _P.args, **kwargs: _P.kwargs) -> 'Future[_T]':

@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from typing import Iterable
 
 from prime_backup.constants import chunk_constants
 from prime_backup.types.hash_method import HashMethod
@@ -12,8 +12,9 @@ def get_chunk_group_hash_method() -> HashMethod:
 	return _CHUNK_GROUP_HASH_METHOD
 
 
-def create_chunk_group_hash(chunk_hashes: 'Iterable[str]') -> str:
-	return __create_chunk_group_hasher('\0'.join(chunk_hashes).encode('utf8')).hexdigest()
+def create_chunk_group_hash(chunk_hashes: Iterable[str]) -> str:
+	buf = '\0'.join(chunk_hashes).encode('utf8')
+	return __create_chunk_group_hasher(buf).hexdigest()
 
 
 # Currently chunk's hash method is the same as the default DB hash method

@@ -227,7 +227,12 @@ class ChunkedBlobCreator(BlobCreatorBase):
 		offset_to_db_chunk: Dict[int, schema.Chunk] = {}
 		write_state = _CompressedChunkWriteState()
 
-		with open(actual_path_to_read, 'rb') as src_file, FailFastBlockingThreadPool('chunk_compress') as pool:
+		with contextlib.ExitStack() as es:
+			src_file = es.enter_context(open(actual_path_to_read, 'rb'))
+			pool: Optional[FailFastBlockingThreadPool] = None
+			if self.config.get_effective_concurrency() > 1:
+				pool = es.enter_context(FailFastBlockingThreadPool('chunk_compress'))
+
 			offset = 0
 			for chunk in snapshot.chunks:
 				misc_utils.assert_true(offset == chunk.offset, lambda: f'offset mismatch {offset} {chunk.offset}')
@@ -247,7 +252,8 @@ class ChunkedBlobCreator(BlobCreatorBase):
 				self.log_and_raise_blob_file_changed('Blob size mismatch, actual size larger than expected size {}'.format(snapshot.blob_size), self.args.last_chance)
 
 			with self.ctx.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
-				pool.wait_and_ensure_no_error()
+				if pool is not None:
+					pool.wait_and_ensure_no_error()
 				self.__flush_compressed_chunk_futures(write_state, force=True)
 
 		blob_raw_size_sum = 0
@@ -272,7 +278,7 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			offset: int,
 			known_db_chunks: Dict[str, Optional[schema.Chunk]],
 			new_db_chunks: List[schema.Chunk],
-			pool: FailFastBlockingThreadPool,
+			pool: Optional[FailFastBlockingThreadPool],
 			write_state: _CompressedChunkWriteState,
 	) -> schema.Chunk:
 		chunk_buf = self.__read_and_validate_new_chunk(src_file, chunk, offset)
@@ -296,7 +302,12 @@ class ChunkedBlobCreator(BlobCreatorBase):
 				compressed = compressor_.compress_bytes(chunk_buf_)
 				return _CompressedChunk(db_chunk_, compressed)
 
-			write_state.futures.append(pool.submit(write_task))
+			if pool is not None:
+				write_state.futures.append(pool.submit(write_task))
+			else:
+				fut: 'Future[_CompressedChunk]' = Future()
+				fut.set_result(write_task())
+				write_state.futures.append(fut)
 			write_state.pending_bytes += db_chunk.raw_size
 
 			self.__flush_compressed_chunk_futures(write_state, force=False)

@@ -38,8 +38,18 @@ class _WithBadField(Protocol):
 
 
 def main():
-	logger.get().setLevel(logging.DEBUG)
-	Config().get().debug = True
+	logger.get().setLevel(logging.INFO)
+	Config().get().debug = False
+	Config().get().concurrency = 1
+	Config().get().backup.targets = ['world_bak']
+	Config().get().backup.chunking_enabled = True
+	from prime_backup.config.backup_config import ChunkingRule
+	from prime_backup.types.chunk_method import ChunkMethod
+	Config().get().backup.chunking_rules = [ChunkingRule(
+		algorithm=ChunkMethod.fixed_4k,
+		file_size_threshold=0,
+		patterns=['*.mca'],
+	)]
 
 	DbAccess.init(create=True, migrate=True)
 	backup_id = 1
@@ -137,9 +147,9 @@ def main():
 	# list_()
 	# delete()
 	# migrate()
-	overview()
-	validate()
-	delete()
+	# overview()
+	# validate()
+	# delete()
 
 
 if __name__ == '__main__':

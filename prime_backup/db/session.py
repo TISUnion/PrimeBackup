@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple, Any, Type, TYPE_CHECKING
 from typing import TypeVar, List
 
-from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row, update, inspect, ColumnElement
+from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row, update, inspect, ColumnElement, insert
 from sqlalchemy.orm import Session, Mapper, InstrumentedAttribute
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
@@ -770,6 +770,8 @@ class DbSession:
 		chunk_offset: int
 		chunk_id: int
 
+	__CHUNK_GROUP_CHUNK_BINDING_INSERT_FIELD_COUNT = len(schema.ChunkGroupChunkBinding.__table__.columns)
+
 	@classmethod
 	def create_chunk_group_chunk_binding(cls, **kwargs: Unpack[CreateChunkGroupChunkBindingKwargs]) -> schema.ChunkGroupChunkBinding:
 		cgc = schema.ChunkGroupChunkBinding(**kwargs)
@@ -780,6 +782,12 @@ class DbSession:
 		cgc = self.create_chunk_group_chunk_binding(**kwargs)
 		self.add(cgc)
 		return cgc
+
+	def insert_chunk_group_chunk_bindings(self, rows: List[CreateChunkGroupChunkBindingKwargs]):
+		if len(rows) == 0:
+			return
+		for view in collection_utils.slicing_iterate(rows, self.__safe_var_limit // self.__CHUNK_GROUP_CHUNK_BINDING_INSERT_FIELD_COUNT):
+			self.session.execute(insert(schema.ChunkGroupChunkBinding), view)
 
 	def get_chunk_group_chunk_bindings_opt(self, identifiers: List[ChunkGroupChunkBindingIdentifier]) -> Dict[ChunkGroupChunkBindingIdentifier, Optional[schema.ChunkGroupChunkBinding]]:
 		"""

@@ -83,16 +83,18 @@ class ChunkGrouper:
 				self.session.flush()  # creates chunk_group.id
 
 		# create bindings for new chunk groups
+		chunk_group_chunk_binding_rows: List[DbSession.CreateChunkGroupChunkBindingKwargs] = []
 		for cg_hash in new_chunk_group_hashes:
 			new_chunk_group = known_chunk_groups[cg_hash]
 			offset = 0
 			for chunk in chunk_group_hashes_to_chunks[cg_hash]:
-				self.session.create_and_add_chunk_group_chunk_binding(
-					chunk_group_id=new_chunk_group.id,
-					chunk_offset=offset,
-					chunk_id=chunk.id,
-				)
+				chunk_group_chunk_binding_rows.append({
+					'chunk_group_id': new_chunk_group.id,
+					'chunk_offset': offset,
+					'chunk_id': chunk.id,
+				})
 				offset += chunk.raw_size
+		self.session.insert_chunk_group_chunk_bindings(chunk_group_chunk_binding_rows)
 
 		# create binding for the blob
 		for raw_chunk_group in raw_chunk_groups:

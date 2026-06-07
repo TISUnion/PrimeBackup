@@ -1,7 +1,7 @@
 import dataclasses
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Generator, Optional, Tuple
+from typing import Dict, Generator, Optional
 
 import pytest
 
@@ -47,6 +47,14 @@ class PackStorageEnv:
 	export_path: Path
 
 
+@dataclasses.dataclass(frozen=True)
+class PackStats:
+	size: int
+	entry_count: int
+	live_size: int
+	live_entry_count: int
+
+
 @pytest.fixture(name='env')
 def __pack_storage_env(tmp_path: Path) -> Generator[PackStorageEnv, None, None]:
 	old_config = Config.get()
@@ -77,7 +85,7 @@ def __pack_storage_env(tmp_path: Path) -> Generator[PackStorageEnv, None, None]:
 		ChunkingRule(algorithm=ChunkMethod.fixed_4k, file_size_threshold=1, patterns=['**/*.dat']),
 	]
 	config.backup.pack_auto_compact_threshold = 0.75
-	DbAccess.init(create=True, migrate=False)
+	DbAccess.init_memory_db()
 
 	try:
 		yield PackStorageEnv(root, pb_path, server_path, world_path, export_path)
@@ -88,9 +96,13 @@ def __pack_storage_env(tmp_path: Path) -> Generator[PackStorageEnv, None, None]:
 
 
 def __assert_pack_and_chunk_validate_ok() -> None:
+	__assert_pack_validate_ok()
+	assert ValidateChunksAction().run().bad == 0
+
+
+def __assert_pack_validate_ok() -> None:
 	__assert_pack_db_files_consistent()
 	assert ValidatePacksAction().run().bad == 0
-	assert ValidateChunksAction().run().bad == 0
 
 
 def __assert_pack_db_files_consistent() -> None:
@@ -100,6 +112,11 @@ def __assert_pack_db_files_consistent() -> None:
 			live_chunks = session.get_live_chunks_by_pack_id(pack.id)
 			assert sum(chunk.stored_size for chunk in live_chunks) == pack.live_size
 			assert len(live_chunks) == pack.live_entry_count
+			prev_end = 0
+			for chunk in live_chunks:
+				assert chunk.pack_offset >= prev_end
+				prev_end = chunk.pack_offset + chunk.stored_size
+				assert prev_end <= pack.size
 		for chunk in session.list_chunks():
 			assert chunk.pack_id > 0
 			assert chunk.pack_offset >= 0
@@ -110,10 +127,10 @@ def __create_backup() -> BackupInfo:
 	return CreateBackupAction(Operator.literal('test'), '').run()
 
 
-def __get_pack_stats() -> Dict[int, Tuple[int, int, int, int]]:
+def __get_pack_stats() -> Dict[int, PackStats]:
 	with DbAccess.open_session() as session:
 		return {
-			pack.id: (pack.size, pack.entry_count, pack.live_size, pack.live_entry_count)
+			pack.id: PackStats(pack.size, pack.entry_count, pack.live_size, pack.live_entry_count)
 			for pack in session.list_packs()
 		}
 
@@ -163,7 +180,7 @@ def test_pack_create_compact_export_import_and_unknown_file_cleanup(env: PackSto
 
 	DbAccess.shutdown()
 	Config.get().storage_root = str(env.root / 'imported_pb')
-	DbAccess.init(create=True, migrate=False)
+	DbAccess.init_memory_db()
 	imported_backup = ImportBackupAction(env.export_path, StandaloneBackupFormat.tar, ensure_meta=False).run()
 	assert imported_backup.id == 1
 	__assert_pack_and_chunk_validate_ok()
@@ -251,6 +268,7 @@ def test_get_pack_by_file_name_prefix_matches_and_rejects_ambiguity(env: PackSto
 			else:
 				prefix_to_pack_id[prefix] = location.pack_id
 		session.commit()
+	__assert_pack_validate_ok()
 
 	with DbAccess.open_session() as session:
 		pack = session.list_packs()[0]
@@ -344,6 +362,7 @@ def test_pack_writer_rotates_after_current_pack_reaches_max_size(env: PackStorag
 		loc_4 = __write_test_chunk(session, pack_writer, b'w')
 		pack_writer.close()
 		session.commit()
+	__assert_pack_validate_ok()
 
 	assert loc_2.pack_id == loc_1.pack_id
 	assert loc_3.pack_id == loc_1.pack_id
@@ -396,7 +415,7 @@ def test_large_entry_can_be_stored_as_dedicated_pack(env: PackStorageEnv) -> Non
 	read_data = ChunkIO(chunk_info).read_raw()
 	assert len(read_data) == len(data)
 	assert hash_utils.calc_bytes_hash(read_data) == data_hash
-	assert ValidatePacksAction().run().bad == 0
+	__assert_pack_validate_ok()
 
 
 def test_delete_backup_delta_includes_base_shrink_pack_compaction(env: PackStorageEnv) -> None:

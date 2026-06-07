@@ -4,6 +4,7 @@ from typing import Optional, Generator, TypeVar
 
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from prime_backup.config.config import Config
 from prime_backup.db import db_constants
@@ -43,7 +44,8 @@ class DbAccess:
 
 	@classmethod
 	def init_memory_db(cls):
-		cls.__engine = create_engine('sqlite://')
+		# see https://docs.sqlalchemy.org/en/21/dialects/sqlite.html#using-a-memory-database-in-multiple-threads
+		cls.__engine = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
 		cls.__db_file_path = None
 
 		try:

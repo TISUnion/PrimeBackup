@@ -268,7 +268,7 @@ def __import_and_restore_backup_archive(
 		concurrency: int,
 ) -> None:
 	set_config_instance(__make_config(imported_pb_path, server_path, hash_method, compress_method, chunk_method, concurrency))
-	DbAccess.init(create=True, migrate=False)
+	DbAccess.init_memory_db()
 	try:
 		imported_backup = ImportBackupAction(archive.export_path, export_format, ensure_meta=True).run()
 		__assert_pack_and_chunk_validate_ok()
@@ -305,7 +305,7 @@ def test_backup_roundtrip(
 	first_expected_tree = __populate_world_for_first_backup(world_path)
 
 	set_config_instance(__make_config(source_pb_path, server_path, hash_method, compress_method, chunk_method, concurrency))
-	DbAccess.init(create=True, migrate=False)
+	DbAccess.init_memory_db()
 	try:
 		first_snapshot = __create_backup_snapshot('first', first_expected_tree)
 		second_expected_tree = __mutate_world_for_second_backup(world_path)

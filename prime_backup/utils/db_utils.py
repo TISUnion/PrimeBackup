@@ -1,6 +1,9 @@
 import sqlite3
 
-from prime_backup.utils.path_like import PathLike
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+	from prime_backup.utils.path_like import PathLike
 
 
 def get_sqlite_version() -> str:
@@ -35,7 +38,7 @@ def check_sqlite_without_rowid() -> bool:
 	return sqlite3.sqlite_version_info >= (3, 8, 2)
 
 
-def vacuum_into_via_backup_api(src_db_path: PathLike, into_path: PathLike):
+def vacuum_into_via_backup_api(src_db_path: 'PathLike', into_path: 'PathLike'):
 	"""
 	Fallback for VACUUM INTO on old SQLite versions that do not support "VACUUM INTO"
 	"""

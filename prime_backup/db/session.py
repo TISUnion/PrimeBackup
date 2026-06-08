@@ -347,6 +347,19 @@ class DbSession:
 				result[blob.hash] = blob
 		return result
 
+	def get_blob_ids_by_hashes_opt(self, hashes: List[str]) -> Dict[str, Optional[int]]:
+		"""
+		:return: a dict, hash -> optional blob id. All given hashes are in the dict
+		"""
+		result: Dict[str, Optional[int]] = {h: None for h in hashes}
+		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+			for blob_hash, blob_id in self.session.execute(
+					select(schema.Blob.hash, schema.Blob.id).
+					where(schema.Blob.hash.in_(view))
+			).all():
+				result[blob_hash] = blob_id
+		return result
+
 	def get_blobs_by_hashes(self, hashes: List[str]) -> Dict[str, schema.Blob]:
 		"""
 		:return: a dict, hash -> blob. All given hashes are in the dict

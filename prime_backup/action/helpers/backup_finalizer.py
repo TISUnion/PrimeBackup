@@ -18,16 +18,16 @@ class BackupFinalizer:
 	def finalize_files_and_backup(self, backup: schema.Backup, files: List[schema.File]):
 		self.session.flush()  # ensure all blobs has their blob.id allocated
 
-		file_blobs = self.session.get_blobs_by_hashes_opt([
+		hash_to_blob_id = self.session.get_blob_ids_by_hashes_opt([
 			file.blob_hash for file in files
 			if file.blob_hash is not None
 		])
 		for file in files:
 			if file.blob_hash is not None:
-				file_blob = file_blobs[file.blob_hash]
-				if file_blob is None:
+				blob_id = hash_to_blob_id[file.blob_hash]
+				if blob_id is None:
 					raise AssertionError('blob of file does not exists: {}'.format(file))
-				file.blob_id = file_blob.id
+				file.blob_id = blob_id
 
 		allocate_args = FilesetAllocateArgs.from_config(self.config)
 		allocate_result = FilesetAllocator(self.session, files).allocate(allocate_args)

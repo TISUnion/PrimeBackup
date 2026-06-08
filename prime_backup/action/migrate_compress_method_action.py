@@ -186,7 +186,7 @@ class MigrateCompressMethodAction(Action[SizeDiff]):
 			return
 
 		chunk_group_id_list = list(self.__affected_chunk_groups_ids)
-		chunk_groups = session.get_chunk_groups_by_ids(chunk_group_id_list)
+		chunk_groups = session.get_chunk_groups_by_ids_opt(chunk_group_id_list)
 		for chunk_group_id, chunk_group in chunk_groups.items():
 			if chunk_group is None:
 				raise AssertionError('Chunk group with id {!r} does not exists'.format(chunk_group_id))

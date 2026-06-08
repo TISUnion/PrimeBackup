@@ -141,7 +141,7 @@ class ValidateBlobsAction(Action[ValidateBlobsResult]):
 				return b_.chunk_group_offset
 
 			bd_lst.sort(key=blob_binding_key_getter)
-		all_chunk_groups_by_id = session.get_chunk_groups_by_ids([bd.chunk_group_id for bd in all_bindings])
+		all_chunk_groups_by_id = session.get_chunk_groups_by_ids_opt([bd.chunk_group_id for bd in all_bindings])
 		all_chunks_by_chunk_group_id = session.get_chunk_group_chunks_batch([bd.chunk_group_id for bd in all_bindings])
 
 		def validate_one_blob(blob: BlobInfo):

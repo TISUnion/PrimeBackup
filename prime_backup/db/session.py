@@ -712,7 +712,7 @@ class DbSession:
 			raise ChunkGroupHashNotFound(h)
 		return chunk_group
 
-	def get_chunk_groups_by_ids(self, chunk_group_ids: List[int]) -> Dict[int, Optional[schema.ChunkGroup]]:
+	def get_chunk_groups_by_ids_opt(self, chunk_group_ids: List[int]) -> Dict[int, Optional[schema.ChunkGroup]]:
 		"""
 		:return: a dict, id -> optional chunk group. All given ids are in the dict
 		"""
@@ -723,7 +723,7 @@ class DbSession:
 				result[chunk_group.id] = chunk_group
 		return result
 
-	def get_chunk_groups_by_hashes(self, hashes: List[str]) -> Dict[str, Optional[schema.ChunkGroup]]:
+	def get_chunk_groups_by_hashes_opt(self, hashes: List[str]) -> Dict[str, Optional[schema.ChunkGroup]]:
 		"""
 		:return: a dict, hash -> optional chunk group. All given hashes are in the dict
 		"""

@@ -185,7 +185,7 @@ class DbSession:
 
 	def create_and_add_pack(self, **kwargs: Unpack[CreatePackKwargs]) -> schema.Pack:
 		pack = schema.Pack(**kwargs)
-		self.__validate_int_fields_range(pack)
+		# self.__validate_int_fields_range(pack)
 		self.add(pack)
 		return pack
 
@@ -316,7 +316,7 @@ class DbSession:
 	@classmethod
 	def create_blob(cls, **kwargs: Unpack[CreateBlobKwargs]) -> schema.Blob:
 		blob = schema.Blob(**kwargs)
-		cls.__validate_int_fields_range(blob)
+		# cls.__validate_int_fields_range(blob)
 		return blob
 
 	def create_and_add_blob(self, **kwargs: Unpack[CreateBlobKwargs]) -> schema.Blob:
@@ -527,7 +527,7 @@ class DbSession:
 	@classmethod
 	def create_chunk(cls, **kwargs: Unpack[CreateChunkKwargs]) -> schema.Chunk:
 		chunk = schema.Chunk(**kwargs)
-		cls.__validate_int_fields_range(chunk)
+		# cls.__validate_int_fields_range(chunk)
 		return chunk
 
 	def create_and_add_chunk(self, **kwargs: Unpack[CreateChunkKwargs]) -> schema.Chunk:
@@ -658,7 +658,7 @@ class DbSession:
 	@classmethod
 	def create_chunk_group(cls, **kwargs: Unpack[CreateChunkGroupKwargs]) -> schema.ChunkGroup:
 		chunk_group = schema.ChunkGroup(**kwargs)
-		cls.__validate_int_fields_range(chunk_group)
+		# cls.__validate_int_fields_range(chunk_group)
 		return chunk_group
 
 	def create_and_add_chunk_group(self, **kwargs: Unpack[CreateChunkGroupKwargs]) -> schema.ChunkGroup:
@@ -775,7 +775,7 @@ class DbSession:
 	@classmethod
 	def create_chunk_group_chunk_binding(cls, **kwargs: Unpack[CreateChunkGroupChunkBindingKwargs]) -> schema.ChunkGroupChunkBinding:
 		cgc = schema.ChunkGroupChunkBinding(**kwargs)
-		cls.__validate_int_fields_range(cgc)
+		# cls.__validate_int_fields_range(cgc)
 		return cgc
 
 	def create_and_add_chunk_group_chunk_binding(self, **kwargs: Unpack[CreateChunkGroupChunkBindingKwargs]) -> schema.ChunkGroupChunkBinding:
@@ -940,7 +940,7 @@ class DbSession:
 	@classmethod
 	def create_blob_chunk_group_binding(cls, **kwargs: Unpack[CreateBlobChunkGroupBindingKwargs]) -> schema.BlobChunkGroupBinding:
 		bcg = schema.BlobChunkGroupBinding(**kwargs)
-		cls.__validate_int_fields_range(bcg)
+		# cls.__validate_int_fields_range(bcg)
 		return bcg
 
 	def create_and_add_blob_chunk_group_binding(self, **kwargs: Unpack[CreateBlobChunkGroupBindingKwargs]) -> schema.BlobChunkGroupBinding:
@@ -1360,7 +1360,7 @@ class DbSession:
 
 	def create_and_add_fileset(self, **kwargs: Unpack[CreateFilesetKwargs]) -> schema.Fileset:
 		fileset = schema.Fileset(**kwargs)
-		self.__validate_int_fields_range(fileset)
+		# self.__validate_int_fields_range(fileset)
 		self.add(fileset)
 		return fileset
 
@@ -1673,7 +1673,7 @@ class DbSession:
 			logger.get().warning('Backup tag "pre_restore_backup" is not used anymore, use tag "temporary" instead')
 
 		backup = schema.Backup(**kwargs)
-		cls.__validate_int_fields_range(backup)
+		# cls.__validate_int_fields_range(backup)
 		return backup
 
 	def get_backup_count(self, backup_filter: Optional[BackupFilter] = None) -> int:

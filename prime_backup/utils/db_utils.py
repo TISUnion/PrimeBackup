@@ -34,6 +34,13 @@ def check_sqlite_vacuum_into_support() -> bool:
 	return sqlite3.sqlite_version_info >= (3, 27, 0)
 
 
+def check_sqlite_returning_support() -> bool:
+	"""
+	https://sqlite.org/lang_returning.html#overview
+	"""
+	return sqlite3.sqlite_version_info >= (3, 35, 0)
+
+
 def check_sqlite_row_number() -> bool:
 	"""
 	https://sqlite.org/windowfunctions.html#history
@@ -67,5 +74,6 @@ if __name__ == '__main__':
 	print('version:', sqlite3.sqlite_version)
 	print('json query:', check_sqlite_json_query_support())
 	print('vacuum into:', check_sqlite_vacuum_into_support())
+	print('returning:', check_sqlite_returning_support())
 	print('row number:', check_sqlite_row_number())
 	print('without rowid:', check_sqlite_without_rowid())

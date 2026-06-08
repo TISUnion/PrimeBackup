@@ -91,6 +91,11 @@ class DbSession:
 		return cls.__check_support(db_utils.check_sqlite_row_number, 'SQLite backend does not support ROW_NUMBER() statement, ID reassignment is not available')
 
 	@classmethod
+	@functools.lru_cache
+	def __supports_returning(cls) -> bool:
+		return db_utils.check_sqlite_returning_support()
+
+	@classmethod
 	@functools.lru_cache(None)
 	def __get_schema_column_fields(cls, typ: Type[schema.Base]) -> List[Tuple[str, 'TypeEngine']]:
 		mapper: Mapper = inspect(typ)
@@ -524,6 +529,8 @@ class DbSession:
 		pack_id: int
 		pack_offset: int
 
+	__CHUNK_INSERT_FIELD_COUNT = len(schema.Chunk.__table__.columns) - 1
+
 	@classmethod
 	def create_chunk(cls, **kwargs: Unpack[CreateChunkKwargs]) -> schema.Chunk:
 		chunk = schema.Chunk(**kwargs)
@@ -534,6 +541,35 @@ class DbSession:
 		chunk = self.create_chunk(**kwargs)
 		self.add(chunk)
 		return chunk
+
+	def insert_chunks(self, rows: List[CreateChunkKwargs]) -> Dict[str, int]:
+		if len(rows) == 0:
+			return {}
+
+		hashes: List[str] = [row['hash'] for row in rows]
+		hash_to_id: Dict[str, int] = {}
+		if self.__supports_returning():
+			for row_page in collection_utils.slicing_iterate(rows, self.__safe_var_limit // self.__CHUNK_INSERT_FIELD_COUNT):
+				for chunk_hash, chunk_id in self.session.execute(
+						insert(schema.Chunk).
+						returning(schema.Chunk.hash, schema.Chunk.id),
+						row_page,
+				).all():
+					hash_to_id[chunk_hash] = chunk_id
+		else:
+			for row_page in collection_utils.slicing_iterate(rows, self.__safe_var_limit // self.__CHUNK_INSERT_FIELD_COUNT):
+				self.session.execute(insert(schema.Chunk), row_page)
+			for hash_page in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+				for chunk_hash, chunk_id in self.session.execute(
+						select(schema.Chunk.hash, schema.Chunk.id).
+						where(schema.Chunk.hash.in_(hash_page))
+				).all():
+					hash_to_id[chunk_hash] = chunk_id
+
+		if len(hash_to_id) != len(set(hashes)):
+			missing_hashes = sorted(set(hashes) - set(hash_to_id.keys()))
+			raise RuntimeError('failed to query inserted chunk ids, missing hashes: {}'.format(missing_hashes))
+		return hash_to_id
 
 	def get_chunk_count(self) -> int:
 		return _int_or_0(self.session.execute(select(func.count()).select_from(schema.Chunk)).scalar_one())

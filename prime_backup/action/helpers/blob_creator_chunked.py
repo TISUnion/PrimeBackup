@@ -14,6 +14,7 @@ from prime_backup.action.helpers.chunk_grouper import ChunkGrouper
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey, SourceFileNotFoundWrapper
 from prime_backup.compressors import Compressor, CompressMethod
 from prime_backup.db import schema
+from prime_backup.db.session import DbSession
 from prime_backup.db.values import BlobStorageMethod
 from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.chunker import PrettyChunk, PrettyChunkSequence, SimplePrettyChunkSequence
@@ -40,9 +41,37 @@ class _ChunkedBlobSnapshot:
 	blob_size: int
 
 
+@dataclasses.dataclass
+class _PendingChunk:
+	hash: str
+	compress: str
+	raw_size: int
+	stored_size: int
+	pack_id: int
+	pack_offset: int
+
+	def to_insert_kwargs(self) -> DbSession.CreateChunkKwargs:
+		return {
+			'hash': self.hash,
+			'compress': self.compress,
+			'raw_size': self.raw_size,
+			'stored_size': self.stored_size,
+			'pack_id': self.pack_id,
+			'pack_offset': self.pack_offset,
+		}
+
+	def to_chunk_like(self, chunk_id: int) -> ChunkGrouper.ChunkLike:
+		return ChunkGrouper.ChunkLike(
+			id=chunk_id,
+			hash=self.hash,
+			raw_size=self.raw_size,
+			stored_size=self.stored_size,
+		)
+
+
 @dataclasses.dataclass(frozen=True)
 class _CompressedChunk:
-	chunk: schema.Chunk
+	chunk: _PendingChunk
 	data: bytes
 
 
@@ -61,8 +90,8 @@ class _CompressedChunkWriteState:
 
 @dataclasses.dataclass(frozen=True)
 class _ChunkWriteResult:
-	offset_to_db_chunk: Dict[int, schema.Chunk]
-	new_db_chunks: List[schema.Chunk]
+	offset_to_chunk: Dict[int, Union[schema.Chunk, _PendingChunk]]
+	new_chunks: List[_PendingChunk]
 	raw_size_sum: int
 	stored_size_sum: int
 	unique_chunk_count: int
@@ -112,11 +141,11 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			self.logger.debug('Chunked file {} in {:.2f}s, compressed size {}/{}, chunk count: {} (+{}, {:.1f}%)'.format(
 				src_path_str, time.time() - process_start_time,
 				write_result.stored_size_sum, write_result.raw_size_sum,
-				len(write_result.offset_to_db_chunk), len(write_result.new_db_chunks),
-				100.0 * len(write_result.new_db_chunks) / max(1, len(write_result.offset_to_db_chunk)),
+				len(write_result.offset_to_chunk), len(write_result.new_chunks),
+				100.0 * len(write_result.new_chunks) / max(1, len(write_result.offset_to_chunk)),
 			))
 		if (
-				len(write_result.new_db_chunks) >= max(5000, int(write_result.unique_chunk_count * 0.6)) and
+				len(write_result.new_chunks) >= max(5000, int(write_result.unique_chunk_count * 0.6)) and
 				self.ctx.file_lookup.previous_backup_has_chunked_file(self.args.src_path)
 		):
 			# 5000 chunks == 5000*32*1.2 == ~192MiB
@@ -124,8 +153,8 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			self.logger.warning('File path: {} size {}, chunk method {}, chunk count {} (unique {}, new {} {:.1f}%), new chunk size {}'.format(
 				src_path_str, ByteCount(write_result.raw_size_sum).auto_str(),
 				self.args.chunk_method.name, len(snapshot.chunks), write_result.unique_chunk_count,
-				len(write_result.new_db_chunks), 100.0 * len(write_result.new_db_chunks) / max(1, write_result.unique_chunk_count),
-				ByteCount(sum(db_chunk.raw_size for db_chunk in write_result.new_db_chunks)).auto_str(),
+				len(write_result.new_chunks), 100.0 * len(write_result.new_chunks) / max(1, write_result.unique_chunk_count),
+				ByteCount(sum(db_chunk.raw_size for db_chunk in write_result.new_chunks)).auto_str(),
 			))
 
 		return self.__create_chunked_blob(snapshot, write_result)
@@ -223,8 +252,9 @@ class ChunkedBlobCreator(BlobCreatorBase):
 		return _ChunkedBlobSnapshot(chunks, blob_hash, blob_size)
 
 	def __create_missing_chunks(self, actual_path_to_read: Path, snapshot: _ChunkedBlobSnapshot, known_db_chunks: Dict[str, Optional[schema.Chunk]]) -> _ChunkWriteResult:
-		new_db_chunks: List[schema.Chunk] = []
-		offset_to_db_chunk: Dict[int, schema.Chunk] = {}
+		known_chunks: Dict[str, Optional[Union[schema.Chunk, _PendingChunk]]] = dict(known_db_chunks)
+		new_chunks: List[_PendingChunk] = []
+		offset_to_chunk: Dict[int, Union[schema.Chunk, _PendingChunk]] = {}
 		write_state = _CompressedChunkWriteState()
 
 		with contextlib.ExitStack() as es:
@@ -238,13 +268,13 @@ class ChunkedBlobCreator(BlobCreatorBase):
 				misc_utils.assert_true(offset == chunk.offset, lambda: f'offset mismatch {offset} {chunk.offset}')
 				misc_utils.assert_true(chunk.length > 0, lambda: 'chunk with zero length')
 
-				db_chunk = known_db_chunks[chunk.hash]
+				db_chunk = known_chunks[chunk.hash]
 				if db_chunk is None:
-					db_chunk = self.__create_new_chunk(src_file, chunk, offset, known_db_chunks, new_db_chunks, pool, write_state)
+					db_chunk = self.__create_new_chunk(src_file, chunk, offset, known_chunks, new_chunks, pool, write_state)
 				else:
 					self.__skip_known_chunk(src_file, chunk, offset)
 
-				offset_to_db_chunk[offset] = db_chunk
+				offset_to_chunk[offset] = db_chunk
 				offset += chunk.length
 
 			extra_buf = src_file.read(1)
@@ -257,15 +287,15 @@ class ChunkedBlobCreator(BlobCreatorBase):
 				self.__flush_compressed_chunk_futures(write_state, force=True)
 
 		blob_raw_size_sum = 0
-		blob_stored_size_sum = sum({db_chunk.hash: db_chunk.stored_size for db_chunk in offset_to_db_chunk.values()}.values())
-		for db_chunk in offset_to_db_chunk.values():
+		blob_stored_size_sum = sum({db_chunk.hash: db_chunk.stored_size for db_chunk in offset_to_chunk.values()}.values())
+		for db_chunk in offset_to_chunk.values():
 			blob_raw_size_sum += db_chunk.raw_size
 		misc_utils.assert_true(blob_raw_size_sum == offset, lambda: f'blob_raw_size_sum {blob_raw_size_sum} should be equal to offset {offset}')
 		misc_utils.assert_true(blob_raw_size_sum == snapshot.blob_size, lambda: f'blob_raw_size_sum {blob_raw_size_sum} should be equal to blob_size {snapshot.blob_size}')
 
 		return _ChunkWriteResult(
-			offset_to_db_chunk=offset_to_db_chunk,
-			new_db_chunks=new_db_chunks,
+			offset_to_chunk=offset_to_chunk,
+			new_chunks=new_chunks,
 			raw_size_sum=blob_raw_size_sum,
 			stored_size_sum=blob_stored_size_sum,
 			unique_chunk_count=len(known_db_chunks),
@@ -276,29 +306,28 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			src_file: BinaryIO,
 			chunk: PrettyChunk,
 			offset: int,
-			known_db_chunks: Dict[str, Optional[schema.Chunk]],
-			new_db_chunks: List[schema.Chunk],
+			known_chunks: Dict[str, Optional[Union[schema.Chunk, _PendingChunk]]],
+			new_chunks: List[_PendingChunk],
 			pool: Optional[FailFastBlockingThreadPool],
 			write_state: _CompressedChunkWriteState,
-	) -> schema.Chunk:
+	) -> _PendingChunk:
 		chunk_buf = self.__read_and_validate_new_chunk(src_file, chunk, offset)
 		compress_method: CompressMethod = self.config.backup.get_compress_method_from_size(chunk.length)
 		compressor = Compressor.create(compress_method)
 
-		db_chunk = self.ctx.session.create_chunk(
+		db_chunk = _PendingChunk(
 			hash=chunk.hash,
 			compress=compress_method.name,
 			raw_size=len(chunk_buf),
-			# following fields are filled in write_task()
 			stored_size=-1,
 			pack_id=-1,
 			pack_offset=-1,
 		)
-		new_db_chunks.append(db_chunk)
-		known_db_chunks[db_chunk.hash] = db_chunk
+		new_chunks.append(db_chunk)
+		known_chunks[db_chunk.hash] = db_chunk
 
 		with self.ctx.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_io_write):
-			def write_task(db_chunk_: schema.Chunk = db_chunk, compressor_: Compressor = compressor, chunk_buf_: bytes = chunk_buf) -> _CompressedChunk:
+			def write_task(db_chunk_: _PendingChunk = db_chunk, compressor_: Compressor = compressor, chunk_buf_: bytes = chunk_buf) -> _CompressedChunk:
 				compressed = compressor_.compress_bytes(chunk_buf_)
 				return _CompressedChunk(db_chunk_, compressed)
 
@@ -343,10 +372,20 @@ class ChunkedBlobCreator(BlobCreatorBase):
 				self.log_and_raise_blob_file_changed('Blob size mismatch, fail to read {} byte at offset {}, actual read {}'.format(chunk.length, offset, n_read), self.args.last_chance)
 
 	def __create_chunked_blob(self, snapshot: _ChunkedBlobSnapshot, write_result: _ChunkWriteResult) -> schema.Blob:
-		for new_db_chunk in write_result.new_db_chunks:
-			misc_utils.assert_true(new_db_chunk.stored_size >= 0, lambda: f'bad stored_size {new_db_chunk}')
-			self.ctx.blob_recorder.record_new_chunk_size(new_db_chunk.raw_size, new_db_chunk.stored_size)
-			self.ctx.session.add(new_db_chunk)
+		for new_chunk in write_result.new_chunks:
+			misc_utils.assert_true(new_chunk.stored_size >= 0, lambda: f'bad stored_size {new_chunk}')
+			self.ctx.blob_recorder.record_new_chunk_size(new_chunk.raw_size, new_chunk.stored_size)
+
+		with self.ctx.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
+			new_chunk_ids = self.ctx.session.insert_chunks([new_chunk.to_insert_kwargs() for new_chunk in write_result.new_chunks])
+
+		offset_to_chunk_like: Dict[int, ChunkGrouper.ChunkLike] = {}
+		for offset, chunk in write_result.offset_to_chunk.items():
+			if isinstance(chunk, _PendingChunk):
+				offset_to_chunk_like[offset] = chunk.to_chunk_like(new_chunk_ids[chunk.hash])
+			else:
+				offset_to_chunk_like[offset] = ChunkGrouper.ChunkLike.of(chunk)
+
 		blob = self.ctx.blob_recorder.create_blob(
 			self.ctx.session,
 			storage_method=BlobStorageMethod.chunked.value,
@@ -356,8 +395,8 @@ class ChunkedBlobCreator(BlobCreatorBase):
 			stored_size=write_result.stored_size_sum,
 		)
 		with self.ctx.time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
-			self.ctx.session.flush()  # creates blob.id, chunk.id
+			self.ctx.session.flush()  # creates blob.id
 
 		grouper = ChunkGrouper(self.ctx.session, self.ctx.time_costs)
-		grouper.create_chunk_groups(blob, write_result.offset_to_db_chunk)
+		grouper.create_chunk_groups(blob, offset_to_chunk_like)
 		return blob

@@ -141,7 +141,10 @@ class ImportBackupAction(Action[BackupInfo]):
 			storage_method=BlobStorageMethod.chunked.value,
 		)
 		session.flush()  # creates blob.id, chunk.id
-		ChunkGrouper(session, None).create_chunk_groups(blob, offset_to_db_chunk)
+		ChunkGrouper(session, None).create_chunk_groups(blob, {
+			offset: ChunkGrouper.ChunkLike.of(db_chunk)
+			for offset, db_chunk in offset_to_db_chunk.items()
+		})
 
 		return blob
 

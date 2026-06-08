@@ -11,17 +11,32 @@ from prime_backup.utils import chunk_utils, collection_utils
 from prime_backup.utils.time_cost_stats import TimeCostStats
 
 
-@dataclasses.dataclass
-class _RawChunkGroup:
-	offset: int = -1  # offset in blob
-	hash: str = ''
-	chunks: List[schema.Chunk] = dataclasses.field(default_factory=list)
-
-
 _dummy_chunk_costs: TimeCostStats[CreateBackupTimeCostKey] = TimeCostStats()
 
 
 class ChunkGrouper:
+	@dataclasses.dataclass(frozen=True)
+	class ChunkLike:
+		id: int
+		hash: str
+		raw_size: int
+		stored_size: int
+
+		@classmethod
+		def of(cls, chunk: schema.Chunk) -> 'ChunkGrouper.ChunkLike':
+			return cls(
+				id=chunk.id,
+				hash=chunk.hash,
+				raw_size=chunk.raw_size,
+				stored_size=chunk.stored_size,
+			)
+
+	@dataclasses.dataclass
+	class _RawChunkGroup:
+		offset: int = -1  # offset in blob
+		hash: str = ''
+		chunks: List['ChunkGrouper.ChunkLike'] = dataclasses.field(default_factory=list)
+
 	def __init__(self, session: DbSession, time_costs: Optional[TimeCostStats[CreateBackupTimeCostKey]]):
 		from prime_backup import logger
 		from prime_backup.config.config import Config
@@ -31,7 +46,7 @@ class ChunkGrouper:
 		self.session = session
 		self.__time_costs: TimeCostStats[CreateBackupTimeCostKey] = time_costs or _dummy_chunk_costs
 
-	def create_chunk_groups(self, blob: schema.Blob, blob_chunks: Dict[int, schema.Chunk]):
+	def create_chunk_groups(self, blob: schema.Blob, blob_chunks: Dict[int, ChunkLike]):
 		"""
 		blob and chunks should have their .id generated
 		:param blob: the blob that is split to chunks
@@ -42,9 +57,9 @@ class ChunkGrouper:
 
 		# cut chunks to chunk groups
 
-		raw_chunk_groups: List[_RawChunkGroup] = []
-		chunk_group_hashes_to_chunks: Dict[str, List[schema.Chunk]] = {}
-		current_group = _RawChunkGroup()
+		raw_chunk_groups: List[ChunkGrouper._RawChunkGroup] = []
+		chunk_group_hashes_to_chunks: Dict[str, List[ChunkGrouper.ChunkLike]] = {}
+		current_group = self._RawChunkGroup()
 		for i, chunk_pair in enumerate(blob_chunks.items()):
 			offset, chunk = chunk_pair
 
@@ -62,7 +77,7 @@ class ChunkGrouper:
 				current_group.hash = chunk_utils.create_chunk_group_hash(chunk.hash for chunk in current_group.chunks)
 				raw_chunk_groups.append(current_group)
 				chunk_group_hashes_to_chunks[current_group.hash] = current_group.chunks
-				current_group = _RawChunkGroup()
+				current_group = self._RawChunkGroup()
 
 		# create new chunk groups
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):

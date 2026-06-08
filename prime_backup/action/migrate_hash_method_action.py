@@ -202,7 +202,10 @@ class MigrateHashMethodAction(Action[None]):
 			return
 		chunk_grouper = ChunkGrouper(session, None)
 		for i, blob in enumerate(chunked_blobs):
-			chunk_grouper.create_chunk_groups(blob, blob_chunks_map[blob.id])
+			chunk_grouper.create_chunk_groups(blob, {
+				offset: ChunkGrouper.ChunkLike.of(chunk)
+				for offset, chunk in blob_chunks_map[blob.id].items()
+			})
 			if (i + 1) % 200 == 0 or i + 1 == total:
 				self.logger.info('Re-grouped chunked blobs {} / {}'.format(i + 1, total))
 

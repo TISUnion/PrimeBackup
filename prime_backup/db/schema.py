@@ -3,9 +3,9 @@ from typing import Optional, List, get_type_hints
 from sqlalchemy import String, Integer, ForeignKey, BigInteger, JSON, LargeBinary
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from prime_backup.db.db_features import DbFeatures
 from prime_backup.db.types import HashHex
 from prime_backup.db.values import BackupTagDict
-from prime_backup.utils import db_utils
 
 
 class Base(DeclarativeBase):
@@ -100,7 +100,7 @@ class ChunkGroupChunkBinding(Base):
 	"""
 
 	__tablename__ = 'chunk_group_chunk_binding'
-	__table_args__ = {'sqlite_with_rowid': False} if db_utils.check_sqlite_without_rowid() else {}
+	__table_args__ = {'sqlite_with_rowid': False} if DbFeatures.supports_without_rowid() else {}
 
 	chunk_group_id: Mapped[int] = mapped_column(ForeignKey('chunk_group.id'), primary_key=True)
 	chunk_offset: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # &chunk[0] - &chunk_group[0]
@@ -117,7 +117,7 @@ class BlobChunkGroupBinding(Base):
 	"""
 
 	__tablename__ = 'blob_chunk_group_binding'
-	__table_args__ = {'sqlite_with_rowid': False} if db_utils.check_sqlite_without_rowid() else {}
+	__table_args__ = {'sqlite_with_rowid': False} if DbFeatures.supports_without_rowid() else {}
 
 	blob_id: Mapped[int] = mapped_column(ForeignKey('blob.id'), primary_key=True)
 	chunk_group_offset: Mapped[int] = mapped_column(BigInteger, primary_key=True)

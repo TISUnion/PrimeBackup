@@ -11,6 +11,7 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 
+from prime_backup.db.db_features import DbFeatures
 from prime_backup.utils import db_utils
 from tests import schema_utils
 
@@ -24,7 +25,7 @@ def __load_expected(filename: str) -> schema_utils.SchemaDDL:
 
 
 def _assert_schema_matches(tc: unittest.TestCase, actual: schema_utils.SchemaDDL, filename: str, exact_match: bool):
-	if not db_utils.check_sqlite_without_rowid():
+	if not DbFeatures.supports_without_rowid():
 		tc.fail(f'SQLite without rowid is not supported, version: {db_utils.get_sqlite_version()}')
 
 	frozen_answer = __load_expected(filename)

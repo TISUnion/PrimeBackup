@@ -7,12 +7,12 @@ from sqlalchemy import Table, Column, Integer, String, ForeignKey, LargeBinary, 
 from sqlalchemy.orm import Session, declarative_base
 from typing_extensions import override
 
+from prime_backup.db.db_features import DbFeatures
 from prime_backup.db.migrations import MigrationImplBase
 from prime_backup.db.values import BlobStorageMethod
-from prime_backup.utils import db_utils
 
 _with_rowid_kwargs: Dict[str, Any] = {}
-if db_utils.check_sqlite_without_rowid():
+if DbFeatures.supports_without_rowid():
 	_with_rowid_kwargs['sqlite_with_rowid'] = False
 
 

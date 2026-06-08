@@ -4,7 +4,7 @@ import functools
 import sqlite3
 import string
 from pathlib import Path
-from typing import Optional, Sequence, Dict, Iterator, Callable, Set, Generator, Iterable, Tuple, Any, Type, TYPE_CHECKING
+from typing import Optional, Sequence, Dict, Iterator, Set, Generator, Iterable, Tuple, Any, Type, TYPE_CHECKING
 from typing import TypeVar, List
 
 from sqlalchemy import select, delete, desc, func, Select, JSON, text, or_, not_, and_, exists, Row, update, inspect, ColumnElement, insert
@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, Mapper, InstrumentedAttribute
 from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
+from prime_backup.db.db_features import DbFeatures
 from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, FileIdentifier
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound, PackIdNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
@@ -66,34 +67,6 @@ class DbSession:
 
 		# the limit in old sqlite (https://www.sqlite.org/limits.html#max_variable_number)
 		self.__safe_var_limit = 999 - 20
-
-	@classmethod
-	def __check_support(cls, check_func: Callable[[], bool], msg: str):
-		if not (is_supported := check_func()):
-			from prime_backup import logger
-			import sqlite3
-			logger.get().warning(f'WARN: {msg}. SQLite version: {sqlite3.sqlite_version}')
-		return is_supported
-
-	@classmethod
-	@functools.lru_cache
-	def __supports_json_query(cls) -> bool:
-		return cls.__check_support(db_utils.check_sqlite_json_query_support, 'SQLite backend does not support json query. Inefficient manual query is used as the fallback')
-
-	@classmethod
-	@functools.lru_cache
-	def __supports_vacuum_into(cls) -> bool:
-		return cls.__check_support(db_utils.check_sqlite_vacuum_into_support, 'SQLite backend does not support VACUUM INTO statement. Insecure manual file copy is used as the fallback')
-
-	@classmethod
-	@functools.lru_cache
-	def __supports_row_number(cls) -> bool:
-		return cls.__check_support(db_utils.check_sqlite_row_number, 'SQLite backend does not support ROW_NUMBER() statement, ID reassignment is not available')
-
-	@classmethod
-	@functools.lru_cache
-	def __supports_returning(cls) -> bool:
-		return db_utils.check_sqlite_returning_support()
 
 	@classmethod
 	@functools.lru_cache(None)
@@ -169,7 +142,7 @@ class DbSession:
 	def vacuum(self, into_file: Optional[str] = None, allow_vacuum_into_fallback: bool = True):
 		# https://www.sqlite.org/lang_vacuum.html
 		if into_file is not None:
-			if self.__supports_vacuum_into():
+			if DbFeatures.supports_vacuum_into():
 				self.session.execute(text('VACUUM INTO :into_file').bindparams(into_file=str(into_file)))
 			elif allow_vacuum_into_fallback:
 				if self.db_path is None:
@@ -548,7 +521,7 @@ class DbSession:
 
 		hashes: List[str] = [row['hash'] for row in rows]
 		hash_to_id: Dict[str, int] = {}
-		if self.__supports_returning():
+		if DbFeatures.supports_returning():
 			for row_page in collection_utils.slicing_iterate(rows, self.__safe_var_limit // self.__CHUNK_INSERT_FIELD_COUNT):
 				for chunk_hash, chunk_id in self.session.execute(
 						insert(schema.Chunk).
@@ -1584,7 +1557,7 @@ class DbSession:
 		"""
 		SQLite does not support json query, and the backup filter contains tag filter
 		"""
-		return backup_filter is not None and len(backup_filter.tag_filters) > 0 and not cls.__supports_json_query()
+		return backup_filter is not None and len(backup_filter.tag_filters) > 0 and not DbFeatures.supports_json_query()
 
 	@classmethod
 	def __manual_backup_tag_filter(cls, backup: schema.Backup, backup_filter: BackupFilter) -> bool:
@@ -1669,7 +1642,7 @@ class DbSession:
 				schema.Backup.timestamp < ts_sec,
 				and_(schema.Backup.timestamp == ts_sec, schema.Backup.timestamp_ns_part <= ts_ns_part)
 			))
-		if cls.__supports_json_query():
+		if DbFeatures.supports_json_query():
 			s = cls.__sql_backup_tag_filter(s, backup_filter)
 
 		sort_order = backup_filter.sort_order or BackupSortOrder.time_r
@@ -1897,7 +1870,7 @@ class DbSession:
 		self.session.delete(backup)
 
 	def reassign_backup_id(self, order: BackupSortOrder) -> Optional[int]:
-		if not self.__supports_row_number():
+		if not DbFeatures.supports_row_number():
 			raise RuntimeError('Current SQLite version {} does not support ROW_NUMBER() function'.format(db_utils.get_sqlite_version()))
 
 		order_by: list

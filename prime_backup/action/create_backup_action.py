@@ -227,6 +227,7 @@ class CreateBackupAction(Action[BackupInfo]):
 		):
 			return
 
+		wanted_file_blobs: List[Tuple[Path, int]] = []  # list of (file path, blob id)
 		for file_entry in scan_result.all_files:
 			if not file_entry.is_file() or file_entry.path in self.__pre_calc_result.reused_files:
 				continue
@@ -243,11 +244,15 @@ class CreateBackupAction(Action[BackupInfo]):
 			):
 				continue
 
+			blob_id = previous_file.blob_id
+			assert blob_id is not None
+			wanted_file_blobs.append((file_entry.path, blob_id))
+
+		if len(wanted_file_blobs) > 0:
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
-				previous_file_chunks[file_entry.path] = [
-					PrettyChunk(offset_chunk.offset, offset_chunk.chunk.raw_size, offset_chunk.chunk.hash)
-					for offset_chunk in session.get_blob_chunks(previous_file.blob_id)
-				]
+				chunks_by_blob_id = session.batch_get_blob_pretty_chunks([blob_id for _, blob_id in wanted_file_blobs])
+			for file_path, blob_id in wanted_file_blobs:
+				previous_file_chunks[file_path] = chunks_by_blob_id[blob_id]
 
 	@classmethod
 	def _pre_calculate_hash_worker(

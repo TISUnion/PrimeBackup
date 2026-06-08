@@ -21,6 +21,7 @@ from prime_backup.utils import collection_utils, db_utils, validation_utils
 
 if TYPE_CHECKING:
 	from sqlalchemy.sql.type_api import TypeEngine
+	from prime_backup.types.chunker import PrettyChunk
 
 
 _T = TypeVar('_T')
@@ -1096,6 +1097,43 @@ class DbSession:
 			stmt = stmt.limit(limit)
 		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
 		return [OffsetChunk(offset, chunk) for offset, chunk in result]
+
+	def batch_get_blob_pretty_chunks(self, blob_ids: List[int]) -> Dict[int, List['PrettyChunk']]:
+		"""
+		The result contains all given blob ids. Chunk lists are sorted.
+		"""
+		from prime_backup.types.chunker import PrettyChunk
+
+		blob_ids = collection_utils.deduplicated_list(blob_ids)
+		result: Dict[int, List['PrettyChunk']] = {blob_id: [] for blob_id in blob_ids}
+		if len(blob_ids) == 0:
+			return result
+
+		absolute_offset = (schema.BlobChunkGroupBinding.chunk_group_offset + schema.ChunkGroupChunkBinding.chunk_offset).label('absolute_offset')
+		for view in collection_utils.slicing_iterate(blob_ids, self.__safe_var_limit):
+			stmt = (
+				select(
+					schema.BlobChunkGroupBinding.blob_id,
+					absolute_offset,
+					schema.Chunk.raw_size,
+					schema.Chunk.hash,
+				).
+				select_from(schema.BlobChunkGroupBinding).
+				join(
+					schema.ChunkGroupChunkBinding,
+					schema.BlobChunkGroupBinding.chunk_group_id == schema.ChunkGroupChunkBinding.chunk_group_id
+				).
+				join(
+					schema.Chunk,
+					schema.ChunkGroupChunkBinding.chunk_id == schema.Chunk.id
+				).
+				where(schema.BlobChunkGroupBinding.blob_id.in_(view)).
+				order_by(schema.BlobChunkGroupBinding.blob_id, absolute_offset)
+			)
+			rows: Sequence[Row[Tuple[int, int, int, str]]] = self.session.execute(stmt).all()
+			for blob_id, offset, raw_size, chunk_hash in rows:
+				result[blob_id].append(PrettyChunk(offset, raw_size, chunk_hash))
+		return result
 
 	@dataclasses.dataclass(frozen=True)
 	class ListBlobChunkGroupBindingsItem:

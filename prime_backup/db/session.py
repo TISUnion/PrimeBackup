@@ -733,6 +733,19 @@ class DbSession:
 				result[chunk_group.hash] = chunk_group
 		return result
 
+	def get_chunk_group_ids_by_hashes_opt(self, hashes: List[str]) -> Dict[str, Optional[int]]:
+		"""
+		:return: a dict, hash -> optional chunk group id. All given hashes are in the dict
+		"""
+		result: Dict[str, Optional[int]] = {h: None for h in hashes}
+		for view in collection_utils.slicing_iterate(hashes, self.__safe_var_limit):
+			for chunk_group_hash, chunk_group_id in self.session.execute(
+					select(schema.ChunkGroup.hash, schema.ChunkGroup.id).
+					where(schema.ChunkGroup.hash.in_(view))
+			).all():
+				result[chunk_group_hash] = chunk_group_id
+		return result
+
 	def list_chunk_groups(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[schema.ChunkGroup]:
 		s = select(schema.ChunkGroup)
 		if limit is not None:

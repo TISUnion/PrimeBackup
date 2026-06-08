@@ -7,9 +7,8 @@ from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCost
 from prime_backup.constants import chunk_constants
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
-from prime_backup.utils import chunk_utils, collection_utils
+from prime_backup.utils import chunk_utils
 from prime_backup.utils.time_cost_stats import TimeCostStats
-
 
 _dummy_chunk_costs: TimeCostStats[CreateBackupTimeCostKey] = TimeCostStats()
 
@@ -81,30 +80,39 @@ class ChunkGrouper:
 
 		# create new chunk groups
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
-			known_chunk_groups = collection_utils.no_none_dict(self.session.get_chunk_groups_by_hashes([rcg.hash for rcg in raw_chunk_groups]))
+			known_chunk_group_hash_to_id = self.session.get_chunk_group_ids_by_hashes_opt([rcg.hash for rcg in raw_chunk_groups])
+		new_chunk_groups: List[schema.ChunkGroup] = []
 		new_chunk_group_hashes: List[str] = []
 		for cg_hash, cg_chunks in chunk_group_hashes_to_chunks.items():
-			if cg_hash not in known_chunk_groups:
+			if known_chunk_group_hash_to_id[cg_hash] is None:
 				new_chunk_group = self.session.create_and_add_chunk_group(
 					hash=cg_hash,
 					chunk_count=len(cg_chunks),
 					chunk_raw_size_sum=sum(chunk.raw_size for chunk in cg_chunks),
 					chunk_stored_size_sum=sum({chunk.hash: chunk.stored_size for chunk in cg_chunks}.values()),
 				)
-				known_chunk_groups[cg_hash] = new_chunk_group
+				new_chunk_groups.append(new_chunk_group)
 				new_chunk_group_hashes.append(new_chunk_group.hash)
 		if len(new_chunk_group_hashes) > 0:
 			with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.kind_db):
 				self.session.flush()  # creates chunk_group.id
+			known_chunk_group_hash_to_id.update({
+				new_chunk_group.hash: new_chunk_group.id
+				for new_chunk_group in new_chunk_groups
+			})
+		for cg_hash, cg_id in known_chunk_group_hash_to_id.items():
+			if cg_id is None:
+				raise AssertionError('chunk group id for hash {} still not exists'.format(cg_hash))
 
 		# create bindings for new chunk groups
 		chunk_group_chunk_binding_rows: List[DbSession.CreateChunkGroupChunkBindingKwargs] = []
 		for cg_hash in new_chunk_group_hashes:
-			new_chunk_group = known_chunk_groups[cg_hash]
+			chunk_group_id = known_chunk_group_hash_to_id[cg_hash]
+			assert chunk_group_id is not None
 			offset = 0
 			for chunk in chunk_group_hashes_to_chunks[cg_hash]:
 				chunk_group_chunk_binding_rows.append({
-					'chunk_group_id': new_chunk_group.id,
+					'chunk_group_id': chunk_group_id,
 					'chunk_offset': offset,
 					'chunk_id': chunk.id,
 				})
@@ -113,11 +121,12 @@ class ChunkGrouper:
 
 		# create binding for the blob
 		for raw_chunk_group in raw_chunk_groups:
-			db_chunk_group = known_chunk_groups[raw_chunk_group.hash]
+			chunk_group_id = known_chunk_group_hash_to_id[raw_chunk_group.hash]
+			assert chunk_group_id is not None
 			self.session.create_and_add_blob_chunk_group_binding(
 				blob_id=blob.id,
 				chunk_group_offset=raw_chunk_group.offset,
-				chunk_group_id=db_chunk_group.id,
+				chunk_group_id=chunk_group_id,
 			)
 
 		# end

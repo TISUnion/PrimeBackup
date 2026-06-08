@@ -11,6 +11,10 @@ def get_sqlite_version() -> str:
 
 
 def check_sqlite_json_query_support() -> bool:
+	"""
+	https://sqlite.org/json1.html#compiling_in_json_support
+	A simple version check might not work, so here's a test
+	"""
 	try:
 		with sqlite3.connect(':memory:') as conn:
 			cursor = conn.cursor()
@@ -24,10 +28,16 @@ def check_sqlite_json_query_support() -> bool:
 
 
 def check_sqlite_vacuum_into_support() -> bool:
+	"""
+	https://sqlite.org/releaselog/3_27_0.html
+	"""
 	return sqlite3.sqlite_version_info >= (3, 27, 0)
 
 
 def check_sqlite_row_number() -> bool:
+	"""
+	https://sqlite.org/windowfunctions.html#history
+	"""
 	return sqlite3.sqlite_version_info >= (3, 25, 0)
 
 

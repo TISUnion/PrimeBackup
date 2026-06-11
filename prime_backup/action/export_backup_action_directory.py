@@ -14,6 +14,7 @@ from typing_extensions import override, Unpack
 from prime_backup import logger
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
 from prime_backup.action.helpers.blob_exporter import BlobChunksGetter, ThreadSafeBlobChunksGetter
+from prime_backup.action.helpers.progress_reporter import SizeProgressReporter
 from prime_backup.constants import constants
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
@@ -287,6 +288,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 
 			ts_bcg = ThreadSafeBlobChunksGetter(session)
 			directories: 'queue.Queue[Tuple[schema.File, Path]]' = queue.Queue()
+			progress = SizeProgressReporter('Backup file export', total_count=len(export_items), total_size=sum(item.file.blob_raw_size or 0 for item in export_items))
 			with FailFastBlockingThreadPool('export') as pool:
 				def export_worker(item_: ExportBackupToDirectoryAction._ExportItem):
 					with failures.handling_exception(item_.file):
@@ -295,6 +297,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 						except Exception as e_:
 							self.logger.error('Export file {!r} to path {} failed: {}'.format(item_.file.path, item_.path, e_))
 							raise
+					progress.on_one_file_done(item_.file)
 
 				for item in export_items:
 					pool.submit(export_worker, item)

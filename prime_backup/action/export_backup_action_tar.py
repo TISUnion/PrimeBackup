@@ -10,6 +10,7 @@ from typing_extensions import override, Unpack
 
 from prime_backup.action.export_backup_action_base import _ExportBackupActionBase, ExportBackupActionCommonInitKwargs
 from prime_backup.action.helpers.blob_exporter import BlobChunksGetter, ThreadSafeBlobChunksGetter
+from prime_backup.action.helpers.progress_reporter import SizeProgressReporter
 from prime_backup.compressors import Compressor
 from prime_backup.constants.constants import BACKUP_META_FILE_NAME
 from prime_backup.db import schema
@@ -104,7 +105,9 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 		ts_bcg = ThreadSafeBlobChunksGetter(session)
 		try:
 			with self.__open_tar() as tar:
-				for file in session.get_backup_files(backup):
+				files = session.get_backup_files(backup)
+				progress = SizeProgressReporter('Backup tar export', total_count=len(files), total_size=backup.file_raw_size_sum or 0)
+				for file in files:
 					if self.is_interrupted.is_set():
 						self.logger.info('Export to tarfile interrupted')
 						raise self._ExportInterrupted()
@@ -116,6 +119,7 @@ class ExportBackupToTarAction(_ExportBackupActionBase):
 							output_dest_str = str(self.output_dest) if isinstance(self.output_dest, Path) else str(type(self.output_dest))
 							self.logger.error('Export file {!r} to tar {} failed: {}'.format(file.path, output_dest_str, e))
 							raise
+					progress.on_one_file_done(file)
 
 				if self.create_meta:
 					meta_buf = self._create_meta_buf(backup)

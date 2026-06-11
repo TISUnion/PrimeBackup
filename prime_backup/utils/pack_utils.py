@@ -14,6 +14,7 @@ def get_pack_file_name(pack_id: int) -> str:
 	return hashlib.sha256(f'PBPK_{pack_id}'.encode('utf8')).hexdigest()
 
 
+@functools.lru_cache(maxsize=256)
 def get_pack_path(pack_id: int) -> Path:
 	pack_file_name = get_pack_file_name(pack_id)
 	return get_pack_store() / pack_file_name[:2] / pack_file_name

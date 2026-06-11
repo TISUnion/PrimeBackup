@@ -6,7 +6,8 @@ from typing_extensions import Self
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
-from prime_backup.db.values import ChunkRow, OffsetChunk, OffsetChunkRow
+from prime_backup.db.rows import ChunkRow, OffsetChunkRow
+from prime_backup.db.values import OffsetChunk
 from prime_backup.types.pack_info import PackEntryLocation
 from prime_backup.utils import misc_utils
 

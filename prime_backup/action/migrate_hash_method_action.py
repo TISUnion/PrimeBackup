@@ -12,8 +12,9 @@ from prime_backup.action.helpers.chunk_io import ChunkIO
 from prime_backup.compressors import Compressor
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
+from prime_backup.db.rows import ChunkRow
 from prime_backup.db.session import DbSession
-from prime_backup.db.values import BlobStorageMethod, ChunkRow
+from prime_backup.db.values import BlobStorageMethod
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.hash_method import HashMethod

@@ -15,26 +15,6 @@ class BlobStorageMethod(enum.IntEnum):
 
 
 @dataclasses.dataclass(frozen=True)
-class ChunkRow:
-	id: int
-	hash: str
-	compress: str
-	raw_size: int
-	stored_size: int
-	pack_id: int
-	pack_offset: int
-
-
-@dataclasses.dataclass(frozen=True)
-class OffsetChunkRow:
-	offset: int
-	chunk: ChunkRow
-
-	def __lt__(self, other: 'OffsetChunkRow'):
-		return self.offset < other.offset
-
-
-@dataclasses.dataclass(frozen=True)
 class OffsetChunk:
 	offset: int
 	chunk: 'schema.Chunk'

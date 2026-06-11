@@ -13,7 +13,7 @@ from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
 from prime_backup.db.db_features import DbFeatures
-from prime_backup.db.values import FileRole, BackupTagDict, ChunkRow, OffsetChunk, OffsetChunkRow, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, FileIdentifier
+from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, FileIdentifier
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound, PackIdNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.types.pack_info import PackEntryInfo
@@ -21,6 +21,7 @@ from prime_backup.utils import collection_utils, db_utils, validation_utils
 
 if TYPE_CHECKING:
 	from sqlalchemy.sql.type_api import TypeEngine
+	from prime_backup.db.rows import ChunkRow, OffsetChunkRow
 	from prime_backup.types.chunker import PrettyChunk
 
 
@@ -1097,7 +1098,7 @@ class DbSession:
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
 		).scalar_one())
 
-	def get_blob_chunks(self, blob_id: int, *, limit: Optional[int] = None) -> List[OffsetChunkRow]:
+	def get_blob_chunks(self, blob_id: int, *, limit: Optional[int] = None) -> List['OffsetChunkRow']:
 		"""
 		result is sorted
 		"""
@@ -1128,6 +1129,8 @@ class DbSession:
 		if limit is not None:
 			stmt = stmt.limit(limit)
 		result: Sequence[Row[Tuple[int, int, str, str, int, int, int, int]]] = self.session.execute(stmt).all()
+
+		from prime_backup.db.rows import ChunkRow, OffsetChunkRow
 		return [
 			OffsetChunkRow(
 				offset=offset,

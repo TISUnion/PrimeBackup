@@ -1,12 +1,13 @@
 import dataclasses
 import logging
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCostKey
 from prime_backup.constants import chunk_constants
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
+from prime_backup.db.values import ChunkRow
 from prime_backup.utils import chunk_utils
 from prime_backup.utils.time_cost_stats import TimeCostStats
 
@@ -22,7 +23,7 @@ class ChunkGrouper:
 		stored_size: int
 
 		@classmethod
-		def of(cls, chunk: schema.Chunk) -> 'ChunkGrouper.ChunkLike':
+		def of(cls, chunk: Union[schema.Chunk, ChunkRow]) -> 'ChunkGrouper.ChunkLike':
 			return cls(
 				id=chunk.id,
 				hash=chunk.hash,

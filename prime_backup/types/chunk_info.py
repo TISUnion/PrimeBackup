@@ -1,12 +1,12 @@
 import dataclasses
 from pathlib import Path
-from typing import Iterable, TYPE_CHECKING
+from typing import Iterable, TYPE_CHECKING, Union
 
 from typing_extensions import Self
 
 from prime_backup.compressors import CompressMethod
 from prime_backup.db import schema
-from prime_backup.db.values import OffsetChunk
+from prime_backup.db.values import ChunkRow, OffsetChunk, OffsetChunkRow
 from prime_backup.types.pack_info import PackEntryLocation
 from prime_backup.utils import misc_utils
 
@@ -24,7 +24,7 @@ class ChunkInfo:
 	pack_entry: PackEntryLocation
 
 	@classmethod
-	def of(cls, chunk: schema.Chunk) -> 'ChunkInfo':
+	def of(cls, chunk: Union[schema.Chunk, ChunkRow]) -> 'ChunkInfo':
 		return ChunkInfo(
 			id=chunk.id,
 			hash=chunk.hash,
@@ -50,7 +50,7 @@ class OffsetChunkInfo:
 		return self.chunk.raw_size
 
 	@classmethod
-	def of(cls, offset_chunk: OffsetChunk) -> 'OffsetChunkInfo':
+	def of(cls, offset_chunk: Union[OffsetChunk, OffsetChunkRow]) -> 'OffsetChunkInfo':
 		return cls(offset_chunk.offset, ChunkInfo.of(offset_chunk.chunk))
 
 	def __lt__(self, other: 'OffsetChunkInfo') -> bool:

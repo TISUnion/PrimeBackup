@@ -13,7 +13,7 @@ from typing_extensions import overload, Union, TypedDict, Unpack, NotRequired
 
 from prime_backup.db import schema, db_constants
 from prime_backup.db.db_features import DbFeatures
-from prime_backup.db.values import FileRole, BackupTagDict, OffsetChunk, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, FileIdentifier
+from prime_backup.db.values import FileRole, BackupTagDict, ChunkRow, OffsetChunk, OffsetChunkRow, OffsetChunkGroup, BlobStorageMethod, ChunkGroupChunkBindingIdentifier, BlobChunkGroupBindingIdentifier, FileIdentifier
 from prime_backup.exceptions import BackupNotFound, BackupFileNotFound, BlobHashNotFound, PrimeBackupError, FilesetNotFound, FilesetFileNotFound, BlobIdNotFound, ChunkHashNotFound, ChunkIdNotFound, ChunkGroupChunkBindingNotFound, BlobChunkGroupBindingNotFound, ChunkGroupIdNotFound, ChunkGroupHashNotFound, PackIdNotFound
 from prime_backup.types.backup_filter import BackupFilter, BackupTagFilter, BackupSortOrder
 from prime_backup.types.pack_info import PackEntryInfo
@@ -1097,7 +1097,7 @@ class DbSession:
 			where(schema.BlobChunkGroupBinding.blob_id == blob_id)
 		).scalar_one())
 
-	def get_blob_chunks(self, blob_id: int, *, limit: Optional[int] = None) -> List[OffsetChunk]:
+	def get_blob_chunks(self, blob_id: int, *, limit: Optional[int] = None) -> List[OffsetChunkRow]:
 		"""
 		result is sorted
 		"""
@@ -1105,7 +1105,13 @@ class DbSession:
 		stmt = (
 			select(
 				absolute_offset,
-				schema.Chunk
+				schema.Chunk.id,
+				schema.Chunk.hash,
+				schema.Chunk.compress,
+				schema.Chunk.raw_size,
+				schema.Chunk.stored_size,
+				schema.Chunk.pack_id,
+				schema.Chunk.pack_offset,
 			).
 			select_from(schema.BlobChunkGroupBinding).
 			join(
@@ -1121,8 +1127,22 @@ class DbSession:
 		)
 		if limit is not None:
 			stmt = stmt.limit(limit)
-		result: Sequence[Row[Tuple[int, schema.Chunk]]] = self.session.execute(stmt).all()
-		return [OffsetChunk(offset, chunk) for offset, chunk in result]
+		result: Sequence[Row[Tuple[int, int, str, str, int, int, int, int]]] = self.session.execute(stmt).all()
+		return [
+			OffsetChunkRow(
+				offset=offset,
+				chunk=ChunkRow(
+					id=chunk_id,
+					hash=chunk_hash,
+					compress=compress,
+					raw_size=raw_size,
+					stored_size=stored_size,
+					pack_id=pack_id,
+					pack_offset=pack_offset,
+				),
+			)
+			for offset, chunk_id, chunk_hash, compress, raw_size, stored_size, pack_id, pack_offset in result
+		]
 
 	def batch_get_blob_pretty_chunks(self, blob_ids: List[int]) -> Dict[int, List['PrettyChunk']]:
 		"""

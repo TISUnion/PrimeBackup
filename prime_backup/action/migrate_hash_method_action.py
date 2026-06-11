@@ -13,7 +13,7 @@ from prime_backup.compressors import Compressor
 from prime_backup.db import schema
 from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
-from prime_backup.db.values import BlobStorageMethod
+from prime_backup.db.values import BlobStorageMethod, ChunkRow
 from prime_backup.exceptions import PrimeBackupError
 from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.hash_method import HashMethod
@@ -183,7 +183,7 @@ class MigrateHashMethodAction(Action[None]):
 		# Step 1 - collect blob -> ordered chunks before destroying the binding chain
 		chunked_blobs = session.list_blobs_by_storage_method(BlobStorageMethod.chunked)
 		total = len(chunked_blobs)
-		blob_chunks_map: Dict[int, Dict[int, schema.Chunk]] = {}
+		blob_chunks_map: Dict[int, Dict[int, ChunkRow]] = {}
 		for blob in chunked_blobs:
 			offset_chunks = session.get_blob_chunks(blob.id)  # sorted by absolute_offset
 			blob_chunks_map[blob.id] = {oc.offset: oc.chunk for oc in offset_chunks}

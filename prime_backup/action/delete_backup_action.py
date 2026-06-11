@@ -33,7 +33,7 @@ class DeleteBackupAction(Action[DeleteBackupResult]):
 		with DbAccess.open_session() as session:
 			backup = session.get_backup(self.backup_id)
 			backup_info = BackupInfo.of(backup)
-			filesets_to_check: List[schema.Fileset] = [backup.fileset_base, backup.fileset_delta]
+			filesets_to_check: List[schema.Fileset] = list(session.get_filesets([backup.fileset_id_base, backup.fileset_id_delta]).values())
 			session.delete_backup(backup)
 
 			# delete fileset

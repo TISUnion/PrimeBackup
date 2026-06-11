@@ -1,3 +1,4 @@
+import contextlib
 import dataclasses
 import logging
 import os
@@ -289,7 +290,12 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 			ts_bcg = ThreadSafeBlobChunksGetter(session)
 			directories: 'queue.Queue[Tuple[schema.File, Path]]' = queue.Queue()
 			progress = SizeProgressReporter('Backup file export', total_count=len(export_items), total_size=sum(item.file.blob_raw_size or 0 for item in export_items))
-			with FailFastBlockingThreadPool('export') as pool:
+
+			with contextlib.ExitStack() as es:
+				pool: Optional[FailFastBlockingThreadPool] = None
+				if self.config.get_effective_concurrency() > 1:
+					pool = es.enter_context(FailFastBlockingThreadPool('export'))
+
 				def export_worker(item_: ExportBackupToDirectoryAction._ExportItem):
 					with failures.handling_exception(item_.file):
 						try:
@@ -300,7 +306,10 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 					progress.on_one_file_done(item_.file)
 
 				for item in export_items:
-					pool.submit(export_worker, item)
+					if pool is not None:
+						pool.submit(export_worker, item)
+					else:
+						export_worker(item)
 
 			# restore retained files before setting directory attrs
 			if export_temp_dir.retainer is not None:

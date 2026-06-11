@@ -58,7 +58,7 @@ class _ScanResult:
 
 	@property
 	def all_file_size_sum(self) -> int:
-		return sum(entry.stat.st_size for entry in self.all_files)
+		return sum(entry.stat.st_size for entry in self.all_files if entry.is_file())
 
 
 @dataclasses.dataclass(frozen=True)
@@ -452,7 +452,7 @@ class CreateBackupAction(Action[BackupInfo]):
 			files = blob_allocator.schedule_loop([
 				self.__create_file(session, blob_allocator, file_entry.path)
 				for file_entry in scan_result.all_files
-			])
+			], scan_result.all_file_size_sum)
 
 		with self.__time_costs.measure_time_cost(CreateBackupTimeCostKey.stage_finalize):
 			BackupFinalizer(session).finalize_files_and_backup(backup, files)

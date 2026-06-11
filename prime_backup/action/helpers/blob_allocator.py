@@ -18,6 +18,7 @@ from prime_backup.action.helpers.create_backup_utils import CreateBackupTimeCost
 from prime_backup.db import schema
 from prime_backup.db.session import DbSession
 from prime_backup.types.chunk_method import ChunkMethod
+from prime_backup.types.units import ByteCount
 from prime_backup.utils import blob_utils, file_utils, misc_utils, pack_utils
 from prime_backup.utils.time_cost_stats import TimeCostStats
 
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
 
 _BLOB_FILE_CHANGED_RETRY_COUNT = 3
 _FetchCallback = Callable[[], None]
+_MIB = 1024 * 1024
 
 
 class BatchFetcherBase(ABC):
@@ -270,7 +272,7 @@ class BlobAllocator:
 			self.__ctx.blob_store_st = bs_path.stat()
 			self.__ctx.blob_store_in_cow_fs = file_utils.does_fs_support_cow(bs_path)
 
-	def schedule_loop(self, gen_list: List[BlobLookupRoutine[schema.File]]) -> List[schema.File]:
+	def schedule_loop(self, gen_list: List[BlobLookupRoutine[schema.File]], total_blob_raw_size: int) -> List[schema.File]:
 		files: List[schema.File] = []
 
 		schedule_queue: Deque[BlobLookupRoutine[schema.File]] = collections.deque()
@@ -278,9 +280,11 @@ class BlobAllocator:
 			schedule_queue.append(gen)
 		gen_count = len(schedule_queue)
 		done_count = 0
+		done_blob_raw_size = 0
 
 		start_time = time.time()
 		last_report_time = start_time
+		last_report_blob_raw_size = 0
 
 		while len(schedule_queue) > 0:
 			scheduled = schedule_queue.popleft()
@@ -291,11 +295,23 @@ class BlobAllocator:
 				query_req = scheduled.send(None)
 				self.__batch_lookup_manager.query(query_req, callback)
 			except StopIteration as e:
-				files.append(misc_utils.ensure_type(e.value, schema.File))
+				file = misc_utils.ensure_type(e.value, schema.File)
+				files.append(file)
 				done_count += 1
+				done_blob_raw_size += file.blob_raw_size or 0
 				if (now := time.time()) - last_report_time > 30:
-					self.logger.info('Backup file creation progress: {} / {} done, elapsed time {:.2f}s'.format(done_count, gen_count, now - start_time))
+					time_delta = now - last_report_time
+					size_delta = done_blob_raw_size - last_report_blob_raw_size
+					self.logger.info(
+						'Backup file creation progress: {} / {} done, size {} / {}, speed {:.2f}MiB/s, elapsed time {:.2f}s'.format(
+							done_count, gen_count,
+							ByteCount(done_blob_raw_size).auto_str(), ByteCount(total_blob_raw_size).auto_str(),
+							size_delta / _MIB / time_delta if time_delta > 0 else 0,
+							now - start_time,
+						)
+					)
 					last_report_time = now
+					last_report_blob_raw_size = done_blob_raw_size
 			except SourceFileNotFoundWrapper as e:
 				if self.__should_skip_missing_source_file(e.file_path):
 					self.logger.warning('Backup source file {!r} not found, suppressed and skipped by config'.format(str(e.file_path)))

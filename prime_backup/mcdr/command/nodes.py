@@ -1,7 +1,7 @@
 import dataclasses
 import json
 import re
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from mcdreforged.api.all import ArgumentNode, Text, ParseResult, QuotableText, IllegalArgument, CommandContext, InvalidEnumeration
 from typing_extensions import override
@@ -80,7 +80,7 @@ class IdRangeNode(ArgumentNode):
 		text: str = (result.value or '').strip()
 		for pattern in self.__patterns:
 			if (match := pattern.fullmatch(text)) is not None:
-				groups = match.groupdict()
+				groups: Dict[str, Any] = match.groupdict()
 				if (start := groups.get('start')) is not None:
 					start = int(start)
 				if (end := groups.get('end')) is not None:

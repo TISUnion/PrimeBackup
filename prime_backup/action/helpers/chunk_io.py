@@ -1,7 +1,7 @@
 import contextlib
-from typing import Generator, Tuple
+from typing import Generator, Tuple, Optional
 
-from prime_backup.action.helpers.pack_reader import PackReader
+from prime_backup.action.helpers.pack_reader import PackReader, PackFileObjectPool
 from prime_backup.compressors import Compressor
 from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.utils.bypass_io import BypassReader
@@ -9,8 +9,9 @@ from prime_backup.utils.io_types import SupportsReadBytes, SupportsReadAndSeek
 
 
 class ChunkIO:
-	def __init__(self, chunk: ChunkInfo):
+	def __init__(self, chunk: ChunkInfo, *, pack_file_obj_pool: Optional[PackFileObjectPool] = None):
 		self.chunk = chunk
+		self.pack_file_obj_pool = pack_file_obj_pool
 
 	def __get_pack_id(self) -> int:
 		if self.chunk.pack_entry.pack_id <= 0:
@@ -19,7 +20,12 @@ class ChunkIO:
 
 	@contextlib.contextmanager
 	def open_raw(self) -> Generator[SupportsReadAndSeek, None, None]:
-		with PackReader.open_entry(self.__get_pack_id(), self.chunk.pack_entry.offset, self.chunk.stored_size) as reader:
+		with PackReader.open_entry(
+				pack_id=self.__get_pack_id(),
+				offset=self.chunk.pack_entry.offset,
+				length=self.chunk.stored_size,
+				file_obj_pool=self.pack_file_obj_pool
+		) as reader:
 			yield reader
 
 	@contextlib.contextmanager

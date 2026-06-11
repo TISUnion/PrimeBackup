@@ -10,6 +10,7 @@ from typing_extensions import override
 
 from prime_backup import logger
 from prime_backup.action.helpers.chunk_io import ChunkIO
+from prime_backup.action.helpers.pack_reader import PackFileObjectPool
 from prime_backup.compressors import CompressMethod
 from prime_backup.compressors import Compressor
 from prime_backup.db.session import DbSession
@@ -171,10 +172,10 @@ class BlobExporter:
 		blob_chunks = self.blob_chunks_getter.get(self.blob.id)
 		hash_method = chunk_utils.get_hash_method()
 
-		with open(output_path, 'wb') as f_out:
+		with open(output_path, 'wb') as f_out, PackFileObjectPool() as pack_file_obj_pool:
 			for oc in blob_chunks:
 				bypass_reader: Optional[BypassReader] = None
-				with ChunkIO(oc.chunk).open_decompressed() as f_in:
+				with ChunkIO(oc.chunk, pack_file_obj_pool=pack_file_obj_pool).open_decompressed() as f_in:
 					if self.verify_blob:
 						bypass_reader = BypassReader(f_in, calc_hash=True, hash_method=hash_method)
 						file_utils.copy_file_obj_fast(bypass_reader, f_out, estimate_read_size=oc.chunk.raw_size)
@@ -217,11 +218,12 @@ class BlobExporter:
 	def __export_as_reader_chunked(self, reader_csm: Callable[[SupportsReadBytes], Any]):
 		blob_chunks = self.blob_chunks_getter.get(self.blob.id)
 		exit_flag = False
+		gen_yielded = False
 
 		def open_chunk_gen() -> Generator[_OpenedChunk, None, None]:
 			hash_method = chunk_utils.get_hash_method()
 			for oc in blob_chunks:
-				with ChunkIO(oc.chunk).open_decompressed() as f_in:
+				with ChunkIO(oc.chunk, pack_file_obj_pool=pack_file_obj_pool).open_decompressed() as f_in:
 					try:
 						peek_reader = _PeekReader(f_in, 32 * 1024)
 						peek_reader.peek()
@@ -229,6 +231,8 @@ class BlobExporter:
 						self.logger.error(f'Failed to peek-read chunk {oc.chunk.hash} in pack entry {oc.chunk.pack_entry.pack_id}@{oc.chunk.pack_entry.offset} for {oc}: {e}')
 						raise
 
+					nonlocal gen_yielded
+					gen_yielded = True
 					if self.verify_blob:
 						def verify_callback(ck: ChunkInfo, br: BypassReader):
 							self.__verify_exported_chunk(ck, br.get_read_len(), br.get_hash())
@@ -242,14 +246,16 @@ class BlobExporter:
 				if exit_flag:
 					break
 
-		chunk_gen = open_chunk_gen()
-		try:
-			reader_csm(_CombinedChunksReader(chunk_gen))
-		finally:
-			# ensure possible opened chunk reader is closed
-			exit_flag = True
-			with contextlib.suppress(StopIteration):
-				next(chunk_gen)
+		with PackFileObjectPool() as pack_file_obj_pool:
+			chunk_gen = open_chunk_gen()
+			try:
+				reader_csm(_CombinedChunksReader(chunk_gen))
+			finally:
+				# ensure possible opened ChunkIO is closed
+				exit_flag = True
+				if gen_yielded:
+					with contextlib.suppress(StopIteration):
+						next(chunk_gen)
 
 	def __verify_exported_blob(self, written_size: int, written_hash: str):
 		self.__verify_exported_data(lambda: 'blob', self.blob.raw_size, self.blob.hash, written_size, written_hash)

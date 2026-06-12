@@ -1,4 +1,3 @@
-import contextlib
 import dataclasses
 import functools
 import threading
@@ -93,10 +92,12 @@ class _CombinedChunksReader:
 		self.idx = 0
 		self.chunks_gen = chunks_gen
 		self.current: Optional[_OpenedChunk] = None
+		self.current_read_len = 0
+		self.current_verified = False
 		self.reach_end = False
 
 	def read(self, length: int = -1) -> bytes:
-		if self.reach_end:
+		if self.reach_end or length == 0:
 			return b''
 		if self.current is None:
 			if not self.__switch_to_next():
@@ -116,16 +117,33 @@ class _CombinedChunksReader:
 				logger.get().error(f'Failed to read {to_read} bytes from chunk {self.current.offset_chunk}: {e}')
 				raise
 			total_read += len(buf)
+			self.current_read_len += len(buf)
 			results.append(buf)
-			if to_read == -1 or len(buf) < to_read:
-				self.current.verify_callback()
+			if self.current_read_len >= self.current.offset_chunk.chunk.raw_size:
+				self.__verify_current()
 				if not self.__switch_to_next():
 					break
+			elif to_read == -1 or len(buf) < to_read:
+				raise EOFError('chunk {} exhausted after reading {} bytes, expected {}'.format(
+					self.current.offset_chunk, self.current_read_len, self.current.offset_chunk.chunk.raw_size,
+				))
 		return b''.join(results)
+
+	def close(self):
+		self.chunks_gen.close()
+		self.current = None
+		self.reach_end = True
+
+	def __verify_current(self):
+		if self.current is not None and not self.current_verified:
+			self.current.verify_callback()
+			self.current_verified = True
 
 	def __switch_to_next(self) -> bool:
 		try:
 			self.current = next(self.chunks_gen)
+			self.current_read_len = 0
+			self.current_verified = False
 			return True
 		except StopIteration:
 			self.reach_end = True
@@ -217,8 +235,6 @@ class BlobExporter:
 
 	def __export_as_reader_chunked(self, reader_csm: Callable[[SupportsReadBytes], Any]):
 		blob_chunks = self.blob_chunks_getter.get(self.blob.id)
-		exit_flag = False
-		gen_yielded = False
 
 		def open_chunk_gen() -> Generator[_OpenedChunk, None, None]:
 			hash_method = chunk_utils.get_hash_method()
@@ -231,8 +247,6 @@ class BlobExporter:
 						self.logger.error(f'Failed to peek-read chunk {oc.chunk.hash} in pack entry {oc.chunk.pack_entry.pack_id}@{oc.chunk.pack_entry.offset} for {oc}: {e}')
 						raise
 
-					nonlocal gen_yielded
-					gen_yielded = True
 					if self.verify_blob:
 						def verify_callback(ck: ChunkInfo, br: BypassReader):
 							self.__verify_exported_chunk(ck, br.get_read_len(), br.get_hash())
@@ -242,20 +256,13 @@ class BlobExporter:
 					else:
 						yield _OpenedChunk(oc, peek_reader, lambda: None)
 
-				nonlocal exit_flag
-				if exit_flag:
-					break
-
 		with PackFileObjectPool() as pack_file_obj_pool:
 			chunk_gen = open_chunk_gen()
+			reader = _CombinedChunksReader(chunk_gen)
 			try:
-				reader_csm(_CombinedChunksReader(chunk_gen))
+				reader_csm(reader)
 			finally:
-				# ensure possible opened ChunkIO is closed
-				exit_flag = True
-				if gen_yielded:
-					with contextlib.suppress(StopIteration):
-						next(chunk_gen)
+				reader.close()
 
 	def __verify_exported_blob(self, written_size: int, written_hash: str):
 		self.__verify_exported_data(lambda: 'blob', self.blob.raw_size, self.blob.hash, written_size, written_hash)

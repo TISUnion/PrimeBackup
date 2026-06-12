@@ -1,7 +1,7 @@
 import dataclasses
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Generator, Optional
+from typing import Dict, Generator, List, Optional
 
 import pytest
 
@@ -11,6 +11,7 @@ from prime_backup.action.delete_backup_action import DeleteBackupAction
 from prime_backup.action.delete_backup_file_action import DeleteBackupFileAction
 from prime_backup.action.export_backup_action_tar import ExportBackupToTarAction
 from prime_backup.action.get_pack_action import GetPackByFileNamePrefixAction, GetPackByIdAction
+from prime_backup.action.helpers.blob_exporter import _CombinedChunksReader, _OpenedChunk
 from prime_backup.action.helpers.chunk_io import ChunkIO
 from prime_backup.action.helpers.pack_reader import PackEntryReader
 from prime_backup.action.helpers.pack_writer import PackWriter
@@ -28,7 +29,7 @@ from prime_backup.db.access import DbAccess
 from prime_backup.db.session import DbSession
 from prime_backup.exceptions import PackFileNameNotUnique
 from prime_backup.types.backup_info import BackupInfo
-from prime_backup.types.chunk_info import ChunkInfo
+from prime_backup.types.chunk_info import ChunkInfo, OffsetChunkInfo
 from prime_backup.types.chunk_method import ChunkMethod
 from prime_backup.types.hash_method import HashMethod
 from prime_backup.types.operator import Operator
@@ -315,6 +316,66 @@ def test_pack_entry_reader_seek_uses_entry_relative_offsets() -> None:
 		reader.seek(-1)
 	with pytest.raises(ValueError):
 		reader.seek(0, 12345)
+
+
+def test_combined_chunks_reader_verifies_exactly_consumed_final_chunk() -> None:
+	verified_chunks: List[int] = []
+	generator_closed = False
+
+	def make_opened_chunk(chunk_id: int, data: bytes) -> _OpenedChunk:
+		chunk = ChunkInfo(
+			id=chunk_id,
+			hash=str(chunk_id),
+			compress=CompressMethod.plain,
+			raw_size=len(data),
+			stored_size=len(data),
+			pack_entry=PackEntryLocation(chunk_id, 0),
+		)
+		return _OpenedChunk(
+			OffsetChunkInfo(0, chunk),
+			BytesIO(data),
+			lambda: verified_chunks.append(chunk_id),
+		)
+
+	def opened_chunks() -> Generator[_OpenedChunk, None, None]:
+		nonlocal generator_closed
+		try:
+			yield make_opened_chunk(1, b'ab')
+			yield make_opened_chunk(2, b'cd')
+		finally:
+			generator_closed = True
+
+	reader = _CombinedChunksReader(opened_chunks())
+	assert reader.read(4) == b'abcd'
+	assert verified_chunks == [1, 2]
+
+	reader.close()
+	assert verified_chunks == [1, 2]
+	assert generator_closed
+
+
+def test_combined_chunks_reader_raises_eof_error_on_short_chunk() -> None:
+	chunk = ChunkInfo(
+		id=1,
+		hash='short',
+		compress=CompressMethod.plain,
+		raw_size=4,
+		stored_size=2,
+		pack_entry=PackEntryLocation(1, 0),
+	)
+	def opened_chunks() -> Generator[_OpenedChunk, None, None]:
+		yield _OpenedChunk(
+			OffsetChunkInfo(0, chunk),
+			BytesIO(b'ab'),
+			lambda: None,
+		)
+
+	reader = _CombinedChunksReader(opened_chunks())
+
+	with pytest.raises(EOFError, match='exhausted after reading 2 bytes, expected 4'):
+		reader.read()
+
+	reader.close()
 
 
 def test_scan_unknown_pack_files_keeps_known_derived_pack_file_names(env: PackStorageEnv) -> None:

@@ -480,14 +480,14 @@ Each rule contains the following fields:
 
 - `algorithm`: The chunking algorithm to use. Available options:
 
-    | Value | Type | Description |
-    |-------|------|-------------|
-    | `fastcdc_32k` | CDC | avg 32 KiB chunks; good general-purpose choice for locally modified files |
-    | `fastcdc_128k` | CDC | avg 128 KiB chunks; coarser granularity for very large files |
-    | `fixed_4k` | Fixed (alpha) | 4 KiB chunks; aligns with MC region file pages, but causes heavy metadata overhead |
-    | `fixed_32k` | Fixed (alpha) | 32 KiB chunks; intermediate fixed-size option |
-    | `fixed_128k` | Fixed (alpha) | 128 KiB chunks; well-suited for append-write files |
-    | `fixed_auto` | Fixed (alpha) | Adaptive 128 KiB / 4 KiB chunks based on the previous backup's same-path chunk layout |
+    | Value          | Type          | Description                                                                           |
+    |----------------|---------------|---------------------------------------------------------------------------------------|
+    | `fastcdc_32k`  | CDC           | avg 32 KiB chunks; good general-purpose choice for locally modified files             |
+    | `fastcdc_128k` | CDC           | avg 128 KiB chunks; coarser granularity for very large files                          |
+    | `fixed_4k`     | Fixed         | 4 KiB chunks; aligns with MC region file pages, but causes heavy metadata overhead    |
+    | `fixed_32k`    | Fixed         | 32 KiB chunks; intermediate fixed-size option                                         |
+    | `fixed_128k`   | Fixed         | 128 KiB chunks; well-suited for append-write files                                    |
+    | `fixed_auto`   | Fixed (alpha) | Adaptive 128 KiB / 4 KiB chunks based on the previous backup's same-path chunk layout |
 
     CDC algorithms determine chunk boundaries from file content, so local insertions, deletions, or in-place edits leave many chunks unchanged for reuse.
     See [CDC Chunking](chunking/chunking_cdc.md) for details.
@@ -497,7 +497,7 @@ Each rule contains the following fields:
 
     !!! warning
 
-        Fixed-size algorithms (`fixed_4k`, `fixed_32k`, `fixed_128k`, `fixed_auto`) are in alpha status and not recommended for production use.
+        `fixed_auto` is in alpha status and is not recommended for production use. Other fixed-size algorithms (`fixed_4k`, `fixed_32k`, `fixed_128k`) are in beta status along with the rest of the chunking feature.
 
     !!! note
 

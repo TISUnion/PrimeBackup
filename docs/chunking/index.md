@@ -6,8 +6,8 @@ Split large files into smaller chunks for better deduplication across backups
 
 !!! note "Beta"
 
-    File chunking is a beta feature
-    The overall functionality is usable, but specifications and behavior may change in future releases
+    File chunking is a beta feature.
+    The overall functionality is usable, but specifications and behavior may change in future releases.
     Note that `fixed_auto` is in alpha status; see the [Fixed-Size Chunking](chunking_fixed.md) page for details
 
 ## What File Chunking Is

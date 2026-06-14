@@ -7,7 +7,8 @@ Content-Defined Chunking: chunk boundaries are determined by file content, not f
 !!! note "Beta"
 
     CDC chunking is a beta feature.
-    The overall functionality is usable, but specifications and behavior may change in future releases
+    The overall functionality is usable, but algorithm algorithm implemetation and behavior may change in future releases.
+    Don't worry, data created with CDC chunking will remain fully compatible and accessible in future versions
 
 ## What CDC Is
 

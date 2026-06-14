@@ -5,7 +5,8 @@ title: 'Fixed-Size Chunking'
 !!! note "Beta"
 
     Fixed-size chunking is a beta feature.
-    The overall functionality is usable, but specifications and behavior may change in future releases.
+    The overall functionality is usable, but algorithm implemetation and behavior may change in future releases.
+    Don't worry, data created with fixed-size chunking will remain fully compatible and accessible in future versions.
     Note that `fixed_auto` is in alpha status; see its section below for details
 
 Fixed-size chunking splits files at predictable byte-offset boundaries, with every chunk being exactly the configured size

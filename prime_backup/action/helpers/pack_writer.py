@@ -1,6 +1,5 @@
 import dataclasses
 import logging
-import threading
 from pathlib import Path
 from typing import BinaryIO, Optional, List
 
@@ -56,7 +55,6 @@ class PackWriter:
 		self.session = session
 		self.logger = logger.get()
 
-		self.__lock = threading.Lock()
 		self.__active: Optional[_ActivePack] = None
 		self.__new_pack_paths: List[Path] = []
 		self.__created_pack_size = 0
@@ -84,46 +82,42 @@ class PackWriter:
 		return size >= pack_constants.PACK_DEDICATED_ENTRY_MIN_SIZE
 
 	def __write_active(self, data: bytes) -> PackEntryLocation:
-		with self.__lock:
-			active = self.__get_active_for_write_no_lock()
-			result = active.append_bytes(data)
-			self.__created_pack_size += len(data)
-			return result
+		active = self.__get_active_for_write()
+		result = active.append_bytes(data)
+		self.__created_pack_size += len(data)
+		return result
 
 	def __write_active_reader(self, reader: SupportsReadBytes, size: int) -> PackEntryLocation:
-		with self.__lock:
-			active = self.__get_active_for_write_no_lock()
-			result = active.append_reader(reader, size)
-			self.__created_pack_size += size
-			return result
+		active = self.__get_active_for_write()
+		result = active.append_reader(reader, size)
+		self.__created_pack_size += size
+		return result
 
 	def __write_dedicated(self, data: bytes) -> PackEntryLocation:
-		with self.__lock:
-			dedicated_pack = self.__create_new_pack_no_lock()
-			result = dedicated_pack.append_bytes(data)
-			self.__created_pack_size += len(data)
-			dedicated_pack.close()
+		dedicated_pack = self.__create_new_pack()
+		result = dedicated_pack.append_bytes(data)
+		self.__created_pack_size += len(data)
+		dedicated_pack.close()
 		if self.logger.isEnabledFor(logging.DEBUG):
 			self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} file_name={pack_utils.get_pack_file_name(dedicated_pack.pack.id)} size={len(data)}')
 		return result
 
 	def __write_dedicated_reader(self, reader: SupportsReadBytes, size: int) -> PackEntryLocation:
-		with self.__lock:
-			dedicated_pack = self.__create_new_pack_no_lock()
-			result = dedicated_pack.append_reader(reader, size)
-			self.__created_pack_size += size
-			dedicated_pack.close()
+		dedicated_pack = self.__create_new_pack()
+		result = dedicated_pack.append_reader(reader, size)
+		self.__created_pack_size += size
+		dedicated_pack.close()
 		if self.logger.isEnabledFor(logging.DEBUG):
 			self.logger.debug(f'Wrote dedicated pack id={dedicated_pack.pack.id} file_name={pack_utils.get_pack_file_name(dedicated_pack.pack.id)} size={size}')
 		return result
 
-	def __get_active_for_write_no_lock(self) -> _ActivePack:
-		if self.__active is None or self.__should_rotate_active_no_lock():
-			self.__open_new_active_no_lock()
+	def __get_active_for_write(self) -> _ActivePack:
+		if self.__active is None or self.__should_rotate_active():
+			self.__open_new_active()
 		assert self.__active is not None
 		return self.__active
 
-	def __should_rotate_active_no_lock(self) -> bool:
+	def __should_rotate_active(self) -> bool:
 		assert self.__active is not None
 		return (
 			self.__active.pack.size >= pack_constants.PACK_MAX_SIZE or
@@ -131,15 +125,14 @@ class PackWriter:
 		)
 
 	def close(self):
-		with self.__lock:
-			self.__close_no_lock()
+		self.__close()
 
-	def __close_no_lock(self):
+	def __close(self):
 		if self.__active is not None:
 			self.__active.close()
 		self.__active = None
 
-	def __create_new_pack_no_lock(self) -> _ActivePack:
+	def __create_new_pack(self) -> _ActivePack:
 		pack_utils.prepare_pack_store()
 		new_pack = self.session.create_and_add_pack(
 			size=0,
@@ -155,10 +148,10 @@ class PackWriter:
 		self.__new_pack_paths.append(pack_path)
 		return _ActivePack(new_pack, fh)
 
-	def __open_new_active_no_lock(self):
-		self.__close_no_lock()
+	def __open_new_active(self):
+		self.__close()
 
-		new_pack = self.__create_new_pack_no_lock()
+		new_pack = self.__create_new_pack()
 		self.__active = new_pack
 		if self.logger.isEnabledFor(logging.DEBUG):
 			self.logger.debug(f'Opened new active pack id={new_pack.pack.id} file_name={pack_utils.get_pack_file_name(new_pack.pack.id)}')

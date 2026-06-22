@@ -164,9 +164,9 @@ class TextComponents:
 	def blob_delta_summary(cls, bds: BlobDeltaSummary) -> RTextBase:
 		disk_size = max(bds.created_disk_size, bds.freed_disk_size)
 		lines = [
-			cls.tr('blob_delta_summary.total_blobs', cls.number(bds.blob_count), cls.file_size(bds.blobs.raw_size), cls.file_size(bds.blobs.stored_size), cls.file_size(disk_size)),
-			cls.tr('blob_delta_summary.direct_blobs', cls.number(bds.direct_blobs.count), cls.file_size(bds.direct_blobs.raw_size), cls.file_size(bds.direct_blobs.stored_size)),
-			cls.tr('blob_delta_summary.chunks', cls.number(bds.chunks.count), cls.file_size(bds.chunks.raw_size), cls.file_size(bds.chunks.stored_size)),
+			cls.tr('blob_delta_summary.total_blobs', cls.number(bds.blob_count), cls.file_size(bds.blobs.stored_size), cls.file_size(bds.blobs.raw_size), cls.file_size(disk_size)),
+			cls.tr('blob_delta_summary.direct_blobs', cls.number(bds.direct_blobs.count), cls.file_size(bds.direct_blobs.stored_size), cls.file_size(bds.direct_blobs.raw_size)),
+			cls.tr('blob_delta_summary.chunks', cls.number(bds.chunks.count), cls.file_size(bds.chunks.stored_size), cls.file_size(bds.chunks.raw_size)),
 		]
 		if bds.packs.reclaimed_pack_count > 0:
 			lines.append(cls.tr(

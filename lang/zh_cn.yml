@@ -721,7 +721,7 @@ prime_backup:
       hover_creator: '创建者: {}'
       hover_click_hint: 点击以展示详情
     blob_delta_summary:
-      total_blobs: '数据对象: {} ({} / {}, 涉及磁盘 {})'
+      total_blobs: '数据对象: {} ({} / {}, 总磁盘占用 {})'
       direct_blobs: '直存数据对象: {} ({} / {})'
       chunks: '数据块: {} ({} / {})'
       pack_compaction: '打包文件整理: {}个打包文件, {} -> {}, 释放{}'

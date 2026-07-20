@@ -1,0 +1,1831 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A powerful backup plugin for MCDR, an advanced backup solution for your Minecraft world">
+      
+      
+        <meta name="author" content="Fallen_Breath">
+      
+      
+        <link rel="canonical" href="https://tisunion.github.io/PrimeBackup/zh/maintain/prune_compact/">
+      
+      
+        <link rel="prev" href="../../concept/storage_structure/">
+      
+      
+        <link rel="next" href="../corrupted_blobs/">
+      
+      
+        
+          <link rel="alternate" href="../../../maintain/prune_compact/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="zh">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>"整理"相关概念辨析 - Prime Backup 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#整理相关概念辨析" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../" title="Prime Backup 文档" class="md-header__button md-logo" aria-label="Prime Backup 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Prime Backup 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              "整理"相关概念辨析
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="选择当前语言">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../maintain/prune_compact/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="zh" class="md-select__link">
+              简体中文
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/TISUnion/PrimeBackup" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="Prime Backup 文档" class="md-nav__button md-logo" aria-label="Prime Backup 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Prime Backup 文档
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/TISUnion/PrimeBackup" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TISUnion/PrimeBackup
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速上手
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    配置文件
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    指令
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    命令行工具
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../feature/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    功能列表
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../chunking/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文件分块
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../concept/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    概念列表
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    维护指南
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    维护指南
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    "整理"相关概念辨析
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    "整理"相关概念辨析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#概览" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        概览
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#备份修剪backup-prune" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        备份修剪（Backup Prune）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="备份修剪（Backup Prune）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#作用范围" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用范围
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#保留决策流程" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        保留决策流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#数据库清理database-prune" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据库清理（Database Prune）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="数据库清理（Database Prune）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#打包文件整理pack-compaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        打包文件整理（Pack Compaction）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="打包文件整理（Pack Compaction）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#阈值" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        阈值
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sqlite-整理sqlite-vacuum" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQLite 整理（SQLite Vacuum）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SQLite 整理（SQLite Vacuum）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#基础文件集压缩base-fileset-shrink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        基础文件集压缩（Base Fileset Shrink）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="基础文件集压缩（Base Fileset Shrink）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#孤立对象清理orphan-object-scan--delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        孤立对象清理（Orphan Object Scan &amp; Delete）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="孤立对象清理（Orphan Object Scan &amp; Delete）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#孤立对象的来源" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        孤立对象的来源
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#清理内容" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        清理内容
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#未知文件清理unknown-file-scan--delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        未知文件清理（Unknown File Scan &amp; Delete）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="未知文件清理（Unknown File Scan &amp; Delete）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#清理范围" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        清理范围
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../corrupted_blobs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    数据文件损坏的处理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#概览" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        概览
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#备份修剪backup-prune" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        备份修剪（Backup Prune）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="备份修剪（Backup Prune）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#作用范围" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用范围
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#保留决策流程" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        保留决策流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#数据库清理database-prune" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据库清理（Database Prune）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="数据库清理（Database Prune）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#打包文件整理pack-compaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        打包文件整理（Pack Compaction）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="打包文件整理（Pack Compaction）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#阈值" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        阈值
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sqlite-整理sqlite-vacuum" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQLite 整理（SQLite Vacuum）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SQLite 整理（SQLite Vacuum）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#基础文件集压缩base-fileset-shrink" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        基础文件集压缩（Base Fileset Shrink）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="基础文件集压缩（Base Fileset Shrink）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#孤立对象清理orphan-object-scan--delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        孤立对象清理（Orphan Object Scan &amp; Delete）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="孤立对象清理（Orphan Object Scan &amp; Delete）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#孤立对象的来源" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        孤立对象的来源
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#清理内容" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        清理内容
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#未知文件清理unknown-file-scan--delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        未知文件清理（Unknown File Scan &amp; Delete）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="未知文件清理（Unknown File Scan &amp; Delete）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#作用_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        作用
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#清理范围" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        清理范围
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#触发方式_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        触发方式
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="导航栏" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../../" class="md-path__link">
+        
+  <span class="md-ellipsis">
+    首页
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="./" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    维护指南
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="整理相关概念辨析">"整理"相关概念辨析<a class="headerlink" href="#整理相关概念辨析" title="Permanent link">&para;</a></h1>
+<p>Prime Backup 涉及多个具有"整理"性质的概念（pack / compact / vacuum），它们的作用层次、触发时机和实际效果各不相同</p>
+<p>本文对这些概念作横向汇总，重点在于辨析它们之间的区别，帮助管理员快速把握全貌</p>
+<h2 id="概览">概览<a class="headerlink" href="#概览" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>英文名</th>
+<th>作用对象</th>
+<th>自动触发</th>
+<th>手动命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>备份修剪</td>
+<td>Backup Prune</td>
+<td>备份</td>
+<td>是（定时作业）</td>
+<td><code>!!pb prune</code></td>
+</tr>
+<tr>
+<td>数据库清理</td>
+<td>Database Prune</td>
+<td>复合操作</td>
+<td>否</td>
+<td><code>!!pb database prune</code></td>
+</tr>
+<tr>
+<td>打包文件整理</td>
+<td>Pack Compaction</td>
+<td>打包文件</td>
+<td>是（数据块删除时 / 定时作业）</td>
+<td><code>!!pb database compact_packs</code></td>
+</tr>
+<tr>
+<td>SQLite 整理</td>
+<td>SQLite Vacuum</td>
+<td>数据库文件</td>
+<td>是（定时作业）</td>
+<td><code>!!pb database vacuum</code></td>
+</tr>
+<tr>
+<td>基础文件集压缩</td>
+<td>Base Fileset Shrink</td>
+<td>基础文件集</td>
+<td>是（备份删除时）</td>
+<td>（含于数据库清理）</td>
+</tr>
+<tr>
+<td>孤立对象清理</td>
+<td>Orphan Object Scan</td>
+<td>数据库对象</td>
+<td>否</td>
+<td>（含于数据库清理）</td>
+</tr>
+<tr>
+<td>未知文件清理</td>
+<td>Unknown File Scan</td>
+<td>存储目录</td>
+<td>否</td>
+<td>（含于数据库清理）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="备份修剪backup-prune">备份修剪（Backup Prune）<a class="headerlink" href="#备份修剪backup-prune" title="Permanent link">&para;</a></h2>
+<p>作用于备份层，根据保留策略删除多余的旧备份</p>
+<h3 id="作用">作用<a class="headerlink" href="#作用" title="Permanent link">&para;</a></h3>
+<p>按照配置的保留策略，逐个删除不再需要保留的备份，并级联释放这些备份独占的文件、数据对象等数据库对象及对应的物理存储</p>
+<h3 id="作用范围">作用范围<a class="headerlink" href="#作用范围" title="Permanent link">&para;</a></h3>
+<p>备份按标签被划分为三类并分别裁量：常规备份 (regular)、定时备份 (scheduled)、临时备份 (temporary)</p>
+<p>每类备份独立应用各自的 <code>PruneSetting</code> 配置；带有保护标签 (<code>is_protected = true</code>) 的备份无论如何都不会被修剪</p>
+<h3 id="保留决策流程">保留决策流程<a class="headerlink" href="#保留决策流程" title="Permanent link">&para;</a></h3>
+<ol>
+<li>使用 <code>last</code>、<code>hour</code>、<code>day</code>、<code>week</code>、<code>month</code>、<code>year</code> 按 <a href="https://pbs.proxmox.com/docs/prune-simulator/">PBS 保留策略</a>选出每个时间桶中的代表性备份并标记保留</li>
+<li>对第一步标记保留的备份，用 <code>max_amount</code>（保留上限）和 <code>max_lifetime</code>（最大存活时长）进一步筛除过多或过期的备份</li>
+<li>删除所有未标记保留的备份</li>
+</ol>
+<p>删除决策明细会记录至 <code>pb_files/logs/prune.log</code></p>
+<h3 id="触发方式">触发方式<a class="headerlink" href="#触发方式" title="Permanent link">&para;</a></h3>
+<ul>
+<li>自动：定时作业 <code>prune_backup</code>，由 <code>prune.interval</code>（默认 <code>6h</code>）或 <code>prune.crontab</code> 决定触发周期</li>
+<li>手动：<code>!!pb prune</code>（需要权限 3）</li>
+</ul>
+<hr />
+<h2 id="数据库清理database-prune">数据库清理（Database Prune）<a class="headerlink" href="#数据库清理database-prune" title="Permanent link">&para;</a></h2>
+<p>作用于多个存储层，执行一次完整的底层清理</p>
+<h3 id="作用_1">作用<a class="headerlink" href="#作用_1" title="Permanent link">&para;</a></h3>
+<p>这是一个复合命令，它依次执行以下所有清理步骤：</p>
+<ol>
+<li>孤立对象清理（Orphan Object Scan）</li>
+<li>基础文件集压缩（Base Fileset Shrink）</li>
+<li>未知直存数据对象文件清理（Unknown Blob File Scan）</li>
+<li>打包文件整理（Pack Compaction），使用 <code>backup.pack_maintenance_compact_threshold</code></li>
+<li>未知打包文件清理（Unknown Pack File Scan）</li>
+</ol>
+<h3 id="触发方式_1">触发方式<a class="headerlink" href="#触发方式_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>手动：<code>!!pb database prune</code>（需要权限 4）</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Prime Backup 在日常操作（如删除备份、备份修剪）中已能及时清理对应的数据，通常无需手动执行此命令</p>
+</div>
+<hr />
+<h2 id="打包文件整理pack-compaction">打包文件整理（Pack Compaction）<a class="headerlink" href="#打包文件整理pack-compaction" title="Permanent link">&para;</a></h2>
+<p>作用于打包文件层，通过重写消除打包文件中的"死空间"</p>
+<h3 id="作用_2">作用<a class="headerlink" href="#作用_2" title="Permanent link">&para;</a></h3>
+<p>打包文件（Pack）以追加方式写入，数据块被删除后其占用的字节范围不会立即释放，成为死空间</p>
+<p>整理时，超过死亡比例阈值的打包文件中的存活条目（live entries）会被重写到新的打包文件，旧文件随即删除；全部条目均已死亡的打包文件则直接删除</p>
+<h3 id="阈值">阈值<a class="headerlink" href="#阈值" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>backup.pack_auto_compact_threshold</code>（默认 <code>0.5</code>）：即时触发时使用的存活比例下限；若被修改的打包文件中存活数据低于此比例则立即整理</li>
+<li><code>backup.pack_maintenance_compact_threshold</code>（默认 <code>0.8</code>）：维护任务（定时作业和 <code>database prune</code>）使用的存活比例下限，阈值更宽松，可整理更多打包文件</li>
+</ul>
+<h3 id="触发方式_2">触发方式<a class="headerlink" href="#触发方式_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>触发场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据块被删除后（即时）</td>
+<td>若相关打包文件存活比例低于 <code>pack_auto_compact_threshold</code>，立即整理</td>
+</tr>
+<tr>
+<td>定时作业 <code>compact_pack</code></td>
+<td>默认 crontab <code>0 5 * * 0</code>（每周日 05:00），使用 <code>pack_maintenance_compact_threshold</code></td>
+</tr>
+<tr>
+<td><code>!!pb database prune</code> 步骤 5</td>
+<td>使用 <code>pack_maintenance_compact_threshold</code></td>
+</tr>
+<tr>
+<td><code>!!pb database compact_packs</code></td>
+<td>阈值固定为 <code>1.0</code>，仅跳过全部存活的打包文件（需要权限 4）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sqlite-整理sqlite-vacuum">SQLite 整理（SQLite Vacuum）<a class="headerlink" href="#sqlite-整理sqlite-vacuum" title="Permanent link">&para;</a></h2>
+<p>作用于数据库文件层，整理 SQLite 数据库文件本身</p>
+<h3 id="作用_3">作用<a class="headerlink" href="#作用_3" title="Permanent link">&para;</a></h3>
+<p>SQLite 在删除数据后不会立即缩减文件体积，而是在原位留下空洞；<code>VACUUM</code> 命令会重建数据库文件，消除空洞、整理碎片，从而缩小磁盘占用</p>
+<p>此操作不修改任何备份数据或存储对象，仅影响 <code>prime_backup.db</code> 本身的文件大小</p>
+<h3 id="触发方式_3">触发方式<a class="headerlink" href="#触发方式_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>自动：定时作业 <code>vacuum_sqlite</code>，默认 crontab <code>0 7 * * 0</code>（每周日 07:00）</li>
+<li>手动：<code>!!pb database vacuum</code>（需要权限 4）</li>
+</ul>
+<hr />
+<h2 id="基础文件集压缩base-fileset-shrink">基础文件集压缩（Base Fileset Shrink）<a class="headerlink" href="#基础文件集压缩base-fileset-shrink" title="Permanent link">&para;</a></h2>
+<p>作用于文件集层，清理基础文件集中的冗余文件条目</p>
+<h3 id="作用_4">作用<a class="headerlink" href="#作用_4" title="Permanent link">&para;</a></h3>
+<p>文件集采用基础+增量（base + delta）的组合结构；基础文件集中的某个文件，如果已被所有引用它的增量文件集完全覆写或删除，那么它在基础文件集中的条目就属于冗余</p>
+<p>压缩操作会：</p>
+<ul>
+<li>从基础文件集中移除这些冗余文件条目</li>
+<li>对于原本标记为"覆写（delta_override）"的增量条目，改为"新增（delta_add）"，以便后续独立存活</li>
+<li>对于原本标记为"删除（delta_remove）"的增量条目，由于基础条目已消失，删除标记也随之变得无意义，一并移除</li>
+</ul>
+<h3 id="触发方式_4">触发方式<a class="headerlink" href="#触发方式_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>自动：删除备份时，若该备份所属的基础文件集仍被其他备份共享，则自动对该基础文件集执行一次压缩</li>
+<li>间接：<code>!!pb database prune</code> 步骤 2（<code>ShrinkAllBaseFilesetsAction</code>，扫描所有基础文件集）</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>日常的备份删除流程已经会及时清理文件集中的冗余文件条目，正常情况下此扫描不会发现任何冗余对象</p>
+</div>
+<hr />
+<h2 id="孤立对象清理orphan-object-scan--delete">孤立对象清理（Orphan Object Scan &amp; Delete）<a class="headerlink" href="#孤立对象清理orphan-object-scan--delete" title="Permanent link">&para;</a></h2>
+<p>作用于数据库对象层，扫描并删除不再被任何上层对象引用的"孤立"数据库记录</p>
+<h3 id="孤立对象的来源">孤立对象的来源<a class="headerlink" href="#孤立对象的来源" title="Permanent link">&para;</a></h3>
+<p>正常的删除流程会级联清理对应对象，但在极少数情况（如意外中断、并发异常）下可能残留孤立对象</p>
+<h3 id="清理内容">清理内容<a class="headerlink" href="#清理内容" title="Permanent link">&para;</a></h3>
+<p>依次扫描并删除以下对象：</p>
+<table>
+<thead>
+<tr>
+<th>对象</th>
+<th>判断依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>孤立文件集（Orphan Fileset）</td>
+<td>不被任何备份引用的文件集</td>
+</tr>
+<tr>
+<td>孤立文件（Orphan File）</td>
+<td>不被任何文件集引用的文件对象</td>
+</tr>
+<tr>
+<td>孤立数据对象（Orphan Blob）</td>
+<td>不被任何文件引用的数据对象</td>
+</tr>
+<tr>
+<td>孤立数据块组（Orphan Chunk Group）</td>
+<td>不被任何数据对象引用的数据块组</td>
+</tr>
+<tr>
+<td>孤立数据块（Orphan Chunk）</td>
+<td>不被任何数据块组引用的数据块</td>
+</tr>
+<tr>
+<td>孤立关系绑定（Orphan Binding）</td>
+<td>仅针对 Blob-ChunkGroup 和 ChunkGroup-Chunk 两种绑定表，删除指向不存在对象的绑定行</td>
+</tr>
+</tbody>
+</table>
+<h3 id="触发方式_5">触发方式<a class="headerlink" href="#触发方式_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>间接：<code>!!pb database prune</code> 步骤 1</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>日常的备份删除流程已经会及时清理对应的孤立对象，正常情况下此扫描不会发现任何孤立对象</p>
+</div>
+<hr />
+<h2 id="未知文件清理unknown-file-scan--delete">未知文件清理（Unknown File Scan &amp; Delete）<a class="headerlink" href="#未知文件清理unknown-file-scan--delete" title="Permanent link">&para;</a></h2>
+<p>作用于文件系统层，扫描并删除存储目录中无对应数据库记录的多余文件</p>
+<h3 id="作用_5">作用<a class="headerlink" href="#作用_5" title="Permanent link">&para;</a></h3>
+<p>Prime Backup 在回滚失败或意外中断时可能在存储目录中遗留临时文件，这些文件不在数据库记录中，也不会被正常流程清理</p>
+<h3 id="清理范围">清理范围<a class="headerlink" href="#清理范围" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>存储目录</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pb_files/blobs/</code></td>
+<td>扫描直存数据对象存储目录，删除不存在于数据库的文件</td>
+</tr>
+<tr>
+<td><code>pb_files/packs/</code></td>
+<td>扫描打包文件存储目录，删除不存在于数据库的文件</td>
+</tr>
+</tbody>
+</table>
+<h3 id="触发方式_6">触发方式<a class="headerlink" href="#触发方式_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>间接：<code>!!pb database prune</code> 步骤 3、5</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 Fallen_Breath
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "navigation.expand", "navigation.path", "navigation.prune", "navigation.top"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

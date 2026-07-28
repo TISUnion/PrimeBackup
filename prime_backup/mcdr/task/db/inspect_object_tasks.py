@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Any, Optional
 
-from mcdreforged.api.all import CommandSource, RTextBase, RText, RTextList, RColor, RAction, RTextMCDRTranslation
+from mcdreforged.api.all import CommandSource, RTextBase, RText, RTextList, RColor, RTextMCDRTranslation
 from typing_extensions import override
 
 from prime_backup.action.get_backup_action import GetBackupAction
@@ -24,7 +24,7 @@ from prime_backup.types.chunk_info import ChunkInfo
 from prime_backup.types.file_info import FileInfo
 from prime_backup.types.pack_info import PackInfo
 from prime_backup.utils import platform_utils, chunk_utils, hash_utils, pack_utils
-from prime_backup.utils.mcdr_utils import TranslationContext, mkcmd
+from prime_backup.utils.mcdr_utils import click_run, TranslationContext, mkcmd
 
 
 class _InspectObjectTaskBase(LightTask[None], ABC):
@@ -36,7 +36,7 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 		return (
 			t_bid.copy()
 			.h(cls.__base_tr.tr('hover.backup_id', t_bid))
-			.c(RAction.run_command, mkcmd(f'database inspect backup {backup_id}'))
+			.c(*click_run(mkcmd(f'database inspect backup {backup_id}')))
 		)
 
 	@classmethod
@@ -45,7 +45,7 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 		return (
 			t_fsid.copy()
 			.h(cls.__base_tr.tr('hover.fileset_id', t_fsid))
-			.c(RAction.run_command, mkcmd(f'database inspect fileset {fileset_id}'))
+			.c(*click_run(mkcmd(f'database inspect fileset {fileset_id}')))
 		)
 
 	@classmethod
@@ -57,7 +57,7 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 		return (
 			TextComponents.blob_hash(blob_hash, shorten_hash=shorten_hash).
 			h(cls.__base_tr.tr('blob_hash.hover', RText(blob_hash, TextColors.blob))).
-		    c(RAction.run_command, mkcmd(f'database inspect blob {blob_hash}'))
+		    c(*click_run(mkcmd(f'database inspect blob {blob_hash}')))
 		)
 
 	@classmethod
@@ -65,7 +65,7 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 		return (
 			TextComponents.chunk_hash(chunk_hash, shorten_hash=shorten_hash).
 			h(cls.__base_tr.tr('chunk_hash.hover', RText(chunk_hash, TextColors.chunk))).
-			c(RAction.run_command, mkcmd(f'database inspect chunk {chunk_hash}'))
+			c(*click_run(mkcmd(f'database inspect chunk {chunk_hash}')))
 		)
 
 	@classmethod
@@ -73,7 +73,7 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 		return (
 			TextComponents.chunk_group_hash(chunk_group_hash, shorten_hash=shorten_hash).
 			h(cls.__base_tr.tr('chunk_group_hash.hover', RText(chunk_group_hash, TextColors.chunk_group))).
-			c(RAction.run_command, mkcmd(f'database inspect chunk_group {chunk_group_hash}'))
+			c(*click_run(mkcmd(f'database inspect chunk_group {chunk_group_hash}')))
 		)
 
 	@classmethod
@@ -82,7 +82,7 @@ class _InspectObjectTaskBase(LightTask[None], ABC):
 		return (
 			t_name.
 			h(cls.__base_tr.tr('pack_file_name.hover', RText(pack_file_name, TextColors.file))).
-			c(RAction.run_command, mkcmd(f'database inspect pack {pack_id}'))
+			c(*click_run(mkcmd(f'database inspect pack {pack_id}')))
 		)
 
 	@classmethod

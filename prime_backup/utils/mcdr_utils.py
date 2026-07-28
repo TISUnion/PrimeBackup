@@ -1,4 +1,4 @@
-from typing import Union, Any
+from typing import Union, Any, Tuple
 
 from mcdreforged.api.all import ServerInterface, CommandSource, PlayerCommandSource, ConsoleCommandSource, RTextBase, \
 	RText, RTextList, RColor, RAction
@@ -45,8 +45,25 @@ def broadcast_message(msg: Union[str, RTextBase], *, with_prefix: bool = True):
 	mcdr_globals.server.broadcast(msg)
 
 
+def click_run(command: str) -> Tuple[RAction, str]:
+	"""
+	Build the click event for a command, to be used as ``text.c(*click_run(cmd))``
+
+	Minecraft 1.20.5+ clients refuse to execute a ``run_command`` click event whose command
+	does not start with a ``/``, silently dropping it with
+	``Failed to run command without '/' prefix from click event`` in the client log.
+	MCDR commands (e.g. ``!!pb confirm``) are plain chat messages, so every ``run_command``
+	button of the plugin is a dead button on those clients.
+
+	Fall back to ``suggest_command`` for those, which fills the chat bar with the command
+	so the player only needs to press enter. Real Minecraft commands keep using ``run_command``.
+	"""
+	action = RAction.run_command if command.startswith('/') else RAction.suggest_command
+	return action, command
+
+
 def click_and_run(message: Any, text: Any, command: str) -> RTextBase:
-	return RTextBase.from_any(message).h(text).c(RAction.run_command, command)
+	return RTextBase.from_any(message).h(text).c(*click_run(command))
 
 
 def are_source_same(a: CommandSource, b: CommandSource):

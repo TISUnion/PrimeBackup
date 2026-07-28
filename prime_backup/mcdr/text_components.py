@@ -19,7 +19,7 @@ from prime_backup.types.operator import Operator
 from prime_backup.types.timestamp import Timestamp
 from prime_backup.types.units import ByteCount, Duration
 from prime_backup.utils import conversion_utils, misc_utils, backup_utils
-from prime_backup.utils.mcdr_utils import mkcmd, click_and_run
+from prime_backup.utils.mcdr_utils import click_run, mkcmd, click_and_run
 from prime_backup.utils.path_like import PathLike
 
 
@@ -144,7 +144,7 @@ class TextComponents:
 				hover_lines.append(cls.tr('backup_id.hover_click_hint'))
 			text.h(RTextBase.join('\n', hover_lines))
 		if click:
-			text.c(RAction.run_command, mkcmd(f'show {backup_id}'))
+			text.c(*click_run(mkcmd(f'show {backup_id}')))
 		return text
 
 	@classmethod
@@ -217,7 +217,7 @@ class TextComponents:
 		if suggest:
 			text.h(cls.tr('command.suggest', cmd)).c(RAction.suggest_command, cmd)
 		elif run:
-			text.h(cls.tr('command.run', cmd)).c(RAction.run_command, cmd)
+			text.h(cls.tr('command.run', cmd)).c(*click_run(cmd))
 		return text
 
 	@classmethod

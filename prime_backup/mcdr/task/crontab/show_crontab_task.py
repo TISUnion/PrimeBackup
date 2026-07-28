@@ -1,10 +1,10 @@
-from mcdreforged.api.all import RTextBase, RText, RTextList, RColor, RAction
+from mcdreforged.api.all import RTextBase, RText, RTextList, RColor
 from typing_extensions import override
 
 from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
 from prime_backup.mcdr.task.crontab import CrontabTaskBase
 from prime_backup.mcdr.text_components import TextComponents
-from prime_backup.utils.mcdr_utils import mkcmd
+from prime_backup.utils.mcdr_utils import click_run, mkcmd
 
 
 class ShowCrontabJobTask(CrontabTaskBase[None]):
@@ -46,7 +46,7 @@ class ShowCrontabJobTask(CrontabTaskBase[None]):
 				RTextList('[', self.tr(op), ']').
 				set_color(color).
 				h(self.tr(f'{op}.hover', job.get_name_text())).
-				c(RAction.run_command, mkcmd(f'crontab {self.job_id.name} {op}'))
+				c(*click_run(mkcmd(f'crontab {self.job_id.name} {op}')))
 			)
 		buttons = [
 			make('pause', RColor.gold),

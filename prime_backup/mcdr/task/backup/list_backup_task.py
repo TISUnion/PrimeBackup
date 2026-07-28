@@ -1,7 +1,7 @@
 import copy
 import json
 
-from mcdreforged.api.all import CommandSource, RText, RTextList, RColor, RStyle, RAction
+from mcdreforged.api.all import CommandSource, RText, RTextList, RColor, RStyle
 from typing_extensions import override
 
 from prime_backup.action.count_backup_action import CountBackupAction
@@ -10,7 +10,7 @@ from prime_backup.mcdr.task.basic_task import LightTask
 from prime_backup.mcdr.text_components import TextComponents
 from prime_backup.types.backup_filter import BackupFilter
 from prime_backup.utils import conversion_utils
-from prime_backup.utils.mcdr_utils import mkcmd
+from prime_backup.utils.mcdr_utils import click_run, mkcmd
 
 
 class ListBackupTask(LightTask[None]):
@@ -72,12 +72,12 @@ class ListBackupTask(LightTask[None]):
 
 		t_prev = RText('<-')
 		if 1 <= self.page - 1 <= max_page:  # has prev
-			t_prev.h(self.tr('prev')).c(RAction.run_command, self.__make_command(self.page - 1))
+			t_prev.h(self.tr('prev')).c(*click_run(self.__make_command(self.page - 1)))
 		else:
 			t_prev.set_color(RColor.dark_gray)
 		t_next = RText('->')
 		if 1 <= self.page + 1 <= max_page:  # has next
-			t_next.h(self.tr('next')).c(RAction.run_command, self.__make_command(self.page + 1))
+			t_next.h(self.tr('next')).c(*click_run(self.__make_command(self.page + 1)))
 		else:
 			t_next.set_color(RColor.dark_gray)
 		self.reply(RTextList(t_prev, ' ', TextComponents.number(self.page), '/', TextComponents.number(max_page), ' ', t_next))

@@ -185,7 +185,7 @@ class BasicCrontabJob(CrontabJob, TranslationContext, ABC):
 			requirement_checker: Optional[Callable[[], Tuple[bool, Optional[RTextBase]]]] = None,  # () -> (ok, abort_reason)
 			delays: Optional[List[float]] = None,
 			broadcast: bool = False
-	) -> RunTaskWithRetryResult:
+	) -> RunTaskWithRetryResult[_T]:
 		if delays is None:
 			delays = self.__create_run_tasks_delays()
 		misc_utils.assert_true(len(delays) > 0, 'delay should not be empty')

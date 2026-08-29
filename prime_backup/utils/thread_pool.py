@@ -68,8 +68,13 @@ class _FailFastConcurrentPoolHelper:
 			raise
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
-		if exc_type is None:
-			self.wait_and_ensure_no_error()
+		try:
+			if exc_type is None:
+				self.wait_and_ensure_no_error()
+		except BaseException as e:
+			# Do not expose a worker exception until every submitted worker has stopped.
+			self.__pool.exit(type(e), e, e.__traceback__)
+			raise
 		return self.__pool.exit(exc_type, exc_val, exc_tb)
 
 	def wait_and_ensure_no_error(self):

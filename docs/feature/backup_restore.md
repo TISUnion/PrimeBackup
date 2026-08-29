@@ -105,15 +105,16 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
 ```
 
 The command line `back` command does not stop or start the Minecraft server. Stop the server yourself before running it.
-If config `command.backup_on_restore` is enabled, it creates a temporary backup before restoring.
+If config `restore.create_pre_restore_backup` is enabled, it creates a temporary backup before restoring.
 Add `--no-pre-restore-backup` to skip the temporary backup
 
 ## Related Configuration
 
-Configuration related to restoration is mainly located in the following two sections:
+Configuration related to restoration is mainly located in the following three sections:
 
 - [Server Configuration](../config.md#server-config), including interaction commands with MC server during restoration
 - [Backup Configuration](../config.md#backup-config), including file processing rules during restoration
+- [Restore Configuration](../config.md#restore-config), including the restore destination and strategy
 
 ## Detailed Restoration Process
 
@@ -124,17 +125,17 @@ Below will list the operation process during PB backup restoration
    2. Wait for user confirmation (unless using `--confirm` parameter)
    3. User can confirm with `!!pb confirm` or abort with `!!pb abort`
 2. Server shutdown
-   1. If the server is running, execute 10s countdown (default configuration `command.restore_countdown_sec: 10`)
+   1. If the server is running, execute 10s countdown (default configuration `restore.countdown_sec: 10`)
    2. Restoration can be canceled during countdown
    3. Stop the server and wait for complete shutdown
 3. Pre-restoration backup
-   1. If `backup_on_restore` is configured (default value `true`), create a backup at this time for emergency use
+   1. If `restore.create_pre_restore_backup` is configured (default value `true`), create a backup at this time for emergency use
    2. Backup comment is "Automatic backup before restoring to #X"
    3. This backup will be marked as temporary and will be specially handled during backup cleanup
 4. Actual restoration operation
    1. Recycle bin mechanism: Move all existing files in the backup target directory to a temporary recycle bin, ensuring complete rollback if restoration fails
    2. Retain file processing: If `retain_patterns` is configured, use gitignore-style pattern matching and isolate files to be retained
-   3. File export: Use multi-threading to export backup files to the target directory in parallel. If `backup.restore_reuse_unchanged_files` is enabled, unchanged files are moved back from the trash bin instead
+   3. File export: Use multi-threading to export backup files to the target directory in parallel. If `restore.reuse_unchanged_files` is enabled, unchanged files are moved back from the trash bin instead
    4. Attribute restoration: Restore file permissions, timestamps, owners, and symbolic link targets
    5. Retain file restoration: Finally move `retain_patterns` retained files back to their original positions
 5. Server restart

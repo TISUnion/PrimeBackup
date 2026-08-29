@@ -37,7 +37,6 @@ class BackupConfig(Serializable):
 	retain_patterns: List[str] = []
 	follow_target_symlink: bool = False
 	reuse_stat_unchanged_file: bool = False
-	restore_reuse_unchanged_files: bool = False
 	creation_skip_missing_file: bool = False
 	creation_skip_missing_file_patterns: List[str] = [
 		'**',

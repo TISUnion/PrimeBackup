@@ -385,7 +385,7 @@ class ExportBackupToDirectoryAction(_ExportBackupActionBase):
 		# 2. do the export
 
 		self.output_path.mkdir(parents=True, exist_ok=True)
-		reuse_unchanged_files = self.restore_mode and self.config.backup.restore_reuse_unchanged_files
+		reuse_unchanged_files = self.restore_mode and self.config.restore.reuse_unchanged_files
 		export_temp_dir = _ExportTempDirectory(self.output_path, self.retain_patterns)
 		export_temp_dir.prepare()
 		if export_temp_dir.retainer is not None:

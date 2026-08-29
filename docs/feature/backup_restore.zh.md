@@ -105,15 +105,16 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
 ```
 
 命令行 `back` 命令不会停止或启动 Minecraft 服务端。请在运行前自行停止服务端。
-如果配置文件启用了 `command.backup_on_restore`，回档会创建一个临时备份。
+如果配置文件启用了 `restore.create_pre_restore_backup`，回档会创建一个临时备份。
 可通过 `--no-pre-restore-backup` 参数跳过此临时备份
 
 ## 相关配置
 
-回档相关的配置基本位于下述两个小节：
+回档相关的配置基本位于下述三个小节：
 
 - [服务器配置](../config.zh.md#服务器配置)，包含在回档时与 MC 服务器的交互命令
 - [备份配置](../config.zh.md#备份配置)，包含回档时的文件处理规则
+- [回档配置](../config.zh.md#回档配置)，包含回档目的目录和回档策略
 
 ## 回档流程详解
 
@@ -124,17 +125,17 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
    2. 等待用户确认（除非使用 `--confirm` 参数）
    3. 用户可通过 `!!pb confirm` 确认或 `!!pb abort` 终止
 2. 服务器关闭
-   1. 如果服务器正在运行，执行 10s 倒计时（默认配置 `command.restore_countdown_sec: 10`）
+   1. 如果服务器正在运行，执行 10s 倒计时（默认配置 `restore.countdown_sec: 10`）
    2. 倒计时期间可以取消回档操作
    3. 停止服务器并等待完全关闭
 3. 回档前的备份
-   1. 如果配置了 `backup_on_restore`（默认值 `true`），将在此时创建一个备份，以便不时之需
+   1. 如果配置了 `restore.create_pre_restore_backup`（默认值 `true`），将在此时创建一个备份，以便不时之需
    2. 备份注释为"回档至#X前的自动备份"
    3. 此备份将被标记为临时备份，将在备份清理时特殊处理
 4. 实际回档操作
    1. 回收站机制：将备份目标目录中现有的所有文件移动到临时回收站，确保回档失败时可完全回滚
    2. 保留文件处理：如果配置了 `retain_patterns`，使用 gitignore 风格模式匹配并隔离要保留的文件
-   3. 文件导出：使用多线程并行将备份文件导出到目标目录；若启用了 `backup.restore_reuse_unchanged_files`，则从回收站移回内容未变化的文件
+   3. 文件导出：使用多线程并行将备份文件导出到目标目录；若启用了 `restore.reuse_unchanged_files`，则从回收站移回内容未变化的文件
    4. 属性恢复：恢复文件权限、时间戳、所有者和符号链接目标
    5. 保留文件恢复：最后将 `retain_patterns` 保留的文件移回原位置
 5. 服务器重新启动

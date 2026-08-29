@@ -10,6 +10,7 @@ from prime_backup.config.backup_config import BackupConfig
 from prime_backup.config.command_config import CommandConfig
 from prime_backup.config.database_config import DatabaseConfig
 from prime_backup.config.prune_config import PruneConfig
+from prime_backup.config.restore_config import RestoreConfig
 from prime_backup.config.scheduled_backup_config import ScheduledBackupConfig
 from prime_backup.config.server_config import ServerConfig
 
@@ -23,6 +24,7 @@ class Config(Serializable):
 	command: CommandConfig = CommandConfig()
 	server: ServerConfig = ServerConfig()
 	backup: BackupConfig = BackupConfig()
+	restore: RestoreConfig = RestoreConfig()
 	scheduled_backup: ScheduledBackupConfig = ScheduledBackupConfig()
 	prune: PruneConfig = PruneConfig()
 	database: DatabaseConfig = DatabaseConfig()
@@ -73,6 +75,12 @@ class Config(Serializable):
 			if si is not None and (mcdr_wd := si.get_mcdr_config().get('working_directory')) is not None:
 				return Path(mcdr_wd)
 		return Path(self.backup.source_root)
+
+	@property
+	def restore_path(self) -> Path:
+		if self.restore.destination_root is not None:
+			return Path(self.restore.destination_root)
+		return self.source_path
 
 	@classmethod
 	@override

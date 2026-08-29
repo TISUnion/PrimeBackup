@@ -67,8 +67,8 @@ class BackCommandHandler(CliCommandHandlerBase):
 		if self.args.skip_pre_restore_backup:
 			self.logger.info('Pre-restore temporary backup skipped by command line flag')
 			return None
-		if not self.config.command.backup_on_restore:
-			self.logger.info('Pre-restore temporary backup skipped since command.backup_on_restore is false')
+		if not self.config.restore.create_pre_restore_backup:
+			self.logger.info('Pre-restore temporary backup skipped since restore.create_pre_restore_backup is false')
 			return None
 		if not source_root.exists():
 			self.logger.info('Pre-restore temporary backup skipped since source root {!r} does not exist'.format(source_root.as_posix()))

@@ -21,6 +21,7 @@ This is the root json object in the config files
     "command": {/* Command config */},
     "server": {/* Server config */},
     "backup": {/* Backup config */},
+    "restore": {/* Restore config */},
     "scheduled_backup": {/* Scheduled backup config */},
     "prune": {/* Prune config */},
     "database": {/* Database config */}
@@ -85,9 +86,7 @@ A value of `0` means using 50% of the CPU
         "show": 1,
         "tag": 3
     },
-    "confirm_time_wait": "1m",
-    "backup_on_restore": true,
-    "restore_countdown_sec": 10
+    "confirm_time_wait": "1m"
 }
 ```
 
@@ -122,21 +121,57 @@ When time exceeds, the command will be cancelled
 - Type: [`Duration`](#duration)
 - Default: `"1m"`
 
-#### backup_on_restore
+---
 
-Whether an automatic backup should be made before restoring the world to a given backup. These automatic pre-restore backups are temporary backups
+### Restore config
 
-This is a safeguard prepared for those idiot users
+Configs for the restore destination and restore strategy
+
+```json
+{
+    "destination_root": null,
+    "create_pre_restore_backup": true,
+    "countdown_sec": 10,
+    "reuse_unchanged_files": false
+}
+```
+
+#### destination_root
+
+The destination root directory for restore operations. When set to `null`, [source_root](#source_root) is used
+
+- Type: `Optional[str]`
+- Default: `null`
+
+#### create_pre_restore_backup
+
+Whether to create a temporary backup of the restore destination before restoring
 
 - Type: `bool`
 - Default: `true`
 
-#### restore_countdown_sec
+#### countdown_sec
 
-The duration in seconds of the countdown during backup restoring, before closing the Minecraft server
+The duration in seconds of the countdown before stopping the Minecraft server during a restore
 
 - Type: `int`
 - Default: `10`
+
+#### reuse_unchanged_files
+
+When enabled, a restore can reuse regular files whose contents already match the selected backup instead of writing them again from backup storage.
+Directories, symbolic links, changed files, and files that cannot be reused continue through the normal restore process.
+
+This can reduce disk writes and restore time when restoring a large backup over a target that still contains mostly unchanged files.
+It provides little benefit when most files have changed, and checking file contents still requires disk reads.
+
+Reused files keep their existing inode and may retain filesystem metadata that Prime Backup does not include in backups, such as hard-link relationships, extended attributes, and ACLs.
+Prime Backup still restores the permissions, owner, and modification time recorded in the backup.
+Enable this option only when reducing restore writes is valuable and retaining such untracked filesystem metadata is acceptable.
+It is disabled by default because reuse adds complexity to restore and rollback behavior.
+
+- Type: `bool`
+- Default: `false`
 
 ---
 
@@ -219,7 +254,6 @@ Configs on how the backup is made
     "retain_patterns": [],
     "follow_target_symlink": false,
     "reuse_stat_unchanged_file": false,
-    "restore_reuse_unchanged_files": false,
     "creation_skip_missing_file": false,
     "creation_skip_missing_file_patterns": [
        "**"
@@ -256,7 +290,7 @@ Configs on how the backup is made
 
 #### source_root
 
-The root directory where the backup / restore operations happen
+The source root directory from which files are read when creating a backup
 
 Usually this should be the same as the server [working_directory](https://mcdreforged.readthedocs.io/en/latest/configuration.html#working-directory) option of MCDR, 
 i.e. the `server` directory by default
@@ -335,7 +369,7 @@ e.g. `temp*`  makes all files starts with `temp` be ignored, like `tempfile`
 A list of [gitignore-style](http://git-scm.com/docs/gitignore) pattern strings.
 Files or directories matching these patterns will be ignored during backup creation
 
-The root path for pattern matching is [source_root](#source_root).
+During backup creation, the root path for pattern matching is [source_root](#source_root).
 For example, if `source_root` is `server`, then the pattern `world/trash*.obj` will match `server/world/trash1.obj`
 
 It contains a `session.lock` pattern by default, which matches files named `session.lock` in any location.
@@ -348,8 +382,8 @@ It's used to solve the backup failure problem caused by `session.lock` being occ
 A list of [gitignore-style](http://git-scm.com/docs/gitignore) pattern strings.
 Files or directories matching these patterns will be ignored during backup creation but retained when restoring a backup
 
-The root path for pattern matching is [source_root](#source_root).  
-For example, if `source_root` is `server`, then the pattern `world/trash*.obj` will match `server/world/trash1.obj`
+Patterns match paths relative to the operation root: [source_root](#source_root) during backup creation and [destination_root](#destination_root) during restore.
+For example, `world/trash*.obj` matches `world/trash1.obj` under the corresponding root directory.
 
 This option is recommended for files that do not need to be backed up but should still be kept,
 such as large databases used by mods or rendered outputs of web maps
@@ -406,22 +440,6 @@ However, this also introduces the potential risk of incomplete backups
 
     Unless you really need this backup speed boost or the system disk read performance is too low, it is not recommended to enable this option.
     Prime Backup is already fast enough
-
-- Type: `bool`
-- Default: `false`
-
-#### restore_reuse_unchanged_files
-
-When enabled, a restore can reuse regular files whose contents already match the selected backup instead of writing them again from backup storage.
-Directories, symbolic links, changed files, and files that cannot be reused continue through the normal restore process.
-
-This can reduce disk writes and restore time when restoring a large backup over a target that still contains mostly unchanged files.
-It provides little benefit when most files have changed, and checking file contents still requires disk reads.
-
-Reused files keep their existing inode and may retain filesystem metadata that Prime Backup does not include in backups, such as hard-link relationships, extended attributes, and ACLs.
-Prime Backup still restores the permissions, owner, and modification time recorded in the backup.
-Enable this option only when reducing restore writes is valuable and retaining such untracked filesystem metadata is acceptable.
-It is disabled by default because reuse adds complexity to restore and rollback behavior.
 
 - Type: `bool`
 - Default: `false`

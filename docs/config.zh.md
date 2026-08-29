@@ -21,6 +21,7 @@ title: '配置文件'
     "command": {/* 命令配置 */},
     "server": {/* 服务器配置 */},
     "backup": {/* 备份配置 */},
+    "restore": {/* 回档配置 */},
     "scheduled_backup": {/* 定时备份配置 */},
     "prune": {/* 修剪配置 */},
     "database": {/* 数据库配置 */}
@@ -85,9 +86,7 @@ Prime Backup 储存各种数据文件所用的根目录
         "show": 1,
         "tag": 3
     },
-    "confirm_time_wait": "1m",
-    "backup_on_restore": true,
-    "restore_countdown_sec": 10
+    "confirm_time_wait": "1m"
 }
 ```
 
@@ -122,21 +121,57 @@ MCDR 中，Prime Backup 所有命令的前缀。通常你不需要更改它
 - 类型：[`Duration`](#duration)
 - 默认值：`"1m"`
 
-#### backup_on_restore
+---
 
-在回档至指定备份前，是否要自动创建一个备份。这一类备份被称为“回档前备份”，类型为临时备份
+### 回档配置
 
-这是一道为那些傻瓜用户准备的安全保障
+与回档目的位置和回档策略相关的配置
+
+```json
+{
+    "destination_root": null,
+    "create_pre_restore_backup": true,
+    "countdown_sec": 10,
+    "reuse_unchanged_files": false
+}
+```
+
+#### destination_root
+
+回档操作的目的根目录。设置为 `null` 时，使用 [source_root](#source_root)
+
+- 类型：`Optional[str]`
+- 默认值：`null`
+
+#### create_pre_restore_backup
+
+在回档至指定备份前，是否自动为回档目的目录创建临时备份
 
 - 类型：`bool`
 - 默认值：`true`
 
-#### restore_countdown_sec
+#### countdown_sec
 
-在回档时，关闭 Minecraft 服务器前，执行倒计时的持续秒数
+在回档时，关闭 Minecraft 服务器前执行倒计时的持续秒数
 
 - 类型：`int`
 - 默认值：`10`
+
+#### reuse_unchanged_files
+
+启用后，回档时可以复用内容已经与所选备份一致的普通文件，不再从备份存储重新写入这些文件。
+目录、符号链接、内容已变化的文件以及无法复用的文件仍按普通流程还原。
+
+当大型备份覆盖到一个仍有大量未变化文件的目标位置时，该选项可以减少磁盘写入并缩短回档时间。
+如果大多数文件已经变化，则收益有限；检查文件内容仍会产生磁盘读取。
+
+被复用的文件会保留原 inode，也可能保留 Prime Backup 未纳入备份的文件系统元信息，例如硬链接关系、扩展属性和 ACL。
+Prime Backup 仍会恢复备份中记录的权限、所有者和修改时间。
+仅在需要减少回档写入，并且可以接受保留这些未记录元信息时启用该选项。
+由于文件复用会增加回档与失败回滚行为的复杂度，此选项默认关闭。
+
+- 类型：`bool`
+- 默认值：`false`
 
 ---
 
@@ -219,7 +254,6 @@ Prime Backup 在创建备份时的操作时序如下：
     "retain_patterns": [],
     "follow_target_symlink": false,
     "reuse_stat_unchanged_file": false,
-    "restore_reuse_unchanged_files": false,
     "creation_skip_missing_file": false,
     "creation_skip_missing_file_patterns": [
        "**"
@@ -256,7 +290,7 @@ Prime Backup 在创建备份时的操作时序如下：
 
 #### source_root
 
-进行备份/还原操作的根目录
+创建备份时读取文件的来源根目录
 
 通常应该是 MCDR 配置中，服务端的 [工作目录](https://mcdreforged.readthedocs.io/zh-cn/latest/configuration.html#working-directory)，
 即默认情况下的 `server` 目录
@@ -335,7 +369,7 @@ Prime Backup 在创建备份时的操作时序如下：
 一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，
 被匹配中的文件 / 文件夹将在创建备份时被忽略
 
-模板串匹配时的根路径是 [source_root](#source_root)。
+创建备份时，模板串匹配的根路径是 [source_root](#source_root)。
 例如，如果 `source_root` 是 `server`，那么模板串 `world/trash*.obj` 将匹配 `server/world/trash1.obj`
 
 默认包含一个 `session.lock` 模板串，用于匹配位于任何位置的，名为 `session.lock` 的文件，
@@ -348,8 +382,8 @@ Prime Backup 在创建备份时的操作时序如下：
 一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，
 被匹配中的文件 / 文件夹将在创建备份时被忽略、在还原备份时被保留
 
-模板串匹配时的根路径是 [source_root](#source_root)。
-例如，如果 `source_root` 是 `server`，那么模板串 `world/trash*.obj` 将匹配 `server/world/trash1.obj`
+模板串匹配相对于操作根目录的路径：创建备份时为 [source_root](#source_root)，回档时为 [destination_root](#destination_root)。
+例如，模板串 `world/trash*.obj` 会匹配相应根目录下的 `world/trash1.obj`
 
 建议设置为那些无需备份，但仍需保留的文件，
 如服务端模组的大体积数据库、网页地图的渲染输出等
@@ -406,22 +440,6 @@ Prime Backup 会检查文件的如下这些信息。下述这些信息完全一�
 
     除非你确实需要这一备份速度提升，或者系统磁盘读取性能过低，否则不建议启用此选项。
     Prime Backup 的速度已经足够快了
-
-- 类型：`bool`
-- 默认值：`false`
-
-#### restore_reuse_unchanged_files
-
-启用后，回档时可以复用内容已经与所选备份一致的普通文件，不再从备份存储重新写入这些文件。
-目录、符号链接、内容已变化的文件以及无法复用的文件仍按普通流程还原。
-
-当大型备份覆盖到一个仍有大量未变化文件的目标位置时，该选项可以减少磁盘写入并缩短回档时间。
-如果大多数文件已经变化，则收益有限；检查文件内容仍会产生磁盘读取。
-
-被复用的文件会保留原 inode，也可能保留 Prime Backup 未纳入备份的文件系统元信息，例如硬链接关系、扩展属性和 ACL。
-Prime Backup 仍会恢复备份中记录的权限、所有者和修改时间。
-仅在需要减少回档写入，并且可以接受保留这些未记录元信息时启用该选项。
-由于文件复用会增加回档与失败回滚行为的复杂度，此选项默认关闭。
 
 - 类型：`bool`
 - 默认值：`false`

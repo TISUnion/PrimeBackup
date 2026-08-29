@@ -41,7 +41,7 @@ class RestoreBackupTask(HeavyTask[None]):
 		return 0  # XXX: configurable? user-only?
 
 	def __countdown_and_stop_server(self, backup: BackupInfo) -> bool:
-		for countdown in range(max(0, self.config.command.restore_countdown_sec), 0, -1):
+		for countdown in range(max(0, self.config.restore.countdown_sec), 0, -1):
 			self.broadcast(click_and_run(
 				RText('!!! ', RColor.red) + self.tr('countdown', countdown, TextComponents.backup_brief(backup, backup_id_fancy=False)),
 				self.tr('countdown.hover', TextComponents.command('abort')),
@@ -86,21 +86,25 @@ class RestoreBackupTask(HeavyTask[None]):
 
 		try:
 			timer = Timer()
-			if self.config.command.backup_on_restore:
+			restore_path = self.config.restore_path
+			if self.config.restore.create_pre_restore_backup and restore_path.exists():
 				self.logger.info('Creating backup of existing files to avoid idiot')
 				pre_restore_backup = CreateBackupAction(
 					Operator.pb(PrimeBackupOperatorNames.pre_restore),
 					backup_utils.create_translated_backup_comment('pre_restore', backup.id),
 					tags=BackupTags().set(BackupTagName.temporary, True),
+					source_path=restore_path,
 				).run()
 				pre_restore_backup_id = f'#{pre_restore_backup.id}'
 			else:
 				pre_restore_backup_id = 'N/A'
 			cost_backup = timer.get_and_restart()
 
-			self.logger.info('Restoring to backup #{} (fail_soft={}, verify_blob={})'.format(backup.id, self.fail_soft, self.verify_blob))
+			self.logger.info('Restoring to backup #{} at path {!r} (fail_soft={}, verify_blob={})'.format(
+				backup.id, restore_path.as_posix(), self.fail_soft, self.verify_blob,
+			))
 			failures = ExportBackupToDirectoryAction(
-				backup.id, self.config.source_path,
+				backup.id, restore_path,
 				restore_mode=True,
 				fail_soft=self.fail_soft,
 				verify_blob=self.verify_blob,

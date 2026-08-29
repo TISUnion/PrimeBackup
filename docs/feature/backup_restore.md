@@ -134,7 +134,7 @@ Below will list the operation process during PB backup restoration
 4. Actual restoration operation
    1. Recycle bin mechanism: Move all existing files in the backup target directory to a temporary recycle bin, ensuring complete rollback if restoration fails
    2. Retain file processing: If `retain_patterns` is configured, use gitignore-style pattern matching and isolate files to be retained
-   3. File export: Use multi-threading to export backup files to the target directory in parallel
+   3. File export: Use multi-threading to export backup files to the target directory in parallel. If `backup.restore_reuse_unchanged_files` is enabled, unchanged files are moved back from the trash bin instead
    4. Attribute restoration: Restore file permissions, timestamps, owners, and symbolic link targets
    5. Retain file restoration: Finally move `retain_patterns` retained files back to their original positions
 5. Server restart

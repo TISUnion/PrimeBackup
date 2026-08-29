@@ -219,8 +219,9 @@ Configs on how the backup is made
     "retain_patterns": [],
     "follow_target_symlink": false,
     "reuse_stat_unchanged_file": false,
-	"creation_skip_missing_file": false,
-	"creation_skip_missing_file_patterns": [
+    "restore_reuse_unchanged_files": false,
+    "creation_skip_missing_file": false,
+    "creation_skip_missing_file_patterns": [
        "**"
     ],
     "mutating_file_patterns": [],
@@ -405,6 +406,22 @@ However, this also introduces the potential risk of incomplete backups
 
     Unless you really need this backup speed boost or the system disk read performance is too low, it is not recommended to enable this option.
     Prime Backup is already fast enough
+
+- Type: `bool`
+- Default: `false`
+
+#### restore_reuse_unchanged_files
+
+When enabled, a restore can reuse regular files whose contents already match the selected backup instead of writing them again from backup storage.
+Directories, symbolic links, changed files, and files that cannot be reused continue through the normal restore process.
+
+This can reduce disk writes and restore time when restoring a large backup over a target that still contains mostly unchanged files.
+It provides little benefit when most files have changed, and checking file contents still requires disk reads.
+
+Reused files keep their existing inode and may retain filesystem metadata that Prime Backup does not include in backups, such as hard-link relationships, extended attributes, and ACLs.
+Prime Backup still restores the permissions, owner, and modification time recorded in the backup.
+Enable this option only when reducing restore writes is valuable and retaining such untracked filesystem metadata is acceptable.
+It is disabled by default because reuse adds complexity to restore and rollback behavior.
 
 - Type: `bool`
 - Default: `false`

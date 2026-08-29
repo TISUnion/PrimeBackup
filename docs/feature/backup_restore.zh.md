@@ -134,7 +134,7 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
 4. 实际回档操作
    1. 回收站机制：将备份目标目录中现有的所有文件移动到临时回收站，确保回档失败时可完全回滚
    2. 保留文件处理：如果配置了 `retain_patterns`，使用 gitignore 风格模式匹配并隔离要保留的文件
-   3. 文件导出：使用多线程并行将备份文件导出到目标目录
+   3. 文件导出：使用多线程并行将备份文件导出到目标目录；若启用了 `backup.restore_reuse_unchanged_files`，则从回收站移回内容未变化的文件
    4. 属性恢复：恢复文件权限、时间戳、所有者和符号链接目标
    5. 保留文件恢复：最后将 `retain_patterns` 保留的文件移回原位置
 5. 服务器重新启动

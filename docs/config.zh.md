@@ -219,8 +219,9 @@ Prime Backup 在创建备份时的操作时序如下：
     "retain_patterns": [],
     "follow_target_symlink": false,
     "reuse_stat_unchanged_file": false,
-	"creation_skip_missing_file": false,
-	"creation_skip_missing_file_patterns": [
+    "restore_reuse_unchanged_files": false,
+    "creation_skip_missing_file": false,
+    "creation_skip_missing_file_patterns": [
        "**"
     ],
     "mutating_file_patterns": [],
@@ -405,6 +406,22 @@ Prime Backup 会检查文件的如下这些信息。下述这些信息完全一�
 
     除非你确实需要这一备份速度提升，或者系统磁盘读取性能过低，否则不建议启用此选项。
     Prime Backup 的速度已经足够快了
+
+- 类型：`bool`
+- 默认值：`false`
+
+#### restore_reuse_unchanged_files
+
+启用后，回档时可以复用内容已经与所选备份一致的普通文件，不再从备份存储重新写入这些文件。
+目录、符号链接、内容已变化的文件以及无法复用的文件仍按普通流程还原。
+
+当大型备份覆盖到一个仍有大量未变化文件的目标位置时，该选项可以减少磁盘写入并缩短回档时间。
+如果大多数文件已经变化，则收益有限；检查文件内容仍会产生磁盘读取。
+
+被复用的文件会保留原 inode，也可能保留 Prime Backup 未纳入备份的文件系统元信息，例如硬链接关系、扩展属性和 ACL。
+Prime Backup 仍会恢复备份中记录的权限、所有者和修改时间。
+仅在需要减少回档写入，并且可以接受保留这些未记录元信息时启用该选项。
+由于文件复用会增加回档与失败回滚行为的复杂度，此选项默认关闭。
 
 - 类型：`bool`
 - 默认值：`false`

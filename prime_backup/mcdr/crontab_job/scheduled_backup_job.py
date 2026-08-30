@@ -13,6 +13,7 @@ from prime_backup.mcdr.crontab_job import CrontabJobEvent, CrontabJobId
 from prime_backup.mcdr.crontab_job.basic_job import BasicCrontabJob
 from prime_backup.mcdr.online_player_counter import OnlinePlayerCounter
 from prime_backup.mcdr.task.backup.create_backup_task import CreateBackupTask
+from prime_backup.mcdr.task.backup.create_scheduled_backup_task import CreateScheduledBackupTask
 from prime_backup.types.backup_tags import BackupTags, BackupTagName
 from prime_backup.types.operator import Operator, PrimeBackupOperatorNames
 from prime_backup.utils import backup_utils
@@ -74,14 +75,19 @@ class ScheduledBackupJob(BasicCrontabJob):
 			if not should_perform:
 				return
 
-		broadcast_message(self.tr('triggered', self.get_name_text_titled()))
+		self.logger.info('Scheduled backup triggered')
 		with contextlib.ExitStack() as exit_stack:
 			self.is_executing.set()
 			exit_stack.callback(self.is_executing.clear)
 
 			comment = backup_utils.create_translated_backup_comment('scheduled_backup')
 			operator = Operator.pb(PrimeBackupOperatorNames.scheduled_backup)
-			task = CreateBackupTask(self.get_command_source(), comment, operator=operator, backup_tags=BackupTags().set(BackupTagName.scheduled, True))
+			backup_tags = BackupTags().set(BackupTagName.scheduled, True)
+			task = CreateScheduledBackupTask(CreateBackupTask(
+				self.get_command_source(), comment,
+				operator=operator,
+				backup_tags=backup_tags,
+			))
 
 			def requirement_checker() -> Tuple[bool, Optional[RTextBase]]:
 				if self.found_created_backup.is_set():

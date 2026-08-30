@@ -14,9 +14,13 @@ class ScheduledBackupConfig(CrontabJobSetting):
 	reset_timer_on_backup: bool = True
 	require_online_players: bool = False
 	require_online_players_blacklist: List[re.Pattern] = []
+	pre_backup_notice: bool = False
+	pre_backup_notice_delay: Duration = Duration('10s')
 
 	def on_deserialization(self, **kwargs):
 		super().on_deserialization()
+		if self.pre_backup_notice and self.pre_backup_notice_delay.value <= 0:
+			raise ValueError('Field pre_backup_notice_delay must > 0, got {!r}'.format(self.pre_backup_notice_delay))
 
 		# recompile patterns with re.IGNORECASE
 		self.require_online_players_blacklist = [

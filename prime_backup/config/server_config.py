@@ -18,5 +18,6 @@ class ServerConfig(Serializable):
 	saved_world_regex: List[re.Pattern] = [
 		re.compile('Saved the game'),
 		re.compile('Saved the world'),
+		re.compile('System chat: Saved the game'),
 	]
 	save_world_max_wait: Duration = Duration('10min')

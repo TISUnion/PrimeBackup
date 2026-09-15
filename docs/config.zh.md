@@ -189,7 +189,8 @@ Prime Backup 仍会恢复备份中记录的权限、所有者和修改时间。
     },
     "saved_world_regex": [
         "Saved the game",
-        "Saved the world"
+        "Saved the world",
+        "System chat: Saved the game"
     ],
     "save_world_max_wait": "10m"
 }

@@ -189,7 +189,8 @@ Options on how to interact with the Minecraft server
     },
     "saved_world_regex": [
         "Saved the game",
-        "Saved the world"
+        "Saved the world",
+        "System chat: Saved the game"
     ],
     "save_world_max_wait": "10m"
 }

@@ -145,7 +145,11 @@ The destination root directory for restore operations. When set to `null`, [sour
 
 #### create_pre_restore_backup
 
-Whether to create a temporary backup of the restore destination before restoring
+Whether to create a temporary backup of the current contents of the restore destination before restoring.
+
+The backup source is the actual directory that will be overwritten by the restore, rather than always being [`backup.source_root`](#source_root). For an MCDR restore, this is [`restore.destination_root`](#destination_root), or `backup.source_root` when `destination_root` is `null`. For the command line `back` command, this is the path specified by `-s/--source-root`.
+
+If the restore destination does not exist, no pre-restore backup is created.
 
 - Type: `bool`
 - Default: `true`

@@ -105,7 +105,8 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
 ```
 
 命令行 `back` 命令不会停止或启动 Minecraft 服务端。请在运行前自行停止服务端。
-如果配置文件启用了 `restore.create_pre_restore_backup`，回档会创建一个临时备份。
+如果配置文件启用了 `restore.create_pre_restore_backup`，回档前会为 `-s/--source-root` 指定目录中的现有内容创建一个临时备份。
+如果该目录不存在，则跳过回档前备份。
 可通过 `--no-pre-restore-backup` 参数跳过此临时备份
 
 ## 相关配置
@@ -129,7 +130,7 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
    2. 倒计时期间可以取消回档操作
    3. 停止服务器并等待完全关闭
 3. 回档前的备份
-   1. 如果配置了 `restore.create_pre_restore_backup`（默认值 `true`），将在此时创建一个备份，以便不时之需
+   1. 如果启用了 `restore.create_pre_restore_backup`（默认值 `true`）且回档目的目录存在，则为该目录中的现有内容创建临时备份。备份来源是 `restore.destination_root`；若 `destination_root` 为 `null`，则是 `backup.source_root`
    2. 备份注释为"回档至#X前的自动备份"
    3. 此备份将被标记为临时备份，将在备份清理时特殊处理
 4. 实际回档操作

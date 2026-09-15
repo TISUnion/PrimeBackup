@@ -105,7 +105,8 @@ python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s .
 ```
 
 The command line `back` command does not stop or start the Minecraft server. Stop the server yourself before running it.
-If config `restore.create_pre_restore_backup` is enabled, it creates a temporary backup before restoring.
+If config `restore.create_pre_restore_backup` is enabled, it creates a temporary backup of the current contents of the directory specified by `-s/--source-root` before restoring.
+If that directory does not exist, the pre-restore backup is skipped.
 Add `--no-pre-restore-backup` to skip the temporary backup
 
 ## Related Configuration
@@ -129,7 +130,7 @@ Below will list the operation process during PB backup restoration
    2. Restoration can be canceled during countdown
    3. Stop the server and wait for complete shutdown
 3. Pre-restoration backup
-   1. If `restore.create_pre_restore_backup` is configured (default value `true`), create a backup at this time for emergency use
+   1. If `restore.create_pre_restore_backup` is enabled (default value `true`) and the restore destination exists, create a temporary backup of its current contents. The source is `restore.destination_root`, or `backup.source_root` when `destination_root` is `null`
    2. Backup comment is "Automatic backup before restoring to #X"
    3. This backup will be marked as temporary and will be specially handled during backup cleanup
 4. Actual restoration operation

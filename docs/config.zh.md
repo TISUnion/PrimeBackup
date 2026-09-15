@@ -145,7 +145,11 @@ MCDR 中，Prime Backup 所有命令的前缀。通常你不需要更改它
 
 #### create_pre_restore_backup
 
-在回档至指定备份前，是否自动为回档目的目录创建临时备份
+在回档至指定备份前，是否自动备份回档目的目录中的现有内容，并创建一个临时备份。
+
+该备份的来源是即将被回档覆盖的实际目录，而非始终使用 [`backup.source_root`](#source_root)。在 MCDR 中回档时，这个目录是 [`restore.destination_root`](#destination_root)；若 `destination_root` 为 `null`，则是 `backup.source_root`。使用命令行 `back` 命令时，则是 `-s/--source-root` 指定的目录。
+
+如果回档目的目录不存在，则不会创建回档前备份。
 
 - 类型：`bool`
 - 默认值：`true`

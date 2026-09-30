@@ -87,16 +87,18 @@ class DbOverviewCommandHandler(CliCommandHandlerBase):
 
 		self.logger.info('[Chunk]')
 		self.logger.info('Chunk count: %s', result.chunk_count)
-		self.logger.info('Chunk stored size sum: %s (%s)', self.__size_str(result.chunk_stored_size_sum), self.__ratio_str(result.chunk_stored_size_sum, result.chunk_raw_size_sum))
-		self.logger.info('Chunk raw size sum: %s', self.__size_str(result.chunk_raw_size_sum))
-		chunk_count_str, chunk_size_str = self.__dedup_stat_str(result.chunk_count, result.chunk_group_chunk_binding_count, result.chunk_raw_size_sum, result.chunked_blob_raw_size_sum)
-		self.logger.info('Chunk dedup stats: count %s, size %s', chunk_count_str, chunk_size_str)
+		if result.chunk_count > 0:
+			self.logger.info('Chunk stored size sum: %s (%s)', self.__size_str(result.chunk_stored_size_sum), self.__ratio_str(result.chunk_stored_size_sum, result.chunk_raw_size_sum))
+			self.logger.info('Chunk raw size sum: %s', self.__size_str(result.chunk_raw_size_sum))
+			chunk_count_str, chunk_size_str = self.__dedup_stat_str(result.chunk_count, result.chunk_group_chunk_binding_count, result.chunk_raw_size_sum, result.chunked_blob_raw_size_sum)
+			self.logger.info('Chunk dedup stats: count %s, size %s', chunk_count_str, chunk_size_str)
 
 		self.logger.info('[Pack]')
 		self.logger.info('Pack count: %s', result.pack_count)
-		self.logger.info('Pack file size sum: %s', self.__size_str(result.pack_size_sum))
-		self.logger.info('Pack live size sum: %s (%s)', self.__size_str(result.pack_live_size_sum), self.__live_size_ratio_str(result.pack_live_size_sum, result.pack_size_sum))
-		self.logger.info('Pack live entry count: %s', result.pack_live_entry_count_sum)
+		if result.pack_count > 0:
+			self.logger.info('Pack file size sum: %s', self.__size_str(result.pack_size_sum))
+			self.logger.info('Pack live size sum: %s (%s)', self.__size_str(result.pack_live_size_sum), self.__live_size_ratio_str(result.pack_live_size_sum, result.pack_size_sum))
+			self.logger.info('Pack live entry count: %s', result.pack_live_entry_count_sum)
 
 
 class DbOverviewCommandAdapter(CliCommandAdapterBase):

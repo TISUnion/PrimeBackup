@@ -74,12 +74,14 @@ class ShowDbOverviewTask(LightTask[None]):
 
 		self.reply(make_section('section_chunk'))
 		self.reply_tr('chunk_count', TextComponents.number(result.chunk_count))
-		self.reply_tr('chunk_stored_size', make_size(result.chunk_stored_size_sum), make_compression_ratio(result.chunk_stored_size_sum, result.chunk_raw_size_sum))
-		self.reply_tr('chunk_raw_size', make_size(result.chunk_raw_size_sum))
-		reply_tr_dedup_stats('chunk_dedup_stats', result.chunk_count, result.chunk_group_chunk_binding_count, result.chunk_raw_size_sum, result.chunked_blob_raw_size_sum)
+		if result.chunk_count > 0:
+			self.reply_tr('chunk_stored_size', make_size(result.chunk_stored_size_sum), make_compression_ratio(result.chunk_stored_size_sum, result.chunk_raw_size_sum))
+			self.reply_tr('chunk_raw_size', make_size(result.chunk_raw_size_sum))
+			reply_tr_dedup_stats('chunk_dedup_stats', result.chunk_count, result.chunk_group_chunk_binding_count, result.chunk_raw_size_sum, result.chunked_blob_raw_size_sum)
 
 		self.reply(make_section('section_pack'))
 		self.reply_tr('pack_count', TextComponents.number(result.pack_count))
-		self.reply_tr('pack_size', make_size(result.pack_size_sum))
-		self.reply_tr('pack_live_size', make_size(result.pack_live_size_sum), make_pack_live_size_ratio(result.pack_live_size_sum, result.pack_size_sum))
-		self.reply_tr('pack_live_entry_count', TextComponents.number(result.pack_live_entry_count_sum))
+		if result.pack_count > 0:
+			self.reply_tr('pack_size', make_size(result.pack_size_sum))
+			self.reply_tr('pack_live_size', make_size(result.pack_live_size_sum), make_pack_live_size_ratio(result.pack_live_size_sum, result.pack_size_sum))
+			self.reply_tr('pack_live_entry_count', TextComponents.number(result.pack_live_entry_count_sum))

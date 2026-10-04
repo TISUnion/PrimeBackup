@@ -524,9 +524,11 @@ Each rule contains the following fields:
     |----------------|---------------|---------------------------------------------------------------------------------------|
     | `fastcdc_32k`  | CDC           | avg 32 KiB chunks; good general-purpose choice for locally modified files             |
     | `fastcdc_128k` | CDC           | avg 128 KiB chunks; coarser granularity for very large files                          |
+    | `fastcdc_1m`   | CDC           | avg 1 MiB chunks; minimizes per-chunk metadata overhead for extremely large files     |
     | `fixed_4k`     | Fixed         | 4 KiB chunks; aligns with MC region file pages, but causes heavy metadata overhead    |
     | `fixed_32k`    | Fixed         | 32 KiB chunks; intermediate fixed-size option                                         |
     | `fixed_128k`   | Fixed         | 128 KiB chunks; well-suited for append-write files                                    |
+    | `fixed_1m`     | Fixed         | 1 MiB chunks; lower metadata overhead for very large append-write files               |
     | `fixed_auto`   | Fixed (alpha) | Adaptive 128 KiB / 4 KiB chunks based on the previous backup's same-path chunk layout |
 
     CDC algorithms determine chunk boundaries from file content, so local insertions, deletions, or in-place edits leave many chunks unchanged for reuse.
@@ -537,7 +539,7 @@ Each rule contains the following fields:
 
     !!! warning
 
-        `fixed_auto` is in alpha status and is not recommended for production use. Other fixed-size algorithms (`fixed_4k`, `fixed_32k`, `fixed_128k`) are in beta status along with the rest of the chunking feature.
+        `fixed_auto` is in alpha status and is not recommended for production use. Other fixed-size algorithms (`fixed_4k`, `fixed_32k`, `fixed_128k`, `fixed_1m`) are in beta status along with the rest of the chunking feature.
 
     !!! note
 
@@ -758,9 +760,9 @@ The backup prune feature from Prime Backup enables automatically backup cleanup 
 ```json
 {
     "enabled": true,
-    "interval": "3h",
+    "interval": "6h",
     "crontab": null,
-    "jitter": "20s",
+    "jitter": "1m",
     "timezone_override": null,
     "regular_backup": {
         "enabled": false,
@@ -773,7 +775,18 @@ The backup prune feature from Prime Backup enables automatically backup cleanup 
         "month": 0,
         "year": 0
     },
-    "temprory_backup": {
+    "scheduled_backup": {
+        "enabled": false,
+        "max_amount": 0,
+        "max_lifetime": "0s",
+        "last": -1,
+        "hour": 0,
+        "day": 0,
+        "week": 0,
+        "month": 0,
+        "year": 0
+    },
+    "temporary_backup": {
         "enabled": true,
         "max_amount": 10,
         "max_lifetime": "30d",
@@ -787,9 +800,10 @@ The backup prune feature from Prime Backup enables automatically backup cleanup 
 }
 ```
 
-It contains 2 prune settings for 2 kinds of backups:
+It contains the following three prune settings:
 
 - `regular_backup`: For regular backups, i.e. not temporary backups
+- `scheduled_backup`: For scheduled backups
 - `temporary_backup`: For temporary backups, e.g. pre-restore backups
 
 Each prune settings describes the retain policy in detailed

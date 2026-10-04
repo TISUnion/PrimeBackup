@@ -176,16 +176,16 @@ Example:
 
 ```
 !!pb database inspect pack 12
-!!pb database inspect pack 962ca655
+!!pb database inspect pack 52f46851
 ```
 
 Example output:
 
 ```
 > !!pb database inspect pack 12
-[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] ======== Pack 962ca655f458e150 ========
+[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] ======== Pack 52f4685131ab3139 ========
 [MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] ID: 12
-[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Pack file name: 962ca655f458e15037faf8e628c092c975ab2e897dfca8e9cf0b94d512e5eebc
+[MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Pack file name: 52f4685131ab313946f7647fa9b2d03bdbe74b6f9cc8600a370543aa81db2ade
 [MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Size: 192352 (187.84KiB)
 [MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Entry count: 48
 [MCDR] [02:04:12] [PB@f133-worker-light/INFO]: [PB] Live size: 102464 (100.06KiB, 53.27%)

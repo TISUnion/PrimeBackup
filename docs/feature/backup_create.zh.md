@@ -8,8 +8,6 @@ title: '备份创建'
 
 ### MCDR 环境
 
-Prime Backup 目前仅支持在 MCDR 环境中进行备份创建
-
 在 MCDR 环境中创建一个备份，只需执行如下指令：
 
 ```

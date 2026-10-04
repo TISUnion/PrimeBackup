@@ -8,8 +8,6 @@ Restoring a backup
 
 ### MCDR Environment
 
-Prime Backup currently only supports backup restoration in MCDR environment
-
 To restore a backup in MCDR environment, simply execute the following command:
 
 ```

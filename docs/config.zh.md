@@ -521,13 +521,15 @@ Prime Backup 会检查文件的如下这些信息。下述这些信息完全一�
 
 - `algorithm`：分块时使用的算法。可用选项：
 
-    | 值              | 类型          | 描述                                          |
-    |----------------|-------------|---------------------------------------------|
-    | `fastcdc_32k`  | CDC         | 平均 32 KiB 的数据块；适合局部修改文件的通用选项                |
-    | `fastcdc_128k` | CDC         | 平均 128 KiB 的数据块；粒度更粗，适合超大型文件                |
-    | `fixed_4k`     | 固定大小        | 4 KiB 数据块；与 MC region 文件的页边界对齐，但元数据开销极大     |
-    | `fixed_32k`    | 固定大小        | 32 KiB 数据块；中等粒度的固定大小选项                      |
-    | `fixed_128k`   | 固定大小        | 128 KiB 数据块；适合追加写入为主的文件                     |
+    | 值             | 类型              | 描述                                                                   |
+    |----------------|-------------------|------------------------------------------------------------------------|
+    | `fastcdc_32k`  | CDC               | 平均 32 KiB 的数据块；适合局部修改文件的通用选项                       |
+    | `fastcdc_128k` | CDC               | 平均 128 KiB 的数据块；粒度更粗，适合超大型文件                        |
+    | `fastcdc_1m`   | CDC               | 平均 1 MiB 的数据块；减少极大型文件中每个数据块的元数据开销            |
+    | `fixed_4k`     | 固定大小          | 4 KiB 数据块；与 MC region 文件的页边界对齐，但元数据开销极大          |
+    | `fixed_32k`    | 固定大小          | 32 KiB 数据块；中等粒度的固定大小选项                                  |
+    | `fixed_128k`   | 固定大小          | 128 KiB 数据块；适合追加写入为主的文件                                 |
+    | `fixed_1m`     | 固定大小          | 1 MiB 数据块；降低超大型追加写文件的元数据开销                         |
     | `fixed_auto`   | 固定大小（alpha） | 基于上一次备份中同路径文件的分块布局，在 128 KiB 与 4 KiB 粒度间自适应 |
 
     CDC 算法根据文件内容确定数据块边界，因此局部插入、删除或原地修改不会影响其他数据块的哈希，这些数据块可直接复用。
@@ -538,7 +540,7 @@ Prime Backup 会检查文件的如下这些信息。下述这些信息完全一�
 
     !!! warning
 
-        `fixed_auto` 处于 alpha 阶段，不建议在生产环境中使用。其他固定大小算法（`fixed_4k`、`fixed_32k`、`fixed_128k`）与文件分块功能的其余部分同为 beta 阶段
+        `fixed_auto` 处于 alpha 阶段，不建议在生产环境中使用。其他固定大小算法（`fixed_4k`、`fixed_32k`、`fixed_128k`、`fixed_1m`）与文件分块功能的其余部分同为 beta 阶段
 
     !!! note
 
@@ -760,9 +762,9 @@ Prime Backup 的备份清理功能可用于自动清理过时备份
 ```json
 {
     "enabled": true,
-    "interval": "3h",
+    "interval": "6h",
     "crontab": null,
-    "jitter": "20s",
+    "jitter": "1m",
     "timezone_override": null,
     "regular_backup": {
         "enabled": false,
@@ -775,7 +777,18 @@ Prime Backup 的备份清理功能可用于自动清理过时备份
         "month": 0,
         "year": 0
     },
-    "temprory_backup": {
+    "scheduled_backup": {
+        "enabled": false,
+        "max_amount": 0,
+        "max_lifetime": "0s",
+        "last": -1,
+        "hour": 0,
+        "day": 0,
+        "week": 0,
+        "month": 0,
+        "year": 0
+    },
+    "temporary_backup": {
         "enabled": true,
         "max_amount": 10,
         "max_lifetime": "30d",
@@ -789,9 +802,10 @@ Prime Backup 的备份清理功能可用于自动清理过时备份
 }
 ```
 
-它包含两种清理设置，分别针对于如下两种类型的备份：
+它包含如下三种清理设置：
 
 - `regular_backup`: 针对常规备份，即非临时备份
+- `scheduled_backup`: 针对定时备份
 - `temporary_backup`: 针对临时备份，如回档前的备份
 
 每种清理设置都详细描述了存档的保留策略

@@ -114,13 +114,15 @@ The benefit becomes apparent on subsequent backups where many chunks can be reus
 
 ## Available Algorithms
 
-| Algorithm      | Type  | Avg Chunk Size | Good For                                                                            |
-|----------------|-------|----------------|-------------------------------------------------------------------------------------|
-| `fastcdc_32k`  | CDC   | 32 KiB         | general-purpose; any locally modified large file                                    |
-| `fastcdc_128k` | CDC   | 128 KiB        | very large files (10 GiB or more) where 32 KiB granularity produces too many chunks |
-| `fixed_4k`     | Fixed | 4 KiB          | MC region files (matches 4 KiB page boundaries); note: causes severe metadata bloat |
-| `fixed_32k`    | Fixed | 32 KiB         | medium fixed-size use cases                                                         |
-| `fixed_128k`   | Fixed | 128 KiB        | append-write files with predictable end-growth                                      |
+| Algorithm      | Type  | Avg Chunk Size  | Good For                                                                            |
+|----------------|-------|-----------------|-------------------------------------------------------------------------------------|
+| `fastcdc_32k`  | CDC   | 32 KiB          | general-purpose; any locally modified large file                                    |
+| `fastcdc_128k` | CDC   | 128 KiB         | very large files (10 GiB or more) where 32 KiB granularity produces too many chunks |
+| `fastcdc_1m`   | CDC   | 1 MiB           | extremely large files where minimizing per-chunk metadata overhead is a priority    |
+| `fixed_4k`     | Fixed | 4 KiB           | MC region files (matches 4 KiB page boundaries); note: causes severe metadata bloat |
+| `fixed_32k`    | Fixed | 32 KiB          | medium fixed-size use cases                                                         |
+| `fixed_128k`   | Fixed | 128 KiB         | append-write files with predictable end-growth                                      |
+| `fixed_1m`     | Fixed | 1 MiB           | very large append-write files where fine-grained deduplication is not required      |
 | `fixed_auto`   | Fixed | 128 KiB / 4 KiB | adaptive fixed-size chunks based on the previous same-path backup (alpha)           |
 
 See the detailed pages for each approach:

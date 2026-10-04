@@ -8,8 +8,6 @@ Creating a Backup
 
 ### MCDR Environment
 
-Prime Backup currently only supports backup creation in MCDR environment
-
 To create a backup in MCDR environment, simply execute the following command:
 
 ```

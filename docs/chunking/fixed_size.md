@@ -64,7 +64,7 @@ Unless the file is very large and only a tiny number of pages change per backup,
 
 ### fixed_32k
 
-A middle-ground option. Metadata overhead is 32× lower than `fixed_4k` but granularity is also much coarser
+A middle-ground option. For the same file size, it produces about one eighth as many chunks as `fixed_4k`, reducing metadata overhead at the cost of coarser deduplication granularity
 
 ### fixed_128k
 

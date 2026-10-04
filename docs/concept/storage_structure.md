@@ -50,7 +50,7 @@ Fileset is the storage unit of backups, using a combination of base fileset and 
 
 Base Fileset:
 
-- Contains a complete file list
+- Provides the shared base file list for associated delta filesets
 - Stores file metadata and content references
 - Can be referenced by multiple delta filesets
 
@@ -66,7 +66,7 @@ File represents a file item in a backup, containing file metadata and data hash
 
 - Contains the Unix-style path of the file relative to [source_root](../config.md#source_root)
 - Contains file metadata such as permissions, owner, and timestamps
-- For regular files, only stores the hash value of their file content
+- For regular files, stores a reference to the blob containing their content
 - For symbolic link files, directly stores the path they point to
 - Uses the role field to identify its role in the fileset:
   - Independent file: Complete file in the base fileset
@@ -96,10 +96,10 @@ Blob is the actual storage object for file content
 
 ## Chunk and Chunk Group
 
-Chunk is the deduplication unit used by CDC chunking for large files
+Chunk is the deduplication unit used by file chunking
 
 - A chunk stores a piece of file content, its hash, its compression method, and its size information
-- Chunks are content-defined, so inserting or modifying data in the middle of a large file can still keep many neighboring chunks reusable
+- With CDC, chunk boundaries are content-defined, so inserting or modifying data in the middle of a large file can still keep many neighboring chunks reusable
 - Chunk payloads are stored in pack entries and deduplicated globally
 
 Chunk group is an ordered list of chunks used to reduce metadata fan-out for a chunked blob

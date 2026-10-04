@@ -12,7 +12,7 @@ Prime Backup persists backup data to the file system through direct blob files a
 
 - Direct (`direct`): each blob corresponds to an independent file, stored at `pb_files/blobs/{first 2 chars of hash}/{full hash}`,
   e.g.: `pb_files/blobs/8b/8b36d71e250e25527f59b8fd9e0f2dce`
-- Chunked (`chunked`): large files are split into multiple data chunks via the CDC algorithm, and new chunk payloads are stored as pack entries inside pack files under `pb_files/packs/{first 2 chars of pack file name}/{pack file name}`,
+- Chunked (`chunked`): large files are split into multiple data chunks using the configured chunking algorithm, and new chunk payloads are stored as pack entries inside pack files under `pb_files/packs/{first 2 chars of pack file name}/{pack file name}`,
   e.g.: `pb_files/packs/96/962ca655f458e15037faf8e628c092c975ab2e897dfca8e9cf0b94d512e5eebc`
 
 When these files are corrupted or lost due to disk failures, file system errors, unexpected power loss, or accidental operations, PB will be unable to restore the corresponding files during a restoration (or export), causing the operation to fail
@@ -23,7 +23,7 @@ When these files are corrupted or lost due to disk failures, file system errors,
 
 ### Restoration Failure
 
-By default, PB performs a hash verification on each restored file during restoration (`verify_blob=True`); if a direct blob file or a pack file is missing or corrupted, or restored content does not match the database record, the restoration aborts with an error and rolls back all written files
+By default, PB performs a hash verification on restored data during restoration (`verify_blob=True`); if a direct blob file or a pack file is missing or corrupted, or restored content does not match the database record, the restoration aborts with an error and rolls back all written files
 
 Scenario 1: Direct blob file corrupted (hash mismatch)
 
@@ -91,7 +91,7 @@ Example output (all healthy):
 
 ### Scanning Direct Blob Files
 
-Use the following command to perform a full scan of all data objects:
+Use the following command to scan direct blob file contents:
 
 ```
 !!pb database validate blobs

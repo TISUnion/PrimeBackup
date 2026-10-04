@@ -10,15 +10,15 @@ Prime Backup 涉及多个具有"整理"性质的概念（pack / compact / vacuum
 
 ## 概览
 
-| 概念        | 英文名                 | 作用对象  | 自动触发             | 手动命令                          |
-|-----------|---------------------|-------|------------------|-------------------------------|
-| 备份修剪      | Backup Prune        | 备份    | 是（定时作业）          | `!!pb prune`                  |
-| 数据库清理     | Database Prune      | 复合操作  | 否                | `!!pb database prune`         |
-| 打包文件整理    | Pack Compaction     | 打包文件  | 是（数据块删除时 / 定时作业） | `!!pb database compact_packs` |
-| SQLite 整理 | SQLite Vacuum       | 数据库文件 | 是（定时作业）          | `!!pb database vacuum`        |
-| 基础文件集压缩   | Base Fileset Shrink | 基础文件集 | 是（备份删除时）         | （含于数据库清理）                     |
-| 孤立对象清理    | Orphan Object Scan  | 数据库对象 | 否                | （含于数据库清理）                     |
-| 未知文件清理    | Unknown File Scan   | 存储目录  | 否                | （含于数据库清理）                     |
+| 概念           | 英文名              | 作用对象   | 自动触发                      | 手动命令                      |
+|----------------|---------------------|------------|-------------------------------|-------------------------------|
+| 备份修剪       | Backup Prune        | 备份       | 是（定时作业）                | `!!pb prune`                  |
+| 数据库清理     | Database Prune      | 复合操作   | 否                            | `!!pb database prune`         |
+| 打包文件整理   | Pack Compaction     | 打包文件   | 是（数据块删除时 / 定时作业） | `!!pb database compact_packs` |
+| SQLite 整理    | SQLite Vacuum       | 数据库文件 | 是（定时作业）                | `!!pb database vacuum`        |
+| 基础文件集压缩 | Base Fileset Shrink | 基础文件集 | 是（备份删除时）              | （含于数据库清理）            |
+| 孤立对象清理   | Orphan Object Scan  | 数据库对象 | 否                            | （含于数据库清理）            |
+| 未知文件清理   | Unknown File Scan   | 存储目录   | 否                            | （含于数据库清理）            |
 
 ---
 
@@ -32,9 +32,9 @@ Prime Backup 涉及多个具有"整理"性质的概念（pack / compact / vacuum
 
 ### 作用范围
 
-备份按标签被划分为三类并分别裁量：常规备份 (regular)、定时备份 (scheduled)、临时备份 (temporary)
+备份按标签分别裁量：常规备份 (regular)、定时备份 (scheduled)、临时备份 (temporary)
 
-每类备份独立应用各自的 `PruneSetting` 配置；带有保护标签 (`is_protected = true`) 的备份无论如何都不会被修剪
+每类备份应用对应的 `PruneSetting` 配置；定时备份策略保留的非临时备份仍可能被常规备份策略删除；带有保护标签（`protected = true`）的备份不会被修剪删除
 
 ### 保留决策流程
 
@@ -129,7 +129,7 @@ SQLite 在删除数据后不会立即缩减文件体积，而是在原位留下�
 压缩操作会：
 
 - 从基础文件集中移除这些冗余文件条目
-- 对于原本标记为"覆写（delta_override）"的增量条目，改为"新增（delta_add）"，以便后续独立存活
+- 对于原本标记为"覆写（delta_override）"的增量条目，改为"新增（delta_add）"，使基础条目移除后，该文件仍保留在备份中
 - 对于原本标记为"删除（delta_remove）"的增量条目，由于基础条目已消失，删除标记也随之变得无意义，一并移除
 
 ### 触发方式

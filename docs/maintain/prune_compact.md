@@ -32,9 +32,9 @@ Deletes backups that no longer need to be retained one by one according to the c
 
 ### Scope
 
-Backups are divided into three categories by tag and evaluated separately: regular, scheduled, and temporary
+Backups are evaluated by tag: regular, scheduled, and temporary
 
-Each category independently applies its own `PruneSetting` configuration; backups with the protection tag (`is_protected = true`) are never pruned regardless
+Each category applies its corresponding `PruneSetting` configuration; non-temporary backups retained by the scheduled policy may still be deleted by the regular policy; backups with the protection tag (`protected = true`) are never pruned
 
 ### Retention Decision Process
 
@@ -129,7 +129,7 @@ Filesets use a base + delta structure; a file entry in the base fileset is consi
 The shrink operation will:
 
 - Remove these redundant file entries from the base fileset
-- Reclassify delta entries originally marked as "override (delta_override)" to "add (delta_add)" so they can survive independently going forward
+- Reclassify delta entries originally marked as "override (delta_override)" to "add (delta_add)" so the file remains in the backup after its base entry is removed
 - Remove delta entries originally marked as "delete (delta_remove)", since the base entry they referenced no longer exists and the delete marker becomes meaningless
 
 ### How to Trigger

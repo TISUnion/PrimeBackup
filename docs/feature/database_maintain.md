@@ -72,26 +72,29 @@ Packs:
 - Size Matching: Check if the pack file sizes match the database records
 - Live Stats: Check if live size/count do not exceed total size/count
 
-Blobs:
+Direct Blobs:
 
 - File Existence: Check if the blob files exist in storage
 - Integrity: Verify the hash values of the blob files
 - Size Matching: Check if the stored size matches the record
 - Compression Validation: Verify the integrity of compressed data
 
+For chunked blobs, `validate blobs` checks layout and size statistics.
+To check the integrity of chunk contents as well, run `validate chunks`
+
 Chunks:
 
 - Pack Relationship: Check if each chunk refers to an existing pack entry
 - Integrity: Verify chunk data read from pack entries
 - Size Matching: Check if the stored size matches the record
-- Orphan Detection: Check for chunks and chunk groups not referenced by any blob
+- Orphan Detection: Check for chunks not referenced by any chunk group and chunk groups not referenced by any blob
 - Binding Consistency: Verify the correctness of chunk group chunk bindings and blob chunk group bindings
 
 Files:
 
 - Reference Integrity: Check if the blobs referenced by files exist
 - Fileset Association: Verify the association between files and filesets
-- Metadata Consistency: Check if file metadata is complete
+- Metadata Consistency: Check if the blob information stored in the file matches the blob record
 
 Filesets:
 
@@ -102,8 +105,8 @@ Filesets:
 Backups:
 
 - Fileset Reference: Check if the filesets referenced by backups exist
-- Timestamp Order: Verify the order of backup timestamps
-- Metadata Integrity: Check if backup metadata is complete
+- File Count: Check backup file counts against the filesets
+- Size Matching: Check backup sizes against fileset statistics
 
 
 When validation detects issues, detailed error information will be displayed:

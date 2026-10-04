@@ -802,7 +802,7 @@ The backup prune feature from Prime Backup enables automatically backup cleanup 
 
 It contains the following three prune settings:
 
-- `regular_backup`: For regular backups, i.e. not temporary backups
+- `regular_backup`: For all non-temporary backups, including scheduled backups retained by `scheduled_backup`
 - `scheduled_backup`: For scheduled backups
 - `temporary_backup`: For temporary backups, e.g. pre-restore backups
 

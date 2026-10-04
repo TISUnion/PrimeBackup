@@ -9,7 +9,7 @@ title: '文件分块'
     文件分块是一项 beta 阶段的功能。
     整体功能已可使用，但算法实现和行为在未来版本中仍可能发生变化。
     不过无须担心，使用分块功能创建的备份数据在未来版本中是保证完全兼容、可正确访问的。
-    注意 `fixed_auto` 处于 alpha 阶段，详见 [固定大小分块](chunking_fixed.zh.md) 页面
+    注意 `fixed_auto` 处于 alpha 阶段，详见 [固定大小分块](fixed_size.zh.md) 页面
 
 ## 什么是文件分块
 
@@ -126,8 +126,8 @@ Prime Backup 仍会为整个文件创建一条数据对象（blob）记录，但
 各方式的详细说明见独立文档：
 
 - [分块规则推荐](recommendation.zh.md)：常见 Minecraft 存档、数据库和文本文件的推荐规则
-- [CDC 分块](chunking_cdc.zh.md)：内容感知的切块边界；对任意类型的局部修改均有效
-- [固定大小分块](chunking_fixed.zh.md)：基于字节偏移的切块边界；实现更简单，但适应性较弱；`fixed_auto` 处于 alpha 阶段
+- [CDC 分块](cdc.zh.md)：内容感知的切块边界；对任意类型的局部修改均有效
+- [固定大小分块](fixed_size.zh.md)：基于字节偏移的切块边界；实现更简单，但适应性较弱；`fixed_auto` 处于 alpha 阶段
 
 ## 观察方式
 

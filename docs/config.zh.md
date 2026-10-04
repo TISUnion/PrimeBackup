@@ -531,10 +531,10 @@ Prime Backup 会检查文件的如下这些信息。下述这些信息完全一�
     | `fixed_auto`   | 固定大小（alpha） | 基于上一次备份中同路径文件的分块布局，在 128 KiB 与 4 KiB 粒度间自适应 |
 
     CDC 算法根据文件内容确定数据块边界，因此局部插入、删除或原地修改不会影响其他数据块的哈希，这些数据块可直接复用。
-    详见 [CDC 分块](chunking/chunking_cdc.zh.md)
+    详见 [CDC 分块](chunking/cdc.zh.md)
 
     固定大小算法按固定字节偏移切分文件，实现更简单，但对任意编辑的适应性较弱。
-    详见 [固定大小分块](chunking/chunking_fixed.zh.md)
+    详见 [固定大小分块](chunking/fixed_size.zh.md)
 
     !!! warning
 

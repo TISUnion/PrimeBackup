@@ -64,7 +64,7 @@ Delta Fileset:
 
 File represents a file item in a backup, containing file metadata and data hash
 
-- Contains the Unix-style path of the file relative to [source_root](config.md#source_root)
+- Contains the Unix-style path of the file relative to [source_root](../config.md#source_root)
 - Contains file metadata such as permissions, owner, and timestamps
 - For regular files, only stores the hash value of their file content
 - For symbolic link files, directly stores the path they point to
@@ -90,7 +90,7 @@ Blob is the actual storage object for file content
 - Uses hash value as its unique identifier, one hash value has exactly one corresponding blob
 - Only stores file content data and its compression method, does not store actual file metadata
 - Has two storage methods: `direct` and `chunked`
-  - A direct blob is stored independently as a file in the `blobs` folder under [storage_root](config.md#storage_root)
+  - A direct blob is stored independently as a file in the `blobs` folder under [storage_root](../config.md#storage_root)
   - A chunked blob is reconstructed from chunk groups and chunks, and new chunk payloads are stored as pack entries
 - One blob can be referenced by multiple file objects; when the reference count drops to 0, PrimeBackup will delete this blob
 

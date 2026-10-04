@@ -103,9 +103,6 @@ nav:
     - feature/backup_restore.md
     - feature/backup_display.md
     - feature/backup_edit.md
-    - feature/chunking.md
-    - feature/chunking_cdc.md
-    - feature/chunking_fixed.md
     - feature/backup_import.md
     - feature/database_overview.md
     - feature/database_inspect.md

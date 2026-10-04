@@ -9,7 +9,7 @@ Split large files into smaller chunks for better deduplication across backups
     File chunking is a beta feature.
     The overall functionality is usable, but specifications and behavior may change in future releases.
     Don't worry, data created with chunking will remain fully compatible and accessible in future versions.
-    Note that `fixed_auto` is in alpha status; see the [Fixed-Size Chunking](chunking_fixed.md) page for details
+    Note that `fixed_auto` is in alpha status; see the [Fixed-Size Chunking](fixed_size.md) page for details
 
 ## What File Chunking Is
 
@@ -126,8 +126,8 @@ The benefit becomes apparent on subsequent backups where many chunks can be reus
 See the detailed pages for each approach:
 
 - [Chunking Recommendations](recommendation.md): recommended rules for common Minecraft save, database, and text files
-- [CDC Chunking](chunking_cdc.md): content-aware chunk boundaries; works well for any kind of local modification
-- [Fixed-Size Chunking](chunking_fixed.md): fixed byte-offset boundaries; simpler but less adaptive; `fixed_auto` is alpha
+- [CDC Chunking](cdc.md): content-aware chunk boundaries; works well for any kind of local modification
+- [Fixed-Size Chunking](fixed_size.md): fixed byte-offset boundaries; simpler but less adaptive; `fixed_auto` is alpha
 
 ## Observation
 

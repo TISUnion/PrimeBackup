@@ -75,8 +75,8 @@ so save or stop the server yourself before running it
 
 Configuration related to creation is mainly located in the following two sections:
 
-- [Server Configuration](../config.md#server-configuration), including how PB interacts with MC server during backup creation process
-- [Backup Configuration](../config.md#backup-configuration), including various options related to backup creation
+- [Server Configuration](../config.md#server-config), including how PB interacts with MC server during backup creation process
+- [Backup Configuration](../config.md#backup-config), including various options related to backup creation
 
 Below are some commonly used configuration items
 

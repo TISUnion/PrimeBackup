@@ -530,10 +530,10 @@ Each rule contains the following fields:
     | `fixed_auto`   | Fixed (alpha) | Adaptive 128 KiB / 4 KiB chunks based on the previous backup's same-path chunk layout |
 
     CDC algorithms determine chunk boundaries from file content, so local insertions, deletions, or in-place edits leave many chunks unchanged for reuse.
-    See [CDC Chunking](chunking/chunking_cdc.md) for details.
+    See [CDC Chunking](chunking/cdc.md) for details.
 
     Fixed-size algorithms split at fixed byte offsets. They are simpler but less adaptive to arbitrary edits.
-    See [Fixed-Size Chunking](chunking/chunking_fixed.md) for details.
+    See [Fixed-Size Chunking](chunking/fixed_size.md) for details.
 
     !!! warning
 

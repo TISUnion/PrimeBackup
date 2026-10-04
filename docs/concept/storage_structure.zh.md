@@ -64,7 +64,7 @@ graph TB
 
 文件代表备份中的一个文件项，包含文件元数据和数据哈希
 
-- 包含文件相对 [source_root](config.zh.md#source_root) 的 unix 风格路径
+- 包含文件相对 [source_root](../config.zh.md#source_root) 的 unix 风格路径
 - 包含权限、所有者、时间戳等文件元信息
 - 对于普通文件，仅储存其文件内容的哈希值
 - 对于符号链接文件，直接储存其指向的路径
@@ -90,7 +90,7 @@ graph TB
 - 使用哈希值作为其唯一标识符，一个哈希值有且仅有一个对应的数据对象
 - 仅存储文件的内容数据及其压缩方式，不存储实际文件的元信息
 - 具有两种存储方式：`direct` 和 `chunked`
-  - `direct`（直存）数据对象会以独立文件的形式存储在 [storage_root](config.zh.md#storage_root) 下的 `blobs` 目录中
+  - `direct`（直存）数据对象会以独立文件的形式存储在 [storage_root](../config.zh.md#storage_root) 下的 `blobs` 目录中
   - `chunked`（分块）数据对象由多个数据块组和数据块按顺序重建出来，新的数据块载荷会存储为打包条目
 - 一个数据对象可被多个文件对象引用；当引用数降为 0 时，PrimeBackup 会删除该数据对象
 

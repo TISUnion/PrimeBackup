@@ -19,9 +19,9 @@ Prime Backup 主要功能概览
 
 ### 文件分块
 
-- [文件分块](../chunking/chunking.zh.md)
-- [CDC 分块](../chunking/chunking_cdc.zh.md)
-- [固定大小分块](../chunking/chunking_fixed.zh.md)
+- [文件分块](../chunking/index.zh.md)
+- [CDC 分块](../chunking/cdc.zh.md)
+- [固定大小分块](../chunking/fixed_size.zh.md)
 
 ### 数据库操作（高级操作）
 

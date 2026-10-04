@@ -19,9 +19,9 @@ Prime Backup feature list
 
 ### File Chunking
 
-- [File Chunking](../chunking/chunking.md)
-- [CDC Chunking](../chunking/chunking_cdc.md)
-- [Fixed-Size Chunking](../chunking/chunking_fixed.md)
+- [File Chunking](../chunking/index.md)
+- [CDC Chunking](../chunking/cdc.md)
+- [Fixed-Size Chunking](../chunking/fixed_size.md)
 
 ### Database Operations (Advanced)
 

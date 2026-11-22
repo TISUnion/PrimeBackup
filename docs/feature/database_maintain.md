@@ -2,19 +2,19 @@
 title: 'Database Maintenance'
 ---
 
-Consistency check and database organization
+Consistency validation and database maintenance
 
 ## Database Validation
 
-| Command                           | Description                                                                                        |
-|-----------------------------------|----------------------------------------------------------------------------------------------------|
-| `!!pb database validate packs`    | Validate the correctness of pack files, including file existence, size, and live statistics        |
-| `!!pb database validate blobs`    | Validate the correctness of blobs, including data size and hash value                              |
-| `!!pb database validate chunks`   | Validate the correctness of chunks, chunk groups and their relation bindings                       |
-| `!!pb database validate files`    | Validate the correctness of file objects, including the association between files and blobs        |
-| `!!pb database validate filesets` | Validate the correctness of fileset objects, including the association between filesets and files  |
-| `!!pb database validate backups`  | Validate the correctness of backup objects, including the association between backups and filesets |
-| `!!pb database validate all`      | Validate all of the above                                                                          |
+| Command                           | Description                                                                             |
+|-----------------------------------|-----------------------------------------------------------------------------------------|
+| `!!pb database validate packs`    | Validate pack file existence, size, and live statistics                                 |
+| `!!pb database validate blobs`    | Validate blob integrity, including stored size and content hash                         |
+| `!!pb database validate chunks`   | Validate chunks, chunk groups, and their relation bindings                              |
+| `!!pb database validate files`    | Validate file objects and their references to blobs and filesets                        |
+| `!!pb database validate filesets` | Validate fileset objects and their references to backups and files                      |
+| `!!pb database validate backups`  | Validate backup objects and their references to filesets                                |
+| `!!pb database validate all`      | Run all validations above                                                               |
 
 Example:
 
@@ -64,49 +64,49 @@ Example output:
 [MCDR] [23:16:21] [PB@fc91-worker-heavy/INFO]: [PB] Validation done, cost 3.39s. packs: good, blobs: good, chunks: good, files: good, filesets: good, backups: good
 ```
 
-### Validation Content
+### What Gets Validated
 
 Packs:
 
-- File Existence: Check if the pack files exist in storage
-- Size Matching: Check if the pack file sizes match the database records
-- Live Stats: Check if live size/count do not exceed total size/count
+- File existence: verify that pack files exist in storage
+- Size match: verify that on-disk pack sizes match database records
+- Live stats: verify that live size and live entry count do not exceed totals
 
 Direct Blobs:
 
-- File Existence: Check if the blob files exist in storage
-- Integrity: Verify the hash values of the blob files
-- Size Matching: Check if the stored size matches the record
-- Compression Validation: Verify the integrity of compressed data
+- File existence: verify that direct blob files exist in storage
+- Integrity: verify content hashes of stored blobs
+- Size match: verify that stored sizes match database records
+- Compression check: verify that compressed data can be decompressed intact
 
 For chunked blobs, `validate blobs` checks layout and size statistics.
 To check the integrity of chunk contents as well, run `validate chunks`
 
 Chunks:
 
-- Pack Relationship: Check if each chunk refers to an existing pack entry
-- Integrity: Verify chunk data read from pack entries
-- Size Matching: Check if the stored size matches the record
-- Orphan Detection: Check for chunks not referenced by any chunk group and chunk groups not referenced by any blob
-- Binding Consistency: Verify the correctness of chunk group chunk bindings and blob chunk group bindings
+- Pack reference: verify that each chunk references an existing pack entry
+- Integrity: verify chunk data read from pack entries
+- Size match: verify that stored sizes match database records
+- Orphan detection: check for chunks not referenced by any chunk group and chunk groups not referenced by any blob
+- Binding consistency: verify chunk-group-to-chunk and blob-to-chunk-group bindings
 
 Files:
 
-- Reference Integrity: Check if the blobs referenced by files exist
-- Fileset Association: Verify the association between files and filesets
-- Metadata Consistency: Check if the blob information stored in the file matches the blob record
+- Reference integrity: verify that blobs referenced by files exist
+- Fileset association: verify references between files and filesets
+- Metadata consistency: verify that the blob information stored in the file matches the blob record
 
 Filesets:
 
-- Backup Association: Verify the association between filesets and backups
-- File Count: Check the number of files in the fileset
-- Size Calculation: Verify the correctness of fileset size calculation
+- Backup association: verify references between filesets and backups
+- File count: verify the number of files recorded in each fileset
+- Size calculation: verify fileset size statistics
 
 Backups:
 
-- Fileset Reference: Check if the filesets referenced by backups exist
-- File Count: Check backup file counts against the filesets
-- Size Matching: Check backup sizes against fileset statistics
+- Fileset reference: verify that filesets referenced by backups exist
+- File count: verify backup file counts against the filesets
+- Size match: verify backup sizes against fileset statistics
 
 
 When validation detects issues, detailed error information will be displayed:
@@ -125,49 +125,49 @@ When validation detects issues, detailed error information will be displayed:
 ```
 
 
-## Database Cleanup
+## Database Prune & Compaction
 
-### Invalid Data Cleanup
+### Database Prune
 
-Prune useless objects such as orphaned objects in the database
+Remove unused records such as orphan objects from the database:
 
 ```
 !!pb database prune
 ```
 
-Stuffs to be pruned
+Items handled during pruning:
 
-- Orphaned Blobs: Blobs no longer referenced by any files
-- Orphaned Files: Files no longer referenced by any filesets
-- Orphaned Filesets: Filesets no longer referenced by any backups
-- Base Fileset Compression: Optimize the storage structure of base filesets
-- Unknown Blob Files: Blob files that exist in file system but have no records in the database
-- Pack Compaction: Rewrite live pack entries and delete pack files with too much dead space
-- Unknown Pack Files: Pack files that exist in file system but have no records in the database
+- Orphan blobs: blobs no longer referenced by any file
+- Orphan files: files no longer referenced by any fileset
+- Orphan filesets: filesets no longer referenced by any backup
+- Base fileset shrink: remove unused file entries from base filesets
+- Unknown blob files: blob files on disk with no matching record in the database
+- Pack compaction: rewrite live pack entries and reclaim pack files with too much unused space
+- Unknown pack files: pack files on disk with no matching record in the database
 
 !!! note
 
-    In most cases, you do not need to manually execute this command; Prime Backup ensures the database remains in a clean state during daily operations
+    In most cases, you do not need to run this command manually; Prime Backup keeps the database clean during normal operations
 
 ### Manual Pack Compaction
 
-Compact all pack files with a 100% live-size threshold
+Compact all pack files using a 100% live-size threshold:
 
 ```
 !!pb database compact_packs
 ```
 
-This rewrites pack files that contain dead space and removes fully dead pack files
+This rewrites pack files that contain unused space and removes pack files with no live entries left
 
-It does not rewrite pack files whose entries are all still live
+Pack files whose entries are all still live are skipped
 
 !!! note
 
-    This command is intended for manual maintenance and debugging; normal cleanup still uses `!!pb database prune`
+    This command is intended for manual maintenance and debugging; for routine cleanup, use `!!pb database prune`
 
 ### SQLite Vacuum
 
-Compact the SQLite database file to reduce disk usage
+Compact the SQLite database file to reclaim disk space:
 
 ```
 !!pb database vacuum
@@ -183,4 +183,4 @@ Example output:
 
 !!! note
 
-    Under the default configuration, Prime Backup will automatically perform SQLite vacuum tasks periodically, so in most cases, you do not need to manually execute this command
+    Under the default configuration, Prime Backup runs SQLite vacuum periodically, so you rarely need to execute this command manually

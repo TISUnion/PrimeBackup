@@ -12,7 +12,7 @@ This is the root json object in the config files
 
 ```json
 {
-    "enabled": true,
+    "enabled": false,
     "debug": false,
     "storage_root": "./pb_files",
     "concurrency": 1,
@@ -46,7 +46,7 @@ The debug switch. Set to true to enable debug logging
 
 The root directory for Prime Backup to store all data files
 
-The path is related to the work directory of MCDR. By default, the root directory will be `/path/to/mcdr_root/pb_files`
+The path is relative to the working directory of MCDR. By default, the root directory will be `/path/to/mcdr_root/pb_files`
 
 - Type: `str`
 - Default: `"./pb_files"`
@@ -107,16 +107,16 @@ If a subcommand is not in the mapping, it will use level 1 as the default permis
 For example, in the default config, `"back"` is mapped to `2`, 
 which means that the `!!pb back` command requires permission level >= 2 to execute
 
-Specially, `"root"` refers to the root command, which is usually `!!pb`
+Specifically, `"root"` refers to the root command, which is usually `!!pb`
 
 - Type: `Dict[str, int]`
 
 #### confirm_time_wait
 
-Some of the MCDR commands requires user to enter `!!pb confirm` to continue.
-This config defines the maximum time wait for those commands
+Some MCDR commands require users to enter `!!pb confirm` to continue.
+This config defines the maximum wait time for those commands
 
-When time exceeds, the command will be cancelled
+When the wait times out, the command will be cancelled
 
 - Type: [`Duration`](#duration)
 - Default: `"1m"`
@@ -145,11 +145,11 @@ The destination root directory for restore operations. When set to `null`, [sour
 
 #### create_pre_restore_backup
 
-Whether to create a temporary backup of the current contents of the restore destination before restoring.
+Whether to create a temporary backup of the current contents of the restore destination before restoring
 
-The backup source is the actual directory that will be overwritten by the restore, rather than always being [`backup.source_root`](#source_root). For an MCDR restore, this is [`restore.destination_root`](#destination_root), or `backup.source_root` when `destination_root` is `null`. For the command line `back` command, this is the path specified by `-s/--source-root`.
+The backup source is the actual directory that will be overwritten by the restore, rather than always being [`backup.source_root`](#source_root). For an MCDR restore, this is [`restore.destination_root`](#destination_root), or `backup.source_root` when `destination_root` is `null`. For the command line `back` command, this is the path specified by `-s/--source-root`
 
-If the restore destination does not exist, no pre-restore backup is created.
+If the restore destination does not exist, no pre-restore backup is created
 
 - Type: `bool`
 - Default: `true`
@@ -164,15 +164,15 @@ The duration in seconds of the countdown before stopping the Minecraft server du
 #### reuse_unchanged_files
 
 When enabled, a restore can reuse regular files whose contents already match the selected backup instead of writing them again from backup storage.
-Directories, symbolic links, changed files, and files that cannot be reused continue through the normal restore process.
+Directories, symbolic links, changed files, and files that cannot be reused continue through the normal restore process
 
 This can reduce disk writes and restore time when restoring a large backup over a target that still contains mostly unchanged files.
-It provides little benefit when most files have changed, and checking file contents still requires disk reads.
+It provides little benefit when most files have changed, and checking file contents still requires disk reads
 
 Reused files keep their existing inode and may retain filesystem metadata that Prime Backup does not include in backups, such as hard-link relationships, extended attributes, and ACLs.
 Prime Backup still restores the permissions, owner, and modification time recorded in the backup.
 Enable this option only when reducing restore writes is valuable and retaining such untracked filesystem metadata is acceptable.
-It is disabled by default because reuse adds complexity to restore and rollback behavior.
+It is disabled by default because reuse adds complexity to restore and rollback behavior
 
 - Type: `bool`
 - Default: `false`
@@ -204,22 +204,22 @@ Options on how to interact with the Minecraft server
 
 If the autosave should be turned off before making a backup
 
-Since turning off autosave provide a consistent view to the Minecraft world files, it's suggested to set this option to `true`
+Since turning off autosave provides a consistent view of the Minecraft world files, it's suggested to set this option to `true`
 
 - Type: `bool`
 - Default: `true`
 
 #### commands
 
-A set of Minecraft commands to be used by Prime Backup. Current they're only used during a backup creation
+A set of Minecraft commands to be used by Prime Backup. Currently they're only used during backup creation
 
-Timing of what Prime Backup will do during a backup creation
+Timing of what Prime Backup will do during backup creation:
 
-1. Turn off autosave with command stored in subconfig `auto_save_off`, if config [`turn_off_auto_save`](#turn_off_auto_save) is true and `auto_save_off` is a non-empty string
-2. Save all worlds with command stored in subconfig `save_all_worlds`, if `save_all_worlds` is a non-empty string
-3. Wait until all words are saved, i.e. the server outputs matches one of the regex in config [`saved_world_regex`](#saved_world_regex). If `saved_world_regex` is empty, then not waiting will be performed 
+1. Turn off autosave with the command stored in subconfig `auto_save_off`, if config [`turn_off_auto_save`](#turn_off_auto_save) is `true` and `auto_save_off` is a non-empty string
+2. Save all worlds with the command stored in subconfig `save_all_worlds`, if `save_all_worlds` is a non-empty string
+3. Wait until all worlds are saved, i.e. the server output matches one of the regexes in config [`saved_world_regex`](#saved_world_regex). If `saved_world_regex` is empty, no waiting will be performed
 4. Create the backup
-5. Turn on autosave with command stored in subconfig `auto_save_on`, if config [`turn_off_auto_save`](#turn_off_auto_save) is true and `auto_save_on` is a non-empty string
+5. Turn on autosave with the command stored in subconfig `auto_save_on`, if config [`turn_off_auto_save`](#turn_off_auto_save) is `true` and `auto_save_on` is a non-empty string
 
 #### saved_world_regex
 
@@ -233,7 +233,7 @@ A list of regular expressions for identifying whether the server has already sav
 
 #### save_world_max_wait
 
-The maximum waiting time to before world saving is complete during backup creation
+The maximum waiting time before world saving completes during backup creation
 
 - Type: [`Duration`](#duration)
 - Default: `"10m"`
@@ -532,10 +532,10 @@ Each rule contains the following fields:
     | `fixed_auto`   | Fixed (alpha) | Adaptive 128 KiB / 4 KiB chunks based on the previous backup's same-path chunk layout |
 
     CDC algorithms determine chunk boundaries from file content, so local insertions, deletions, or in-place edits leave many chunks unchanged for reuse.
-    See [CDC Chunking](chunking/cdc.md) for details.
+    See [CDC Chunking](chunking/cdc.md) for details
 
     Fixed-size algorithms split at fixed byte offsets. They are simpler but less adaptive to arbitrary edits.
-    See [Fixed-Size Chunking](chunking/fixed_size.md) for details.
+    See [Fixed-Size Chunking](chunking/fixed_size.md) for details
 
     !!! warning
 
@@ -574,9 +574,9 @@ The algorithm to hash the files. Available options: `"xxh128"`, `"sha256"`, `"bl
 
 | Hash Method                                       | Description                                                                                                                                                       | Speed | cryptographically secure |
 |---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|--------------------------|
-| [`xxh128`](https://github.com/Cyan4973/xxHash)    | An extremely fast, high-quality 128bit non-cryptographic hash algorithm. Recommend to use, unless you want theoretic extreme safety on hackers                     | ★★★★★ | :cross_mark:             |
-| [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | A cryptographically secure and widely used 256bit hash algorithm. It's slower than xxh128, but the speed could be acceptable using cpu with hardware acceleration | ★★    | :check_mark:             |
-| [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | A cryptographically secure and speedy 256bit hash algorithm. It's still slower than xxh128, but is much faster than sha256                                        | ★★★☆  | :check_mark:             |
+| [`xxh128`](https://github.com/Cyan4973/xxHash)    | An extremely fast, high-quality 128-bit non-cryptographic hash algorithm. Recommended for maximum speed unless you need cryptographic security                  | ★★★★★ | :cross_mark:             |
+| [`sha256`](https://en.wikipedia.org/wiki/SHA-2)   | A cryptographically secure and widely used 256-bit hash algorithm. It's slower than xxh128, but the speed can be acceptable on CPUs with hardware acceleration | ★★    | :check_mark:             |
+| [`blake3`](https://github.com/BLAKE3-team/BLAKE3) | A cryptographically secure and speedy 256-bit hash algorithm. It's still slower than xxh128, but much faster than sha256                                       | ★★★☆  | :check_mark:             |
 
 - Type: `str`
 - Default: `"blake3"`
@@ -588,9 +588,9 @@ The method to compress files stored in a backup
 | Compress Method | Description                                                                                                                                                   | Speed | Compress rate |
 |-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|---------------|
 | `plain`         | No compression, copy the file directly. Can utilize the copy-on-write technique if the file system supports that                                              | ★★★★★ | ☆             |
-| `gzip`          | The [gzip](https://docs.python.org/3/library/gzip.html) library based on [zlib](https://www.zlib.net/). The format same as a `.gz` file                       | ★★    | ★★★★          |
+| `gzip`          | The [gzip](https://docs.python.org/3/library/gzip.html) library based on [zlib](https://www.zlib.net/). The same format as a `.gz` file                       | ★★    | ★★★★          |
 | `lzma`          | The [LZMA](https://docs.python.org/3/library/lzma.html) algorithm. The same format as a `.xz` file. Provides the best compression, but the speed is very slow | ☆     | ★★★★★         |
-| `zstd`          | The [Zstandard](https://github.com/facebook/zstd) algorithm. A good balance between speed and compression rate. Recommend to  use                             | ★★★☆  | ★★★★          |
+| `zstd`          | The [Zstandard](https://github.com/facebook/zstd) algorithm. A good balance between speed and compression rate. Recommended                                   | ★★★☆  | ★★★★          |
 | `lz4`           | The [LZ4](https://github.com/lz4/lz4) algorithm. Faster than Zstandard, and even much faster in decompression, but with a lower compression rate              | ★★★★  | ★★☆           |
 
 !!! warning
@@ -616,7 +616,7 @@ For files with a size less than the `compress_threshold`, no compression will be
 
     Changing `compress_threshold` will only affect new files in new backups (i.e., new blobs)
 
-- Type: int
+- Type: `int`
 - Default: `64`
 
 #### fileset_allocate_lookback_count
@@ -800,20 +800,20 @@ The backup prune feature from Prime Backup enables automatically backup cleanup 
 }
 ```
 
-It contains the following three prune settings:
+It contains the following 3 prune settings:
 
 - `regular_backup`: For all non-temporary backups, including scheduled backups retained by `scheduled_backup`
 - `scheduled_backup`: For scheduled backups
 - `temporary_backup`: For temporary backups, e.g. pre-restore backups
 
-Each prune settings describes the retain policy in detailed
+Each prune setting describes the retention policy in detail
 
-Prime Backup use the following steps to decide what to delete and what to retain:
+Prime Backup uses the following steps to decide what to delete and what to retain:
 
 1. Use [`last`, `hour`, `day`, `week`, `month`, `year`](#last-hour-day-week-month-year),
-   based on the [PBS](https://pbs.proxmox.com/docs/prune-simulator/) policy, filter out backups to be deleted / retained
-2. Use `max_amount` and `max_lifetime` to filter out those old and expired backups from the to-be-retained backups from step 1
-3. Collected those to-be-deleted backups from the 2 steps above, delete them one by one
+   based on the [PBS](https://pbs.proxmox.com/docs/prune-simulator/) policy, to filter out backups to be deleted or retained
+2. Use `max_amount` and `max_lifetime` to filter out old and expired backups from the retained backups from step 1
+3. Collect the to-be-deleted backups from the 2 steps above and delete them one by one
 
 The final prune result will be stored in the log file at `logs/prune.log` within the [storage root](#storage_root)
 
@@ -954,7 +954,7 @@ See the [crontab job setting](#crontab-job-setting) section
 
 ### crontab job setting
 
-Setting of a crontab job to describe when the job executes. There are 2 valid mode
+Setting of a crontab job to describe when the job executes. There are 2 valid modes
 
 - interval mode: Execute the job at given time interval. The first execution also has to wait for the given interval
 - crontab mode: Execute the job at specific time, described by a crontab string
@@ -973,7 +973,7 @@ If the job is enabled, you must choose one of the above modes and set the relate
 
 #### enabled
 
-The switch for the job. Set to  `true` to enable the crontab job; Set to `false` to disable the crontab job
+The switch for the job. Set to `true` to enable the crontab job; set to `false` to disable the crontab job
 
 - Type: `bool`
 
@@ -997,7 +997,7 @@ It should be `null` if the job is not in crontab mode
 
 #### jitter
 
-The jitter between 2 scheduled backup jobs
+The random jitter applied to the job execution interval
 
 The actual execution time for the next job will be shifted randomly with `[0, jitter]`
 

@@ -12,7 +12,7 @@ title: '配置文件'
 
 ```json
 {
-    "enabled": true,
+    "enabled": false,
     "debug": false,
     "storage_root": "./pb_files",
     "concurrency": 1,
@@ -23,7 +23,7 @@ title: '配置文件'
     "backup": {/* 备份配置 */},
     "restore": {/* 回档配置 */},
     "scheduled_backup": {/* 定时备份配置 */},
-    "prune": {/* 修剪配置 */},
+    "prune": {/* 清理配置 */},
     "database": {/* 数据库配置 */}
 }
 ```
@@ -101,13 +101,13 @@ MCDR 中，Prime Backup 所有命令的前缀。通常你不需要更改它
 
 所有子命令所需的 [MCDR 权限等级](https://mcdreforged.readthedocs.io/en/latest/permission.html) 的最低要求
 
-它是一个从字符串映射到整数的映射表，存储所有子命令的权限级别要求。
+它是一个从字符串映射到整数的映射表，存储所有子命令的权限等级要求。
 如果子命令不在映射表中，将使用 `1` 作为默认的权限等级要求
 
 例如，在默认配置中，`"back"` 被映射到 `2`，
-这意味着 `!!pb back` 命令需要权限级别 >=2 才能执行
+这意味着 `!!pb back` 命令需要权限等级 >=2 才能执行
 
-特别地，`"root"` 指的是根命令，通常即 `!!pb` 指令
+特别地，`"root"` 指的是根命令，通常即 `!!pb` 命令
 
 - 类型：`Dict[str, int]`
 
@@ -145,18 +145,18 @@ MCDR 中，Prime Backup 所有命令的前缀。通常你不需要更改它
 
 #### create_pre_restore_backup
 
-在回档至指定备份前，是否自动备份回档目的目录中的现有内容，并创建一个临时备份。
+在回档至指定备份前，是否自动备份回档目标目录中的现有内容，并创建一个临时备份
 
-该备份的来源是即将被回档覆盖的实际目录，而非始终使用 [`backup.source_root`](#source_root)。在 MCDR 中回档时，这个目录是 [`restore.destination_root`](#destination_root)；若 `destination_root` 为 `null`，则是 `backup.source_root`。使用命令行 `back` 命令时，则是 `-s/--source-root` 指定的目录。
+该备份的来源是即将被回档覆盖的实际目录，而非始终使用 [`backup.source_root`](#source_root)。在 MCDR 中回档时，这个目录是 [`restore.destination_root`](#destination_root)；若 `destination_root` 为 `null`，则是 `backup.source_root`。使用命令行 `back` 命令时，则是 `-s/--source-root` 指定的目录
 
-如果回档目的目录不存在，则不会创建回档前备份。
+如果回档目标目录不存在，则不会创建回档前备份
 
 - 类型：`bool`
 - 默认值：`true`
 
 #### countdown_sec
 
-在回档时，关闭 Minecraft 服务器前执行倒计时的持续秒数
+在回档时，关闭 Minecraft 服务端前执行倒计时的持续秒数
 
 - 类型：`int`
 - 默认值：`10`
@@ -164,15 +164,15 @@ MCDR 中，Prime Backup 所有命令的前缀。通常你不需要更改它
 #### reuse_unchanged_files
 
 启用后，回档时可以复用内容已经与所选备份一致的普通文件，不再从备份存储重新写入这些文件。
-目录、符号链接、内容已变化的文件以及无法复用的文件仍按普通流程还原。
+目录、符号链接、内容已变化的文件以及无法复用的文件仍按普通流程回档
 
 当大型备份覆盖到一个仍有大量未变化文件的目标位置时，该选项可以减少磁盘写入并缩短回档时间。
-如果大多数文件已经变化，则收益有限；检查文件内容仍会产生磁盘读取。
+如果大多数文件已经变化，则收益有限；检查文件内容仍会产生磁盘读取
 
-被复用的文件会保留原 inode，也可能保留 Prime Backup 未纳入备份的文件系统元信息，例如硬链接关系、扩展属性和 ACL。
+被复用的文件会保留原 inode，也可能保留 Prime Backup 未纳入备份的文件系统元数据，例如硬链接关系、扩展属性和 ACL。
 Prime Backup 仍会恢复备份中记录的权限、所有者和修改时间。
-仅在需要减少回档写入，并且可以接受保留这些未记录元信息时启用该选项。
-由于文件复用会增加回档与失败回滚行为的复杂度，此选项默认关闭。
+仅在需要减少回档写入，并且可以接受保留这些未记录元数据时启用该选项。
+由于文件复用会增加回档与失败回滚行为的复杂度，此选项默认关闭
 
 - 类型：`bool`
 - 默认值：`false`
@@ -211,7 +211,7 @@ Prime Backup 仍会恢复备份中记录的权限、所有者和修改时间。
 
 #### commands
 
-Prime Backup 使用的 Minecraft 指令的集合。目前它们仅在创建备份期间使用
+Prime Backup 使用的 Minecraft 命令的集合。目前它们仅在创建备份期间使用
 
 Prime Backup 在创建备份时的操作时序如下：
 
@@ -305,7 +305,7 @@ Prime Backup 在创建备份时的操作时序如下：
 
 #### source_root_use_mcdr_working_directory
 
-若设置为 `true`，则使用 MCDR 配置中，服务端的工作路径作为 [source_root](#source_root) 的值。
+若设置为 `true`，则使用 MCDR 配置中，服务端的工作目录作为 [source_root](#source_root) 的值。
 此时，配置文件中 [source_root](#source_root) 键的值将被忽略
 
 - 类型：`bool`
@@ -385,7 +385,7 @@ Prime Backup 在创建备份时的操作时序如下：
 #### retain_patterns
 
 一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，
-被匹配中的文件 / 文件夹将在创建备份时被忽略、在还原备份时被保留
+被匹配中的文件 / 文件夹将在创建备份时被忽略、在回档时被保留
 
 模板串匹配相对于操作根目录的路径：创建备份时为 [source_root](#source_root)，回档时为 [destination_root](#destination_root)。
 例如，模板串 `world/trash*.obj` 会匹配相应根目录下的 `world/trash1.obj`
@@ -393,7 +393,7 @@ Prime Backup 在创建备份时的操作时序如下：
 建议设置为那些无需备份，但仍需保留的文件，
 如服务端模组的大体积数据库、网页地图的渲染输出等
 
-| 选项                                  | 用途             | 备份时忽略 | 还原时保留 |
+| 选项                                  | 用途             | 备份时忽略 | 回档时保留 |
 |-------------------------------------|----------------|-------|-------|
 | [ignore_patterns](#ignore_patterns) | 忽略 + 抛弃无用的数据   | √     | ×     |
 | [retain_patterns](#retain_patterns) | 忽略 + 保留无需备份的数据 | √     | √     |
@@ -432,12 +432,11 @@ Prime Backup 会检查文件的如下这些信息。下述这些信息完全一�
 - 文件所有者的 UID、GID
 - 文件的修改时间（精度：纳秒）
 
-如果你想获得尽可能快的备份创建速度，可以尝试启用此选项，但这会引入潜在的备份不完整的风险。
-除非你确实需要这一备份速度提升，或者系统磁盘读取性能过低，否则不建议启用此选项
+如果你想获得尽可能快的备份创建速度，可以尝试启用此选项，但这会引入潜在的备份不完整的风险
 
 !!! warning
 
-    请在确保服务器的操作系统和文件系统正常且稳定运行后，再启用此选项。
+    请在确保服务端的操作系统和文件系统正常且稳定运行后，再启用此选项。
     否则，如果出现系统时间回退或文件系统元数据异常等问题，可能会造成某些文件的内容变化但 stat 保持不变的情况，
     从而导致 Prime Backup 创建出了一个不完整的备份
 
@@ -451,7 +450,7 @@ Prime Backup 会检查文件的如下这些信息。下述这些信息完全一�
 
 #### creation_skip_missing_file
 
-在某些场景下，服务端的插件 / mod 并不会响应 `/save off` 命令，
+在某些场景下，服务端的插件 / mod 并不会响应 `/save-off` 命令，
 在 PB 创建备份时仍可能执行删除文件的操作。
 这些缺失的文件会导致备份操作因找不到文件而失败
 
@@ -477,7 +476,7 @@ Prime Backup 会检查文件的如下这些信息。下述这些信息完全一�
 #### mutating_file_patterns
 
 一个 [gitignore 风格](http://git-scm.com/docs/gitignore) 的模板串列表，
-匹配这些模式的文件将在创建备份时被视为"频繁变化文件"
+匹配这些模式的文件将在创建备份时被视为“频繁变化文件”
 
 对于此类文件，Prime Backup 将：
 
@@ -617,7 +616,7 @@ Prime Backup 会检查文件的如下这些信息。下述这些信息完全一�
 
     更改 `compress_threshold` 只会影响新备份中的新文件（即新的数据对象）
 
-- 类型：int
+- 类型：`int`
 - 默认值：`64`
 
 #### fileset_allocate_lookback_count
@@ -804,9 +803,9 @@ Prime Backup 的备份清理功能可用于自动清理过时备份
 
 它包含如下三种清理设置：
 
-- `regular_backup`: 针对所有非临时备份，包括 `scheduled_backup` 保留的非临时定时备份
-- `scheduled_backup`: 针对定时备份
-- `temporary_backup`: 针对临时备份，如回档前的备份
+- `regular_backup`：针对所有非临时备份，包括 `scheduled_backup` 保留的非临时定时备份
+- `scheduled_backup`：针对定时备份
+- `temporary_backup`：针对临时备份，如回档前的备份
 
 每种清理设置都详细描述了存档的保留策略
 
@@ -916,9 +915,9 @@ Prime Backup 所使用的 SQLite 数据库的相关配置
 
 #### compact
 
-数据库精简作业
+SQLite 数据库整理作业
 
-它对数据库使用了 [VACUUM](https://www.sqlite.org/lang_vacuum.html) 指令，以精简数据库文件，并释放未使用的空间
+它对数据库执行 [VACUUM](https://www.sqlite.org/lang_vacuum.html) 命令，以整理数据库文件并释放未使用的空间
 
 #### backup
 

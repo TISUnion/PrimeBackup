@@ -2,17 +2,13 @@
 title: '数据库概览'
 ---
 
-查看数据库统计信息概览，用于快速了解 Prime Backup 数据库的信息情况
+查看 Prime Backup 数据库的整体统计信息，快速了解当前存储状态
 
 ## 命令
 
 ```
 !!pb database overview
 ```
-
-## 功能
-
-查看 Prime Backup 数据库的整体统计信息
 
 ## 示例输出
 

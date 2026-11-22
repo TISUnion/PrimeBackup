@@ -2,19 +2,19 @@
 title: 'Backup Restoration'
 ---
 
-Restoring a backup
+Restore a backup
 
 ## Restoration Steps
 
 ### MCDR Environment
 
-To restore a backup in MCDR environment, simply execute the following command:
+To restore a backup in the MCDR environment, run:
 
 ```
 !!pb back
 ```
 
-This command will restore to the latest non-temporary backup. To restore to a specific backup, you can specify the backup ID:
+This restores to the latest non-temporary backup. To restore to a specific backup, pass its backup ID:
 
 ```
 !!pb back 78
@@ -71,22 +71,22 @@ Example in-game output:
 
 ![pb back](img/pb_back.png)
 
-The restore command supports multiple backup ID formats:
+The restore command accepts multiple backup ID formats:
 
-| Format           | Example        | Description                                          |
-|------------------|----------------|------------------------------------------------------|
-| Positive integer | `!!pb back 12` | Restore to backup with specified ID                  |
-| `~` or `latest`  | `!!pb back ~`  | Restore to latest non-temporary backup               |
-| Relative offset  | `!!pb back ~1` | Restore to the backup before the latest backup       |
-| Relative offset  | `!!pb back ~3` | Restore to the backup three before the latest backup |
+| Format           | Example        | Description                                        |
+|------------------|----------------|----------------------------------------------------|
+| Positive integer | `!!pb back 12` | Restore to the backup with the specified ID        |
+| `~` or `latest`  | `!!pb back ~`  | Restore to the latest non-temporary backup         |
+| Relative offset  | `!!pb back ~1` | Restore to 1 backup before the latest              |
+| Relative offset  | `!!pb back ~3` | Restore to 3 backups before the latest             |
 
-The restore command supports the following optional parameters:
+Optional parameters:
 
-| Parameter     | Description                                          |
-|---------------|------------------------------------------------------|
-| `--confirm`   | Skip confirmation step, directly start restoration   |
-| `--fail-soft` | Skip files that fail to export during export process |
-| `--no-verify` | Do not verify the content of exported files          |
+| Parameter     | Description                                       |
+|---------------|---------------------------------------------------|
+| `--confirm`   | Skip confirmation and start restoring immediately |
+| `--fail-soft` | Skip files that fail to export during restoration |
+| `--no-verify` | Skip content verification for exported files      |
 
 Example:
 
@@ -96,46 +96,43 @@ Example:
 
 ### Command Line Environment
 
-Prime Backup also supports the core restoration operation in command line environment:
+Prime Backup also supports core restoration from the command line:
 
 ```
 python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json back -s ./server 78 --confirm
 ```
 
-The command line `back` command does not stop or start the Minecraft server. Stop the server yourself before running it.
-If config `restore.create_pre_restore_backup` is enabled, it creates a temporary backup of the current contents of the directory specified by `-s/--source-root` before restoring.
-If that directory does not exist, the pre-restore backup is skipped.
-Add `--no-pre-restore-backup` to skip the temporary backup
+The CLI `back` command does not stop or start the Minecraft server; stop the server yourself before running it.
+If `restore.create_pre_restore_backup` is enabled, a temporary backup of the existing contents in `-s/--source-root` is created before restoring. If that directory does not exist, the pre-restore backup is skipped.
+Pass `--no-pre-restore-backup` to skip this temporary backup
 
 ## Related Configuration
 
-Configuration related to restoration is mainly located in the following three sections:
+Restoration options are mainly located in the following three sections:
 
-- [Server Configuration](../config.md#server-config), including interaction commands with MC server during restoration
-- [Backup Configuration](../config.md#backup-config), including file processing rules during restoration
-- [Restore Configuration](../config.md#restore-config), including the restore destination and strategy
+- [Server config](../config.md#server-config): commands used to interact with the Minecraft server
+- [Backup config](../config.md#backup-config): file filtering and handling rules during restoration
+- [Restore config](../config.md#restore-config): restore destination directory and strategy options
 
 ## Detailed Restoration Process
 
-Below will list the operation process during PB backup restoration
-
 1. Confirmation phase
-   1. Display the backup information to be restored
-   2. Wait for user confirmation (unless using `--confirm` parameter)
-   3. User can confirm with `!!pb confirm` or abort with `!!pb abort`
+   1. Display information about the target backup
+   2. Wait for user confirmation (unless `--confirm` is passed)
+   3. Confirm with `!!pb confirm` or cancel with `!!pb abort`
 2. Server shutdown
-   1. If the server is running, execute 10s countdown (default configuration `restore.countdown_sec: 10`)
-   2. Restoration can be canceled during countdown
-   3. Stop the server and wait for complete shutdown
-3. Pre-restoration backup
-   1. If `restore.create_pre_restore_backup` is enabled (default value `true`) and the restore destination exists, create a temporary backup of its current contents. The source is `restore.destination_root`, or `backup.source_root` when `destination_root` is `null`
-   2. Backup comment is "Automatic backup before restoring to #X"
-   3. This backup will be marked as temporary and will be specially handled during backup cleanup
-4. Actual restoration operation
-   1. Recycle bin mechanism: Move all existing files in the backup target directory to a temporary recycle bin, ensuring complete rollback if restoration fails
-   2. Retain file processing: If `retain_patterns` is configured, use gitignore-style pattern matching and isolate files to be retained
-   3. File export: Use multi-threading to export backup files to the target directory in parallel. If `restore.reuse_unchanged_files` is enabled, unchanged files are moved back from the trash bin instead
-   4. Attribute restoration: Restore file permissions, timestamps, owners, and symbolic link targets
-   5. Retain file restoration: Finally move `retain_patterns` retained files back to their original positions
+   1. If the server is running, run a countdown (default `restore.countdown_sec: 10`)
+   2. Restoration can still be aborted during the countdown
+   3. Stop the server and wait until it exits completely
+3. Pre-restore backup
+   1. If `restore.create_pre_restore_backup` is enabled (default `true`) and the restore destination exists, create a temporary backup of its current contents. The source is `restore.destination_root`, or `backup.source_root` when `destination_root` is `null`
+   2. The comment is `"Automatic backup before restoring to #X"`
+   3. This backup is tagged as temporary and handled separately during backup pruning
+4. File restoration
+   1. Recycle bin: move existing files in the target directory to a temporary recycle bin so everything can be rolled back if restoration fails
+   2. Retained files: if `retain_patterns` is configured, match and set aside files that should remain untouched
+   3. File export: export backup files to the target directory in parallel; if `restore.reuse_unchanged_files` is enabled, unchanged files are moved back from the recycle bin instead
+   4. Metadata restoration: restore permissions, timestamps, ownership, and symbolic link targets
+   5. Retained file restoration: move retained files back to their original paths
 5. Server restart
-   1. If the server was originally running, restart the server
+   1. Restart the server if it was running before the restore

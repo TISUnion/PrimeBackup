@@ -7,36 +7,29 @@ Content-Defined Chunking: chunk boundaries are determined by file content, not f
 !!! note "Beta"
 
     CDC chunking is a beta feature.
-    The overall functionality is usable, but algorithm algorithm implemetation and behavior may change in future releases.
+    The overall functionality is usable, but algorithm implementation and behavior may change in future releases.
     Don't worry, data created with CDC chunking will remain fully compatible and accessible in future versions
 
 ## What CDC Is
 
 CDC stands for Content-Defined Chunking.
-Unlike fixed-size chunking, CDC scans the file content and identifies chunk boundaries based on data patterns (rolling hash fingerprints)
+Unlike fixed-size chunking, CDC scans the file content and identifies chunk boundaries based on rolling hash fingerprints
 
-Because boundaries are content-driven, when a large file is only changed locally — such as inserting or deleting a small region in the middle,
-or appending data at the end — many unchanged regions can still be cut into the same chunks as before.
-Those identical chunks are reused from existing storage, which improves deduplication rate significantly
+Because boundaries are content-driven, local edits such as inserting or deleting bytes in the middle, or appending data at the end, leave most unchanged regions aligned to the same chunks as before.
+Those identical chunks are reused from existing storage, significantly improving deduplication
 
-CDC has no assumption about the internal structure of the file.
-It works for any kind of local modification: insertion, deletion, or in-place update in any position
+CDC makes no assumptions about a file's internal structure.
+It works for any kind of local modification: insertion, deletion, or in-place updates at any position
 
 ## FastCDC
 
-FastCDC is a specific algorithm implementing CDC, and the one adopted by Prime Backup.
-It was first described in a [paper at USENIX ATC 2016](https://www.usenix.org/system/files/conference/atc16/atc16-paper-xia.pdf),
-with further improvements published in a [2020 follow-up](https://ieeexplore.ieee.org/document/9055082)
+FastCDC is the CDC algorithm adopted by Prime Backup.
+It was introduced in a [USENIX ATC 2016 paper](https://www.usenix.org/system/files/conference/atc16/atc16-paper-xia.pdf) and refined in a [2020 follow-up](https://ieeexplore.ieee.org/document/9055082)
 
-At its core, FastCDC uses a gear hash — a lightweight rolling hash that processes data one byte at a time
-via a simple table lookup and bit shift — to detect chunk boundaries based on a bitmask condition on the hash value
+FastCDC uses a lightweight rolling hash (gear hash) that scans one byte at a time via a table lookup and bit shift, checking a bitmask condition to locate chunk boundaries.
+It also uses normalized chunking: a stricter mask below the target average size and a looser mask above it, keeping chunk sizes closer to the target average while preserving content-defined boundaries
 
-What sets FastCDC apart from earlier CDC algorithms is its normalized chunking technique.
-Rather than applying a single hash mask throughout, it uses a stricter mask below the average size target and a more permissive one above it,
-nudging the chunk size distribution toward the desired average without sacrificing the content-adaptive nature of CDC
-
-Prime Backup uses [`pyfastcdc`](https://github.com/Fallen-Breath/pyfastcdc), a Cython-accelerated Python implementation of FastCDC 2020
-that delivers near-native chunking throughput
+Prime Backup uses [`pyfastcdc`](https://github.com/Fallen-Breath/pyfastcdc), a Cython-accelerated Python implementation of FastCDC 2020 with near-native throughput
 
 ## Available Algorithms
 
@@ -48,7 +41,7 @@ that delivers near-native chunking throughput
 
 - `fastcdc_32k` is the finest-grained CDC preset and works well for most CDC use cases
 - `fastcdc_128k` uses a coarser granularity and is better suited for very large files (10 GiB or more) where the per-chunk metadata overhead of `fastcdc_32k` becomes noticeable
-- `fastcdc_1m` uses an even coarser granularity with a 1 MiB average chunk size, minimizing metadata overhead for extremely large files at the cost of deduplication granularity
+- `fastcdc_1m` uses a 1 MiB average chunk size to further cut metadata overhead for extremely large files, with coarser deduplication granularity
 
 All three algorithms use FastCDC with normalized chunking and a fixed seed (`0`) for reproducibility
 

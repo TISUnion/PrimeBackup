@@ -8,7 +8,7 @@ title: '备份创建'
 
 ### MCDR 环境
 
-在 MCDR 环境中创建一个备份，只需执行如下指令：
+在 MCDR 环境中创建一个备份，只需执行如下命令：
 
 ```
 !!pb make
@@ -39,13 +39,13 @@ title: '备份创建'
 
 ![pb make](img/pb_make.zh.png)
 
-如需给备份带上个注释，便于后续查看备份时知道这个备份是做什么的，可以使用如下命令
+如需给备份带上个注释，便于后续查看备份时知道这个备份是做什么的，可以使用如下命令：
 
 ```
 !!pb make <注释>
 ```
 
-如
+如：
 
 ```
 !!pb make 香猪烤好了
@@ -53,66 +53,65 @@ title: '备份创建'
 
 在备份创建完后，可通过 `!!pb show` 或 `!!pb list` 命令来查看
 
-具体操作步骤可参考 [备份查看](backup_display.zh.md) 文档
+具体操作步骤可参考[备份查看](backup_display.zh.md)文档
 
 ![pb make and show](img/pb_make_show.zh.png)
 
 ### 命令行环境
 
-Prime Backup 也支持在命令行环境里执行核心的备份创建操作：
+Prime Backup 也支持在命令行环境中执行核心的备份创建操作：
 
 ```
 python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json make -s ./server "示例注释"
 ```
 
-命令行 `make` 命令不会与 Minecraft 服务端交互，不会关闭自动保存、执行保存命令或等待存档保存完成。
-请在运行前自行保存或停止服务端
+命令行 `make` 命令不会与 Minecraft 服务端交互，也不会关闭自动保存、发送保存命令或等待存盘完成。请在运行前自行保存或停止服务端
 
 
 ## 相关配置
 
-创建相关的配置基本位于下述两个小节：
+创建备份相关的配置主要位于以下两节：
 
-- [服务器配置](../config.zh.md#服务器配置)，包含在创建备份的过程中 PB 如何与 MC 服务器交互
-- [备份配置](../config.zh.md#备份配置)，包含各种创建备份相关选项
+- [服务器配置](../config.zh.md#服务器配置)：控制创建备份时 Prime Backup 如何与 Minecraft 服务端交互
+- [备份配置](../config.zh.md#备份配置)：控制备份目标、过滤规则、存储算法等核心选项
 
-下面列出了一些常用的配置项
+常用配置项：
 
-| 选项                                                                              | 功能                            |
-|---------------------------------------------------------------------------------|-------------------------------|
-| [server.turn_off_auto_save](../config.zh.md#turn_off_auto_save)                 | 在创建备份过程中，是否要临时关闭 MC 的自动保存     |
-| [backup.targets](../config.zh.md#targets)                                       | 修改备份目标，调整要备份哪些文件 / 文件夹        |
-| [backup.ignore_patterns](../config.zh.md#ignore_patterns)                       | 在备份时忽略某些文件，在回档时也删除这些文件        |
-| [backup.retain_patterns](../config.zh.md#retain_patterns)                       | 在备份时忽略某些文件，在回档时保留这些文件不变       |
-| [backup.creation_skip_missing_file](../config.zh.md#creation_skip_missing_file) | 在备份时跳过突然不存在的文件                |
-| [backup.hash_method](../config.zh.md#hash_method)                               | 哈希算法。PB 会复用哈希值一致的文件，以减少存储空间占用 |
-| [backup.compress_method](../config.zh.md#compress_method)                       | 压缩算法。PB 在储存文件时用的压缩算法          |
-| [concurrency](../config.zh.md#concurrency)                                      | 最大并发数。根据系统资源适当调大此值，可加速计算哈希的速度 |
+| 选项                                                                              | 说明                                        |
+|---------------------------------------------------------------------------------|-------------------------------------------|
+| [server.turn_off_auto_save](../config.zh.md#turn_off_auto_save)                 | 创建备份期间是否临时关闭 Minecraft 的自动保存              |
+| [backup.targets](../config.zh.md#targets)                                       | 指定需要备份的文件与目录                              |
+| [backup.ignore_patterns](../config.zh.md#ignore_patterns)                       | 备份时忽略匹配的文件，回档时将其删除                        |
+| [backup.retain_patterns](../config.zh.md#retain_patterns)                       | 备份时忽略匹配的文件，回档时保留不变                        |
+| [backup.creation_skip_missing_file](../config.zh.md#creation_skip_missing_file) | 备份过程中跳过突然消失的文件                            |
+| [backup.hash_method](../config.zh.md#hash_method)                               | 哈希算法。Prime Backup 会复用哈希相同的内容以节省存储空间       |
+| [backup.compress_method](../config.zh.md#compress_method)                       | 储存备份数据时使用的压缩方法                            |
+| [concurrency](../config.zh.md#concurrency)                                      | 最大并发数。根据机器配置适当调大可加快哈希计算速度                 |
 
 
 !!! note
 
-    对于 `hash_method`、`compress_method` 这两个配置项，建议在创建首个备份前就配置好。对于已创建了备份的环境，若需修改上述两个配置项，请注意：
+    建议在创建首个备份前就确定好 `hash_method` 和 `compress_method`。若已有备份，修改这两项时请注意：
 
-    - `hash_method` 配置项不可直接修改，若直接修改则会导致 PB 加载失败。需要使用 `!!pb database migrate_hash_method <xxx>` 命令来进行迁移
-    - `compress_method` 配置项可直接修改，但修改后只影响新增的文件。如需修改存量数据的压缩算法，可使用 `!!pb database migrate_compress_method <xxx>` 命令
+    - `hash_method` 不可直接在配置文件中修改，否则会导致 Prime Backup 加载失败，必须通过 `!!pb database migrate_hash_method <算法>` 命令迁移
+    - `compress_method` 可直接修改，但仅对新增数据生效；如需转换存量数据的压缩方法，请执行 `!!pb database migrate_compress_method <压缩方法>`
 
 
 ## 备份流程详解
 
-下面将列出 PB 创建备份过程中的操作流程
+Prime Backup 创建备份的完整流程如下：
 
-1. 与 MC 服务器进行交互，构造一个可创建备份的环境（下述操作均可配置）
-    1. 使用例如 `save-off` 的命令，关闭 MC 的自动保存
-    2. 使用例如 `save-all flush` 的命令，让 MC 保存存档数据至磁盘
-    3. 等待 MC 输出例如 `Saved the game` 的日志，此时存档保存完毕，可开始创建备份
+1. 准备 Minecraft 服务端环境（以下步骤均可配置）
+    1. 发送 `save-off` 等命令关闭自动保存
+    2. 发送 `save-all flush` 等命令触发存档落盘
+    3. 等待服务端输出 `Saved the game` 等存盘完成日志
 2. 创建备份
-    1. 扫描要备份的目标，排除忽略的文件，最终得到一个要备份的文件列表，并附有文件元信息
-    2. 若可用的并发配置 > 1，则使用多线程预先计算每个要备份的文件的哈希值
-    3. 对于每个要备份的文件，逐个进行：
-        1. 计算哈希值。若之前计算过了，则直接复用
-        2. 判断此哈希值的数据是否已备份过，若无则需复制一份数据至备份路径
-        3. 将此文件的元信息、哈希值存入数据库中
-    4. 计算此次备份的文件集，完成备份
-3. 还原对 MC 服务端的操作
-    1. 若 MC 的自动保存被关闭了，将会在这里重新打开
+    1. 扫描备份目标并排除忽略项，生成待备份文件列表及其元数据
+    2. 若并发数配置大于 1，使用多线程预先计算文件哈希值
+    3. 逐个处理待备份文件：
+        1. 计算哈希值，若已预计算则直接复用
+        2. 检查该内容是否已存在；若不存在，则将其作为直存数据对象写入，或在命中分块规则时切分并去重写入打包文件
+        3. 将文件元数据与哈希记录写入数据库
+    4. 生成本次备份的文件集，完成备份
+3. 恢复 Minecraft 服务端状态
+    1. 若第 1 步关闭了自动保存，在此重新开启

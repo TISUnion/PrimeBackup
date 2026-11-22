@@ -12,31 +12,20 @@ title: 'CDC 分块'
 
 ## 什么是 CDC
 
-CDC 是 Content-Defined Chunking 的缩写，通常译作"内容定义分块"。
-与固定大小分块不同，CDC 通过扫描文件内容，利用滚动哈希指纹来识别数据块边界
+CDC 是 Content-Defined Chunking 的缩写，通常译作“内容定义分块”。
+与固定大小分块不同，CDC 通过扫描文件内容，依据滚动哈希指纹来确定数据块边界
 
-由于边界由内容决定，当大文件仅发生局部变化时——例如在中间插入或删除了少量数据，
-或仅在尾部追加内容——大量未变化的内容仍会被切分成与之前相同的数据块。
-这些相同的数据块可直接复用已有存储，显著提升去重效果
+由于边界由内容决定，大文件在中间插入、删除少量数据，或在末尾追加内容时，大多数未变区域仍能切出与之前相同的数据块，从而直接复用已有存储并显著提升去重率
 
-CDC 对文件的内部结构没有任何假设。
-它对任意类型的局部修改均有效：无论是任意位置的插入、删除，还是原地覆盖写入
+CDC 不依赖文件的内部结构，适用于任意位置的插入、删除或原地修改
 
 ## FastCDC
 
-FastCDC 是实现 CDC 的一种具体算法，也是 Prime Backup 所采用的方案。
-它最初由 2016 年 USENIX ATC 会议上发表的[一篇研究论文](https://www.usenix.org/system/files/conference/atc16/atc16-paper-xia.pdf)提出，
-于 [2020 年的后续论文](https://ieeexplore.ieee.org/document/9055082)中进一步完善
+Prime Backup 采用的 CDC 算法是 FastCDC，最初由 [USENIX ATC 2016 论文](https://www.usenix.org/system/files/conference/atc16/atc16-paper-xia.pdf)提出，并在 [2020 年的后续论文](https://ieeexplore.ieee.org/document/9055082)中进一步改进
 
-FastCDC 的核心是 gear hash（齿轮哈希）——一种轻量级的滚动哈希，逐字节扫描数据，
-每步仅需一次查表操作与一次位移运算——通过对哈希值施加位掩码条件来检测分块边界
+FastCDC 使用轻量级滚动哈希（gear hash），每步仅需一次查表与位移即可逐字节扫描数据，并按位掩码条件切分边界。同时它引入了归一化分块（normalized chunking），在低于目标平均块大小时采用更严格的掩码，超过后改用更宽松的掩码，在保持内容感知特性的前提下让块大小分布更集中于目标均值
 
-FastCDC 区别于早期 CDC 算法的核心特性在于其 normalized chunking（归一化分块）技术。
-它不采用统一的哈希掩码，而是在当前位置低于目标平均块大小时使用更严格的掩码，超过后则切换为更宽松的掩码，
-使分块大小分布向目标平均值紧密收敛，同时完整保留了 CDC 的内容自适应特性
-
-Prime Backup 使用 [`pyfastcdc`](https://github.com/Fallen-Breath/pyfastcdc)，这是一个基于 Cython 加速的 FastCDC 2020 Python 实现，
-可达到接近原生代码的分块处理吞吐量
+Prime Backup 使用基于 Cython 加速的 FastCDC 2020 实现 [`pyfastcdc`](https://github.com/Fallen-Breath/pyfastcdc)，可提供接近原生代码的切块吞吐量
 
 ## 可用算法
 
@@ -48,7 +37,7 @@ Prime Backup 使用 [`pyfastcdc`](https://github.com/Fallen-Breath/pyfastcdc)，
 
 - `fastcdc_32k` 是粒度最细的 CDC 预设，适合大多数需要 CDC 的场景
 - `fastcdc_128k` 采用更粗的粒度，更适合超大型文件（10 GiB 以上），可减少 `fastcdc_32k` 粒度下每条数据块记录带来的相对元数据开销
-- `fastcdc_1m` 采用更粗的 1 MiB 平均块大小，进一步降低极大型文件的元数据开销，但代价是去重粒度更低
+- `fastcdc_1m` 采用 1 MiB 平均块大小，进一步降低极大型文件的元数据开销，但去重粒度也更粗
 
 这几种算法均使用 FastCDC，启用了 normalized chunking，并固定种子（`0`）以保证可重现性
 

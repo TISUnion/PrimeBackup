@@ -2,17 +2,13 @@
 title: 'Database Overview'
 ---
 
-View database statistics overview, used to quickly understand the current status of the Prime Backup database
+View overall database statistics to quickly check the storage status of Prime Backup
 
 ## Command
 
 ```
 !!pb database overview
 ```
-
-## Function
-
-View overall statistical information of Prime Backup database
 
 ## Example Output
 

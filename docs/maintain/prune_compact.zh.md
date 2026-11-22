@@ -1,28 +1,28 @@
 ---
-title: '"整理"相关概念辨析'
+title: '“整理”相关概念辨析'
 ---
 
-# "整理"相关概念辨析
+# “整理”相关概念辨析
 
-Prime Backup 涉及多个具有"整理"性质的概念（pack / compact / vacuum），它们的作用层次、触发时机和实际效果各不相同
+Prime Backup 涉及多个具有“整理”性质的概念（prune / compact / vacuum），它们的作用层次、触发时机和实际效果各不相同
 
 本文对这些概念作横向汇总，重点在于辨析它们之间的区别，帮助管理员快速把握全貌
 
 ## 概览
 
-| 概念           | 英文名              | 作用对象   | 自动触发                      | 手动命令                      |
-|----------------|---------------------|------------|-------------------------------|-------------------------------|
-| 备份修剪       | Backup Prune        | 备份       | 是（定时作业）                | `!!pb prune`                  |
-| 数据库清理     | Database Prune      | 复合操作   | 否                            | `!!pb database prune`         |
-| 打包文件整理   | Pack Compaction     | 打包文件   | 是（数据块删除时 / 定时作业） | `!!pb database compact_packs` |
-| SQLite 整理    | SQLite Vacuum       | 数据库文件 | 是（定时作业）                | `!!pb database vacuum`        |
-| 基础文件集压缩 | Base Fileset Shrink | 基础文件集 | 是（备份删除时）              | （含于数据库清理）            |
-| 孤立对象清理   | Orphan Object Scan  | 数据库对象 | 否                            | （含于数据库清理）            |
-| 未知文件清理   | Unknown File Scan   | 存储目录   | 否                            | （含于数据库清理）            |
+| 概念          | 英文名                 | 作用对象  | 自动触发             | 手动命令                          |
+|-------------|---------------------|-------|------------------|-------------------------------|
+| 备份清理        | Backup Prune        | 备份    | 是（定时作业）          | `!!pb prune`                  |
+| 数据库清理       | Database Prune      | 复合操作  | 否                | `!!pb database prune`         |
+| 打包文件整理      | Pack Compaction     | 打包文件  | 是（数据块删除时 / 定时作业） | `!!pb database compact_packs` |
+| SQLite 数据库整理 | SQLite Vacuum       | 数据库文件 | 是（定时作业）          | `!!pb database vacuum`        |
+| 基础文件集缩减     | Base Fileset Shrink | 基础文件集 | 是（备份删除时）         | （含于数据库清理）                     |
+| 孤立对象清理      | Orphan Object Scan  | 数据库对象 | 否                | （含于数据库清理）                     |
+| 未知文件清理      | Unknown File Scan   | 存储目录  | 否                | （含于数据库清理）                     |
 
 ---
 
-## 备份修剪（Backup Prune）
+## 备份清理（Backup Prune）
 
 作用于备份层，根据保留策略删除多余的旧备份
 
@@ -32,9 +32,9 @@ Prime Backup 涉及多个具有"整理"性质的概念（pack / compact / vacuum
 
 ### 作用范围
 
-备份按标签分别裁量：常规备份 (regular)、定时备份 (scheduled)、临时备份 (temporary)
+备份按标签分别判定：常规备份（regular）、定时备份（scheduled）、临时备份（temporary）
 
-每类备份应用对应的 `PruneSetting` 配置；定时备份策略保留的非临时备份仍可能被常规备份策略删除；带有保护标签（`protected = true`）的备份不会被修剪删除
+每类备份应用对应的 `PruneSetting` 配置；定时备份策略保留的非临时备份仍可能被常规备份策略删除；带有保护标签（`protected = true`）的备份不会被清理删除
 
 ### 保留决策流程
 
@@ -60,7 +60,7 @@ Prime Backup 涉及多个具有"整理"性质的概念（pack / compact / vacuum
 这是一个复合命令，它依次执行以下所有清理步骤：
 
 1. 孤立对象清理（Orphan Object Scan）
-2. 基础文件集压缩（Base Fileset Shrink）
+2. 基础文件集缩减（Base Fileset Shrink）
 3. 未知直存数据对象文件清理（Unknown Blob File Scan）
 4. 打包文件整理（Pack Compaction），使用 `backup.pack_maintenance_compact_threshold`
 5. 未知打包文件清理（Unknown Pack File Scan）
@@ -71,19 +71,19 @@ Prime Backup 涉及多个具有"整理"性质的概念（pack / compact / vacuum
 
 !!! note
 
-    Prime Backup 在日常操作（如删除备份、备份修剪）中已能及时清理对应的数据，通常无需手动执行此命令
+    Prime Backup 在日常操作（如删除备份、备份清理）中已能及时清理对应的数据，通常无需手动执行此命令
 
 ---
 
 ## 打包文件整理（Pack Compaction）
 
-作用于打包文件层，通过重写消除打包文件中的"死空间"
+作用于打包文件层，通过重写回收打包文件中的无效空间
 
 ### 作用
 
-打包文件（Pack）以追加方式写入，数据块被删除后其占用的字节范围不会立即释放，成为死空间
+打包文件（Pack）以追加方式写入，数据块被删除后其占用的字节范围不会立即释放，成为无效空间
 
-整理时，超过死亡比例阈值的打包文件中的存活条目（live entries）会被重写到新的打包文件，旧文件随即删除；全部条目均已死亡的打包文件则直接删除
+整理时，存活比例低于阈值的打包文件中的存活条目（live entries）会被重写到新的打包文件，旧文件随即删除；已无存活条目的打包文件则直接删除
 
 ### 阈值
 
@@ -96,12 +96,12 @@ Prime Backup 涉及多个具有"整理"性质的概念（pack / compact / vacuum
 |-------------------------------|---------------------------------------------------------------------------|
 | 数据块被删除后（即时）                   | 若相关打包文件存活比例低于 `pack_auto_compact_threshold`，立即整理                          |
 | 定时作业 `compact_pack`           | 默认 crontab `0 5 * * 0`（每周日 05:00），使用 `pack_maintenance_compact_threshold` |
-| `!!pb database prune` 步骤 5    | 使用 `pack_maintenance_compact_threshold`                                   |
+| `!!pb database prune` 步骤 4    | 使用 `pack_maintenance_compact_threshold`                                   |
 | `!!pb database compact_packs` | 阈值固定为 `1.0`，仅跳过全部存活的打包文件（需要权限 4）                                          |
 
 ---
 
-## SQLite 整理（SQLite Vacuum）
+## SQLite 数据库整理（SQLite Vacuum）
 
 作用于数据库文件层，整理 SQLite 数据库文件本身
 
@@ -118,7 +118,7 @@ SQLite 在删除数据后不会立即缩减文件体积，而是在原位留下�
 
 ---
 
-## 基础文件集压缩（Base Fileset Shrink）
+## 基础文件集缩减（Base Fileset Shrink）
 
 作用于文件集层，清理基础文件集中的冗余文件条目
 
@@ -126,15 +126,15 @@ SQLite 在删除数据后不会立即缩减文件体积，而是在原位留下�
 
 文件集采用基础+增量（base + delta）的组合结构；基础文件集中的某个文件，如果已被所有引用它的增量文件集完全覆写或删除，那么它在基础文件集中的条目就属于冗余
 
-压缩操作会：
+缩减操作会：
 
 - 从基础文件集中移除这些冗余文件条目
-- 对于原本标记为"覆写（delta_override）"的增量条目，改为"新增（delta_add）"，使基础条目移除后，该文件仍保留在备份中
-- 对于原本标记为"删除（delta_remove）"的增量条目，由于基础条目已消失，删除标记也随之变得无意义，一并移除
+- 对于原本标记为“覆写（`delta_override`）”的增量条目，改为“新增（`delta_add`）”，使基础条目移除后，该文件仍保留在备份中
+- 对于原本标记为“删除（`delta_remove`）”的增量条目，由于基础条目已消失，删除标记也随之变得无意义，一并移除
 
 ### 触发方式
 
-- 自动：删除备份时，若该备份所属的基础文件集仍被其他备份共享，则自动对该基础文件集执行一次压缩
+- 自动：删除备份时，若该备份所属的基础文件集仍被其他备份共享，则自动对该基础文件集执行一次缩减
 - 间接：`!!pb database prune` 步骤 2（`ShrinkAllBaseFilesetsAction`，扫描所有基础文件集）
 
 !!! note
@@ -145,7 +145,7 @@ SQLite 在删除数据后不会立即缩减文件体积，而是在原位留下�
 
 ## 孤立对象清理（Orphan Object Scan & Delete）
 
-作用于数据库对象层，扫描并删除不再被任何上层对象引用的"孤立"数据库记录
+作用于数据库对象层，扫描并删除不再被任何上层对象引用的“孤立”数据库记录
 
 ### 孤立对象的来源
 
@@ -180,7 +180,7 @@ SQLite 在删除数据后不会立即缩减文件体积，而是在原位留下�
 
 ### 作用
 
-Prime Backup 在回滚失败或意外中断时可能在存储目录中遗留临时文件，这些文件不在数据库记录中，也不会被正常流程清理
+Prime Backup 在回档失败或意外中断时可能在存储目录中遗留临时文件，这些文件不在数据库记录中，也不会被正常流程清理
 
 ### 清理范围
 

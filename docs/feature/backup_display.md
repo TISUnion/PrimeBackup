@@ -35,37 +35,37 @@ Example output:
 [MCDR] [18:22:40] [PB@fc91-worker-light/INFO]: [PB] <- 1/2 ->
 ```
 
-### List Format Explanation
+### List Format
 
-Each backup item is displayed in the following format:
+Each backup entry is displayed in the following format:
 
 ```
 [#ID] [>] [x] [flags] size creation_time: comment
 ```
 
-- `[#ID]`: Backup ID, click to view details
-- `[>]`: Green restore button, click to quickly restore
-- `[x]`: Red delete button, click to delete backup (gray for protected backups)
-- `[flags]`: Backup flags, only displayed when using the `--flags` parameter
-- `size`: Backup raw size (before deduplication/compression)
-- `creation_time`: Time when the backup was created
-- `comment`: Backup comment text. Displays as gray "no comment" if none
+- `[#ID]`: backup ID, click to view details
+- `[>]`: green restore button, shown only in in-game chat, click to restore quickly
+- `[x]`: red delete button, shown only in in-game chat, click to delete the backup. Protected backups are shown in gray
+- `[flags]`: backup flags, shown only when `--flags` is passed
+- `size`: raw backup size before deduplication and compression
+- `creation_time`: time when the backup was created
+- `comment`: backup comment text (shown as gray "no comment" if empty)
 
 ## Optional Parameters
 
-The backup list command supports the following optional parameters:
+The `!!pb list` command supports the following optional parameters:
 
 | Parameter             | Description                                        |
 |-----------------------|----------------------------------------------------|
-| `[page]`              | View backups on specified page                     |
-| `--per-page <count>`  | Set number of backups per page (1-1000)            |
-| `--sort <order>`      | Set sorting order (id, id_r, time, time_r)         |
-| `--creator <creator>` | Show backup created by the given creator only      |
-| `--me`                | Show backup created by yourself only               |
-| `--from <start_date>` | Show backup after the given date only              |
-| `--to <end_date>`     | Show backup before the given date only             |
+| `[page]`              | View backups on the specified page                 |
+| `--per-page <count>`  | Number of backups per page (1-1000)                |
+| `--sort <order>`      | Sorting order (`id`, `id_r`, `time`, `time_r`)     |
+| `--creator <creator>` | Show only backups created by the specified creator |
+| `--me`                | Show only backups created by yourself              |
+| `--from <start_date>` | Show only backups created after the given date     |
+| `--to <end_date>`     | Show only backups created before the given date    |
 | `-a, --all`           | Show all backups (including hidden and temporary)  |
-| `--flag, --flags`     | Show backup flags, based on the tags of the backup |
+| `--flag, --flags`     | Show backup flags derived from backup tags         |
 
 Sorting order parameter supports the following values:
 
@@ -92,8 +92,6 @@ Date parameters support the following formats:
 | `%Y-%m-%d %H:%M:%S.%f` | `2023-11-30 21:39:55.123456` | year-month-day hour:minute:second.microsecond |
 
 ## Backup Details
-
-### View Backup Details
 
 View detailed information for a specific backup:
 

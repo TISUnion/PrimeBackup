@@ -77,13 +77,13 @@ This is a composite command that executes all of the following cleanup steps in 
 
 ## Pack Compaction
 
-Operates at the pack file layer, eliminating "dead space" in pack files by rewriting them
+Operates at the pack file layer, reclaiming unused space in pack files by rewriting them
 
 ### What It Does
 
-Pack files are written in an append-only fashion; when chunks are deleted, the byte ranges they occupied are not immediately reclaimed and become dead space
+Pack files are written in an append-only fashion; when chunks are deleted, the byte ranges they occupied are not immediately reclaimed and become unused space
 
-During compaction, pack files whose dead ratio exceeds the threshold have their live entries rewritten into new pack files, and the old files are then deleted; pack files where all entries are dead are deleted directly
+During compaction, pack files whose live ratio falls below the threshold have their live entries rewritten into new pack files, and the old files are then deleted; pack files with no live entries left are deleted directly
 
 ### Thresholds
 

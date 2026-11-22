@@ -28,7 +28,7 @@ Prime Backup 需要一些 python 库才能运行，它们都被列在了
 
 使用命令 `pip3 install -r requirements.txt` 即可安装所有需要的 Python 依赖
 
-除此之外，你也可以使用以下指令一键安装所有需要的 Python 依赖
+除此之外，你也可以使用以下命令一键安装所有需要的 Python 依赖
 
 ```shell
 pip3 install -r {{ config.site_url }}requirements.txt
@@ -108,7 +108,7 @@ mcdr_root/
 
 2. 用于计算/储存备份数据的方式
 
-    ```js
+    ```json
     // 根配置
     {
         // ...
@@ -120,31 +120,31 @@ mcdr_root/
     }
     ```
    
-    - [`hash_method`](config.zh.md#hash_method): 对文件进行哈希的算法。可用选项： "xxh128", "sha256", "blake3"
+    - [`hash_method`](config.zh.md#hash_method)：对文件进行哈希的算法。可用选项：`"xxh128"`、`"sha256"`、`"blake3"`
 
-        - [`"xxh128"`](https://github.com/Cyan4973/xxHash): 一种极快的、高质量的哈希算法，不提供密码学安全保证。
+        - [`"xxh128"`](https://github.com/Cyan4973/xxHash)：一种极快的、高质量的哈希算法，不提供密码学安全保证。
           因其极快的性能而推荐使用，除非你想要理论上的极端安全
-        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2): 一种广泛使用的、密码学安全的哈希算法。经典永不过时
-        - [`"blake3"`](https://en.wikipedia.org/wiki/SHA-2): 一种高效的、密码学安全的哈希算法。比 sha256 快很多，但是依然比 xxh128 慢。
+        - [`"sha256"`](https://en.wikipedia.org/wiki/SHA-2)：一种广泛使用的、密码学安全的哈希算法。经典永不过时
+        - [`"blake3"`](https://github.com/BLAKE3-team/BLAKE3)：一种高效的、密码学安全的哈希算法。比 sha256 快很多，但是依然比 xxh128 慢。
           推荐使用，因为它很好地平衡了速度与理论安全性
 
-    - [`compress_method`](config.zh.md#compress_method): 备份文件的压缩方式。常用建议：
+    - [`compress_method`](config.zh.md#compress_method)：备份文件的压缩方法。常用建议：
 
-        - `"plain"`: 无压缩。如果你希望获得最快的操作速度，就用这个。
+        - `"plain"`：无压缩。如果你希望获得最快的操作速度，就用这个。
           与哈希算法 xxh128 相结合可实现最极致的速度
-        - [`"zstd"`](https://github.com/facebook/zstd): 快速且高效的压缩算法。如果你想节约一些磁盘空间的话，推荐使用
+        - [`"zstd"`](https://github.com/facebook/zstd)：快速且高效的压缩算法。如果你想节约一些磁盘空间的话，推荐使用
 
     !!! note
 
-        建议你从一开始就慎重且明智地设置这两个选项
+        建议你在一开始就慎重确定好这两个选项
 
-        虽然你依然可以在 MCDR 中使用 `!!pb database migrate_xxx` 指令来迁移现有备份的压缩方法和哈希算法，
+        虽然你依然可以在 MCDR 中使用 `!!pb database migrate_xxx` 命令来迁移现有备份的压缩方法和哈希算法，
         但完成迁移可能需要花费一定的时间和磁盘空间
 
 3. 启用插件。在配置文件的根对象中，设置 `enabled` 为 `true`。它应该位于整个配置文件的最上面
 
     ```json
-    // root config
+    // 根配置
     {
         "enabled": true
         // ...

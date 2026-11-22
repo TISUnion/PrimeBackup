@@ -2,16 +2,16 @@
 title: 'Database Operations'
 ---
 
-Configuration migration and data modification operations
+Storage algorithm migration and backup data modification
 
 ## Hash Algorithm Migration
 
 !!! warning
 
-    - Affects all backup content, it's recommended to make additional data backups
-    - Migration may take a long time depending on file count and disk IO speed. Migration tasks cannot be interrupted
+    - This affects all stored backups; make an extra copy of your data beforehand
+    - Migration may take a long time depending on file count and disk I/O speed, and cannot be interrupted
 
-Migrate the hash algorithm in the database to a new algorithm:
+Migrate the database to a new hash algorithm:
 
 ```
 !!pb database migrate_hash_method <new_hash_algorithm>
@@ -23,8 +23,10 @@ TODO
 
 !!! warning
 
-    - Affects all backup content, please make additional data backups
-    - Migration may take a long time depending on file count and disk IO speed. Migration tasks cannot be interrupted
+    - This affects all stored backups; make an extra copy of your data beforehand
+    - Migration may take a long time depending on file count and disk I/O speed, and cannot be interrupted
+
+Migrate stored backup data to a new compression method:
 
 ```
 !!pb database migrate_compress_method <new_compression_method>
@@ -34,9 +36,9 @@ TODO
 
 ## File Deletion
 
-### Delete Files from Backup
+### Delete a File from a Backup
 
-Delete specific files from a backup:
+Delete a specific file from a backup:
 
 ```
 !!pb database delete file <backup_id> <file_path>
@@ -64,6 +66,6 @@ Example:
 
 Notes:
 
-- Cannot delete the root directory of the backup
-- Deleting directories requires the `--recursive` parameter
-- By default, requires user confirmation to prevent accidental operation
+- The backup root directory cannot be deleted
+- Deleting a directory requires the `--recursive` option
+- User confirmation is required by default to prevent accidental deletion

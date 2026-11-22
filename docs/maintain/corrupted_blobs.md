@@ -174,8 +174,8 @@ Example output when chunk corruption is found:
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 8765, validated 8765, ok 8763, bad 2
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Found 2 / 8765 bad chunks in total
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Corrupted chunk data: 2
-[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 1. id=1234 hash=3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5: cannot read and decompress chunk from pack entry: (<class 'zlib.error'> Error -5 while decompressing data: incomplete or truncated stream
-[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 2. id=5678 hash=9b4c3d7e2f1a0b6c8e7d5c3a2b1f9e0d: cannot read and decompress chunk from pack entry: (<class 'zlib.error'> Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 1. id=1234 hash=3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5: cannot read and decompress chunk from pack entry: (<class 'zlib.error'>) Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 2. id=5678 hash=9b4c3d7e2f1a0b6c8e7d5c3a2b1f9e0d: cannot read and decompress chunk from pack entry: (<class 'zlib.error'>) Error -5 while decompressing data: incomplete or truncated stream
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Affected range: 3 / 9147 file objects, 1 / 26 filesets, 8 / 21 backups
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] See log file pb_files/logs/validate.log for details and affected stuffs of these bad blobs
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] Validation done, cost 4.56s. chunks: bad
@@ -290,7 +290,7 @@ The two flags can be combined:
 
     Do not directly modify the SQLite database
 
-    The PrimeBackup database (`pb_files/prime_backup.db`) has a complex relational structure (multiple layers of associations including blob, chunk, chunk_group, binding, etc.)
+    The Prime Backup database (`pb_files/prime_backup.db`) has a complex relational structure (multiple layers of associations including blob, chunk, chunk_group, binding, etc.)
     Manual modification can easily break referential integrity, putting the database into a corrupted state that is difficult to recover from
 
 ### Method 1: Restore blob or pack files from an External Backup
@@ -354,7 +354,7 @@ Steps:
 
     Affected backup IDs can be clicked directly from the in-game validate output, or retrieved in full from the `validate.log` log file
 
-### Method 3: (Not Yet Implemented) Provide Files with Intact Data to Rebuild blob or chunk data
+### Method 3: (Not Yet Implemented) Rebuild Blob or Chunk Data from Intact Files
 
 !!! info
 
@@ -365,17 +365,17 @@ In theory, if you have one or more files with the same content as the damaged bl
 The planned usage would be: provide one or more file paths (or an archive containing those files), PB computes the hash of each input file,
 and searches the database for blob or chunk entries with a matching hash in a corrupted state (`missing`, `corrupted`, `mismatched`); if found, it re-writes the corresponding blob file or pack entry, completing the repair
 
-The current version of PrimeBackup does not support this: the `!!pb import` command, when processing files, will not re-write the physical file if a blob record with the same hash already exists in the database,
+The current version of Prime Backup does not support this: the `!!pb import` command, when processing files, will not re-write the physical file if a blob record with the same hash already exists in the database,
 so even importing a backup with the same content will not replace corrupted storage data
 
 Watch future versions for updates on this feature
 
 ## Summary
 
-| Issue Type                                                 | Recommended Action                                                                                          |
-|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| blob or pack file missing (`missing`/`missing_file`)       | Restore the file from an external backup, or delete the affected backups                                                   |
-| blob or pack entry corrupted, cannot decompress (`corrupted`) | Restore the file from an external backup, or delete the affected backups                                                   |
-| Hash/size mismatch (`mismatched`)                          | Restore from external backup, or delete affected backups; temporarily use `--no-verify` to bypass                          |
-| Temporarily need to restore a corrupted backup             | `!!pb back <ID> --fail-soft` (skip corrupted files) or `--no-verify` (skip hash check)                                     |
-| Want to determine the scope of corruption                  | `!!pb database validate packs` / `validate blobs` / `validate chunks` / `validate all`, and check `pb_files/logs/validate.log` |
+| Issue Type                                                    | Recommended Action                                                                                                             |
+|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| Blob or pack file missing (`missing`/`missing_file`)          | Restore the file from an external backup, or delete the affected backups                                                       |
+| Blob or pack entry corrupted, cannot decompress (`corrupted`) | Restore the file from an external backup, or delete the affected backups                                                       |
+| Hash/size mismatch (`mismatched`)                             | Restore from external backup, or delete affected backups; temporarily use `--no-verify` to bypass                              |
+| Temporarily need to restore a corrupted backup                | `!!pb back <ID> --fail-soft` (skip corrupted files) or `--no-verify` (skip hash check)                                         |
+| Want to determine the scope of corruption                     | `!!pb database validate packs` / `validate blobs` / `validate chunks` / `validate all`, and check `pb_files/logs/validate.log` |

@@ -10,12 +10,12 @@ title: '数据文件损坏的处理'
 
 Prime Backup 通过直存数据对象文件和打包文件将备份数据持久化到文件系统中；数据对象记录有两种存储方式：
 
-- 直存（direct）：每个 blob 对应一个独立文件，存储路径为 `pb_files/blobs/{哈希前2位}/{完整哈希}`，
+- 直存（`direct`）：每个数据对象对应一个独立文件，存储路径为 `pb_files/blobs/{哈希前2位}/{完整哈希}`，
   例如：`pb_files/blobs/8b/8b36d71e250e25527f59b8fd9e0f2dce`
-- 分块（chunked）：大文件按配置的分块算法切分成多个数据块，新的数据块载荷会作为打包条目存储在 `pb_files/packs/{打包文件名前2位}/{打包文件名}` 下的打包文件中，
+- 分块（`chunked`）：大文件按配置的分块算法切分成多个数据块，新增的数据块内容会作为打包条目储存在 `pb_files/packs/{打包文件名前2位}/{打包文件名}` 下的打包文件中，
   例如：`pb_files/packs/96/962ca655f458e15037faf8e628c092c975ab2e897dfca8e9cf0b94d512e5eebc`
 
-当磁盘故障、文件系统错误、意外断电或误操作等原因导致这些文件内容被破坏或丢失时，PB 在回档（或导出）时将无法正常还原对应文件，进而导致操作失败
+当磁盘故障、文件系统错误、意外断电或误操作等原因导致这些文件内容被破坏或丢失时，PB 在回档（或导出）时将无法正常读取对应文件，进而导致操作失败
 
 > 关于存储结构的详细说明，请参阅[存储结构](../concept/storage_structure.zh.md)
 
@@ -23,9 +23,9 @@ Prime Backup 通过直存数据对象文件和打包文件将备份数据持久�
 
 ### 回档失败
 
-默认情况下，PB 在回档时会对还原的数据进行哈希校验（`verify_blob=True`）；若直存数据对象文件或打包文件缺失、损坏，或还原出的内容与数据库记录不符，回档将报错中止并回滚所有已写入的文件
+默认情况下，PB 在回档时会对导出的数据进行哈希校验（`verify_blob=True`）；若直存数据对象文件或打包文件缺失、损坏，或导出的内容与数据库记录不符，回档将报错中止并回滚所有已写入的文件
 
-场景一：直存 blob 文件损坏（哈希不匹配）
+场景一：直存数据对象文件损坏（哈希不匹配）
 
 ```
 [MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file 'world/region/r.0.0.mca' to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (blob), expected 8b36d71e250e25527f59b8fd9e0f2dce, actual written 9f4c7b3e5d1a2c8e6f0b4d9e2a7f3c1d
@@ -35,7 +35,7 @@ Prime Backup 通过直存数据对象文件和打包文件将备份数据持久�
 [MCDR] [22:09:30] [PB@ecac-worker-heavy/WARN] [prime_backup]: You can try to fix the issue and perform another restoration, or just start the server manually via MCDR command
 ```
 
-场景二：分块 blob 使用的某个打包条目损坏（哈希不匹配）
+场景二：分块数据对象使用的某个打包条目损坏（哈希不匹配）
 
 ```
 [MCDR] [22:09:30] [PB@ecac-worker-heavy/ERROR] [prime_backup]: Export file 'world/region/r.0.0.mca' to path world/region/r.0.0.mca failed: hash mismatched for world/region/r.0.0.mca (chunk 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5), expected 3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5, actual written ff92dcb10e3a7b5c2d4f8e1a9c6b0d3f
@@ -47,10 +47,10 @@ Prime Backup 通过直存数据对象文件和打包文件将备份数据持久�
 
 !!! warning
 
-    回档失败后，服务器进程将保持停止状态，PB 不会自动重启它  
-    你需要先处理损坏问题，或使用 MCDR 命令手动启动服务器：`!!MCDR start`
+    回档失败后，服务端进程将保持停止状态，PB 不会自动重启它  
+    你需要先处理损坏问题，或使用 MCDR 命令手动启动服务端：`!!MCDR start`
 
-由于 PB 在失败时会将回档目标目录回滚到原始状态，因此回档失败不会破坏现有的服务器文件
+由于 PB 在失败时会将回档目标目录回滚到原始状态，因此回档失败不会破坏现有的服务端文件
 
 ## 扫描与确认问题
 
@@ -89,7 +89,7 @@ Prime Backup 通过直存数据对象文件和打包文件将备份数据持久�
     本文档仅涉及直存数据对象文件和打包文件层面的损坏处理（对应 `packs`、`blobs` 和 `chunks` 三部分的验证结果）
     `files`、`filesets`、`backups` 等组件若出现异常，属于数据库结构层面的问题，处理方式不在本文档范围内
 
-### 扫描直存 blob 文件
+### 扫描数据对象
 
 使用以下命令扫描直存数据对象文件的内容：
 
@@ -132,16 +132,16 @@ Prime Backup 通过直存数据对象文件和打包文件将备份数据持久�
 
 #### 异常类型说明
 
-| 类型键          | 中文名         | 含义                                           |
-|--------------|-------------|----------------------------------------------|
-| `missing`    | 文件缺失的数据对象   | blob 文件在存储路径下不存在                             |
-| `corrupted`  | 文件损坏的数据对象   | blob 文件存在，但解压缩失败                             |
-| `mismatched` | 信息不匹配的数据对象  | 解压后的哈希值或大小与数据库记录不符                           |
-| `bad_layout` | 分块布局异常的数据对象 | chunked blob 的数据块组绑定关系异常                     |
-| `invalid`    | 非法数据对象      | blob 的压缩方式等基本字段非法                            |
-| `orphan`     | 孤儿数据对象      | blob 没有被任何文件引用（不影响回档，可用 `database prune` 清理） |
+| 类型键          | 中文名         | 含义                                             |
+|--------------|-------------|------------------------------------------------|
+| `missing`    | 文件缺失的数据对象   | 数据对象文件在存储路径下不存在                                |
+| `corrupted`  | 文件损坏的数据对象   | 数据对象文件存在，但解压缩失败                                |
+| `mismatched` | 信息不匹配的数据对象  | 解压后的哈希值或大小与数据库记录不符                             |
+| `bad_layout` | 分块布局异常的数据对象 | 分块数据对象的数据块组绑定关系异常                              |
+| `invalid`    | 非法数据对象      | 数据对象的压缩方法等基本字段非法                               |
+| `orphan`     | 孤立数据对象      | 数据对象未被任何文件引用（不影响回档，可用 `database prune` 清理） |
 
-前三种（`missing`、`corrupted`、`mismatched`）是最常见的"文件层面"损坏，会直接导致回档失败
+前三种（`missing`、`corrupted`、`mismatched`）是最常见的“文件层面”损坏，会直接导致回档失败
 
 #### 查阅详细日志
 
@@ -157,7 +157,7 @@ Affected backup / total backups: 16 / 21
 Affected backup IDs (bad blobs): [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33]
 ```
 
-### 扫描分块 blob 的数据块
+### 扫描分块数据对象的数据块
 
 使用以下命令对所有数据块及其关联对象（数据块组、绑定关系和打包条目）进行扫描：
 
@@ -165,7 +165,7 @@ Affected backup IDs (bad blobs): [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27
 !!pb database validate chunks
 ```
 
-发现 chunk 损坏时的输出（示例）：
+发现数据块损坏时的输出（示例）：
 
 ```
 [MCDR] [23:19:00] [PB@xxx-worker-heavy/INFO]: [PB] 正在验证所有数据块相关对象 (包括数据块、数据块组、关系绑定), 请稍等...
@@ -174,16 +174,16 @@ Affected backup IDs (bad blobs): [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO] [prime_backup]: Chunk validation done: total 8765, validated 8765, ok 8763, bad 2
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 发现了2/8765个异常数据块
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 损坏的数据块内容: 2个
-[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 1. id=1234 hash=3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5: cannot read and decompress chunk from pack entry: (<class 'zlib.error'> Error -5 while decompressing data: incomplete or truncated stream
-[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 2. id=5678 hash=9b4c3d7e2f1a0b6c8e7d5c3a2b1f9e0d: cannot read and decompress chunk from pack entry: (<class 'zlib.error'> Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 1. id=1234 hash=3a7f29c4b5e1d8a0f6c2e9b7d4a1f8c5: cannot read and decompress chunk from pack entry: (<class 'zlib.error'>) Error -5 while decompressing data: incomplete or truncated stream
+[MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 2. id=5678 hash=9b4c3d7e2f1a0b6c8e7d5c3a2b1f9e0d: cannot read and decompress chunk from pack entry: (<class 'zlib.error'>) Error -5 while decompressing data: incomplete or truncated stream
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 影响范围: 3/9147个文件对象, 1/26个文件集, 8/21个备份
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 见日志文件 pb_files/logs/validate.log 以了解这些数据对象的详细信息及影响范围
 [MCDR] [23:19:04] [PB@xxx-worker-heavy/INFO]: [PB] 验证完成, 耗时4.56s。数据块相关对象: 异常
 ```
 
-chunk 的损坏类型与 blob 类似，包括：`missing_pack` 或 `missing_file`（打包关系或打包文件缺失）、`bad_pack_entry`（打包条目范围非法）、`corrupted`（解压失败）、`mismatched`（哈希/大小不匹配）
+数据块的损坏类型与数据对象类似，包括：`missing_pack` 或 `missing_file`（打包关系或打包文件缺失）、`bad_pack_entry`（打包条目范围非法）、`corrupted`（解压失败）、`mismatched`（哈希/大小不匹配）
 
-由于一个 chunk 可被多个 chunked blob 复用，一个 chunk 损坏可能影响多个备份中的多个文件
+由于一个数据块可被多个分块数据对象复用，单个数据块损坏可能影响多个备份中的多个文件
 
 ### 进一步定位受影响的文件和备份
 
@@ -256,11 +256,11 @@ chunk 的损坏类型与 blob 类似，包括：`missing_pack` 或 `missing_file
     - 文件损坏（`corrupted`）：解压过程中发生异常，目标文件可能以截断/部分写入的形式存在
     - 哈希不匹配（`mismatched`）：文件被完整写入，但内容来自损坏的数据，内容不正确
 
-    此外，由于回档在开始时会清空回档目标目录，失败文件的回档前内容也已被删除，无法自动恢复；如需恢复需手动还原至回档前的备份（如有创建）
+    此外，由于回档在开始时会清空回档目标目录，失败文件的回档前内容也已被删除，无法自动恢复；如需恢复需手动回档至回档前创建的临时备份（如有）
 
 ### 跳过哈希校验（`--no-verify`）
 
-在回档命令中加入 `--no-verify` 参数，PB 会跳过对还原文件的哈希/大小校验：
+在回档命令中加入 `--no-verify` 参数，PB 会跳过对导出文件的哈希/大小校验：
 
 ```
 !!pb back 78 --no-verify
@@ -281,7 +281,7 @@ chunk 的损坏类型与 blob 类似，包括：`missing_pack` 或 `missing_file
 
 !!! danger
 
-    不要直接删除 blob 或打包文件
+    不要直接删除数据对象或打包文件
 
     直接在文件系统中删除 `pb_files/blobs/` 或 `pb_files/packs/` 下的文件，会使数据库中的记录与文件系统不一致
     PB 并不知道文件已被删除，后续的回档、导出等操作仍会尝试读取不存在的文件，导致各种难以排查的错误
@@ -290,17 +290,17 @@ chunk 的损坏类型与 blob 类似，包括：`missing_pack` 或 `missing_file
 
     不要直接修改 SQLite 数据库
 
-    PrimeBackup 的数据库（`pb_files/prime_backup.db`）有复杂的关系结构（blob、chunk、chunk_group、binding 等多层关联）
+    Prime Backup 的数据库（`pb_files/prime_backup.db`）有复杂的关系结构（数据对象、数据块、数据块组、绑定关系等多层关联）
     手动修改很容易破坏引用完整性，导致数据库进入难以恢复的损坏状态
 
-### 方法一：从外部备份恢复 blob 或打包文件
+### 方法一：从外部备份恢复数据对象或打包文件
 
-适用场景： 你持有 `pb_files` 目录的外部备份（如操作系统级别的文件备份），其中包含完好的 blob 或打包文件
+适用场景：你持有 `pb_files` 目录的外部备份（如操作系统级别的文件备份），其中包含完好的数据对象或打包文件
 
 操作步骤：
 
 1. 确认需要恢复的文件路径（从 validate 输出中获取哈希值）：
-   - 直存 blob：`pb_files/blobs/{哈希前2位}/{完整哈希}`  
+   - 直存数据对象：`pb_files/blobs/{哈希前2位}/{完整哈希}`  
      例如：`pb_files/blobs/8b/8b36d71e250e25527f59b8fd9e0f2dce`
    - 打包文件：`pb_files/packs/{打包文件名前2位}/{打包文件名}`
      例如：`pb_files/packs/96/962ca655f458e15037faf8e628c092c975ab2e897dfca8e9cf0b94d512e5eebc`
@@ -311,11 +311,11 @@ chunk 的损坏类型与 blob 类似，包括：`missing_pack` 或 `missing_file
 
 !!! tip
 
-    恢复前可用 `!!pb database inspect blob <哈希>` 确认该 blob 的存储方式（直存/分块）和压缩方式，以便确认外部备份文件是否匹配
+    恢复前可用 `!!pb database inspect blob <哈希>` 确认该数据对象的存储方式（直存/分块）和压缩方法，以便确认外部备份文件是否匹配
 
 ### 方法二：删除受影响的备份
 
-适用场景： 损坏的 blob 或 chunk 所对应的备份已不再需要，或者你宁愿丢弃这些备份而不是保留不完整的数据
+适用场景：损坏的数据对象或数据块所对应的备份已不再需要，或者你宁愿丢弃这些备份而不是保留不完整的数据
 
 操作步骤：
 
@@ -339,7 +339,7 @@ chunk 的损坏类型与 blob 类似，包括：`missing_pack` 或 `missing_file
     !!pb delete_range 3-7
     ```
 
-3. 删除备份后，PB 会自动清理不再被任何备份引用的孤儿 blob 和 chunk，并且数据库维护可以整理受影响的打包文件；如果仍有残留，可手动执行：
+3. 删除备份后，PB 会自动清理不再被任何备份引用的孤立数据对象和数据块，并且数据库维护可以整理受影响的打包文件；如果仍有残留，可手动执行：
 
     ```
     !!pb database prune
@@ -347,35 +347,35 @@ chunk 的损坏类型与 blob 类似，包括：`missing_pack` 或 `missing_file
 
 !!! note
 
-    删除备份时，如果某个 blob 或 chunk 仍被其他未删除的备份引用，它不会被自动删除，相应的损坏数据依然存在于存储池中，只是不再影响被删除的备份
+    删除备份时，如果某个数据对象或数据块仍被其他未删除的备份引用，它不会被自动删除，相应的损坏数据依然存在于存储池中，只是不再影响被删除的备份
     因此，若要彻底清除损坏数据，你需要删除所有引用它的备份
 
 !!! tip
 
     受影响的备份 ID 可以从 validate 命令的游戏内输出直接点击，也可以从 `validate.log` 日志文件中完整获取
 
-### 方法三：（未实现）提供包含完好数据的文件以重建 blob 或 chunk 数据
+### 方法三：（未实现）提供包含完好数据的文件以重建数据对象或数据块数据
 
 !!! info
 
     此功能尚未实现
 
-从理论上讲，如果你持有一个或多个与受损 blob 或 chunk 内容相同的文件，可以通过专用修复命令让 PB 重新入库这些文件，从而修复损坏的存储条目
+从理论上讲，如果你持有一个或多个与受损数据对象或数据块内容相同的文件，可以通过专用修复命令让 PB 重新入库这些文件，从而修复损坏的存储条目
 
 计划中的大致使用方式：提供一个或多个文件路径（或包含这些文件的压缩包），PB 会对每个输入文件计算哈希值，
-并在数据库中查找具有匹配哈希且处于损坏状态（`missing`、`corrupted`、`mismatched`）的 blob 或 chunk 条目；若找到，则重新写入对应的 blob 文件或打包条目，完成修复
+并在数据库中查找具有匹配哈希且处于损坏状态（`missing`、`corrupted`、`mismatched`）的数据对象或数据块条目；若找到，则重新写入对应的数据对象文件或打包条目，完成修复
 
-当前版本的 PrimeBackup 尚不支持此操作：`!!pb import` 命令在处理文件时，若数据库中已存在相同哈希的 blob 记录，不会重新写入对应的物理文件，
+当前版本的 Prime Backup 尚不支持此操作：`!!pb import` 命令在处理文件时，若数据库中已存在相同哈希的数据对象记录，不会重新写入对应的物理文件，
 因此即使导入包含相同内容的备份，损坏的存储数据也不会被替换
 
 如需此功能，请关注后续版本的更新
 
 ## 总结
 
-| 问题类型                                      | 推荐处理方式                                                                                               |
-|-------------------------------------------|------------------------------------------------------------------------------------------------------|
-| blob 或打包文件缺失（`missing`/`missing_file`） | 从外部备份恢复文件，或删除受影响备份                                                                                              |
-| blob 或打包条目损坏，无法解压（`corrupted`）          | 从外部备份恢复文件，或删除受影响备份                                                                                              |
-| 哈希/大小不匹配（`mismatched`）                  | 从外部备份恢复文件，或删除受影响备份；临时可用 `--no-verify` 绕过                                                                        |
-| 临时需要回档某个受损的备份                           | `!!pb back <ID> --fail-soft`（跳过损坏文件）或 `--no-verify`（跳过哈希校验）                                                     |
-| 想确认损坏的范围                                | `!!pb database validate packs` / `validate blobs` / `validate chunks` / `validate all`，并查阅 `pb_files/logs/validate.log` |
+| 问题类型                                        | 推荐处理方式                                                                                               |
+|---------------------------------------------|------------------------------------------------------------------------------------------------------|
+| 数据对象或打包文件缺失（`missing`/`missing_file`）       | 从外部备份恢复文件，或删除受影响备份                                                                                   |
+| 数据对象或打包条目损坏，无法解压（`corrupted`）               | 从外部备份恢复文件，或删除受影响备份                                                                                   |
+| 哈希/大小不匹配（`mismatched`）                     | 从外部备份恢复文件，或删除受影响备份；临时可用 `--no-verify` 绕过                                                              |
+| 临时需要回档某个受损的备份                               | `!!pb back <ID> --fail-soft`（跳过损坏文件）或 `--no-verify`（跳过哈希校验）                                           |
+| 想确认损坏的范围                                    | `!!pb database validate packs` / `validate blobs` / `validate chunks` / `validate all`，并查阅 `pb_files/logs/validate.log` |

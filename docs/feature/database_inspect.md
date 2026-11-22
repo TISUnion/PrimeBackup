@@ -2,17 +2,15 @@
 title: 'Database Internal Object Inspection'
 ---
 
-View and inspect object information in the database
+Inspect internal objects stored in the database
 
 ## Overview
 
-Prime Backup's database inspection functionality allows you to deeply examine various components of the backup system, including backups, filesets, files, packs, blobs, chunks, and chunk groups
+Database inspection commands let you examine internal objects in Prime Backup, including backups, filesets, files, blobs, packs, chunks, and chunk groups
 
 ## Backup Inspection
 
-### View Backup Details
-
-View complete information for a specific backup:
+Inspect a specific backup:
 
 ```
 !!pb database inspect backup <backup_id>
@@ -91,9 +89,7 @@ Displays the same content as above
 
 ## Fileset Inspection
 
-### View Fileset Details
-
-View complete information for a specific fileset:
+Inspect a specific fileset:
 
 ```
 !!pb database inspect fileset <fileset_id>
@@ -121,15 +117,13 @@ Example output:
 
 ## Blob Inspection
 
-### View Blob Details
-
-View complete information for a specific blob:
+Inspect a specific blob:
 
 ```
 !!pb database inspect blob <hash>
 ```
 
-The parameter `<hash>` can be a prefix of the complete hash string, as long as it uniquely identifies the object
+`<hash>` can be any unique prefix of the full hash string
 
 Example:
 
@@ -162,15 +156,13 @@ If the provided hash is too short and cannot uniquely identify a blob, it will o
 
 ## Pack Inspection
 
-### View Pack Details
-
-View complete information for a specific pack file:
+Inspect a specific pack file:
 
 ```
 !!pb database inspect pack <id_or_file_name>
 ```
 
-The parameter can be a pack ID or a prefix of the derived pack file name, as long as it uniquely identifies the pack file
+The argument can be either a pack ID or any unique prefix of the derived pack file name
 
 Example:
 

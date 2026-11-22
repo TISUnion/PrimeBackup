@@ -13,9 +13,9 @@ Split large files into smaller chunks for better deduplication across backups
 
 ## What File Chunking Is
 
-File chunking is a storage strategy where a large file is split into smaller pieces called chunks before being stored
+File chunking is a storage strategy where a large file is split into smaller pieces called chunks before being stored.
 Each chunk is hashed and deduplicated independently, so when only part of a large file changes between backups,
-only the modified chunks need to be written anew; the unchanged chunks are reused directly from existing storage
+only the modified chunks need to be written; unchanged chunks are reused directly from existing storage
 
 In Prime Backup, restoring a chunked file is transparent to users
 The original file is reconstructed automatically when the backup is read or exported
@@ -114,16 +114,16 @@ The benefit becomes apparent on subsequent backups where many chunks can be reus
 
 ## Available Algorithms
 
-| Algorithm      | Type  | Avg Chunk Size  | Good For                                                                            |
-|----------------|-------|-----------------|-------------------------------------------------------------------------------------|
-| `fastcdc_32k`  | CDC   | 32 KiB          | general-purpose; any locally modified large file                                    |
-| `fastcdc_128k` | CDC   | 128 KiB         | very large files (10 GiB or more) where 32 KiB granularity produces too many chunks |
-| `fastcdc_1m`   | CDC   | 1 MiB           | extremely large files where minimizing per-chunk metadata overhead is a priority    |
-| `fixed_4k`     | Fixed | 4 KiB           | MC region files (matches 4 KiB page boundaries); note: causes severe metadata bloat |
-| `fixed_32k`    | Fixed | 32 KiB          | medium fixed-size use cases                                                         |
-| `fixed_128k`   | Fixed | 128 KiB         | append-write files with predictable end-growth                                      |
-| `fixed_1m`     | Fixed | 1 MiB           | very large append-write files where fine-grained deduplication is not required      |
-| `fixed_auto`   | Fixed | 128 KiB / 4 KiB | adaptive fixed-size chunks based on the previous same-path backup (alpha)           |
+| Algorithm      | Type  | Avg Chunk Size  | Good For                                                                             |
+|----------------|-------|-----------------|--------------------------------------------------------------------------------------|
+| `fastcdc_32k`  | CDC   | 32 KiB          | general-purpose; any locally modified large file                                     |
+| `fastcdc_128k` | CDC   | 128 KiB         | very large files (10 GiB or more) where 32 KiB granularity produces too many chunks  |
+| `fastcdc_1m`   | CDC   | 1 MiB           | extremely large files where minimizing per-chunk metadata overhead is a priority     |
+| `fixed_4k`     | Fixed | 4 KiB           | Minecraft region files (matches 4 KiB page boundaries); note: high metadata overhead |
+| `fixed_32k`    | Fixed | 32 KiB          | medium fixed-size granularity                                                        |
+| `fixed_128k`   | Fixed | 128 KiB         | append-write files with predictable tail growth                                      |
+| `fixed_1m`     | Fixed | 1 MiB           | very large append-only files where fine-grained deduplication is not required        |
+| `fixed_auto`   | Fixed | 128 KiB / 4 KiB | adaptive fixed-size chunks based on the previous same-path backup (alpha)            |
 
 See the detailed pages for each approach:
 
@@ -133,8 +133,8 @@ See the detailed pages for each approach:
 
 ## Observation
 
-Prime Backup maintenance logic already understands chunked storage
+Prime Backup maintenance logic already understands chunked storage.
 You can inspect the effect with `!!pb database overview`, which includes dedicated chunk and pack statistics sections
 
-If Prime Backup finds that one chunked file produced many brand new chunks in a single backup, it will emit a warning in logs
+If Prime Backup finds that one chunked file produced many new chunks in a single backup, it emits a warning in logs.
 That usually means the file is not a good chunking target, unless this is the first backup containing that file

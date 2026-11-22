@@ -23,7 +23,7 @@ and only cover file types with stable benefits, few dependencies, and low false-
 Minecraft world data such as region, entities, and poi data is usually stored in `.mca` files
 
 These files are internally organized around 4 KiB pages. When the world is running,
-only some chunks, entities, or POI data change, so many pages from old backups may be reusable
+only some game chunks, entities, or POI data change, so many pages from old backups may be reusable
 
 `fixed_auto` is recommended. It uses 128 KiB as the default granularity, then falls back to 4 KiB granularity after detecting changed windows,
 which provides a reasonable balance between metadata overhead and reuse quality

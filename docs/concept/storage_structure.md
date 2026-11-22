@@ -46,7 +46,7 @@ Each backup is associated with a base fileset and a delta fileset, which togethe
 
 ## Fileset
 
-Fileset is the storage unit of backups, using a combination of base fileset and delta fileset
+A fileset is the storage unit of a backup, combining a base fileset and a delta fileset
 
 Base Fileset:
 
@@ -62,21 +62,21 @@ Delta Fileset:
 
 ## File
 
-File represents a file item in a backup, containing file metadata and data hash
+A file object represents an entry in a backup, storing its metadata and content reference
 
 - Contains the Unix-style path of the file relative to [source_root](../config.md#source_root)
 - Contains file metadata such as permissions, owner, and timestamps
 - For regular files, stores a reference to the blob containing their content
-- For symbolic link files, directly stores the path they point to
-- Uses the role field to identify its role in the fileset:
-  - Independent file: Complete file in the base fileset
-  - Override file: File in the delta fileset that replaces the base file
-  - Added file: Newly added file in the delta fileset
-  - Delete marker: File that has been deleted in the delta fileset
+- For symbolic links, stores the target path directly
+- Uses the `role` field to identify its role in the fileset:
+  - Independent file: complete file in the base fileset
+  - Override file: file in the delta fileset that replaces the base file
+  - Added file: newly added file in the delta fileset
+  - Delete marker: file removed in the delta fileset
 
 ## Pack
 
-Pack is a generic binary storage object used to store packed entries
+A pack is a generic binary storage object used to store packed entries
 
 - A pack file is identified by its pack ID, and its file name is derived from that ID
 - A pack entry is a byte range inside a pack file, described by pack ID, offset, and size
@@ -85,28 +85,28 @@ Pack is a generic binary storage object used to store packed entries
 
 ## Blob
 
-Blob is the actual storage object for file content
+A blob is the actual storage object for file content
 
-- Uses hash value as its unique identifier, one hash value has exactly one corresponding blob
-- Only stores file content data and its compression method, does not store actual file metadata
-- Has two storage methods: `direct` and `chunked`
-  - A direct blob is stored independently as a file in the `blobs` folder under [storage_root](../config.md#storage_root)
-  - A chunked blob is reconstructed from chunk groups and chunks, and new chunk payloads are stored as pack entries
-- One blob can be referenced by multiple file objects; when the reference count drops to 0, PrimeBackup will delete this blob
+- Identified uniquely by its content hash; each hash maps to exactly one blob
+- Stores only file content data and its compression method, not file metadata
+- Supports two storage methods: `direct` and `chunked`
+  - A direct blob is stored as a standalone file in the `blobs` folder under [storage_root](../config.md#storage_root)
+  - A chunked blob is reconstructed from chunk groups and chunks, with new chunk data stored as pack entries
+- One blob can be referenced by multiple file objects; when the reference count drops to 0, Prime Backup deletes it
 
 ## Chunk and Chunk Group
 
-Chunk is the deduplication unit used by file chunking
+A chunk is the deduplication unit used by file chunking
 
-- A chunk stores a piece of file content, its hash, its compression method, and its size information
-- With CDC, chunk boundaries are content-defined, so inserting or modifying data in the middle of a large file can still keep many neighboring chunks reusable
-- Chunk payloads are stored in pack entries and deduplicated globally
+- A chunk stores a piece of file content along with its hash, compression method, and size information
+- Chunks are cut using the configured algorithm, such as Fixed-Size Chunking or CDC, allowing unchanged parts of a modified file to be reused across backups
+- Chunk data is stored as pack entries and deduplicated globally
 
-Chunk group is an ordered list of chunks used to reduce metadata fan-out for a chunked blob
+A chunk group is an ordered list of chunks used to reduce metadata overhead for a chunked blob
 
 - Prime Backup groups consecutive chunks into chunk groups, then binds chunk groups back to the blob in order
 - Reconstructing a chunked blob means reading its chunk groups in order and then reading the chunks inside each group in order
-- For a chunked blob, the blob `stored_size` is the sum of unique stored chunk sizes instead of the size of one standalone blob file
+- For a chunked blob, `stored_size` is the sum of unique stored chunk sizes rather than the size of a single standalone blob file
 
 ## Storage Architecture Diagram
 

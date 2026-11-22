@@ -5,7 +5,7 @@ title: 'Fixed-Size Chunking'
 !!! note "Beta"
 
     Fixed-size chunking is a beta feature.
-    The overall functionality is usable, but algorithm implemetation and behavior may change in future releases.
+    The overall functionality is usable, but algorithm implementation and behavior may change in future releases.
     Don't worry, data created with fixed-size chunking will remain fully compatible and accessible in future versions.
     Note that `fixed_auto` is in alpha status; see its section below for details
 
@@ -17,8 +17,8 @@ Fixed-size chunking splits files at predictable byte-offset boundaries, with eve
 Fixed-size chunking is conceptually simple: the file is divided into equal-sized pieces from start to end.
 Each piece is hashed and stored independently, just like CDC chunks
 
-Unlike CDC, chunk boundaries do not shift when content is inserted or deleted in the middle of the file.
-Any edit before the end of a chunk changes that chunk's hash entirely, and any insertion or deletion causes all subsequent chunks to shift,
+Unlike CDC, chunk boundaries stay at fixed byte offsets and do not adapt to content changes.
+Any edit alters the hash of the modified chunk, and any insertion or deletion shifts all subsequent file content across fixed boundaries,
 potentially invalidating a large number of previously stored chunks
 
 This means fixed-size chunking is generally inferior to CDC for files with arbitrary edits.
@@ -43,7 +43,7 @@ and the rest of the chunks are identical to those already stored
 
 | Algorithm    | Chunk Size      | Typical Use Case                                                                                                                            |
 |--------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| `fixed_4k`   | 4 KiB           | Minecraft region files (`.mca`): each region file is organized in 4 KiB pages, so changes in one chunk only invalidate that 4 KiB page      |
+| `fixed_4k`   | 4 KiB           | Minecraft region files (`.mca`): each region file is organized in 4 KiB pages, so changes in one game chunk only affect its 4 KiB pages    |
 | `fixed_32k`  | 32 KiB          | General intermediate granularity                                                                                                            |
 | `fixed_128k` | 128 KiB         | Append-only files: growth at the tail only creates new trailing chunks, leaving all previous chunks intact                                  |
 | `fixed_1m`   | 1 MiB           | Very large append-only files: even lower metadata overhead than `fixed_128k`, useful when fine-grained deduplication is not required        |
@@ -51,8 +51,8 @@ and the rest of the chunks are identical to those already stored
 
 ### fixed_4k
 
-The 4KiB chunk size aligns with the internal page structure of Minecraft's Anvil region files (`.mca`).
-In theory, modifying a small number of chunks in the game only dirties a limited number of 4 KiB pages,
+The 4 KiB chunk size aligns with the internal page structure of Minecraft's Anvil region files (`.mca`).
+In theory, modifying a small number of game chunks only modifies a limited number of 4 KiB pages,
 making `fixed_4k` capable of the finest-grained deduplication for region files
 
 However, `fixed_4k` has serious practical drawbacks:

@@ -357,7 +357,7 @@ prime_backup:
     db_prune:
       name: 清理数据库
       start: 正在清理数据库, 删除其中的无效数据, 请稍等...
-      done: 清理完成, 共删除{}个孤儿对象 (含{}个数据对象、{}个文件对象、{}个文件集)、{}个未使用的文件集文件、{}个未知的数据对象文件，回收{}个打包文件并释放{}字节，删除{}个未知打包文件
+      done: 清理完成, 共删除{}个孤立对象 (含{}个数据对象、{}个文件对象、{}个文件集)、{}个未使用的文件集文件、{}个未知的数据对象文件，回收{}个打包文件并释放{}字节，删除{}个未知打包文件
       done_clean: 清理完成, 没有任何需删除的对象, 数据库是干净的
     db_compact_packs:
       name: 整理打包文件
@@ -390,7 +390,7 @@ prime_backup:
           corrupted: '文件损坏的数据对象: {}个'
           mismatched: '信息不匹配的数据对象: {}个'
           bad_layout: '分块布局异常的数据对象: {}个'
-          orphan: '孤儿数据对象: {}个'
+          orphan: '孤立数据对象: {}个'
         affected: '影响范围: {}/{}个文件对象, {}/{}个文件集, {}/{}个备份'
         see_log: '见日志文件 {} 以了解这些数据对象的详细信息及影响范围'
       validate_chunks:
@@ -400,7 +400,7 @@ prime_backup:
           found_bad_chunks: 发现了{}/{}个异常数据块
           bad_type:
             invalid: '非法数据块: {}个'
-            orphan: '孤儿数据块: {}个'
+            orphan: '孤立数据块: {}个'
             missing_pack: '打包文件关系缺失的数据块: {}个'
             missing_file: '打包文件缺失的数据块: {}个'
             bad_pack_entry: '异常打包条目: {}个'
@@ -410,17 +410,17 @@ prime_backup:
           found_bad_chunk_groups: 发现了{}/{}个异常的数据块组
           bad_type:
             invalid: '非法数据块组: {}个'
-            orphan: '孤儿数据块组: {}个'
+            orphan: '孤立数据块组: {}个'
             bad_layout: '分块布局异常的数据块组: {}个'
             bad_chunk_stats: '统计信息异常的数据块组: {}个'
         chunk_group_chunk_binding:
           found_bad_bindings: 发现了{}/{}个异常的数据块组-数据块绑定对象
           bad_type:
-            orphan: '孤儿数据块组-数据块绑定对象: {}个'
+            orphan: '孤立数据块组-数据块绑定对象: {}个'
         blob_chunk_group_binding:
           found_bad_bindings: 发现了{}/{}个异常的数据对象-数据块组绑定对象
           bad_type:
-            orphan: '孤儿数据对象-数据块组: {}个'
+            orphan: '孤立数据对象-数据块组: {}个'
             bad_storage_method: '数据对象的storage_method非预期: {}'
       validate_packs:
         .: 正在验证所有打包文件, 请稍等...
@@ -436,7 +436,7 @@ prime_backup:
         found_bad_files: 发现了{}/{}个异常文件
         bad_type:
           invalid: '非法文件对象: {}个'
-          orphan: '孤儿文件对象: {}个'
+          orphan: '孤立文件对象: {}个'
           bad_blob_relation: '与数据对象错误关联: {}个'
           bad_fileset_relation: '与文件集对象错误关联: {}个'
           file_blob_mismatched: '文件与数据对象间信息不匹配: {}个'
@@ -445,10 +445,10 @@ prime_backup:
         done: 已验证{}/{}个文件集
         all_ok: 全部{}个文件集都是健康的
         found_bad_filesets: 发现了{}/{}个异常文件集
-        fix_orphan_tip: 幸运的是，异常文件集都仅为孤儿文件集，因此不会有任何影响，同时可使用指令{}来进行修复
+        fix_orphan_tip: 幸运的是，异常文件集都仅为孤立文件集，因此不会有任何影响，同时可使用指令{}来进行修复
         bad_type:
           invalid: '非法文件集对象: {}个'
-          orphan: '孤儿文件集对象: {}个'
+          orphan: '孤立文件集对象: {}个'
           bad_base_fileset: '基础文件集异常: {}个'
           bad_file_stats: '文件集的文件统计信息异常: {}个'
           bad_file_role: '文件集的文件角色异常: {}个'

@@ -1,8 +1,8 @@
 ---
-title: '指令'
+title: '命令'
 ---
 
-# MCDR 指令
+# MCDR 命令
 
 !!! note
 
@@ -14,7 +14,7 @@ title: '指令'
 
 ![welcome](img/pb_welcome.zh.png)
 
-## 指令列表概览
+## 命令列表概览
 
 使用 `!!pb help` 可查看所有命令的完整列表
 

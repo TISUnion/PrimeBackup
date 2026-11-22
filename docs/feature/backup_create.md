@@ -8,7 +8,7 @@ Creating a Backup
 
 ### MCDR Environment
 
-To create a backup in MCDR environment, simply execute the following command:
+To create a backup in the MCDR environment, simply execute the following command:
 
 ```
 !!pb make
@@ -39,80 +39,75 @@ Example in-game output:
 
 ![pb make](img/pb_make.png)
 
-If you want to add a comment to the backup for easier identification later, you can use the following command
+To attach a comment for easier identification later, run:
 
 ```
 !!pb make <comment>
 ```
 
-For example
+For example:
 
 ```
 !!pb make Example Comment Here
 ```
 
-After the backup is created, you can use `!!pb show` or `!!pb list` commands to view it
-
-For specific operation steps, please refer to the [Backup Display](backup_display.md) documentation
+Once created, you can view the backup with `!!pb show` or `!!pb list`. See [Backup Display](backup_display.md) for details
 
 ![pb make and show](img/pb_make_show.png)
 
 ### Command Line Environment
 
-Prime Backup also supports the core backup creation operation in command line environment:
+Prime Backup also supports core backup creation from the command line:
 
 ```
 python3 PrimeBackup.pyz -d pb_files -c config/prime_backup/config.json make -s ./server "Example Comment Here"
 ```
 
-The command line `make` command does not interact with the Minecraft server. It will not disable autosave, execute save commands, or wait for world-save completion,
-so save or stop the server yourself before running it
+The CLI `make` command does not interact with the Minecraft server — it will not disable autosave, issue save commands, or wait for world-save completion. Save or stop the server yourself before running it
 
 
 ## Related Configuration
 
-Configuration related to creation is mainly located in the following two sections:
+Backup creation options are mainly located in the following two sections:
 
-- [Server Configuration](../config.md#server-config), including how PB interacts with MC server during backup creation process
-- [Backup Configuration](../config.md#backup-config), including various options related to backup creation
+- [Server config](../config.md#server-config): how Prime Backup interacts with the Minecraft server during backup creation
+- [Backup config](../config.md#backup-config): core options for creating backups
 
-Below are some commonly used configuration items
+Commonly used options:
 
-| Option                                                                       | Function                                                                                                          |
-|------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
-| [server.turn_off_auto_save](../config.md#turn_off_auto_save)                 | Whether to temporarily disable MC's automatic saving during backup creation                                       |
-| [backup.targets](../config.md#targets)                                       | Modify backup targets, adjust which files/folders to backup                                                       |
-| [backup.ignore_patterns](../config.md#ignore_patterns)                       | Ignore certain files during backup, and delete these files during restore                                         |
-| [backup.retain_patterns](../config.md#retain_patterns)                       | Ignore certain files during backup, but keep these files unchanged during restore                                 |
-| [backup.creation_skip_missing_file](../config.md#creation_skip_missing_file) | Skip files that suddenly don't exist during backup                                                                |
-| [backup.hash_method](../config.md#hash_method)                               | Hash algorithm. PB will reuse files with the same hash value to reduce storage space usage                        |
-| [backup.compress_method](../config.md#compress_method)                       | Compression algorithm. The compression algorithm used by PB when storing files                                    |
-| [concurrency](../config.md#concurrency)                                      | Maximum concurrency. Appropriately increase this value according to system resources to speed up hash calculation |
+| Option                                                                       | Description                                                                                    |
+|------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| [server.turn_off_auto_save](../config.md#turn_off_auto_save)                 | Whether to temporarily disable Minecraft autosave during backup creation                       |
+| [backup.targets](../config.md#targets)                                       | Files and directories to back up                                                               |
+| [backup.ignore_patterns](../config.md#ignore_patterns)                       | Patterns for files to exclude during backup and delete during restore                          |
+| [backup.retain_patterns](../config.md#retain_patterns)                       | Patterns for files to exclude during backup while keeping them untouched during restore        |
+| [backup.creation_skip_missing_file](../config.md#creation_skip_missing_file) | Skip files that disappear while a backup is being created                                      |
+| [backup.hash_method](../config.md#hash_method)                               | Hash algorithm used to deduplicate files with identical content                                |
+| [backup.compress_method](../config.md#compress_method)                       | Compression method used when storing backup data                                               |
+| [concurrency](../config.md#concurrency)                                      | Maximum worker concurrency; raising it appropriately can speed up hashing on multi-core hosts  |
 
 
 !!! note
 
-    For the two configuration items `hash_method` and `compress_method`, it is recommended to configure them before creating the first backup. For environments that have already created backups, if you need to modify the above two configuration items, please note:
+    It is best to configure `hash_method` and `compress_method` before creating your first backup. If backups already exist:
 
-    - The `hash_method` configuration item cannot be directly modified. If directly modified, it will cause PB to fail to load. You need to use the `!!pb database migrate_hash_method <xxx>` command to migrate
-    - The `compress_method` configuration item can be directly modified, but the modification only affects newly added files. If you need to modify the compression algorithm of existing data, you can use the `!!pb database migrate_compress_method <xxx>` command
+    - `hash_method` cannot be changed directly in the config file, or Prime Backup will fail to load. Use `!!pb database migrate_hash_method <algorithm>` to migrate
+    - `compress_method` can be changed directly, but it only applies to newly stored data. To recompress existing data, run `!!pb database migrate_compress_method <method>`
 
 
 ## Detailed Backup Process
 
-The following describes the operation process during PB backup creation
-
-1. Interact with MC server to construct an environment suitable for backup creation (all operations below can be configured)
-    1. Use commands such as `save-off` to disable MC's automatic saving
-    2. Use commands such as `save-all flush` to make MC save game data to disk
-    3. Wait for MC to output logs such as `Saved the game`, at this point the game save is complete and backup creation can begin
-2. Create backup
-    1. Scan the backup targets, exclude ignored files, and finally get a list of files to backup, along with file metadata
-    2. If available concurrency configuration > 1, use multi-threading to pre-calculate the hash value of each file to be backed up
-    3. For each file to be backed up, process one by one:
-        1. Calculate hash value. If previously calculated, reuse directly
-        2. Determine if data with this hash value has been backed up before, if not, copy the data to the backup path
-        3. Store this file's metadata and hash value in the database
-    4. Calculate the fileset for this backup, complete the backup
-3. Restore operations on MC server
-    1. If MC's automatic saving was disabled, it will be re-enabled here
+1. Prepare the Minecraft server (all steps below are configurable)
+    1. Disable autosave (e.g. `save-off`)
+    2. Flush world data to disk (e.g. `save-all flush`)
+    3. Wait for the server save confirmation log (e.g. `Saved the game`)
+2. Create the backup
+    1. Scan backup targets and filter out ignored files to build the file list with metadata
+    2. If `concurrency > 1`, pre-compute file hashes in parallel with multiple threads
+    3. For each file:
+        1. Compute its hash, reusing the pre-computed value if available
+        2. Check whether the content is already stored; if not, store it as a direct blob or as deduplicated chunks in pack files when chunking applies
+        3. Record the file metadata and hash in the database
+    4. Allocate and save the fileset for this backup
+3. Restore Minecraft server state
+    1. Re-enable autosave if it was disabled in step 1
